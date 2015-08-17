@@ -16,6 +16,14 @@ limitations under the License.
 
 #include "type.h"
 
+int rand_dev () {
+    std::random_device rd;
+    return rd();
+//    return 4096; // TODO: enable random
+}
+
+std::mt19937_64 rand_gen(rand_dev());
+
 Type::Type (unsigned int _type_id) {
     this->id = _type_id;
     switch (_type_id) {
@@ -57,6 +65,11 @@ Type::Type (unsigned int _type_id) {
     }
 }
 
+Type Type::get_rand_obj () {
+    std::uniform_int_distribution<unsigned int> dis(0, Type::TypeID::MAX_TYPE_ID - 1);
+    return Type (dis(rand_gen));
+}
+
 unsigned int Type::get_id () { return this->id; }
 
 std::string Type::get_name () { return this->name; }
@@ -74,28 +87,28 @@ void Type::set_min_value (int64_t _min_val) { this->min_val = _min_val; }
 int64_t Type::get_min_value () { return this->min_val; }
 
 std::string Type::get_rand_value () { // TODO: can't handle fp types
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
+//    std::random_device rd;
+//    std::mt19937_64 rand_gen(rand_dev());
     std::string ret;
     if (this->name == "unsigned char") {
         std::uniform_int_distribution<unsigned char> dis(this->min_val, this->max_val);
-        ret = std::to_string(dis(gen));
+        ret = std::to_string(dis(rand_gen));
     }
     if (this->name == "unsigned short") {
         std::uniform_int_distribution<unsigned short> dis(this->min_val, this->max_val);
-        ret = std::to_string(dis(gen));
+        ret = std::to_string(dis(rand_gen));
     }
     if (this->name == "unsigned int") {
         std::uniform_int_distribution<unsigned int> dis(this->min_val, this->max_val);
-        ret = std::to_string(dis(gen));
+        ret = std::to_string(dis(rand_gen));
     }
     if (this->name == "unsigned long int") {
         std::uniform_int_distribution<unsigned long int> dis(this->min_val, this->max_val);
-        ret = std::to_string(dis(gen));
+        ret = std::to_string(dis(rand_gen));
     }
     if (this->name == "unsigned long long int") {
         std::uniform_int_distribution<unsigned long long int> dis(this->min_val, this->max_val);
-        ret = std::to_string(dis(gen));
+        ret = std::to_string(dis(rand_gen));
     }
     if (this->name == "unsigned int")
         ret += "U";

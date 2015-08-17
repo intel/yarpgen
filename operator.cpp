@@ -96,6 +96,8 @@ Operator::Operator (const Operator& _op) {
     this->type [SELF] = new Type (_op.type [SELF]->get_id());
     this->type [SELF]->set_max_value (_op.type [SELF]->get_max_value());
     this->type [SELF]->set_min_value (_op.type [SELF]->get_min_value());
+    this->type [LEFT] = _op.type [LEFT];
+    this->type [RGHT] = _op.type [RGHT];
     this->cause_ub = _op.cause_ub;
 }
 
@@ -108,9 +110,16 @@ Operator& Operator::operator=(const Operator& _op) {
         this->type [SELF] = new Type (_op.type [SELF]->get_id());
         this->type [SELF]->set_max_value (_op.type [SELF]->get_max_value());
         this->type [SELF]->set_min_value (_op.type [SELF]->get_min_value());
+        this->type [LEFT] = _op.type [LEFT];
+        this->type [RGHT] = _op.type [RGHT];
         this->cause_ub = _op.cause_ub;
     }
     return *this;
+}
+
+Operator Operator::get_rand_obj () {
+    std::uniform_int_distribution<unsigned int> dis(0, Operator::OperType::MAX_OPER_TYPE - 1);
+    return Operator (dis(rand_gen));
 }
 
 Operator::~Operator () { delete this->type [SELF]; } 

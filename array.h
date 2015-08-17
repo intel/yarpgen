@@ -19,6 +19,8 @@ limitations under the License.
 
 #include "type.h"
 
+extern unsigned int MAX_ARRAY_SIZE;
+
 class Array {
     public:
         explicit Array () {};
@@ -34,6 +36,7 @@ class Array {
         int64_t get_min_value ();
         bool get_is_fp ();
         bool get_is_signed ();
+        static Array get_rand_obj ();
         void dbg_dump ();
 
     private:

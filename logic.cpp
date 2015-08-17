@@ -16,106 +16,48 @@ limitations under the License.
 
 #include "logic.h"
 
-ElemTree::ElemTree (bool _is_op,  Array* _array, unsigned int _oper_type_id) {
-    this->is_op = _is_op;
-    if (this->is_op) {
-        this->oper = Operator (_oper_type_id);
-        this->array = NULL;
+Statement::Statement () {
+    this->out_arrays = NULL;
+    this->num_of_out = 0;
+    this->depth = 0;
+    this->tree.put_value(TreeElem(true, NULL, 0));
+}
+
+Statement::Statement (unsigned int _num_of_out, std::vector<Array>* _inp_arrays, std::vector<Array>* _out_arrays) {
+    this->out_arrays = _out_arrays;
+    this->inp_arrays = _inp_arrays;
+    this->num_of_out = _num_of_out;
+    this->depth = 0;
+    this->tree.put_value(TreeElem(true, NULL, 0));
+}
+
+unsigned int Statement::get_num_of_out () { return this->num_of_out; }
+
+void Statement::set_depth (unsigned int _depth) { this->depth = _depth; }
+
+unsigned int Statement::get_depth () { return this->depth; }
+
+void Statement::set_init_oper_type (unsigned int _oper_type_id) { this->tree.put_value(TreeElem(true, NULL, _oper_type_id)); }
+
+unsigned int Statement::get_init_oper_type () { return tree.get_value<TreeElem>().get_oper_id(); }
+
+void Statement::random_fill () {
+/*    std::uniform_int_distribution<unsigned int> dis(0, Operator::OperType::MAX_OPER_TYPE);
+    this->tree.put_value(TreeElem(true, NULL, dis(rand_gen)));
+    for (int i = 0; i < tree.get_value<TreeElem>().get_num_of_op(); i++) {
+        std::uniform_int_distribution<unsigned int> dis(0, 1);
+        if (dis(rand_gen)) { // Array usage
+            std::uniform_int_distribution<unsigned int> dis(0, this->inp_arrays->size());
+            Array* chld_arr
+        }
+        std::uniform_int_distribution<unsigned int> dis(0, this->inp_arrays->size());
     }
-    else {
-        this->array = _array;
-        this->oper = Operator (Operator::OperType::MAX_OPER_TYPE);
-    }
+*/
 }
 
-bool ElemTree::get_is_op () { return this->is_op; }
-
-std::string ElemTree::get_arr_name () { 
-    if (this->array != NULL)
-        return this->array->get_name();
-    return "";
-}
-
-unsigned int ElemTree::get_arr_size () {
-    if (this->array != NULL)
-        return this->array->get_size();
-    return 0;
-}
-
-std::string ElemTree::get_arr_type_name () {
-    if (this->array != NULL)
-        return this->array->get_type_name();
-    return 0; 
-}
-
-void ElemTree::set_arr_max_value (int64_t _max_val) {
-    if (this->array != NULL)
-        this->array->set_max_value(_max_val);
-}
-
-int64_t ElemTree::get_arr_max_value () {
-    if (this->array != NULL)
-        return this->array->get_max_value();
-    return 0;
-}
-
-void ElemTree::set_arr_min_value (int64_t _min_val) {
-    if (this->array != NULL)
-        this->array->set_min_value(_min_val);
-}
-
-int64_t ElemTree::get_arr_min_value () {
-    if (this->array != NULL)
-        return this->array->get_min_value();
-    return 0;
-}
-
-bool ElemTree::get_arr_is_fp () {
-    if (this->array != NULL)
-        return this->array->get_is_fp();
-    return false;
-}
-
-bool ElemTree::get_arr_is_signed () {
-    if (this->array != NULL)
-        return this->array->get_is_signed();
-    return false;
-}
-
-Array* ElemTree::get_array () { return this->array; }
-
-unsigned int ElemTree::get_oper_id () { return this->oper.get_id(); }
-
-std::string ElemTree::get_oper_name () { return this->oper.get_name(); }
-
-unsigned int ElemTree::get_num_of_op () { return this->oper.get_num_of_op(); }
-
-bool ElemTree::can_oper_cause_ub () { return this->oper.can_cause_ub(); }
-
-void ElemTree::set_oper_type (unsigned int side, Type* _type) { this->oper.set_type (side, _type); }
-
-Type* ElemTree::get_oper_type (unsigned int side) { return this->oper.get_type (side); }
-
-unsigned int ElemTree::get_oper_type_id (unsigned int side) { return this->oper.get_type_id (side); }
-
-std::string ElemTree::get_oper_type_name (unsigned int side) { return this->oper.get_type_name (side); }
-
-bool ElemTree::get_oper_type_is_fp (unsigned int side) { return this->oper.get_is_fp (side); }
-
-bool ElemTree::get_oper_type_is_signed (unsigned int side) { return this->oper.get_is_signed (side); }
-
-void ElemTree::set_oper_max_value (unsigned int side, int64_t _max_val) { this->oper.set_max_value (side, _max_val); }
-
-int64_t ElemTree::get_oper_max_value (unsigned int side) { return this->oper.get_max_value (side); }
-
-void ElemTree::set_oper_min_value (unsigned int side, int64_t _min_val) { this->oper.set_min_value (side, _min_val); }
-
-int64_t ElemTree::get_oper_min_value (unsigned int side) { return this->oper.get_min_value (side); }
-
-Operator ElemTree::get_oper () { return this->oper; }
-
-void ElemTree::dbg_dump () {
-    std::cout << "is_op " << this->is_op << std::endl;
-    if (this->array != NULL) this->array->dbg_dump();
-    if (this->oper.get_id() != Operator::OperType::MAX_OPER_TYPE) this->oper.dbg_dump();
+void Statement::dbg_dump () {
+    if (this->out_arrays != NULL) this->out_arrays->at(this->num_of_out).dbg_dump();
+    std::cout << "num of out array " << this->num_of_out << std::endl;
+    
+    tree.get_value<TreeElem>().dbg_dump();
 }

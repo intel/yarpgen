@@ -33,7 +33,6 @@ class Operator {
         std::string get_name ();
         unsigned int get_num_of_op ();
         bool can_cause_ub ();
-        void dbg_dump ();
         void set_type (unsigned int side, Type* _type);
         Type* get_type (unsigned int side);
         unsigned int get_type_id (unsigned int side);
@@ -44,6 +43,8 @@ class Operator {
         int64_t get_max_value (unsigned int side);
         void set_min_value (unsigned int side, int64_t _min_val);
         int64_t get_min_value (unsigned int side);
+        static Operator get_rand_obj ();
+        void dbg_dump ();
 
 
     public:

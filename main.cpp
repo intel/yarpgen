@@ -18,8 +18,8 @@ limitations under the License.
 #include "array.h"
 #include "loop.h"
 #include "operator.h"
+#include "tree_elem.h"
 #include "logic.h"
-
 
 int main () {
 /*
@@ -93,11 +93,10 @@ int main () {
     std::cout << a.get_min_value (Operator::Side::LEFT) << std::endl;
     a.dbg_dump();
 
-*/
     Array b ("b", Type::TypeID::ULLINT, 10);
-    ElemTree c (true, NULL, Operator::OperType::MUL);
+    TreeElem c (true, NULL, Operator::OperType::MUL);
     c.dbg_dump();
-    ElemTree a (false, &b, Operator::OperType::MAX_OPER_TYPE);
+    TreeElem a (false, &b, Operator::OperType::MAX_OPER_TYPE);
     a.dbg_dump();
 
     std::cout << a.get_is_op() << std::endl;
@@ -128,4 +127,35 @@ int main () {
     std::cout << c.get_oper_min_value (Operator::Side::LEFT) << std::endl;
     std::cout << c.can_oper_cause_ub () << std::endl;
     c.dbg_dump();
+
+    std::vector<Array> in;
+    in.push_back(Array ("a1", 0, 2));
+    in.push_back(Array ("a2", 2, 5));
+    std::vector<Array> out;
+    out.push_back(Array ("b", 1, 3));
+    Statement a (0, &in, &out);
+    std::cout << a.get_num_of_out () << std::endl;
+    std::cout << a.get_depth () << std::endl;
+    a.set_depth(5);
+    std::cout << a.get_depth () << std::endl;
+    std::cout << a.get_init_oper_type () << std::endl;
+    a.set_init_oper_type (Operator::OperType::SUB);
+    std::cout << a.get_init_oper_type () << std::endl;
+    a.dbg_dump();
+    a.random_fill ();
+    a.dbg_dump();
+
+    Type a = Type::get_rand_obj ();
+    a.dbg_dump();
+
+    Array a = Array::get_rand_obj ();
+    a.dbg_dump();
+    Array b = Array::get_rand_obj ();
+    b.dbg_dump();
+
+    Operator a = Operator::get_rand_obj ();
+    a.dbg_dump();
+*/
+    TreeElem a = TreeElem::get_rand_obj_op ();
+    a.dbg_dump();
 }

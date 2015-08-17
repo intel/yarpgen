@@ -16,10 +16,19 @@ limitations under the License.
 
 #include "array.h"
 
+unsigned int MAX_ARRAY_SIZE = 100;
+unsigned int ARR_BASE_NUM = 0;
+
 Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->name = _name;
     this->type = Type (_type_id);
     this->size = _size;
+}
+
+Array Array::get_rand_obj () {
+    std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
+    std::uniform_int_distribution<unsigned int> size_dis(1, MAX_ARRAY_SIZE);
+    return Array ("in_" + std::to_string(ARR_BASE_NUM++), type_dis(rand_gen), size_dis(rand_gen));
 }
 
 void Array::dbg_dump () {

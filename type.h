@@ -24,6 +24,9 @@ limitations under the License.
 #include <random>
 #include <typeinfo>
 
+int rand_dev ();
+extern std::mt19937_64 rand_gen;
+
 class Type {
     public:
         explicit Type () {};
@@ -36,6 +39,7 @@ class Type {
         int64_t get_max_value ();
         void set_min_value (int64_t _min_val);
         int64_t get_min_value ();
+        static Type get_rand_obj ();
         std::string get_rand_value ();
         void dbg_dump();
 

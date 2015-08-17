@@ -14,50 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _LOGIC_H
-#define _LOGIC_H
+#ifndef _LOGIH_H
+#define _LOGIH_H
 
+#include <boost/property_tree/ptree.hpp>
 #include "type.h"
 #include "array.h"
-#include "loop.h"
 #include "operator.h"
+#include "tree_elem.h"
 
-class ElemTree {
+class Statement {
     public:
-        ElemTree () {}
-        ElemTree (bool _is_op,  Array* _array, unsigned int _oper_type_id);
-        bool get_is_op ();
-        std::string get_arr_name ();
-        unsigned int get_arr_size ();
-        std::string get_arr_type_name ();
-        void set_arr_max_value (int64_t _max_val);
-        int64_t get_arr_max_value ();
-        void set_arr_min_value (int64_t _min_val);
-        int64_t get_arr_min_value ();
-        bool get_arr_is_fp ();
-        bool get_arr_is_signed ();
-        Array* get_array ();
-        unsigned int get_oper_id ();
-        std::string get_oper_name ();
-        unsigned int get_num_of_op ();
-        bool can_oper_cause_ub ();
-        void set_oper_type (unsigned int side, Type* _type);
-        Type* get_oper_type (unsigned int side);
-        unsigned int get_oper_type_id (unsigned int side);
-        std::string get_oper_type_name (unsigned int side);
-        bool get_oper_type_is_fp (unsigned int side);
-        bool get_oper_type_is_signed (unsigned int side);
-        void set_oper_max_value (unsigned int side, int64_t _max_val);
-        int64_t get_oper_max_value (unsigned int side);
-        void set_oper_min_value (unsigned int side, int64_t _min_val);
-        int64_t get_oper_min_value (unsigned int side);
-        Operator get_oper ();
+        Statement ();
+        Statement (unsigned int _num_of_out, std::vector<Array>* _inp_arrays, std::vector<Array>* _out_arrays);
+        void set_init_oper_type (unsigned int _oper_type_id);
+        unsigned int get_init_oper_type ();
+        unsigned int get_num_of_out ();
+        void set_depth (unsigned int _depth);
+        unsigned int get_depth ();
+        void random_fill ();
         void dbg_dump ();
 
+
     private:
-        bool is_op;
-        Array* array;
-        Operator oper;
+        unsigned int num_of_out;
+        unsigned int depth;
+        std::vector<Array>* out_arrays;
+        std::vector<Array>* inp_arrays;
+        boost::property_tree::basic_ptree <std::string, TreeElem> tree;
 };
 
 #endif
