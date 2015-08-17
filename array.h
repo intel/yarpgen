@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _ARRAY_H
-#define _ARRAY_H
+#pragma once
 
 #include "type.h"
 
@@ -44,5 +43,3 @@ class Array {
         unsigned int size;
         Type type;
 };
-
-#endif

@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _OPERATOR_H
-#define _OPERATOR_H
+#pragma once
 
 #include <iostream>
 #include "type.h"
@@ -73,5 +72,3 @@ class Operator {
         Type* type [MAX_SIDE];
         bool cause_ub;
 };
-
-#endif

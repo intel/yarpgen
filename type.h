@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _TYPE_H
-#define _TYPE_H
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -63,5 +62,3 @@ class Type {
         bool is_fp;
         bool is_signed;
 };
-
-#endif

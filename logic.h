@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _LOGIH_H
-#define _LOGIH_H
+#pragma once
 
 #include <boost/property_tree/ptree.hpp>
 #include "type.h"
@@ -43,5 +42,3 @@ class Statement {
         std::vector<Array>* inp_arrays;
         boost::property_tree::basic_ptree <std::string, TreeElem> tree;
 };
-
-#endif

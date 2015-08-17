@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _LOOP_H
-#define _LOOP_H
+#pragma once
 
 #include <iostream>
 #include <map>
@@ -57,5 +56,3 @@ class Loop {
         int64_t step;
         unsigned int condition; 
 };
-
-#endif

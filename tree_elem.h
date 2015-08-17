@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _TREE_ELEM_H
-#define _TREE_ELEM_H
+#pragma once
 
 #include "type.h"
 #include "array.h"
@@ -60,5 +59,3 @@ class TreeElem {
         Array* array;
         Operator oper;
 };
-
-#endif
