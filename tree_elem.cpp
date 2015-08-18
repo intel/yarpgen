@@ -119,6 +119,17 @@ int64_t TreeElem::get_oper_min_value (unsigned int side) { return this->oper.get
 
 Operator TreeElem::get_oper () { return this->oper; }
 
+std::string TreeElem::emit_usage () {
+    std::string ret;
+    if (this->get_is_op () == false && 
+        this->get_oper_id () == Operator::OperType::MAX_OPER_TYPE && 
+        this->get_array () != NULL)
+        ret = this->array->emit_usage ();
+    else
+        ret = this->oper.emit_usage ();
+    return ret;
+}
+
 void TreeElem::dbg_dump () {
     std::cout << "is_op " << this->is_op << std::endl;
     if (this->array != NULL) this->array->dbg_dump();

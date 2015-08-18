@@ -31,6 +31,11 @@ Array Array::get_rand_obj () {
     return Array ("in_" + std::to_string(ARR_BASE_NUM++), type_dis(rand_gen), size_dis(rand_gen));
 }
 
+std::string Array::emit_usage () {
+    std::string ret = this->get_name () + " [i]";
+    return ret;
+}
+
 void Array::dbg_dump () {
     std::cout << "name " << this->name << std::endl;
     std::cout << "size " << this->size << std::endl;

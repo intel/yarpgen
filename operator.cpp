@@ -18,7 +18,7 @@ limitations under the License.
 
 Operator::Operator () {
     this->id = MAX_OPER_TYPE;
-    this->type [SELF] = NULL;
+    this->type [SELF] = new Type (Type::TypeID::UCHAR);
     this->type [LEFT] = NULL;
     this->type [RGHT] = NULL;
     this->name = "";
@@ -186,7 +186,12 @@ int64_t Operator::get_min_value (unsigned int side) {
 
 bool Operator::can_cause_ub () { return this->cause_ub; }
 
-void Operator::dbg_dump () {
+std::string Operator::emit_usage () {
+    std::string ret = " " + this->get_name () + " ";
+    return ret;
+}
+
+void Operator::dbg_dump () const {
     std::cout << "id " << this->id << std::endl;
     std::cout << "name " << this->name << std::endl;
     std::cout << "num_of_op " << this->num_of_op << std::endl;

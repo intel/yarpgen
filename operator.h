@@ -43,7 +43,8 @@ class Operator {
         void set_min_value (unsigned int side, int64_t _min_val);
         int64_t get_min_value (unsigned int side);
         static Operator get_rand_obj ();
-        void dbg_dump ();
+        std::string emit_usage ();
+        void dbg_dump () const;
 
 
     public:

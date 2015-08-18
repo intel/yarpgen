@@ -51,6 +51,7 @@ int main () {
     a.set_min_value(ULLONG_MAX - 1);
     std::cout << a.get_max_value() << std::endl;
     std::cout << a.get_min_value() << std::endl;
+    std::cout << a.emit_usage () <<  std::endl;
 
     Loop a;
     a.dbg_dump ();
@@ -92,6 +93,7 @@ int main () {
     a.set_min_value (Operator::Side::LEFT, 10);
     std::cout << a.get_min_value (Operator::Side::LEFT) << std::endl;
     a.dbg_dump();
+    std::cout << a.emit_usage() << std::endl;
 
     Array b ("b", Type::TypeID::ULLINT, 10);
     TreeElem c (true, NULL, Operator::OperType::MUL);
@@ -127,6 +129,9 @@ int main () {
     std::cout << c.get_oper_min_value (Operator::Side::LEFT) << std::endl;
     std::cout << c.can_oper_cause_ub () << std::endl;
     c.dbg_dump();
+    std::cout << a.emit_usage() << std::endl;
+    std::cout << c.emit_usage() << std::endl;
+*/
 
     std::vector<Array> in;
     in.push_back(Array ("a1", 0, 2));
@@ -134,6 +139,7 @@ int main () {
     std::vector<Array> out;
     out.push_back(Array ("b", 1, 3));
     Statement a (0, &in, &out);
+/*
     std::cout << a.get_num_of_out () << std::endl;
     std::cout << a.get_depth () << std::endl;
     a.set_depth(5);
@@ -142,8 +148,11 @@ int main () {
     a.set_init_oper_type (Operator::OperType::SUB);
     std::cout << a.get_init_oper_type () << std::endl;
     a.dbg_dump();
+*/
+    a.set_depth(50);
     a.random_fill ();
     a.dbg_dump();
+/*
 
     Type a = Type::get_rand_obj ();
     a.dbg_dump();
@@ -155,7 +164,8 @@ int main () {
 
     Operator a = Operator::get_rand_obj ();
     a.dbg_dump();
-*/
+
     TreeElem a = TreeElem::get_rand_obj_op ();
     a.dbg_dump();
+*/
 }

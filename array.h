@@ -35,6 +35,7 @@ class Array {
         int64_t get_min_value ();
         bool get_is_fp ();
         bool get_is_signed ();
+        std::string emit_usage ();
         static Array get_rand_obj ();
         void dbg_dump ();
 

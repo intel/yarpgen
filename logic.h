@@ -22,6 +22,8 @@ limitations under the License.
 #include "operator.h"
 #include "tree_elem.h"
 
+typedef boost::property_tree::basic_ptree <std::string, TreeElem> ArithTree;
+
 class Statement {
     public:
         Statement ();
@@ -32,13 +34,17 @@ class Statement {
         void set_depth (unsigned int _depth);
         unsigned int get_depth ();
         void random_fill ();
+        std::string emit_usage ();
         void dbg_dump ();
 
+    private:
+        ArithTree fill_level (ArithTree &apt, unsigned int level);
+        std::string emit_level (ArithTree &apt, unsigned int level);
 
     private:
         unsigned int num_of_out;
         unsigned int depth;
         std::vector<Array>* out_arrays;
         std::vector<Array>* inp_arrays;
-        boost::property_tree::basic_ptree <std::string, TreeElem> tree;
+        ArithTree tree;
 };

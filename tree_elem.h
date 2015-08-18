@@ -52,6 +52,7 @@ class TreeElem {
         int64_t get_oper_min_value (unsigned int side);
         Operator get_oper ();
         static TreeElem get_rand_obj_op ();
+        std::string emit_usage ();
         void dbg_dump ();
 
     private:
