@@ -25,31 +25,6 @@ Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->size = _size;
 }
 
-Array::Array (const Array& _op) {
-    this->name = _op.name;
-    this->type = Type::init (_op.get_type_id());
-    set_max_value (_op.get_max_value());
-    set_min_value (_op.get_min_value());
-    set_bound_value(_op.get_bound_value());
-    this->size = _op.size;
-}
-
-Array& Array::operator=(const Array& _op) {
-    if (this != &_op) {
-        this->name = _op.name;
-        delete type;
-        this->type = Type::init (_op.get_type_id());
-        set_max_value (_op.get_max_value());
-        set_min_value (_op.get_min_value());
-        set_bound_value(_op.get_bound_value());
-        this->size = _op.size; 
-    }
-    return *this;
-}
-
-Array::~Array () { delete type; }
-
-
 Array Array::get_rand_obj () {
     std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
     std::uniform_int_distribution<unsigned int> size_dis(1, MAX_ARRAY_SIZE);

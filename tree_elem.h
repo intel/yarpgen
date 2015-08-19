@@ -24,7 +24,7 @@ limitations under the License.
 class TreeElem {
     public:
         TreeElem () {}
-        TreeElem (bool _is_op,  Array* _array, unsigned int _oper_type_id);
+        TreeElem (bool _is_op, std::shared_ptr<Array> _array, unsigned int _oper_type_id);
         bool get_is_op ();
         std::string get_arr_name ();
         unsigned int get_arr_size ();
@@ -35,14 +35,14 @@ class TreeElem {
         int64_t get_arr_min_value ();
         bool get_arr_is_fp ();
         bool get_arr_is_signed ();
-        Array* get_array ();
+        std::shared_ptr<Array> get_array ();
         unsigned int get_oper_id ();
         std::string get_oper_name ();
         unsigned int get_num_of_op ();
         bool can_oper_cause_ub ();
-        void set_oper_type (unsigned int side, Type* _type);
+        void set_oper_type (unsigned int side, std::shared_ptr<Type> _type);
         void set_oper_self_type (unsigned int _type_id);
-        Type* get_oper_type (unsigned int side);
+        std::shared_ptr<Type> get_oper_type (unsigned int side);
         unsigned int get_oper_type_id (unsigned int side);
         std::string get_oper_type_name (unsigned int side);
         bool get_oper_type_is_fp (unsigned int side);
@@ -59,6 +59,6 @@ class TreeElem {
 
     private:
         bool is_op;
-        Array* array;
+        std::shared_ptr<Array> array;
         Operator oper;
 };

@@ -89,49 +89,6 @@ Operator::Operator (unsigned int _id) {
     }
 }
 
-Operator::Operator (const Operator& _op) {
-    this->id = _op.id;
-    this->name = _op.name;
-    this->num_of_op = _op.num_of_op;
-    for (int i = 0; i < MAX_SIDE; i++)
-        if (_op.type [i] != NULL) {
-            this->type [i] = Type::init (_op.get_type_id(i));
-            set_max_value(i, _op.get_max_value(i));
-            set_min_value(i, _op.get_min_value(i));
-            set_bound_value(i, _op.get_bound_value(i));
-        }
-        else {
-            this->type [i] = Type::init(Type::TypeID::MAX_TYPE_ID);
-        }
-    this->cause_ub = _op.cause_ub;
-}
-
-Operator& Operator::operator=(const Operator& _op) {
-    if (this != &_op) {
-        this->id = _op.id;
-        this->name = _op.name;
-        this->num_of_op = _op.num_of_op;
-        for (int i = 0; i < MAX_SIDE; i++) {
-            delete this->type [i];
-            if (_op.type [i] != NULL) {
-                this->type [i] = Type::init (_op.get_type_id(i));
-                set_max_value(i, _op.get_max_value(i));
-                set_min_value(i, _op.get_min_value(i));
-                set_bound_value(i, _op.get_bound_value(i));
-            }
-            else
-                this->type [i] = NULL;
-        }
-        this->cause_ub = _op.cause_ub;
-    }
-    return *this;
-}
-
-Operator::~Operator () { 
-    for (int i = 0; i < MAX_SIDE; i++)
-        delete this->type [i];
-}
-
 Operator Operator::get_rand_obj () {
     std::uniform_int_distribution<unsigned int> dis(0, Operator::OperType::MAX_OPER_TYPE - 1);
     return Operator (dis(rand_gen));
@@ -166,12 +123,9 @@ std::string Operator::get_name () const {  return this->name; }
 
 unsigned int Operator::get_num_of_op () const { return this->num_of_op; }
 
-void Operator::set_type (unsigned int side, Type* _type) {
-    delete this->type [side];
-    this->type [side] = _type;
-}
+void Operator::set_type (unsigned int side, std::shared_ptr<Type> _type) { this->type [side] = _type; }
 
-Type* Operator::get_type (unsigned int side) const {
+std::shared_ptr<Type> Operator::get_type (unsigned int side) const {
     if (this->type [side] != NULL)
         return this->type [side];
     return NULL;

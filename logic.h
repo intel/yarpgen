@@ -27,7 +27,7 @@ typedef boost::property_tree::basic_ptree <std::string, TreeElem> ArithTree;
 class Statement {
     public:
         Statement ();
-        Statement (unsigned int _num_of_out, std::vector<Array>* _inp_arrays, std::vector<Array>* _out_arrays);
+        Statement (unsigned int _num_of_out, std::shared_ptr<std::vector<Array>> _inp_arrays, std::shared_ptr<std::vector<Array>> _out_arrays);
         void set_init_oper_type (unsigned int _oper_type_id);
         unsigned int get_init_oper_type ();
         unsigned int get_num_of_out ();
@@ -46,8 +46,8 @@ class Statement {
     private:
         unsigned int num_of_out;
         unsigned int depth;
-        std::vector<Array>* out_arrays;
-        std::vector<Array>* inp_arrays;
+        std::shared_ptr<std::vector<Array>> out_arrays;
+        std::shared_ptr<std::vector<Array>> inp_arrays;
         ArithTree tree;
         enum InfoType {
             USAGE, TYPE, MAX_INFO_TYPE

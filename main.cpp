@@ -23,7 +23,7 @@ limitations under the License.
 
 int main () {
 /*
-    Type* a = Type::init (Type::TypeID::ULLINT);
+    std::shared_ptr<Type> a = Type::init (Type::TypeID::ULLINT);
     std::cout << a->get_id() << std::endl;
     std::cout << a->get_name () << std::endl;
     std::cout << a->get_is_fp() << std::endl;
@@ -67,7 +67,7 @@ int main () {
     b = a;
     b.dbg_dump ();
     std::cout << (b.get_bound_value()).at(0) <<  std::endl;
-/
+
     Loop a;
     a.dbg_dump ();
     std::cout << a.get_loop_type() << std::endl;
@@ -100,7 +100,7 @@ int main () {
     std::cout << a.get_name () << std::endl;
     std::cout << a.can_cause_ub () << std::endl;
     std::cout << a.get_num_of_op () << std::endl;
-    Type* t = Type::init (Type::TypeID::UINT);
+    std::shared_ptr<Type> t = Type::init (Type::TypeID::UINT);
     a.set_type (Operator::Side::LEFT, t);
     std::cout << a.get_type_id (Operator::Side::LEFT) << std::endl;
     std::cout << a.get_type_name(Operator::Side::LEFT) << std::endl;
@@ -122,7 +122,7 @@ int main () {
     Array b ("b", Type::TypeID::ULLINT, 10);
     TreeElem c (true, NULL, Operator::OperType::MUL);
     c.dbg_dump();
-    TreeElem a (false, &b, Operator::OperType::MAX_OPER_TYPE);
+    TreeElem a (false, std::make_shared<Array> (b), Operator::OperType::MAX_OPER_TYPE);
     a.dbg_dump();
 
     std::cout << a.get_is_op() << std::endl;
@@ -139,7 +139,7 @@ int main () {
     std::cout << c.get_oper_id () << std::endl;
     std::cout << c.get_oper_name () << std::endl;
     std::cout << c.get_num_of_op () << std::endl;
-    Type* t = Type::init (Type::TypeID::UINT);
+    std::shared_ptr<Type> t = Type::init (Type::TypeID::UINT);
     c.set_oper_type(Operator::Side::LEFT, t);
     std::cout << c.get_oper_type_id (Operator::Side::LEFT) << std::endl;
     std::cout << c.get_oper_type_name(Operator::Side::LEFT) << std::endl;
@@ -156,13 +156,12 @@ int main () {
     std::cout << a.emit_usage() << std::endl;
     std::cout << c.emit_usage() << std::endl;
 */
-
     std::vector<Array> in;
     in.push_back(Array ("a1", 0, 2));
     in.push_back(Array ("a2", 2, 5));
     std::vector<Array> out;
     out.push_back(Array ("b", 1, 3));
-    Statement a (0, &in, &out);
+    Statement a (0, std::make_shared<std::vector<Array>>(in), std::make_shared<std::vector<Array>>(out));
 
     std::cout << a.get_num_of_out () << std::endl;
     std::cout << a.get_depth () << std::endl;
@@ -175,7 +174,6 @@ int main () {
     a.set_depth(5);
     a.random_fill ();
     a.dbg_dump();
-
 /*
     Type a = Type::get_rand_obj ();
     a.dbg_dump();

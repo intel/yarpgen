@@ -24,31 +24,31 @@ int rand_dev () {
 
 std::mt19937_64 rand_gen(rand_dev());
 
-Type* Type::init (unsigned int _type_id) {
-    Type* ret = NULL;
+std::shared_ptr<Type> Type::init (unsigned int _type_id) {
+    std::shared_ptr<Type> ret (NULL);
     switch (_type_id) {
         case TypeID::UCHAR:
-            ret = new TypeUCHAR ();
+            ret = std::make_shared<TypeUCHAR> (TypeUCHAR());
             break;
         case TypeID::USHRT:
-            ret = new TypeUSHRT ();
+            ret = std::make_shared<TypeUSHRT> (TypeUSHRT());
             break;
         case TypeID::UINT:
-            ret = new TypeUINT ();
+            ret = std::make_shared<TypeUINT> (TypeUINT());
             break;
         case TypeID::ULINT:
-            ret = new TypeULINT ();
+            ret = std::make_shared<TypeULINT> (TypeULINT());
             break;
          case TypeID::ULLINT:
-            ret = new TypeULLINT ();
+            ret = std::make_shared<TypeULLINT> (TypeULLINT());
             break;
     }
     return ret;
 }
 
-Type* Type::get_rand_obj () {
+std::shared_ptr<Type> Type::get_rand_obj () {
     std::uniform_int_distribution<unsigned int> dis(0, Type::TypeID::MAX_TYPE_ID - 1);
-    Type* ret = init (dis(rand_gen));
+    std::shared_ptr<Type> ret = init (dis(rand_gen));
     return ret;
 }
 

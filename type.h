@@ -23,6 +23,7 @@ limitations under the License.
 #include <random>
 #include <typeinfo>
 #include <algorithm>
+#include <memory>
 
 int rand_dev ();
 extern std::mt19937_64 rand_gen;
@@ -30,7 +31,7 @@ extern std::mt19937_64 rand_gen;
 class Type {
     public:
         explicit Type () {};
-        static Type* init (unsigned int _type_id);
+        static std::shared_ptr<Type> init (unsigned int _type_id);
         unsigned int get_id ();
         std::string get_name ();
         bool get_is_fp ();
@@ -46,7 +47,7 @@ class Type {
         void add_bound_value (uint64_t bval);
         bool check_val_in_domains (uint64_t val);
         bool check_val_in_domains (std::string val);
-        static Type* get_rand_obj ();
+        static std::shared_ptr<Type> get_rand_obj ();
         virtual uint64_t get_rand_value () = 0;
         virtual std::string get_rand_value_str () = 0;
         void dbg_dump();

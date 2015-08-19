@@ -24,9 +24,6 @@ class Array {
     public:
         explicit Array () : type(NULL) {};
         explicit Array (std::string _name, unsigned int _type_id, unsigned int _size);
-        Array (const Array& _op);
-        Array& operator=(const Array& _op);
-        ~Array ();
         std::string get_name () const;
         void set_size (unsigned int _size);
         unsigned int get_size () const;
@@ -47,5 +44,5 @@ class Array {
     private:
         std::string name;
         unsigned int size;
-        Type* type;
+        std::shared_ptr<Type> type;
 };

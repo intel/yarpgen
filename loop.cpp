@@ -23,39 +23,11 @@ Loop::Loop () {
     this->condition = CondType::LT;
 }
 
-Loop::Loop (const Loop& _op) {
-    this->loop_type = _op.loop_type;
-    this->iter_type = Type::init (_op.get_iter_type_id());
-    set_start_value (_op.get_start_value());
-    set_end_value (_op.get_end_value());
-    this->iter_type->set_bound_value (_op.iter_type->get_bound_value());
-    this->condition = _op.condition;
-}
-
-Loop& Loop::operator=(const Loop& _op) {
-    if (this != &_op) {
-        this->loop_type = _op.loop_type;
-        delete this->iter_type;
-        this->iter_type = Type::init (_op.get_iter_type_id());
-        set_start_value (_op.get_start_value());
-        set_end_value (_op.get_end_value());
-        this->iter_type->set_bound_value (_op.iter_type->get_bound_value());
-        this->condition = _op.condition;
-    }
-    return *this;
-}
-
-
-Loop::~Loop () { delete this->iter_type; }
-
 void Loop::set_loop_type (unsigned int _loop_type) { this->loop_type = _loop_type; }
 
 unsigned int Loop::get_loop_type () const { return this->loop_type; }
 
-void Loop::set_iter_type (unsigned int _iter_type_id) { 
-    delete this->iter_type;
-    this->iter_type = Type::init (_iter_type_id); 
-}
+void Loop::set_iter_type (unsigned int _iter_type_id) { this->iter_type = Type::init (_iter_type_id); }
 
 unsigned int Loop::get_iter_type_id () const {return this->iter_type->get_id(); }
 

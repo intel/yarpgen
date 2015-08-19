@@ -16,7 +16,7 @@ limitations under the License.
 
 #include "tree_elem.h"
 
-TreeElem::TreeElem (bool _is_op,  Array* _array, unsigned int _oper_type_id) {
+TreeElem::TreeElem (bool _is_op, std::shared_ptr<Array> _array, unsigned int _oper_type_id) {
     this->is_op = _is_op;
     if (this->is_op) {
         this->oper = Operator (_oper_type_id);
@@ -89,7 +89,7 @@ bool TreeElem::get_arr_is_signed () {
     return false;
 }
 
-Array* TreeElem::get_array () { return this->array; }
+std::shared_ptr<Array> TreeElem::get_array () { return this->array; }
 
 unsigned int TreeElem::get_oper_id () { return this->oper.get_id(); }
 
@@ -99,11 +99,11 @@ unsigned int TreeElem::get_num_of_op () { return this->oper.get_num_of_op(); }
 
 bool TreeElem::can_oper_cause_ub () { return this->oper.can_cause_ub(); }
 
-void TreeElem::set_oper_type (unsigned int side, Type* _type) { this->oper.set_type (side, _type); }
+void TreeElem::set_oper_type (unsigned int side, std::shared_ptr<Type> _type) { this->oper.set_type (side, _type); }
 
 void TreeElem::set_oper_self_type (unsigned int _type_id) { this->oper.set_type (Operator::Side::SELF, Type::init(_type_id)); }
 
-Type* TreeElem::get_oper_type (unsigned int side) { return this->oper.get_type (side); }
+std::shared_ptr<Type> TreeElem::get_oper_type (unsigned int side) { return this->oper.get_type (side); }
 
 unsigned int TreeElem::get_oper_type_id (unsigned int side) { return this->oper.get_type_id (side); }
 

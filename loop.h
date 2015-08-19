@@ -24,9 +24,6 @@ limitations under the License.
 class Loop {
     public:
         Loop ();
-        Loop (const Loop& _op);
-        Loop& operator=(const Loop& _op);
-        ~Loop (); 
         void set_loop_type (unsigned int _loop_type);
         unsigned int get_loop_type () const;
         void set_iter_type (unsigned int _iter_type_id);
@@ -53,7 +50,7 @@ class Loop {
 
     private:
         unsigned int loop_type;
-        Type* iter_type;
+        std::shared_ptr<Type> iter_type;
         uint64_t step;
         unsigned int condition; 
 };

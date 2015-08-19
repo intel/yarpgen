@@ -25,16 +25,13 @@ class Operator {
     public:
         explicit Operator ();
         explicit Operator (unsigned int _id);
-        Operator (const Operator& _op);
-        Operator& operator=(const Operator& _op);
-        ~Operator ();
         unsigned int get_id () const;
         std::string get_name () const;
         unsigned int get_num_of_op () const;
         bool can_cause_ub ();
-        void set_type (unsigned int side, Type* _type);
-        void set_self_type (Type* _type);
-        Type* get_type (unsigned int side) const;
+        void set_type (unsigned int side, std::shared_ptr<Type> _type);
+        void set_self_type (std::shared_ptr<Type> _type);
+        std::shared_ptr<Type> get_type (unsigned int side) const;
         unsigned int get_type_id (unsigned int side) const;
         std::string get_type_name (unsigned int side) const;
         bool get_is_fp (unsigned int side) const;
@@ -75,6 +72,6 @@ class Operator {
         unsigned int id;
         std::string name;
         unsigned int num_of_op;
-        Type* type [MAX_SIDE];
+        std::shared_ptr<Type> type [MAX_SIDE];
         bool cause_ub;
 };

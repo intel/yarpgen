@@ -23,7 +23,7 @@ Statement::Statement () {
     this->tree.put_value(TreeElem(true, NULL, 0));
 }
 
-Statement::Statement (unsigned int _num_of_out, std::vector<Array>* _inp_arrays, std::vector<Array>* _out_arrays) {
+Statement::Statement (unsigned int _num_of_out, std::shared_ptr<std::vector<Array>> _inp_arrays, std::shared_ptr<std::vector<Array>> _out_arrays) {
     this->out_arrays = _out_arrays;
     this->inp_arrays = _inp_arrays;
     this->num_of_out = _num_of_out;
@@ -63,7 +63,7 @@ ArithTree& Statement::fill_level (ArithTree &apt, unsigned int level) {
         if (variate) { // Array
             std::uniform_int_distribution<unsigned int> dis(0, this->inp_arrays->size() - 1);
             // 2 - i because I want to reduce if statements in emit phase
-            apt.put(std::to_string(2 - i), TreeElem(false, &this->inp_arrays->at(dis(rand_gen)), Operator::OperType::MAX_OPER_TYPE));
+            apt.put(std::to_string(2 - i), TreeElem(false, std::make_shared<Array>(this->inp_arrays->at(dis(rand_gen))), Operator::OperType::MAX_OPER_TYPE));
         }
         else { // Operator
             apt.put(std::to_string(2 - i), TreeElem::get_rand_obj_op ( apt.get_value<TreeElem>().get_oper_type_id(Operator::Side::SELF)));
