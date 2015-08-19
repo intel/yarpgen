@@ -23,20 +23,23 @@ limitations under the License.
 
 class Loop {
     public:
-        Loop (); 
+        Loop ();
+        Loop (const Loop& _op);
+        Loop& operator=(const Loop& _op);
+        ~Loop (); 
         void set_loop_type (unsigned int _loop_type);
-        unsigned int get_loop_type ();
+        unsigned int get_loop_type () const;
         void set_iter_type (unsigned int _iter_type_id);
-        unsigned int get_iter_type_id ();
-        std::string get_iter_type_name ();
-        void set_start_val (int64_t _start_val);
-        int64_t get_start_val ();
-        void set_end_val (int64_t _end_val);
-        int64_t get_end_val ();
-        void set_step (int64_t _step);
-        int64_t get_step ();
+        unsigned int get_iter_type_id () const;
+        std::string get_iter_type_name () const;
+        void set_start_value (uint64_t _start_val);
+        uint64_t get_start_value () const;
+        void set_end_value (uint64_t _end_val);
+        uint64_t get_end_value () const;
+        void set_step (uint64_t _step);
+        uint64_t get_step () const;
         void set_condition (unsigned int _condition);
-        unsigned int get_condition ();
+        unsigned int get_condition () const;
         Loop rand_init ();
         void dbg_dump ();
 
@@ -50,9 +53,7 @@ class Loop {
 
     private:
         unsigned int loop_type;
-        Type iter_type;
-        int64_t start_val;
-        int64_t end_val;
-        int64_t step;
+        Type* iter_type;
+        uint64_t step;
         unsigned int condition; 
 };

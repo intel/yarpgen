@@ -38,8 +38,10 @@ class Statement {
         void dbg_dump ();
 
     private:
-        ArithTree fill_level (ArithTree &apt, unsigned int level);
-        std::string emit_level (ArithTree &apt, unsigned int level);
+        ArithTree& fill_level (ArithTree &apt, unsigned int level);
+        std::string emit_level (ArithTree &apt, unsigned int level, unsigned int info_type);
+        std::string emit_type ();
+        void push_out_arr_type ();
 
     private:
         unsigned int num_of_out;
@@ -47,4 +49,7 @@ class Statement {
         std::vector<Array>* out_arrays;
         std::vector<Array>* inp_arrays;
         ArithTree tree;
+        enum InfoType {
+            USAGE, TYPE, MAX_INFO_TYPE
+        };
 };

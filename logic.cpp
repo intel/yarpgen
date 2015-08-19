@@ -29,6 +29,14 @@ Statement::Statement (unsigned int _num_of_out, std::vector<Array>* _inp_arrays,
     this->num_of_out = _num_of_out;
     this->depth = 0;
     this->tree.put_value(TreeElem(true, NULL, Operator::OperType::MAX_OPER_TYPE));
+    push_out_arr_type ();
+}
+
+void Statement::push_out_arr_type () {
+    TreeElem subtree = this->tree.get_value<TreeElem> ();
+    if (this->out_arrays != NULL) 
+        subtree.set_oper_self_type(this->out_arrays->at(this->num_of_out).get_type_id());
+    this->tree.put_value(subtree);
 }
 
 unsigned int Statement::get_num_of_out () { return this->num_of_out; }
@@ -44,10 +52,11 @@ unsigned int Statement::get_init_oper_type () { return tree.get_value<TreeElem>(
 void Statement::random_fill () {
     if (tree.get_value<TreeElem>().get_oper_id () == Operator::OperType::MAX_OPER_TYPE)
         this->tree.put_value(TreeElem::get_rand_obj_op ());
+    push_out_arr_type();
     fill_level(this->tree, 1);
 }
 
-ArithTree Statement::fill_level (ArithTree &apt, unsigned int level) {
+ArithTree& Statement::fill_level (ArithTree &apt, unsigned int level) {
     for (int i = apt.get_value<TreeElem>().get_num_of_op(); i > 0; --i) {
         std::uniform_int_distribution<unsigned int> dis(0, 1);
         unsigned int variate = (level == this->get_depth()) ? true : dis(rand_gen);
@@ -57,46 +66,49 @@ ArithTree Statement::fill_level (ArithTree &apt, unsigned int level) {
             apt.put(std::to_string(2 - i), TreeElem(false, &this->inp_arrays->at(dis(rand_gen)), Operator::OperType::MAX_OPER_TYPE));
         }
         else { // Operator
-            apt.put(std::to_string(2 - i), TreeElem::get_rand_obj_op ());
+            apt.put(std::to_string(2 - i), TreeElem::get_rand_obj_op ( apt.get_value<TreeElem>().get_oper_type_id(Operator::Side::SELF)));
+            if (level < this->get_depth())
+                fill_level(apt.get_child(std::to_string(2 - i)), level + 1);
         }
-        if (level < this->get_depth())
-            fill_level(apt.get_child(std::to_string(2 - i)), level + 1);
     }
     return apt;
 }
 
 std::string Statement::emit_usage () {
-    std::string ret = emit_level (this->tree, 0);
+    std::string ret = emit_level (this->tree, 0, InfoType::USAGE);
     return ret;
 }
 
-std::string Statement::emit_level (ArithTree &apt, unsigned int level) {
+std::string Statement::emit_type () {
+    std::string ret = emit_level (this->tree, 0, InfoType::TYPE);
+    return ret;
+}
+
+std::string Statement::emit_level (ArithTree &apt, unsigned int level, unsigned int info_type) {
     std::string ret = "(";
     if (apt.get_value<TreeElem>().get_num_of_op() == 2) {
-        if (level < this->get_depth()&& apt.get_value<TreeElem>().get_is_op()) {
-            ret += emit_level(apt.get_child("0"), level + 1);
+        if (apt.get_value<TreeElem>().get_is_op()) {
+            ret += emit_level(apt.get_child("0"), level + 1, info_type);
         }
     }
-    ret += apt.get_value<TreeElem>().emit_usage();
-    if (level < this->get_depth() && apt.get_value<TreeElem>().get_is_op()) {
-        ret += emit_level(apt.get_child("1"), level + 1);
+    switch (info_type) {
+        case InfoType::USAGE:
+            ret += apt.get_value<TreeElem>().emit_usage();
+            break;
+        case InfoType::TYPE:
+            ret += apt.get_value<TreeElem>().get_type_name();
+            break;
+    };
+    if (apt.get_value<TreeElem>().get_is_op()) {
+        ret += emit_level(apt.get_child("1"), level + 1, info_type);
     }
     ret += ")";
     return ret;
 }
 
 void Statement::dbg_dump () {
-//    if (this->out_arrays != NULL) this->out_arrays->at(this->num_of_out).dbg_dump();
-//    std::cout << "num of out array " << this->num_of_out << std::endl;
-
-//    std::cout << this->tree.get_value<TreeElem>().emit_usage() << std::endl;
-
-//    for (auto iter: this->tree) {
-//        std::cout << iter.first << std::endl;
-//        std::cout << iter.second.data().emit_usage() << std::endl;
-//    }
+    if (this->out_arrays != NULL) this->out_arrays->at(this->num_of_out).dbg_dump();
+    std::cout << "num of out array " << this->num_of_out << std::endl;
     std::cout << emit_usage () << std::endl;
-       
-
-//    tree.get_value<TreeElem>().dbg_dump();
+    std::cout << emit_type () << std::endl;
 }

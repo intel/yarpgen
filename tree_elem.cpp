@@ -28,9 +28,11 @@ TreeElem::TreeElem (bool _is_op,  Array* _array, unsigned int _oper_type_id) {
     }
 }
 
-TreeElem TreeElem::get_rand_obj_op () {
+TreeElem TreeElem::get_rand_obj_op (unsigned int _type_id) {
     std::uniform_int_distribution<unsigned int> dis(0, Type::TypeID::MAX_TYPE_ID - 1);
-    return TreeElem (true, NULL, dis(rand_gen));
+    TreeElem ret = TreeElem (true, NULL, dis(rand_gen));
+    ret.set_oper_self_type (_type_id);
+    return ret;
 }
 
 bool TreeElem::get_is_op () { return this->is_op; }
@@ -99,6 +101,8 @@ bool TreeElem::can_oper_cause_ub () { return this->oper.can_cause_ub(); }
 
 void TreeElem::set_oper_type (unsigned int side, Type* _type) { this->oper.set_type (side, _type); }
 
+void TreeElem::set_oper_self_type (unsigned int _type_id) { this->oper.set_type (Operator::Side::SELF, Type::init(_type_id)); }
+
 Type* TreeElem::get_oper_type (unsigned int side) { return this->oper.get_type (side); }
 
 unsigned int TreeElem::get_oper_type_id (unsigned int side) { return this->oper.get_type_id (side); }
@@ -118,6 +122,13 @@ void TreeElem::set_oper_min_value (unsigned int side, int64_t _min_val) { this->
 int64_t TreeElem::get_oper_min_value (unsigned int side) { return this->oper.get_min_value (side); }
 
 Operator TreeElem::get_oper () { return this->oper; }
+
+std::string TreeElem::get_type_name () {
+    if (get_is_op())
+        return get_oper_type_name(Operator::Side::SELF);
+    else 
+        return get_arr_type_name(); 
+}
 
 std::string TreeElem::emit_usage () {
     std::string ret;

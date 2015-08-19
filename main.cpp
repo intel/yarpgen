@@ -23,23 +23,33 @@ limitations under the License.
 
 int main () {
 /*
-    Type a = Type (Type::TypeID::ULLINT);
-    std::cout << a.get_id() << std::endl;
-    std::cout << a.get_is_fp() << std::endl;
-    std::cout << a.get_is_signed() << std::endl;
-    std::cout << a.get_max_value() << std::endl;
-    std::cout << a.get_min_value() << std::endl;
-    a.set_max_value(ULLONG_MAX);
-    a.set_min_value(ULLONG_MAX - 1);
-    std::cout << a.get_max_value() << std::endl;
-    std::cout << a.get_min_value() << std::endl;
-    std::cout << a.get_rand_value() << std::endl;
+    Type* a = Type::init (Type::TypeID::ULLINT);
+    std::cout << a->get_id() << std::endl;
+    std::cout << a->get_name () << std::endl;
+    std::cout << a->get_is_fp() << std::endl;
+    std::cout << a->get_is_signed() << std::endl;
+    std::cout << a->get_max_value() << std::endl;
+    std::cout << a->get_min_value() << std::endl;
+    a->set_max_value(50);
+    a->set_min_value(10);
+    std::cout << a->get_max_value() << std::endl;
+    std::cout << a->get_min_value() << std::endl;
+    std::cout << a->get_abs_min() << std::endl;
+    std::cout << a->get_abs_max() << std::endl;
+    std::cout << a->get_rand_value() << std::endl;
+    std::cout << a->get_rand_value_str() << std::endl;
+    a->add_bound_value(0);
+    std::cout << a->check_val_in_domains (0ULL)  << std::endl;
+    std::cout << a->check_val_in_domains ("MAX")  << std::endl;
 
     Array a ("a", Type::TypeID::ULLINT, 10);
     a.dbg_dump();
     std::cout << a.get_name()  << std::endl;
     std::cout << a.get_size()  << std::endl;
     a.set_size(100);
+    std::vector<uint64_t> v;
+    v.push_back(20);
+    a.set_bound_value(v);
     std::cout << a.get_size()  << std::endl;
     std::cout << a.get_type_id()  << std::endl;
     std::cout << a.get_type_name()  << std::endl;
@@ -53,6 +63,11 @@ int main () {
     std::cout << a.get_min_value() << std::endl;
     std::cout << a.emit_usage () <<  std::endl;
 
+    Array b;
+    b = a;
+    b.dbg_dump ();
+    std::cout << (b.get_bound_value()).at(0) <<  std::endl;
+/
     Loop a;
     a.dbg_dump ();
     std::cout << a.get_loop_type() << std::endl;
@@ -62,26 +77,31 @@ int main () {
     a.set_iter_type(Type::TypeID::UINT);
     std::cout << a.get_iter_type_id() << std::endl;
     std::cout << a.get_iter_type_name() << std::endl;
-    std::cout << a.get_start_val() << std::endl;
-    a.set_start_val(10);
-    std::cout << a.get_start_val() << std::endl;
-    std::cout << a.get_end_val() << std::endl;
-    a.set_end_val(15);
-    std::cout << a.get_end_val() << std::endl;
+    std::cout << a.get_start_value() << std::endl;
+    a.set_start_value(10);
+    std::cout << a.get_start_value() << std::endl;
+    std::cout << a.get_end_value() << std::endl;
+    a.set_end_value(15);
+    std::cout << a.get_end_value() << std::endl;
     std::cout << a.get_step() << std::endl;
     a.set_step(2);
     std::cout << a.get_step() << std::endl;
     std::cout << a.get_condition() << std::endl;
     a.set_condition (Loop::CondType::EQ);
     std::cout << a.get_condition() << std::endl;
+    a.dbg_dump ();
+
+    Loop b;
+    b = a;
+    b.dbg_dump ();   
 
     Operator a (0);
     std::cout << a.get_id () << std::endl;
     std::cout << a.get_name () << std::endl;
     std::cout << a.can_cause_ub () << std::endl;
     std::cout << a.get_num_of_op () << std::endl;
-    Type t = Type (Type::TypeID::UINT);
-    a.set_type (Operator::Side::LEFT, &t);
+    Type* t = Type::init (Type::TypeID::UINT);
+    a.set_type (Operator::Side::LEFT, t);
     std::cout << a.get_type_id (Operator::Side::LEFT) << std::endl;
     std::cout << a.get_type_name(Operator::Side::LEFT) << std::endl;
     std::cout << a.get_is_fp (Operator::Side::LEFT) << std::endl;
@@ -94,6 +114,10 @@ int main () {
     std::cout << a.get_min_value (Operator::Side::LEFT) << std::endl;
     a.dbg_dump();
     std::cout << a.emit_usage() << std::endl;
+
+    Operator b;
+    b = a;
+    b.dbg_dump();
 
     Array b ("b", Type::TypeID::ULLINT, 10);
     TreeElem c (true, NULL, Operator::OperType::MUL);
@@ -115,8 +139,8 @@ int main () {
     std::cout << c.get_oper_id () << std::endl;
     std::cout << c.get_oper_name () << std::endl;
     std::cout << c.get_num_of_op () << std::endl;
-    Type t = Type (Type::TypeID::UINT);
-    c.set_oper_type(Operator::Side::LEFT, &t);
+    Type* t = Type::init (Type::TypeID::UINT);
+    c.set_oper_type(Operator::Side::LEFT, t);
     std::cout << c.get_oper_type_id (Operator::Side::LEFT) << std::endl;
     std::cout << c.get_oper_type_name(Operator::Side::LEFT) << std::endl;
     std::cout << c.get_oper_type_is_fp (Operator::Side::LEFT) << std::endl;
@@ -139,7 +163,7 @@ int main () {
     std::vector<Array> out;
     out.push_back(Array ("b", 1, 3));
     Statement a (0, &in, &out);
-/*
+
     std::cout << a.get_num_of_out () << std::endl;
     std::cout << a.get_depth () << std::endl;
     a.set_depth(5);
@@ -147,13 +171,12 @@ int main () {
     std::cout << a.get_init_oper_type () << std::endl;
     a.set_init_oper_type (Operator::OperType::SUB);
     std::cout << a.get_init_oper_type () << std::endl;
-    a.dbg_dump();
-*/
-    a.set_depth(50);
+
+    a.set_depth(5);
     a.random_fill ();
     a.dbg_dump();
-/*
 
+/*
     Type a = Type::get_rand_obj ();
     a.dbg_dump();
 

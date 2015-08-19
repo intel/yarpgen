@@ -18,9 +18,9 @@ limitations under the License.
 
 Operator::Operator () {
     this->id = MAX_OPER_TYPE;
-    this->type [SELF] = new Type (Type::TypeID::UCHAR);
-    this->type [LEFT] = NULL;
-    this->type [RGHT] = NULL;
+    this->type [SELF] = Type::init (Type::TypeID::UCHAR);
+    this->type [LEFT] = Type::init (Type::TypeID::UCHAR);
+    this->type [RGHT] = Type::init (Type::TypeID::UCHAR);
     this->name = "";
     this->num_of_op = 0;
     this->cause_ub = false;
@@ -28,9 +28,9 @@ Operator::Operator () {
 
 Operator::Operator (unsigned int _id) {
     this->id = _id;
-    this->type [SELF] = new Type (Type::TypeID::UCHAR);
-    this->type [LEFT] = NULL;
-    this->type [RGHT] = NULL;
+    this->type [SELF] = Type::init (Type::TypeID::UCHAR);
+    this->type [LEFT] = Type::init (Type::TypeID::UCHAR);
+    this->type [RGHT] = Type::init (Type::TypeID::UCHAR);
     switch (_id) {
         case OperType::UN_INC:
             this->name = "+";
@@ -93,11 +93,16 @@ Operator::Operator (const Operator& _op) {
     this->id = _op.id;
     this->name = _op.name;
     this->num_of_op = _op.num_of_op;
-    this->type [SELF] = new Type (_op.type [SELF]->get_id());
-    this->type [SELF]->set_max_value (_op.type [SELF]->get_max_value());
-    this->type [SELF]->set_min_value (_op.type [SELF]->get_min_value());
-    this->type [LEFT] = _op.type [LEFT];
-    this->type [RGHT] = _op.type [RGHT];
+    for (int i = 0; i < MAX_SIDE; i++)
+        if (_op.type [i] != NULL) {
+            this->type [i] = Type::init (_op.get_type_id(i));
+            set_max_value(i, _op.get_max_value(i));
+            set_min_value(i, _op.get_min_value(i));
+            set_bound_value(i, _op.get_bound_value(i));
+        }
+        else {
+            this->type [i] = Type::init(Type::TypeID::MAX_TYPE_ID);
+        }
     this->cause_ub = _op.cause_ub;
 }
 
@@ -106,15 +111,25 @@ Operator& Operator::operator=(const Operator& _op) {
         this->id = _op.id;
         this->name = _op.name;
         this->num_of_op = _op.num_of_op;
-        delete this->type [SELF];
-        this->type [SELF] = new Type (_op.type [SELF]->get_id());
-        this->type [SELF]->set_max_value (_op.type [SELF]->get_max_value());
-        this->type [SELF]->set_min_value (_op.type [SELF]->get_min_value());
-        this->type [LEFT] = _op.type [LEFT];
-        this->type [RGHT] = _op.type [RGHT];
+        for (int i = 0; i < MAX_SIDE; i++) {
+            delete this->type [i];
+            if (_op.type [i] != NULL) {
+                this->type [i] = Type::init (_op.get_type_id(i));
+                set_max_value(i, _op.get_max_value(i));
+                set_min_value(i, _op.get_min_value(i));
+                set_bound_value(i, _op.get_bound_value(i));
+            }
+            else
+                this->type [i] = NULL;
+        }
         this->cause_ub = _op.cause_ub;
     }
     return *this;
+}
+
+Operator::~Operator () { 
+    for (int i = 0; i < MAX_SIDE; i++)
+        delete this->type [i];
 }
 
 Operator Operator::get_rand_obj () {
@@ -122,66 +137,113 @@ Operator Operator::get_rand_obj () {
     return Operator (dis(rand_gen));
 }
 
-Operator::~Operator () { delete this->type [SELF]; } 
+void Operator::generate_domains () {
+/*    if (!can_cause_ub())
+        return;
+    switch (get_id()) {
+        case OperType::UN_INC:
+            return;
+        case OperType::UN_DEC:
+            if (get_is_signed(SELF)) {
+                // TODO
+            }
+            else {
+                if (check_val_in_domains(RGHT, 0))
+                    add_bound_value(RGHT, 0);
+                set_min_value(RGHT,  
+                    
+            }
+            break;
+            
+            
+    };
+*/
+}
 
-unsigned int Operator::get_id () { return this->id; }
+unsigned int Operator::get_id () const { return this->id; }
 
-std::string Operator::get_name (){  return this->name; }
+std::string Operator::get_name () const {  return this->name; }
 
-unsigned int Operator::get_num_of_op () { return this->num_of_op; }
+unsigned int Operator::get_num_of_op () const { return this->num_of_op; }
 
 void Operator::set_type (unsigned int side, Type* _type) {
+    delete this->type [side];
     this->type [side] = _type;
 }
- 
-Type* Operator::get_type (unsigned int side) {
-    return this->type [side];
+
+Type* Operator::get_type (unsigned int side) const {
+    if (this->type [side] != NULL)
+        return this->type [side];
+    return NULL;
 }
 
-unsigned int Operator::get_type_id (unsigned int side) { 
+unsigned int Operator::get_type_id (unsigned int side) const {
     if (this->type [side] != NULL)
-        return this->type [side]->get_id(); 
+        return this->type [side]->get_id();
     return Type::TypeID::MAX_TYPE_ID;
 }
 
-std::string Operator::get_type_name (unsigned int side) { 
+std::string Operator::get_type_name (unsigned int side) const {
     if (this->type [side] != NULL)
-        return this->type [side]->get_name(); 
+        return this->type [side]->get_name();
     return "";
 }
 
-bool Operator::get_is_fp (unsigned int side) { 
+bool Operator::get_is_fp (unsigned int side) const {
     if (this->type [side] != NULL)
-        return this->type [side]->get_is_fp(); 
+        return this->type [side]->get_is_fp();
     return true;
 }
 
-bool Operator::get_is_signed (unsigned int side) { 
+bool Operator::get_is_signed (unsigned int side) const {
     if (this->type [side] != NULL)
-        return this->type [side]->get_is_signed(); 
+        return this->type [side]->get_is_signed();
     return true;
 }
 
-void Operator::set_max_value (unsigned int side, int64_t _max_val) { 
+void Operator::set_max_value (unsigned int side, uint64_t _max_val) {
     if (this->type [side] != NULL)
-        this->type [side]->set_max_value (_max_val); 
+        this->type [side]->set_max_value (_max_val);
 }
 
-int64_t Operator::get_max_value (unsigned int side) { 
+uint64_t Operator::get_max_value (unsigned int side) const {
     if (this->type [side] != NULL)
-        return this->type [side]->get_max_value (); 
+        return this->type [side]->get_max_value ();
     return 0;
 }
 
-void Operator::set_min_value (unsigned int side, int64_t _min_val) { 
+void Operator::set_min_value (unsigned int side, uint64_t _min_val) {
     if (this->type [side] != NULL)
-        this->type [side]->set_min_value (_min_val); 
+        this->type [side]->set_min_value (_min_val);
 }
 
-int64_t Operator::get_min_value (unsigned int side) { 
+uint64_t Operator::get_min_value (unsigned int side) const {
     if (this->type [side] != NULL)
-        return this->type [side]->get_min_value (); 
+        return this->type [side]->get_min_value ();
     return 0;
+}
+
+void Operator::set_bound_value (unsigned int side, std::vector<uint64_t> bval) { 
+    if (this->type [side] != NULL)
+        this->type [side]->set_bound_value (bval);
+}
+
+std::vector<uint64_t> Operator::get_bound_value (unsigned int side) const {
+    std::vector<uint64_t> ret;
+    if (this->type [side] != NULL)
+        ret = this->type [side]->get_bound_value ();
+    return ret;
+}
+
+void Operator::add_bound_value (unsigned int side, uint64_t bval) { 
+    if (this->type [side] != NULL)
+        this->type [side]->add_bound_value (bval); 
+}
+
+bool Operator::check_val_in_domains (unsigned int side, uint64_t val) { 
+    if (this->type [side] != NULL)
+        return this->type [side]->check_val_in_domains (val); 
+    return false;
 }
 
 bool Operator::can_cause_ub () { return this->cause_ub; }
@@ -191,7 +253,7 @@ std::string Operator::emit_usage () {
     return ret;
 }
 
-void Operator::dbg_dump () const {
+void Operator::dbg_dump () {
     std::cout << "id " << this->id << std::endl;
     std::cout << "name " << this->name << std::endl;
     std::cout << "num_of_op " << this->num_of_op << std::endl;

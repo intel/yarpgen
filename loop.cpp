@@ -18,38 +18,64 @@ limitations under the License.
 
 Loop::Loop () {
     this->loop_type = LoopType::FOR;
-    this->iter_type = Type (Type::TypeID::UCHAR);
-    this->start_val = this->iter_type.get_min_value ();
-    this->end_val = this->iter_type.get_max_value ();
+    this->iter_type = Type::init (Type::TypeID::UCHAR);
     this->step = 1;
     this->condition = CondType::LT;
 }
 
+Loop::Loop (const Loop& _op) {
+    this->loop_type = _op.loop_type;
+    this->iter_type = Type::init (_op.get_iter_type_id());
+    set_start_value (_op.get_start_value());
+    set_end_value (_op.get_end_value());
+    this->iter_type->set_bound_value (_op.iter_type->get_bound_value());
+    this->condition = _op.condition;
+}
+
+Loop& Loop::operator=(const Loop& _op) {
+    if (this != &_op) {
+        this->loop_type = _op.loop_type;
+        delete this->iter_type;
+        this->iter_type = Type::init (_op.get_iter_type_id());
+        set_start_value (_op.get_start_value());
+        set_end_value (_op.get_end_value());
+        this->iter_type->set_bound_value (_op.iter_type->get_bound_value());
+        this->condition = _op.condition;
+    }
+    return *this;
+}
+
+
+Loop::~Loop () { delete this->iter_type; }
+
 void Loop::set_loop_type (unsigned int _loop_type) { this->loop_type = _loop_type; }
 
-unsigned int Loop::get_loop_type () { return this->loop_type; }
+unsigned int Loop::get_loop_type () const { return this->loop_type; }
 
-void Loop::set_iter_type (unsigned int _iter_type_id) { this->iter_type = Type (_iter_type_id); }
+void Loop::set_iter_type (unsigned int _iter_type_id) { 
+    delete this->iter_type;
+    this->iter_type = Type::init (_iter_type_id); 
+}
 
-unsigned int Loop::get_iter_type_id () {return this->iter_type.get_id(); }
+unsigned int Loop::get_iter_type_id () const {return this->iter_type->get_id(); }
 
-std::string Loop::get_iter_type_name () { return this->iter_type.get_name (); }
+std::string Loop::get_iter_type_name () const { return this->iter_type->get_name (); }
 
-void Loop::set_start_val (int64_t _start_val) { this->start_val = _start_val; }
+void Loop::set_start_value (uint64_t _start_val) { this->iter_type->set_min_value(_start_val); }
 
-int64_t Loop::get_start_val () { return this->start_val; }
+uint64_t Loop::get_start_value () const { return this->iter_type->get_min_value(); }
 
-void Loop::set_end_val (int64_t _end_val) { this->end_val = _end_val; }
+void Loop::set_end_value (uint64_t _end_val) { this->iter_type->set_max_value(_end_val); }
 
-int64_t Loop::get_end_val () { return this->end_val; }
+uint64_t Loop::get_end_value () const { return this->iter_type->get_max_value(); }
 
-void Loop::set_step (int64_t _step) { this->step = _step; }
+void Loop::set_step (uint64_t _step) { this->step = _step; }
 
-int64_t Loop::get_step () { return this->step; }
+uint64_t Loop::get_step () const { return this->step; }
 
 void Loop::set_condition (unsigned int _condition) { this->condition = _condition; }
 
-unsigned int Loop::get_condition () { return this->condition; }
+unsigned int Loop::get_condition () const { return this->condition; }
 
 void Loop::dbg_dump () {
     std::string loop_type_str;
@@ -68,9 +94,9 @@ void Loop::dbg_dump () {
             break;
     }
     std::cout << "loop type " << loop_type_str << std::endl;
-    this->iter_type.dbg_dump ();
-    std::cout << "start_val " << this->start_val << std::endl;
-    std::cout << "end_val " << this->end_val << std::endl;
+    this->iter_type->dbg_dump ();
+    std::cout << "start_val " << get_start_value() << std::endl;
+    std::cout << "end_val " << get_end_value() << std::endl;
     std::cout << "step " << this->step << std::endl;
 
     std::string cond_str;
