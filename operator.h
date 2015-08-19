@@ -64,7 +64,10 @@ class Operator {
             MAX_OPER_TYPE 
         };
         enum Side {
-            SELF, LEFT, RGHT, MAX_SIDE
+            RGHT = 0,
+            LEFT = 1,
+            SELF = 2,
+            MAX_SIDE
         };
 
 

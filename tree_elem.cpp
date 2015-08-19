@@ -31,8 +31,24 @@ TreeElem::TreeElem (bool _is_op, std::shared_ptr<Array> _array, unsigned int _op
 TreeElem TreeElem::get_rand_obj_op (unsigned int _type_id) {
     std::uniform_int_distribution<unsigned int> dis(0, Type::TypeID::MAX_TYPE_ID - 1);
     TreeElem ret = TreeElem (true, NULL, dis(rand_gen));
-    ret.set_oper_self_type (_type_id);
+    ret.set_oper_type (Operator::Side::SELF,_type_id);
     return ret;
+}
+
+TreeElem TreeElem::get_rand_obj_op (std::shared_ptr<Type> _type) {
+    TreeElem ret = TreeElem::get_rand_obj_op (Type::TypeID::UCHAR);
+    ret.set_oper_type (Operator::Side::SELF, _type);
+    return ret;
+}
+
+void TreeElem::determine_range () {
+       // TODO: replace everything
+    set_oper_type (Operator::Side::LEFT, get_oper_type_id(Operator::Side::SELF));
+    set_oper_type (Operator::Side::RGHT, get_oper_type_id(Operator::Side::SELF));
+    set_oper_max_value(Operator::Side::LEFT, get_oper_max_value(Operator::Side::SELF) / 2);
+    set_oper_max_value(Operator::Side::RGHT, get_oper_max_value(Operator::Side::SELF) / 2);
+    set_oper_min_value(Operator::Side::LEFT, get_oper_min_value(Operator::Side::SELF) / 2);
+    set_oper_min_value(Operator::Side::RGHT, get_oper_min_value(Operator::Side::SELF) / 2);
 }
 
 bool TreeElem::get_is_op () { return this->is_op; }
@@ -101,7 +117,7 @@ bool TreeElem::can_oper_cause_ub () { return this->oper.can_cause_ub(); }
 
 void TreeElem::set_oper_type (unsigned int side, std::shared_ptr<Type> _type) { this->oper.set_type (side, _type); }
 
-void TreeElem::set_oper_self_type (unsigned int _type_id) { this->oper.set_type (Operator::Side::SELF, Type::init(_type_id)); }
+void TreeElem::set_oper_type (unsigned int side, unsigned int _type_id) { this->oper.set_type (side, Type::init(_type_id)); }
 
 std::shared_ptr<Type> TreeElem::get_oper_type (unsigned int side) { return this->oper.get_type (side); }
 

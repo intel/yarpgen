@@ -41,7 +41,7 @@ class TreeElem {
         unsigned int get_num_of_op ();
         bool can_oper_cause_ub ();
         void set_oper_type (unsigned int side, std::shared_ptr<Type> _type);
-        void set_oper_self_type (unsigned int _type_id);
+        void set_oper_type (unsigned int side, unsigned int _type_id);
         std::shared_ptr<Type> get_oper_type (unsigned int side);
         unsigned int get_oper_type_id (unsigned int side);
         std::string get_oper_type_name (unsigned int side);
@@ -53,6 +53,8 @@ class TreeElem {
         int64_t get_oper_min_value (unsigned int side);
         Operator get_oper ();
         std::string get_type_name ();
+        void determine_range ();
+        static TreeElem get_rand_obj_op (std::shared_ptr<Type> _type);
         static TreeElem get_rand_obj_op (unsigned int _type_id = 0);
         std::string emit_usage ();
         void dbg_dump ();

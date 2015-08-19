@@ -33,10 +33,17 @@ Statement::Statement (unsigned int _num_of_out, std::shared_ptr<std::vector<Arra
 }
 
 void Statement::push_out_arr_type () {
-    TreeElem subtree = this->tree.get_value<TreeElem> ();
+    TreeElem subtree = this->tree.get_value<TreeElem>();
     if (this->out_arrays != NULL) 
-        subtree.set_oper_self_type(this->out_arrays->at(this->num_of_out).get_type_id());
+        subtree.set_oper_type(Operator::Side::SELF, this->out_arrays->at(this->num_of_out).get_type ());
     this->tree.put_value(subtree);
+}
+
+ArithTree& Statement::determ_and_prop (ArithTree &apt) {
+    TreeElem subtree = apt.get_value<TreeElem>();
+    subtree.determine_range();
+    apt.put_value(subtree);
+    return apt;
 }
 
 unsigned int Statement::get_num_of_out () { return this->num_of_out; }
@@ -57,16 +64,18 @@ void Statement::random_fill () {
 }
 
 ArithTree& Statement::fill_level (ArithTree &apt, unsigned int level) {
+    determ_and_prop(apt);
     for (int i = apt.get_value<TreeElem>().get_num_of_op(); i > 0; --i) {
         std::uniform_int_distribution<unsigned int> dis(0, 1);
-        unsigned int variate = (level == this->get_depth()) ? true : dis(rand_gen);
+        unsigned int variate = (level == this->get_depth()) ? true : dis(rand_gen); // Leaves are always arrays
         if (variate) { // Array
             std::uniform_int_distribution<unsigned int> dis(0, this->inp_arrays->size() - 1);
-            // 2 - i because I want to reduce if statements in emit phase
+            // 2 - i because I want to reduce if statements in emit phase (one operand is on the right side, key is "1")
             apt.put(std::to_string(2 - i), TreeElem(false, std::make_shared<Array>(this->inp_arrays->at(dis(rand_gen))), Operator::OperType::MAX_OPER_TYPE));
         }
         else { // Operator
-            apt.put(std::to_string(2 - i), TreeElem::get_rand_obj_op ( apt.get_value<TreeElem>().get_oper_type_id(Operator::Side::SELF)));
+            TreeElem insert_val = TreeElem::get_rand_obj_op (apt.get_value<TreeElem>().get_oper_type(2 - i));
+            apt.put(std::to_string(2 - i), insert_val);
             if (level < this->get_depth())
                 fill_level(apt.get_child(std::to_string(2 - i)), level + 1);
         }
@@ -84,6 +93,11 @@ std::string Statement::emit_type () {
     return ret;
 }
 
+std::string Statement::emit_domain (bool is_max) {
+    std::string ret = emit_level (this->tree, 0, is_max ? InfoType::DOMAIN_MAX : InfoType::DOMAIN_MIN);
+    return ret;
+}
+
 std::string Statement::emit_level (ArithTree &apt, unsigned int level, unsigned int info_type) {
     std::string ret = "(";
     if (apt.get_value<TreeElem>().get_num_of_op() == 2) {
@@ -98,6 +112,12 @@ std::string Statement::emit_level (ArithTree &apt, unsigned int level, unsigned 
         case InfoType::TYPE:
             ret += apt.get_value<TreeElem>().get_type_name();
             break;
+        case InfoType::DOMAIN_MAX:
+            ret += std::to_string(apt.get_value<TreeElem>().get_oper_max_value(Operator::Side::SELF));
+            break;
+        case InfoType::DOMAIN_MIN:
+            ret += std::to_string(apt.get_value<TreeElem>().get_oper_min_value(Operator::Side::SELF));
+            break;
     };
     if (apt.get_value<TreeElem>().get_is_op()) {
         ret += emit_level(apt.get_child("1"), level + 1, info_type);
@@ -111,4 +131,6 @@ void Statement::dbg_dump () {
     std::cout << "num of out array " << this->num_of_out << std::endl;
     std::cout << emit_usage () << std::endl;
     std::cout << emit_type () << std::endl;
+    std::cout << emit_domain (true) << std::endl;
+    std::cout << emit_domain (false) << std::endl;
 }

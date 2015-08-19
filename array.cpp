@@ -48,6 +48,8 @@ void Array::set_size (unsigned int _size) { this->size = _size; }
 
 unsigned int Array::get_size () const { return this->size; }
 
+std::shared_ptr<Type> Array::get_type () { return this->type; }
+
 unsigned int Array::get_type_id () const { return this->type->get_id(); }
 
 std::string Array::get_type_name () const { return this->type->get_name(); }

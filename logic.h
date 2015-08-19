@@ -41,6 +41,8 @@ class Statement {
         ArithTree& fill_level (ArithTree &apt, unsigned int level);
         std::string emit_level (ArithTree &apt, unsigned int level, unsigned int info_type);
         std::string emit_type ();
+        std::string emit_domain (bool is_max);
+        ArithTree& determ_and_prop (ArithTree &apt); 
         void push_out_arr_type ();
 
     private:
@@ -50,6 +52,6 @@ class Statement {
         std::shared_ptr<std::vector<Array>> inp_arrays;
         ArithTree tree;
         enum InfoType {
-            USAGE, TYPE, MAX_INFO_TYPE
+            USAGE, TYPE, DOMAIN_MAX, DOMAIN_MIN, MAX_INFO_TYPE
         };
 };

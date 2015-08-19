@@ -27,6 +27,7 @@ class Array {
         std::string get_name () const;
         void set_size (unsigned int _size);
         unsigned int get_size () const;
+        std::shared_ptr<Type> get_type ();
         unsigned int get_type_id () const;
         std::string get_type_name () const;
         void set_max_value (uint64_t _max_val);

@@ -157,10 +157,13 @@ int main () {
     std::cout << c.emit_usage() << std::endl;
 */
     std::vector<Array> in;
-    in.push_back(Array ("a1", 0, 2));
-    in.push_back(Array ("a2", 2, 5));
+    in.push_back(Array ("a1", 2, 6));
+    in.push_back(Array ("a2", 3, 5));
     std::vector<Array> out;
-    out.push_back(Array ("b", 1, 3));
+    Array arr = Array ("b", 4, 7);
+    arr.set_max_value (50);
+    arr.set_min_value (10);
+    out.push_back(arr);
     Statement a (0, std::make_shared<std::vector<Array>>(in), std::make_shared<std::vector<Array>>(out));
 
     std::cout << a.get_num_of_out () << std::endl;
