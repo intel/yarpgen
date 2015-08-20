@@ -38,6 +38,7 @@ class Array {
         std::vector<uint64_t> get_bound_value () const;
         bool get_is_fp () const;
         bool get_is_signed () const;
+        std::string emit_definition (bool rand_init);
         std::string emit_usage ();
         static Array get_rand_obj ();
         void dbg_dump ();

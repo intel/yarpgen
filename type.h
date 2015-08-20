@@ -42,6 +42,7 @@ class Type {
         uint64_t get_min_value ();
         uint64_t get_abs_max ();
         uint64_t get_abs_min ();
+        uint64_t get_bit_size ();
         void set_bound_value (std::vector<uint64_t> bval);
         std::vector<uint64_t> get_bound_value ();
         void add_bound_value (uint64_t bval);
@@ -52,6 +53,7 @@ class Type {
         static std::shared_ptr<Type> get_rand_obj ();
         virtual uint64_t get_rand_value () = 0;
         virtual std::string get_rand_value_str () = 0;
+        std::string emit_usage ();
         void dbg_dump();
 
     public:
@@ -71,6 +73,7 @@ class Type {
         uint64_t min_val;
         uint64_t abs_max;
         uint64_t abs_min;
+        uint64_t bit_size;
         std::vector<uint64_t> bound_val;
         bool is_fp;
         bool is_signed;

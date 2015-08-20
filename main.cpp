@@ -78,6 +78,7 @@ int main () {
     std::cout << (b.get_bound_value()).at(0) <<  std::endl;
 
     Loop a;
+    std::cout << a.emit_usage () << std::endl;
     a.dbg_dump ();
     std::cout << a.get_loop_type() << std::endl;
     a.set_loop_type (Loop::LoopType::WHILE);
@@ -103,6 +104,7 @@ int main () {
     Loop b;
     b = a;
     b.dbg_dump ();   
+    std::cout << a.emit_usage () << std::endl;
 
     Operator a (0);
     std::cout << a.get_id () << std::endl;
@@ -164,7 +166,7 @@ int main () {
     c.dbg_dump();
     std::cout << a.emit_usage() << std::endl;
     std::cout << c.emit_usage() << std::endl;
-*/
+
     std::vector<Array> in;
     in.push_back(Array ("a1", 2, 6));
     in.push_back(Array ("a2", 3, 5));
@@ -183,12 +185,17 @@ int main () {
     a.set_init_oper_type (Operator::OperType::SUB);
     std::cout << a.get_init_oper_type () << std::endl;
 
+//    in.at(0).dbg_dump();
+//    in.at(1).dbg_dump();
+
     a.set_depth(5);
     a.random_fill ();
-    a.dbg_dump();
     in.at(0).dbg_dump();
-    in.at(1).dbg_dump();
-/*
+    std::cout << in.at(0).emit_definition (true) << std::endl;
+    std::cout << in.at(0).emit_definition (false) << std::endl;
+    a.dbg_dump();
+    std::cout << a.emit_usage() << std::endl;
+
     Type a = Type::get_rand_obj ();
     a.dbg_dump();
 
@@ -203,4 +210,8 @@ int main () {
     TreeElem a = TreeElem::get_rand_obj_op ();
     a.dbg_dump();
 */
+
+    Loop a;
+    a.random_fill ();
+    std::cout << a.emit_usage() << std::endl;
 }

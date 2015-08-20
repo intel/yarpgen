@@ -17,6 +17,7 @@ limitations under the License.
 #pragma once
 
 #include <iostream>
+#include <cmath>
 #include "type.h"
 #include "array.h"
 #include "loop.h"
@@ -30,6 +31,7 @@ class Operator {
         unsigned int get_num_of_op () const;
         bool can_cause_ub ();
         void set_type (unsigned int side, std::shared_ptr<Type> _type);
+        void spread_type (std::shared_ptr<Type> _type);
         void set_self_type (std::shared_ptr<Type> _type);
         std::shared_ptr<Type> get_type (unsigned int side) const;
         unsigned int get_type_id (unsigned int side) const;
@@ -44,7 +46,7 @@ class Operator {
         std::vector<uint64_t> get_bound_value (unsigned int side) const;
         void add_bound_value (unsigned int side, uint64_t bval);
         bool check_val_in_domains (unsigned int side, uint64_t val);        
-        void generate_domains ();
+        void determine_range ();
         static Operator get_rand_obj ();
         std::string emit_usage ();
         void dbg_dump ();

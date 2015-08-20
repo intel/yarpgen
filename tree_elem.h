@@ -42,6 +42,8 @@ class TreeElem {
         bool can_oper_cause_ub ();
         void set_oper_type (unsigned int side, std::shared_ptr<Type> _type);
         void set_oper_type (unsigned int side, unsigned int _type_id);
+        void spread_oper_type (std::shared_ptr<Type> _type);
+        void spread_oper_type (unsigned int _type_id);
         std::shared_ptr<Type> get_oper_type (unsigned int side);
         unsigned int get_oper_type_id (unsigned int side);
         std::string get_oper_type_name (unsigned int side);

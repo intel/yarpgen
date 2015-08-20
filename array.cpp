@@ -36,6 +36,18 @@ std::string Array::emit_usage () {
     return ret;
 }
 
+std::string Array::emit_definition (bool rand_init) {
+    std::string ret = get_type ()->emit_usage ();
+    ret += " " + get_name ();
+    ret += " [" + std::to_string(get_size ()) + "] ";
+    ret += " = {";
+    ret += rand_init ? get_type()->get_rand_value_str() : "0";
+    for (int i = 0; i < get_size(); i++)
+        ret += ", " + (rand_init ? get_type()->get_rand_value_str() : "0");
+    ret += "}";
+    return ret;
+}
+
 void Array::dbg_dump () {
     std::cout << "name " << this->name << std::endl;
     std::cout << "size " << this->size << std::endl;

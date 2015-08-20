@@ -86,7 +86,9 @@ ArithTree& Statement::fill_level (ArithTree &apt, unsigned int level) {
 }
 
 std::string Statement::emit_usage () {
-    std::string ret = emit_level (this->tree, 0, InfoType::USAGE);
+    std::string ret = (this->out_arrays != NULL) ? this->out_arrays->at(this->num_of_out).emit_usage() : "";
+    ret += " = ";
+    ret += emit_level (this->tree, 0, InfoType::USAGE);
     return ret;
 }
 

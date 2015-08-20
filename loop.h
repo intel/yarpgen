@@ -37,8 +37,12 @@ class Loop {
         uint64_t get_step () const;
         void set_condition (unsigned int _condition);
         unsigned int get_condition () const;
-        Loop rand_init ();
+        std::string emit_usage ();
+        void random_fill ();
         void dbg_dump ();
+
+    private:
+        std::string get_condition_name ();
 
     public:
         enum CondType {

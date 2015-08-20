@@ -85,6 +85,10 @@ bool Type::check_val_in_domains (uint64_t val) {
     return ret;
 }
 
+std::string Type::emit_usage () {
+    return get_name ();
+}
+
 void Type::dbg_dump () {
     std::cout << "name " << this->name << std::endl;
     std::cout << "min_val " << this->min_val << std::endl;
@@ -145,6 +149,7 @@ TypeUCHAR::TypeUCHAR () {
     this->name = "unsigned char";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = UCHAR_MAX;
+    this->bit_size = sizeof (unsigned char);
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -169,7 +174,7 @@ void TypeUCHAR::combine_range (std::shared_ptr<Type> _type) {
 }
 
 std::string TypeUCHAR::get_rand_value_str () {
-    return std::to_string (get_rand_value ());
+    return std::to_string ((unsigned char) get_rand_value ());
 }
 
 TypeUSHRT::TypeUSHRT () {
@@ -177,6 +182,7 @@ TypeUSHRT::TypeUSHRT () {
     this->name = "unsigned short";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = USHRT_MAX;
+    this->bit_size = sizeof (unsigned short);
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -201,7 +207,7 @@ void TypeUSHRT::combine_range (std::shared_ptr<Type> _type) {
 }
 
 std::string TypeUSHRT::get_rand_value_str () {
-    return std::to_string (get_rand_value ());
+    return std::to_string ((unsigned short) get_rand_value ());
 }
 
 TypeUINT::TypeUINT () {
@@ -209,6 +215,7 @@ TypeUINT::TypeUINT () {
     this->name = "unsigned int";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = UINT_MAX;
+    this->bit_size = sizeof (unsigned int);
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -233,7 +240,7 @@ void TypeUINT::combine_range (std::shared_ptr<Type> _type) {
 }
 
 std::string TypeUINT::get_rand_value_str () {
-    return std::to_string (get_rand_value ()) + "U";
+    return std::to_string ((unsigned int) get_rand_value ()) + "U";
 }
 
 TypeULINT::TypeULINT () {
@@ -241,6 +248,7 @@ TypeULINT::TypeULINT () {
     this->name = "unsigned long int";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = ULONG_MAX;
+    this->bit_size = sizeof (unsigned long int);
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -265,7 +273,7 @@ void TypeULINT::combine_range (std::shared_ptr<Type> _type) {
 }
 
 std::string TypeULINT::get_rand_value_str () {
-    return std::to_string (get_rand_value ()) + "UL";
+    return std::to_string ((unsigned long int) get_rand_value ()) + "UL";
 }
 
 TypeULLINT::TypeULLINT () {
@@ -273,6 +281,7 @@ TypeULLINT::TypeULLINT () {
     this->name = "unsigned long long int";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = ULLONG_MAX;
+    this->bit_size = sizeof (unsigned long long int);
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -298,5 +307,5 @@ void TypeULLINT::combine_range (std::shared_ptr<Type> _type) {
 
 
 std::string TypeULLINT::get_rand_value_str () {
-    return std::to_string (get_rand_value ()) + "ULL";
+    return std::to_string ((unsigned long long int) get_rand_value ()) + "ULL";
 }

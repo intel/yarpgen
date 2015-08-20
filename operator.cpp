@@ -18,9 +18,7 @@ limitations under the License.
 
 Operator::Operator () {
     this->id = MAX_OPER_TYPE;
-    this->type [SELF] = Type::init (Type::TypeID::UCHAR);
-    this->type [LEFT] = Type::init (Type::TypeID::UCHAR);
-    this->type [RGHT] = Type::init (Type::TypeID::UCHAR);
+    spread_type(Type::init (Type::TypeID::UCHAR));
     this->name = "";
     this->num_of_op = 0;
     this->cause_ub = false;
@@ -28,64 +26,51 @@ Operator::Operator () {
 
 Operator::Operator (unsigned int _id) {
     this->id = _id;
-    this->type [SELF] = Type::init (Type::TypeID::UCHAR);
-    this->type [LEFT] = Type::init (Type::TypeID::UCHAR);
-    this->type [RGHT] = Type::init (Type::TypeID::UCHAR);
+    spread_type(Type::init (Type::TypeID::UCHAR));
     switch (_id) {
         case OperType::UN_INC:
             this->name = "+";
             this->num_of_op = 1;
-            this->cause_ub = false;
             break;
         case OperType::UN_DEC:
             this->name = "-";
             this->num_of_op = 1;
-            this->cause_ub = true;
             break;
         case OperType::LOG_NOT:
             this->name = "!";
             this->num_of_op = 1;
-            this->cause_ub = false;
             break;
         case OperType::MUL:
             this->name = "*";
             this->num_of_op = 2;
-            this->cause_ub = true;
             break;
         case OperType::DIV:
             this->name = "/";
             this->num_of_op = 2;
-            this->cause_ub = false;
             break;
         case OperType::MOD:
             this->name = "%";
             this->num_of_op = 2;
-            this->cause_ub = false;
             break;
         case OperType::ADD:
             this->name = "+";
             this->num_of_op = 2;
-            this->cause_ub = true;
             break;
         case OperType::SUB:
             this->name = "-";
             this->num_of_op = 2;
-            this->cause_ub = true;
             break;
         case OperType::BIT_SHL:
             this->name = "<<";
             this->num_of_op = 2;
-            this->cause_ub = true;
             break;
         case OperType::BIT_SHR:
             this->name = ">>";
             this->num_of_op = 2;
-            this->cause_ub = true;
             break;
         case OperType::MAX_OPER_TYPE:
             this->name = "ERROR in Operator";
             this->num_of_op = 0;
-            this->cause_ub = true;
     }
 }
 
@@ -94,25 +79,90 @@ Operator Operator::get_rand_obj () {
     return Operator (dis(rand_gen));
 }
 
-void Operator::generate_domains () {
-/*    if (!can_cause_ub())
+void Operator::spread_type (std::shared_ptr<Type> _type) {
+    set_type (Operator::Side::SELF, _type);
+    set_type (Operator::Side::LEFT, Type::init(_type->get_id()));
+    set_type (Operator::Side::RGHT, Type::init(_type->get_id()));
+    switch(get_id()) {
+        case OperType::UN_INC:
+            this->cause_ub = false;
+            break;
+        case OperType::UN_DEC:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::LOG_NOT:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::MUL:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::DIV:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::MOD:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::ADD:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::SUB:
+            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            break;
+        case OperType::BIT_SHL:
+            this->cause_ub = true;
+            break;
+        case OperType::BIT_SHR:
+            this->cause_ub = true;
+            break;
+        case OperType::MAX_OPER_TYPE:
+            this->cause_ub = false;
+            break;
+    }
+}
+
+void Operator::determine_range () {
+/*
+    if (!can_cause_ub())
         return;
     switch (get_id()) {
         case OperType::UN_INC:
             return;
         case OperType::UN_DEC:
-            if (get_is_signed(SELF)) {
-                // TODO
-            }
-            else {
-                if (check_val_in_domains(RGHT, 0))
-                    add_bound_value(RGHT, 0);
-                set_min_value(RGHT,  
-                    
-            }
+            // TODO: for signed and fp
             break;
-            
-            
+        case OperType::LOG_NOT:
+            // TODO: for signed and fp
+            break;
+        case OperType::MUL:
+            // TODO: for signed and fp
+            break;
+        case OperType::DIV:
+            // TODO: for signed and fp
+            break;
+        case OperType::MOD:
+            // TODO: for signed and fp
+           break;
+        case OperType::ADD:
+            // TODO: for signed and fp
+           break;
+        case OperType::SUB:
+            // TODO: for signed and fp
+            break;
+        case OperType::BIT_SHL:
+            if (get_is_signed())
+                // TODO: for signed and fp
+                return;
+            else {
+                if (get_min_value (Operator::Side::SELF == 0) {
+                    add_bound_value (Operator::Side::LEFT, 0)
+                    
+                }
+            {
+            break;
+        case OperType::BIT_SHR:
+            break;
+        case OperType::MAX_OPER_TYPE:
+            break;            
     };
 */
 }

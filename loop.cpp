@@ -49,6 +49,63 @@ void Loop::set_condition (unsigned int _condition) { this->condition = _conditio
 
 unsigned int Loop::get_condition () const { return this->condition; }
 
+void Loop::random_fill () {
+
+}
+
+std::string Loop::emit_usage () {
+    std::string ret;
+    switch (get_loop_type ()) {
+        case LoopType::FOR:
+            ret += "for (";
+            break;
+        case LoopType::WHILE:
+            ret += "while (";
+            break;
+        case LoopType::DO_WHILE:
+            ret += "do {\n";
+            break;
+        default:
+            ret += "ERROR IN LOOP TYPE";
+            break;
+    }
+    ret += this->iter_type->emit_usage ();
+    ret += " i = " + std::to_string(get_start_value ()) + ";";
+    ret += " i " + get_condition_name () + " ";
+    ret += std::to_string(get_end_value ()) + ";";
+    ret += " i += " + std::to_string(get_step ()) + ") { \n";
+    ret += "\n}";
+    return ret;
+}
+
+std::string Loop::get_condition_name () {
+    std::string ret = "";
+    switch (this->condition) {
+        case CondType::EQ:
+            ret += "==";
+            break;
+        case CondType::NE:
+            ret += "!=";
+            break;
+        case CondType::GT:
+            ret += ">";
+            break;
+        case CondType::GE:
+            ret += ">=";
+            break;
+        case CondType::LT:
+            ret += "<";
+            break;
+        case CondType::LE:
+            ret += "<=";
+            break;
+        default:
+            ret += "ERROR IN CONDITION";
+            break;
+    }
+    return ret;
+}
+
 void Loop::dbg_dump () {
     std::string loop_type_str;
     switch (this->loop_type) {
