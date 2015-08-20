@@ -23,7 +23,7 @@ limitations under the License.
 
 int main () {
 /*
-    std::shared_ptr<Type> a = Type::init (Type::TypeID::ULLINT);
+    std::shared_ptr<Type> a = Type::init (Type::TypeID::UINT);
     std::cout << a->get_id() << std::endl;
     std::cout << a->get_name () << std::endl;
     std::cout << a->get_is_fp() << std::endl;
@@ -39,8 +39,17 @@ int main () {
     std::cout << a->get_rand_value() << std::endl;
     std::cout << a->get_rand_value_str() << std::endl;
     a->add_bound_value(0);
-    std::cout << a->check_val_in_domains (0ULL)  << std::endl;
+    std::cout << a->check_val_in_domains (0U)  << std::endl;
     std::cout << a->check_val_in_domains ("MAX")  << std::endl;
+
+    std::shared_ptr<Type> b = Type::init (Type::TypeID::UINT);
+    b->set_max_value(40);
+    b->set_min_value(5);
+    b->add_bound_value(1);
+    a->dbg_dump ();
+    b->dbg_dump();
+    b->combine_range(a);
+    b->dbg_dump();
 
     Array a ("a", Type::TypeID::ULLINT, 10);
     a.dbg_dump();
@@ -177,6 +186,8 @@ int main () {
     a.set_depth(5);
     a.random_fill ();
     a.dbg_dump();
+    in.at(0).dbg_dump();
+    in.at(1).dbg_dump();
 /*
     Type a = Type::get_rand_obj ();
     a.dbg_dump();

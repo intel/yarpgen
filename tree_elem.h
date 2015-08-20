@@ -52,6 +52,8 @@ class TreeElem {
         void set_oper_min_value (unsigned int side, int64_t _min_val);
         int64_t get_oper_min_value (unsigned int side);
         Operator get_oper ();
+        uint64_t get_max_value ();
+        uint64_t get_min_value ();
         std::string get_type_name ();
         void determine_range ();
         static TreeElem get_rand_obj_op (std::shared_ptr<Type> _type);

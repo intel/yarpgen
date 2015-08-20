@@ -146,6 +146,20 @@ std::string TreeElem::get_type_name () {
         return get_arr_type_name(); 
 }
 
+uint64_t TreeElem::get_max_value () {
+    if (get_is_op())
+        return get_oper_max_value(Operator::Side::SELF);
+    else
+        return get_arr_max_value();
+}
+
+uint64_t TreeElem::get_min_value () {
+    if (get_is_op())
+        return get_oper_min_value(Operator::Side::SELF);
+    else
+        return get_arr_min_value();
+}
+
 std::string TreeElem::emit_usage () {
     std::string ret;
     if (this->get_is_op () == false && 
