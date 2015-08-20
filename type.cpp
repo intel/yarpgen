@@ -160,10 +160,12 @@ void TypeUCHAR::combine_range (std::shared_ptr<Type> _type) {
     this->combine_bound_value (_type);
     uint64_t val_1 = get_min_value ();
     uint64_t val_2 =  _type-> get_min_value ();
-    this->set_min_value(((unsigned char) val_1 > (unsigned char) val_2) ? val_1 : val_2);
+    uint64_t comb_min = ((unsigned char) val_1 > (unsigned char) val_2) ? val_1 : val_2;
     val_1 = get_max_value ();
     val_2 =  _type-> get_max_value ();
-    this->set_max_value(((unsigned char) val_1 < (unsigned char) val_2) ? val_1 : val_2);
+    uint64_t comb_max = ((unsigned char) val_1 < (unsigned char) val_2) ? val_1 : val_2;
+    this->set_min_value(((unsigned char) comb_min < (unsigned char) comb_max) ? comb_min : comb_max);
+    this->set_max_value(((unsigned char) comb_max > (unsigned char) comb_min) ? comb_max : comb_min);
 }
 
 std::string TypeUCHAR::get_rand_value_str () {
@@ -190,10 +192,12 @@ void TypeUSHRT::combine_range (std::shared_ptr<Type> _type) {
     this->combine_bound_value (_type);
     uint64_t val_1 = get_min_value ();
     uint64_t val_2 =  _type-> get_min_value ();
-    this->set_min_value(((unsigned short) val_1 > (unsigned short) val_2) ? val_1 : val_2);
+    uint64_t comb_min = ((unsigned short) val_1 > (unsigned short) val_2) ? val_1 : val_2;
     val_1 = get_max_value ();
     val_2 =  _type-> get_max_value ();
-    this->set_max_value(((unsigned short) val_1 < (unsigned short) val_2) ? val_1 : val_2);
+    uint64_t comb_max = ((unsigned short) val_1 < (unsigned short) val_2) ? val_1 : val_2;
+    this->set_min_value(((unsigned short) comb_min < (unsigned short) comb_max) ? comb_min : comb_max);
+    this->set_max_value(((unsigned short) comb_max > (unsigned short) comb_min) ? comb_max : comb_min);
 }
 
 std::string TypeUSHRT::get_rand_value_str () {
@@ -220,10 +224,12 @@ void TypeUINT::combine_range (std::shared_ptr<Type> _type) {
     this->combine_bound_value (_type);
     uint64_t val_1 = get_min_value ();
     uint64_t val_2 =  _type-> get_min_value ();
-    this->set_min_value(((unsigned int) val_1 > (unsigned int) val_2) ? val_1 : val_2);
+    uint64_t comb_min = ((unsigned int) val_1 > (unsigned int) val_2) ? val_1 : val_2;
     val_1 = get_max_value ();
     val_2 =  _type-> get_max_value ();
-    this->set_max_value(((unsigned int) val_1 < (unsigned int) val_2) ? val_1 : val_2);
+    uint64_t comb_max = ((unsigned int) val_1 < (unsigned int) val_2) ? val_1 : val_2;
+    this->set_min_value(((unsigned int) comb_min < (unsigned int) comb_max) ? comb_min : comb_max);
+    this->set_max_value(((unsigned int) comb_max > (unsigned int) comb_min) ? comb_max : comb_min);
 }
 
 std::string TypeUINT::get_rand_value_str () {
@@ -247,13 +253,15 @@ uint64_t TypeULINT::get_rand_value () {
 }
 
 void TypeULINT::combine_range (std::shared_ptr<Type> _type) {
-    this->combine_bound_value (_type); 
+    this->combine_bound_value (_type);
     uint64_t val_1 = get_min_value ();
     uint64_t val_2 =  _type-> get_min_value ();
-    this->set_min_value(((unsigned long int) val_1 > (unsigned long int) val_2) ? val_1 : val_2);
+    uint64_t comb_min = ((unsigned long int) val_1 > (unsigned long int) val_2) ? val_1 : val_2;
     val_1 = get_max_value ();
     val_2 =  _type-> get_max_value ();
-    this->set_max_value(((unsigned long int) val_1 < (unsigned long int) val_2) ? val_1 : val_2);
+    uint64_t comb_max = ((unsigned long int) val_1 < (unsigned long int) val_2) ? val_1 : val_2;
+    this->set_min_value(((unsigned long int) comb_min < (unsigned long int) comb_max) ? comb_min : comb_max);
+    this->set_max_value(((unsigned long int) comb_max > (unsigned long int) comb_min) ? comb_max : comb_min);
 }
 
 std::string TypeULINT::get_rand_value_str () {
@@ -280,10 +288,12 @@ void TypeULLINT::combine_range (std::shared_ptr<Type> _type) {
     this->combine_bound_value (_type);
     uint64_t val_1 = get_min_value ();
     uint64_t val_2 =  _type-> get_min_value ();
-    this->set_min_value(((unsigned long long int) val_1 > (unsigned long long int) val_2) ? val_1 : val_2);
+    uint64_t comb_min = ((unsigned long long int) val_1 > (unsigned long long int) val_2) ? val_1 : val_2;
     val_1 = get_max_value ();
     val_2 =  _type-> get_max_value ();
-    this->set_max_value(((unsigned long long int) val_1 < (unsigned long long int) val_2) ? val_1 : val_2);
+    uint64_t comb_max = ((unsigned long long int) val_1 < (unsigned long long int) val_2) ? val_1 : val_2;
+    this->set_min_value(((unsigned long long int) comb_min < (unsigned long long int) comb_max) ? comb_min : comb_max);
+    this->set_max_value(((unsigned long long int) comb_max > (unsigned long long int) comb_min) ? comb_max : comb_min);
 }
 
 
