@@ -19,6 +19,7 @@ limitations under the License.
 #include "type.h"
 
 extern unsigned int MAX_ARRAY_SIZE;
+extern unsigned int MIN_ARRAY_SIZE;
 
 class Array {
     public:
@@ -40,7 +41,7 @@ class Array {
         bool get_is_signed () const;
         std::string emit_definition (bool rand_init);
         std::string emit_usage ();
-        static Array get_rand_obj ();
+        static Array get_rand_obj (std::string _name);
         void dbg_dump ();
 
     private:

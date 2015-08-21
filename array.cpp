@@ -16,8 +16,8 @@ limitations under the License.
 
 #include "array.h"
 
-unsigned int MAX_ARRAY_SIZE = 100;
-unsigned int ARR_BASE_NUM = 0;
+unsigned int MAX_ARRAY_SIZE = 250;
+unsigned int MIN_ARRAY_SIZE = 20;
 
 Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->name = _name;
@@ -25,10 +25,10 @@ Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->size = _size;
 }
 
-Array Array::get_rand_obj () {
+Array Array::get_rand_obj (std::string _name) {
     std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
-    std::uniform_int_distribution<unsigned int> size_dis(1, MAX_ARRAY_SIZE);
-    return Array ("in_" + std::to_string(ARR_BASE_NUM++), type_dis(rand_gen), size_dis(rand_gen));
+    std::uniform_int_distribution<unsigned int> size_dis(MIN_ARRAY_SIZE, MAX_ARRAY_SIZE);
+    return Array (_name, type_dis(rand_gen), size_dis(rand_gen));
 }
 
 std::string Array::emit_usage () {
@@ -42,9 +42,9 @@ std::string Array::emit_definition (bool rand_init) {
     ret += " [" + std::to_string(get_size ()) + "] ";
     ret += " = {";
     ret += rand_init ? get_type()->get_rand_value_str() : "0";
-    for (int i = 0; i < get_size(); i++)
+    for (int i = 1; i < get_size(); i++)
         ret += ", " + (rand_init ? get_type()->get_rand_value_str() : "0");
-    ret += "}";
+    ret += "};\n";
     return ret;
 }
 

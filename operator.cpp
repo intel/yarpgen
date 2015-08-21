@@ -97,10 +97,10 @@ void Operator::spread_type (std::shared_ptr<Type> _type) {
             this->cause_ub = get_is_signed (Operator::Side::SELF);
             break;
         case OperType::DIV:
-            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            this->cause_ub = true;
             break;
         case OperType::MOD:
-            this->cause_ub = get_is_signed (Operator::Side::SELF);
+            this->cause_ub = true;
             break;
         case OperType::ADD:
             this->cause_ub = get_is_signed (Operator::Side::SELF);
@@ -121,7 +121,7 @@ void Operator::spread_type (std::shared_ptr<Type> _type) {
 }
 
 void Operator::determine_range () {
-/*
+
     if (!can_cause_ub())
         return;
     switch (get_id()) {
@@ -138,9 +138,11 @@ void Operator::determine_range () {
             break;
         case OperType::DIV:
             // TODO: for signed and fp
+            set_min_value(Operator::Side::RGHT, 1);
             break;
         case OperType::MOD:
             // TODO: for signed and fp
+            set_min_value(Operator::Side::RGHT, 1);
            break;
         case OperType::ADD:
             // TODO: for signed and fp
@@ -149,22 +151,14 @@ void Operator::determine_range () {
             // TODO: for signed and fp
             break;
         case OperType::BIT_SHL:
-            if (get_is_signed())
-                // TODO: for signed and fp
-                return;
-            else {
-                if (get_min_value (Operator::Side::SELF == 0) {
-                    add_bound_value (Operator::Side::LEFT, 0)
-                    
-                }
-            {
+            set_max_value(Operator::Side::RGHT, get_type(Operator::Side::SELF)->get_bit_size());
             break;
         case OperType::BIT_SHR:
+            set_max_value(Operator::Side::RGHT, get_type(Operator::Side::SELF)->get_bit_size());
             break;
         case OperType::MAX_OPER_TYPE:
             break;            
     };
-*/
 }
 
 unsigned int Operator::get_id () const { return this->id; }

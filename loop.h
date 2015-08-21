@@ -20,13 +20,21 @@ limitations under the License.
 #include <map>
 #include "type.h"
 #include "array.h"
+#include "logic.h"
+
+extern unsigned int MAX_ARRAY_NUM;
+extern unsigned int MIN_ARRAY_NUM;
+extern unsigned int MAX_STMNT_NUM;
+extern unsigned int MIN_STMNT_NUM;
+extern unsigned int MAX_DEPTH;
+extern unsigned int MIN_DEPTH;
 
 class Loop {
     public:
         Loop ();
         void set_loop_type (unsigned int _loop_type);
         unsigned int get_loop_type () const;
-        void set_iter_type (unsigned int _iter_type_id);
+        void set_iter_type (std::shared_ptr<Type> _type);
         unsigned int get_iter_type_id () const;
         std::string get_iter_type_name () const;
         void set_start_value (uint64_t _start_val);
@@ -43,16 +51,27 @@ class Loop {
 
     private:
         std::string get_condition_name ();
+        unsigned int init_array ();
+        void init_stmnt ();
 
     public:
         enum CondType {
-            EQ, NE, GT, GE, LT, LE, MAX_COND
+            EQ, //=
+            NE, // !=
+            GT, // >
+            GE, // >=
+            LT, // <
+            LE, // <=
+            MAX_COND
         };
         enum LoopType {
             FOR, WHILE, DO_WHILE, MAX_LOOP_TYPE
         };
 
     private:
+        std::vector<Array> in;
+        std::vector<Array> out;
+        std::vector<Statement> stmnt;
         unsigned int loop_type;
         std::shared_ptr<Type> iter_type;
         uint64_t step;

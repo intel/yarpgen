@@ -63,16 +63,78 @@ void Statement::random_fill () {
     fill_level(this->tree, 1);
 }
 
+bool Statement::need_arr (ArithTree &apt) {
+    return (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::BIT_SHL) ||
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::BIT_SHR) ||
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::MOD) ||
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::DIV);
+}
+
 ArithTree& Statement::fill_level (ArithTree &apt, unsigned int level) {
+    determ_and_prop_on_level (apt);
+    for (int i = apt.get_value<TreeElem>().get_num_of_op(); i > 0; --i) { // i = 2, 1 or 1
+        std::uniform_int_distribution<unsigned int> dis(0, 1);
+        bool variate = (need_arr(apt) && i == Operator::Side::RGHT) ? true : dis(rand_gen);
+        variate |= (level == this->get_depth()); // Leaves are always arrays
+        TreeElem insert_val;
+        if (variate) { // Array
+            std::uniform_int_distribution<unsigned int> dis(0, this->inp_arrays->size() - 1);
+            unsigned int arr_num = dis(rand_gen);
+
+
+//            std::cout << "===================================" << std::endl;
+//            std::cout << "oper_id " << apt.get_value<TreeElem>().get_oper_id() << std::endl;
+//            std::cout << "DEBUG 1 " << " | i " << i << std::endl;
+//            this->inp_arrays->at(arr_num).dbg_dump();
+//            std::cout << "----------------" << std::endl;
+//            apt.get_value<TreeElem>().get_oper_type(2 - i)->dbg_dump();
+//            std::cout << "----------------" << std::endl;
+
+
+            this->inp_arrays->at(arr_num).get_type()->combine_range(apt.get_value<TreeElem>().get_oper_type(2 - i));
+
+
+//            std::cout << "DEBUG 2 " << std::endl;
+//            this->inp_arrays->at(arr_num).dbg_dump();
+
+
+            insert_val = TreeElem(false, std::make_shared<Array>(this->inp_arrays->at(arr_num)), Operator::OperType::MAX_OPER_TYPE);
+            apt.put(std::to_string(2 - i), insert_val);
+        }
+        else { // Operator
+            insert_val = TreeElem::get_rand_obj_op (apt.get_value<TreeElem>().get_oper_type(2 - i));
+            apt.put(std::to_string(2 - i), insert_val);
+            if (level < this->get_depth())
+                fill_level(apt.get_child(std::to_string(2 - i)), level + 1);
+        }
+    }
+    return apt;
+
+/*
     determ_and_prop_on_level (apt);
     for (int i = apt.get_value<TreeElem>().get_num_of_op(); i > 0; --i) {
         std::uniform_int_distribution<unsigned int> dis(0, 1);
-        unsigned int variate = (level == this->get_depth()) ? true : dis(rand_gen); // Leaves are always arrays
+        bool variate = dis(rand_gen);
+        if (level == this->get_depth() || // Leaves are always arrays
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::BIT_SHL && 2 - i == 1) ||
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::BIT_SHR && 2 - i == 1) ||
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::MOD && 2 - i == 1) ||
+           (apt.get_value<TreeElem>().get_oper_id() == Operator::OperType::DIV && 2 - i == 1))
+            variate = true;
         if (variate) { // Array
             std::uniform_int_distribution<unsigned int> dis(0, this->inp_arrays->size() - 1);
             // 2 - i because I want to reduce if statements in emit phase (one operand is on the right side, key is "1")
             unsigned int arr_num = dis(rand_gen);
+            std::cout << "===================================" << std::endl;
+            std::cout << "oper_id " << apt.get_value<TreeElem>().get_oper_id() << std::endl;
+            std::cout << "DEBUG 1 " << " | i " << i << std::endl;
+            this->inp_arrays->at(arr_num).dbg_dump();
+            std::cout << "----------------" << std::endl;
+            apt.get_value<TreeElem>().get_oper_type(2 - i)->dbg_dump();
+            std::cout << "----------------" << std::endl;
             this->inp_arrays->at(arr_num).get_type()->combine_range(apt.get_value<TreeElem>().get_oper_type(2 - i));
+            std::cout << "DEBUG 2 " << std::endl;
+            this->inp_arrays->at(arr_num).dbg_dump();
             apt.put(std::to_string(2 - i), TreeElem(false, std::make_shared<Array>(this->inp_arrays->at(arr_num)), Operator::OperType::MAX_OPER_TYPE));
         }
         else { // Operator
@@ -83,6 +145,7 @@ ArithTree& Statement::fill_level (ArithTree &apt, unsigned int level) {
         }
     }
     return apt;
+*/
 }
 
 std::string Statement::emit_usage () {

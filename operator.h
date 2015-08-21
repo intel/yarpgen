@@ -20,7 +20,6 @@ limitations under the License.
 #include <cmath>
 #include "type.h"
 #include "array.h"
-#include "loop.h"
 
 class Operator {
     public:
@@ -66,9 +65,9 @@ class Operator {
             MAX_OPER_TYPE 
         };
         enum Side {
-            RGHT = 0,
-            LEFT = 1,
-            SELF = 2,
+            LEFT, 
+            RGHT,
+            SELF,
             MAX_SIDE
         };
 

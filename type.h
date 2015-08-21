@@ -48,11 +48,12 @@ class Type {
         void add_bound_value (uint64_t bval);
         bool check_val_in_domains (uint64_t val);
         bool check_val_in_domains (std::string val);
-        void combine_bound_value (std::shared_ptr<Type> _type);
-        virtual void combine_range (std::shared_ptr<Type> _type) = 0;
+//        void combine_bound_value (std::shared_ptr<Type> _type);
+        void combine_range (std::shared_ptr<Type> _type);
         static std::shared_ptr<Type> get_rand_obj ();
         virtual uint64_t get_rand_value () = 0;
         virtual std::string get_rand_value_str () = 0;
+        virtual uint64_t get_rand_value (uint64_t a, uint64_t b) = 0;
         std::string emit_usage ();
         void dbg_dump();
 
@@ -84,7 +85,7 @@ class TypeUCHAR : public Type {
         TypeUCHAR ();
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
-        void combine_range (std::shared_ptr<Type> _type);
+        uint64_t get_rand_value (uint64_t a, uint64_t b);
 };
 
 class TypeUSHRT : public Type {
@@ -92,7 +93,7 @@ class TypeUSHRT : public Type {
         TypeUSHRT ();
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
-        void combine_range (std::shared_ptr<Type> _type);
+        uint64_t get_rand_value (uint64_t a, uint64_t b);
 };
 
 class TypeUINT : public Type {
@@ -100,7 +101,7 @@ class TypeUINT : public Type {
         TypeUINT ();
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
-        void combine_range (std::shared_ptr<Type> _type);
+        uint64_t get_rand_value (uint64_t a, uint64_t b);
 };
 
 class TypeULINT : public Type {
@@ -108,7 +109,7 @@ class TypeULINT : public Type {
         TypeULINT ();
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
-        void combine_range (std::shared_ptr<Type> _type);
+        uint64_t get_rand_value (uint64_t a, uint64_t b);
 };
 
 class TypeULLINT : public Type {
@@ -116,6 +117,5 @@ class TypeULLINT : public Type {
         TypeULLINT ();
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
-        void combine_range (std::shared_ptr<Type> _type);
+        uint64_t get_rand_value (uint64_t a, uint64_t b);
 };
-

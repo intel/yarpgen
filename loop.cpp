@@ -16,6 +16,15 @@ limitations under the License.
 
 #include "loop.h"
 
+unsigned int MAX_ARRAY_NUM = 20;
+unsigned int MIN_ARRAY_NUM = 4;
+
+unsigned int MAX_STMNT_NUM = 20;
+unsigned int MIN_STMNT_NUM = 4;
+
+unsigned int MAX_DEPTH = 20;
+unsigned int MIN_DEPTH = 3;
+
 Loop::Loop () {
     this->loop_type = LoopType::FOR;
     this->iter_type = Type::init (Type::TypeID::UCHAR);
@@ -27,7 +36,7 @@ void Loop::set_loop_type (unsigned int _loop_type) { this->loop_type = _loop_typ
 
 unsigned int Loop::get_loop_type () const { return this->loop_type; }
 
-void Loop::set_iter_type (unsigned int _iter_type_id) { this->iter_type = Type::init (_iter_type_id); }
+void Loop::set_iter_type (std::shared_ptr<Type> _type) { this->iter_type = _type; }
 
 unsigned int Loop::get_iter_type_id () const {return this->iter_type->get_id(); }
 
@@ -49,32 +58,184 @@ void Loop::set_condition (unsigned int _condition) { this->condition = _conditio
 
 unsigned int Loop::get_condition () const { return this->condition; }
 
+unsigned int Loop::init_array () {
+    std::uniform_int_distribution<unsigned int> dis(MIN_ARRAY_NUM, MAX_ARRAY_NUM);
+    int arr_num = dis(rand_gen);
+    unsigned int min_size = UINT_MAX;
+    for (int i = 0; i < arr_num; ++i) {
+        this->in.push_back(Array::get_rand_obj ("in_" + std::to_string(i)));
+        min_size = min_size < this->in.at(i).get_size() ? min_size : this->in.at(i).get_size();
+        this->out.push_back(Array::get_rand_obj ("out_" + std::to_string(i)));
+        min_size = min_size < this->out.at(i).get_size() ? min_size : this->out.at(i).get_size();
+    }
+    return min_size;
+}
+
+void Loop::init_stmnt () {
+    std::uniform_int_distribution<unsigned int> depth_dis(MIN_DEPTH, MAX_DEPTH);
+    for (int i = 0; i < this->out.size(); ++i) {
+        this->stmnt.push_back(Statement (i, std::make_shared<std::vector<Array>>(in), std::make_shared<std::vector<Array>>(out)));
+        this->stmnt.at(i).set_depth(depth_dis(rand_gen));
+        this->stmnt.at(i).random_fill ();
+    }
+
+}
+
 void Loop::random_fill () {
+    unsigned int min_size = init_array();
+
+    std::uniform_int_distribution<unsigned int> loop_type_dis(0, MAX_LOOP_TYPE - 1);
+    set_loop_type (loop_type_dis(rand_gen));
+
+    bool incomp_cond;
+
+    do {
+        incomp_cond = false;
+        set_iter_type (Type::get_rand_obj());
+
+        std::uniform_int_distribution<unsigned int> cond_type_dis(0, MAX_COND - 1); 
+        set_condition (cond_type_dis(rand_gen));
+
+
+        uint64_t max_val = get_end_value() < min_size ? get_end_value() : min_size;
+        set_start_value(this->iter_type->get_rand_value(0, max_val - 1));
+
+        uint64_t end_val = 0;
+        uint64_t _step = 0;
+        switch (get_condition()) {
+            case EQ:
+                end_val = get_start_value();
+                _step = iter_type->get_rand_value(iter_type->get_abs_min(), iter_type->get_abs_max());
+                incomp_cond = _step == 0;
+                break; 
+            case NE:
+                if (!this->iter_type->get_is_signed()) {
+                    end_val = this->iter_type->get_rand_value(get_start_value(), (max_val - 1));
+                    uint64_t diff =  end_val - get_start_value();
+                    if (diff == 0) {
+                        incomp_cond = true;
+                        break;
+                    }
+                    std::uniform_int_distribution<unsigned int> step_dis(1, diff);
+                    do {
+                        _step = diff / step_dis(rand_gen);
+                    }
+                    while (_step % diff != 0);
+                }
+                break;
+            case GT:
+                if (!this->iter_type->get_is_signed()) {
+                    incomp_cond = true;   
+                    break;
+                }
+                end_val = this->iter_type->get_rand_value(0, (get_start_value() != 0) ? (get_start_value() - 1) : 0);
+                break;
+            case GE:
+                if (!this->iter_type->get_is_signed()) {
+                    incomp_cond = true;
+                    break;
+                }
+                end_val = this->iter_type->get_rand_value(0, get_start_value());
+                break;
+            case LT:
+                end_val = this->iter_type->get_rand_value((get_start_value() != this->iter_type->get_abs_max()) ? 
+                                                          (get_start_value() + 1) : this->iter_type->get_abs_max(), max_val);
+                _step = this->iter_type->get_rand_value(1, end_val - get_start_value());
+                break;
+            case LE:
+                end_val = this->iter_type->get_rand_value(get_start_value(), (max_val - 1));
+                _step = this->iter_type->get_rand_value(1, end_val - get_start_value());
+                break;
+            case MAX_COND:
+                break;
+        }
+        set_end_value (end_val);
+        set_step(_step);
+
+        //TODO: choose strategy
+        if (!this->iter_type->get_is_signed()) {
+            if ((get_condition() == GT) || // negative step can't be with unsigned iterator
+                (get_condition() == GE))
+                incomp_cond = true;
+        }
+    }
+    while (incomp_cond);
+    
+    init_stmnt();
 
 }
 
 std::string Loop::emit_usage () {
-    std::string ret;
+    std::string ret = "#include <cstdint>\n";
+    ret += "uint64_t foo () {\n\t";
+
+    for (auto i = this->in.begin(); i != this->in.end(); ++i) 
+        ret += i->emit_definition (true) + "\t";
+    for (auto i = this->out.begin(); i != this->out.end(); ++i)
+        ret += i->emit_definition (true) + "\t";
+
     switch (get_loop_type ()) {
         case LoopType::FOR:
             ret += "for (";
+            ret += this->iter_type->emit_usage ();
+            ret += " i = " + std::to_string(get_start_value ()) + ";";
+            ret += " i " + get_condition_name () + " ";
+            ret += std::to_string(get_end_value ()) + ";";
+            ret += " i += " + std::to_string(get_step ()) + ") { \n\t";
             break;
         case LoopType::WHILE:
-            ret += "while (";
+            ret += this->iter_type->emit_usage ();
+            ret += " i = " + std::to_string(get_start_value ()) + ";\n";
+            ret += "\twhile (";
+            ret += " i " + get_condition_name () + " ";
+            ret += std::to_string(get_end_value ()) + ") {\n\t";
             break;
         case LoopType::DO_WHILE:
-            ret += "do {\n";
+            ret += this->iter_type->emit_usage ();
+            ret += " i = " + std::to_string(get_start_value ()) + ";\n";
+            ret += "\tdo {\n\t";
             break;
         default:
             ret += "ERROR IN LOOP TYPE";
             break;
     }
+/*
     ret += this->iter_type->emit_usage ();
     ret += " i = " + std::to_string(get_start_value ()) + ";";
     ret += " i " + get_condition_name () + " ";
     ret += std::to_string(get_end_value ()) + ";";
     ret += " i += " + std::to_string(get_step ()) + ") { \n";
-    ret += "\n}";
+*/
+
+    for (auto i = this->stmnt.begin(); i != this->stmnt.end(); ++i)
+        ret += "\t" + i->emit_usage () + ";\n\t";
+
+    if (get_loop_type () == LoopType::DO_WHILE ||
+        get_loop_type () == LoopType::WHILE) {
+        ret += "\ti += " + std::to_string(get_step ()) + ";\n\t";
+    }
+
+    ret += "}\n";
+
+    if (get_loop_type () == LoopType::DO_WHILE) {
+        ret += "\twhile (";
+        ret += " i " + get_condition_name () + " ";
+        ret += std::to_string(get_end_value ()) + ");\n";
+    }
+
+    unsigned int min_size = UINT_MAX;
+    for (auto i = this->in.begin(); i != this->in.end(); ++i)
+        min_size = std::min(min_size, i->get_size());
+    for (auto i = this->out.begin(); i != this->out.end(); ++i)
+        min_size = std::min(min_size, i->get_size());
+
+    ret += "\tuint64_t ret = 0;\n";
+    ret += "\tfor (uint64_t i = 0; i < " + std::to_string(min_size) + "; ++i) {\n\t";
+    for (auto i = this->out.begin(); i != this->out.end(); ++i)
+        ret += "\tret ^= " + i->emit_usage() + ";\n\t";
+    ret += "}\n\t";
+    ret += "return ret;\n";
+    ret += "}\n";
     return ret;
 }
 
@@ -153,4 +314,16 @@ void Loop::dbg_dump () {
             break;
     }
     std::cout << "condition " << cond_str << std::endl;
+    for (auto i = this->in.begin(); i != this->in.end(); ++i) {
+        std::cout << "=======================================" << std::endl;
+        i->dbg_dump();
+    }
+    for (auto i = this->out.begin(); i != this->out.end(); ++i) {
+        std::cout << "=======================================" << std::endl;
+        i->dbg_dump();
+    }
+    for (auto i = this->stmnt.begin(); i != this->stmnt.end(); ++i) {
+        std::cout << "=======================================" << std::endl;
+        i->dbg_dump();
+    }
 }

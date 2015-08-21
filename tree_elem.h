@@ -18,7 +18,6 @@ limitations under the License.
 
 #include "type.h"
 #include "array.h"
-#include "loop.h"
 #include "operator.h"
 
 class TreeElem {

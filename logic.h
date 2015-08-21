@@ -39,6 +39,7 @@ class Statement {
 
     private:
         ArithTree& fill_level (ArithTree &apt, unsigned int level);
+        bool need_arr (ArithTree &apt);
         std::string emit_level (ArithTree &apt, unsigned int level, unsigned int info_type);
         std::string emit_type ();
         std::string emit_domain (bool is_max);

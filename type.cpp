@@ -17,9 +17,11 @@ limitations under the License.
 #include "type.h"
 
 int rand_dev () {
+//    return 2107662808; // TODO: enable random
     std::random_device rd;
-    return rd();
-//    return 4096; // TODO: enable random
+    int ret = rd ();
+    std::cout << "/*SEED " << ret << "*/\n";
+    return ret;
 }
 
 std::mt19937_64 rand_gen(rand_dev());
@@ -72,6 +74,8 @@ uint64_t Type::get_abs_max () { return this->abs_max; }
 
 uint64_t Type::get_abs_min () { return this->abs_min; }
 
+uint64_t Type::get_bit_size () { return this->bit_size; }
+
 void Type::set_bound_value (std::vector<uint64_t> bval) { this->bound_val = bval; }
 
 std::vector<uint64_t> Type::get_bound_value () { return this->bound_val; }
@@ -88,6 +92,22 @@ bool Type::check_val_in_domains (uint64_t val) {
 std::string Type::emit_usage () {
     return get_name ();
 }
+
+void Type::combine_range (std::shared_ptr<Type> _type) {
+    //TODO: need something for signed values and fp
+
+    //TODO: bound values
+//    this->combine_bound_value (_type);
+    uint64_t val_1 = get_min_value ();
+    uint64_t val_2 = _type->get_min_value ();
+    uint64_t comb_min = std::max (val_1, val_2);
+    val_1 = get_max_value ();
+    val_2 = _type->get_max_value ();
+    uint64_t comb_max = std::min(val_1, val_2);
+    this->set_min_value(std::min(comb_min, comb_max));
+    this->set_max_value(std::max(comb_min, comb_max));
+}
+
 
 void Type::dbg_dump () {
     std::cout << "name " << this->name << std::endl;
@@ -109,40 +129,13 @@ bool Type::check_val_in_domains (std::string val) {
     return false;
 }
 
-void Type::combine_bound_value (std::shared_ptr<Type> _type) {
-    // TODO: WTF???
 /*
-    std::cout << "DEBUG bound values ";
-    for (std::vector<uint64_t>::iterator i = _type->get_bound_value().begin(); i != _type->get_bound_value().end(); ++i)
-        std::cout << *i << ' ';
-    std::cout << std::endl;
-    std::cout << "DEBUG bound values ";
-    for (std::vector<uint64_t>::iterator i = this->bound_val.begin(); i != this->bound_val.end(); ++i)
-        std::cout << *i << ' ';
-    std::cout << std::endl;
-
-    //std::cout << "DEBUG bound values ";
-    //for (std::vector<uint64_t>::iterator i = _type->get_bound_value().begin(); i != _type->get_bound_value().end(); ++i) {
-    //    this->bound_val.push_back(*i);
-    //    std::cout << *i << ' ';
-    //}
-    //std::cout << std::endl;
-*/
+void Type::combine_bound_value (std::shared_ptr<Type> _type) {
+    // TODO: ret is const ref
     for (int i = 0; i < _type->get_bound_value().size(); ++i)
         this->bound_val.push_back(_type->get_bound_value().at(i));
-/*
-    //this->bound_val.insert(this->bound_val.end(), _type->get_bound_value().begin(), _type->get_bound_value().end());
-
-    std::cout << "DEBUG bound values ";
-    for (std::vector<uint64_t>::iterator i = _type->get_bound_value().begin(); i != _type->get_bound_value().end(); ++i)
-        std::cout << *i << ' ';
-    std::cout << std::endl;
-    std::cout << "DEBUG bound values ";
-    for (std::vector<uint64_t>::iterator i = this->bound_val.begin(); i != this->bound_val.end(); ++i)
-        std::cout << *i << ' ';
-    std::cout << std::endl;
-*/
 }
+*/
 
 TypeUCHAR::TypeUCHAR () {
     this->id = Type::TypeID::UCHAR;
@@ -161,16 +154,11 @@ uint64_t TypeUCHAR::get_rand_value () {
     return ret;
 }
 
-void TypeUCHAR::combine_range (std::shared_ptr<Type> _type) {
-    this->combine_bound_value (_type);
-    uint64_t val_1 = get_min_value ();
-    uint64_t val_2 =  _type-> get_min_value ();
-    uint64_t comb_min = ((unsigned char) val_1 > (unsigned char) val_2) ? val_1 : val_2;
-    val_1 = get_max_value ();
-    val_2 =  _type-> get_max_value ();
-    uint64_t comb_max = ((unsigned char) val_1 < (unsigned char) val_2) ? val_1 : val_2;
-    this->set_min_value(((unsigned char) comb_min < (unsigned char) comb_max) ? comb_min : comb_max);
-    this->set_max_value(((unsigned char) comb_max > (unsigned char) comb_min) ? comb_max : comb_min);
+uint64_t TypeUCHAR::get_rand_value (uint64_t a, uint64_t b) {
+    std::shared_ptr<Type> _type = Type::init(get_id());
+    _type->set_min_value (a);
+    _type->set_max_value (b);
+    return _type->get_rand_value ();
 }
 
 std::string TypeUCHAR::get_rand_value_str () {
@@ -194,16 +182,11 @@ uint64_t TypeUSHRT::get_rand_value () {
     return ret;
 }
 
-void TypeUSHRT::combine_range (std::shared_ptr<Type> _type) {
-    this->combine_bound_value (_type);
-    uint64_t val_1 = get_min_value ();
-    uint64_t val_2 =  _type-> get_min_value ();
-    uint64_t comb_min = ((unsigned short) val_1 > (unsigned short) val_2) ? val_1 : val_2;
-    val_1 = get_max_value ();
-    val_2 =  _type-> get_max_value ();
-    uint64_t comb_max = ((unsigned short) val_1 < (unsigned short) val_2) ? val_1 : val_2;
-    this->set_min_value(((unsigned short) comb_min < (unsigned short) comb_max) ? comb_min : comb_max);
-    this->set_max_value(((unsigned short) comb_max > (unsigned short) comb_min) ? comb_max : comb_min);
+uint64_t TypeUSHRT::get_rand_value (uint64_t a, uint64_t b) {
+    std::shared_ptr<Type> _type = Type::init(get_id());
+    _type->set_min_value (a);
+    _type->set_max_value (b);
+    return _type->get_rand_value ();
 }
 
 std::string TypeUSHRT::get_rand_value_str () {
@@ -227,16 +210,11 @@ uint64_t TypeUINT::get_rand_value () {
     return ret;
 }
 
-void TypeUINT::combine_range (std::shared_ptr<Type> _type) {
-    this->combine_bound_value (_type);
-    uint64_t val_1 = get_min_value ();
-    uint64_t val_2 =  _type-> get_min_value ();
-    uint64_t comb_min = ((unsigned int) val_1 > (unsigned int) val_2) ? val_1 : val_2;
-    val_1 = get_max_value ();
-    val_2 =  _type-> get_max_value ();
-    uint64_t comb_max = ((unsigned int) val_1 < (unsigned int) val_2) ? val_1 : val_2;
-    this->set_min_value(((unsigned int) comb_min < (unsigned int) comb_max) ? comb_min : comb_max);
-    this->set_max_value(((unsigned int) comb_max > (unsigned int) comb_min) ? comb_max : comb_min);
+uint64_t TypeUINT::get_rand_value (uint64_t a, uint64_t b) {
+    std::shared_ptr<Type> _type = Type::init(get_id());
+    _type->set_min_value (a);
+    _type->set_max_value (b);
+    return _type->get_rand_value ();
 }
 
 std::string TypeUINT::get_rand_value_str () {
@@ -260,16 +238,11 @@ uint64_t TypeULINT::get_rand_value () {
     return ret;
 }
 
-void TypeULINT::combine_range (std::shared_ptr<Type> _type) {
-    this->combine_bound_value (_type);
-    uint64_t val_1 = get_min_value ();
-    uint64_t val_2 =  _type-> get_min_value ();
-    uint64_t comb_min = ((unsigned long int) val_1 > (unsigned long int) val_2) ? val_1 : val_2;
-    val_1 = get_max_value ();
-    val_2 =  _type-> get_max_value ();
-    uint64_t comb_max = ((unsigned long int) val_1 < (unsigned long int) val_2) ? val_1 : val_2;
-    this->set_min_value(((unsigned long int) comb_min < (unsigned long int) comb_max) ? comb_min : comb_max);
-    this->set_max_value(((unsigned long int) comb_max > (unsigned long int) comb_min) ? comb_max : comb_min);
+uint64_t TypeULINT::get_rand_value (uint64_t a, uint64_t b) {
+    std::shared_ptr<Type> _type = Type::init(get_id());
+    _type->set_min_value (a);
+    _type->set_max_value (b);
+    return _type->get_rand_value ();
 }
 
 std::string TypeULINT::get_rand_value_str () {
@@ -293,18 +266,12 @@ uint64_t TypeULLINT::get_rand_value () {
     return ret;
 }
 
-void TypeULLINT::combine_range (std::shared_ptr<Type> _type) {
-    this->combine_bound_value (_type);
-    uint64_t val_1 = get_min_value ();
-    uint64_t val_2 =  _type-> get_min_value ();
-    uint64_t comb_min = ((unsigned long long int) val_1 > (unsigned long long int) val_2) ? val_1 : val_2;
-    val_1 = get_max_value ();
-    val_2 =  _type-> get_max_value ();
-    uint64_t comb_max = ((unsigned long long int) val_1 < (unsigned long long int) val_2) ? val_1 : val_2;
-    this->set_min_value(((unsigned long long int) comb_min < (unsigned long long int) comb_max) ? comb_min : comb_max);
-    this->set_max_value(((unsigned long long int) comb_max > (unsigned long long int) comb_min) ? comb_max : comb_min);
+uint64_t TypeULLINT::get_rand_value (uint64_t a, uint64_t b) {
+    std::shared_ptr<Type> _type = Type::init(get_id());
+    _type->set_min_value (a);
+    _type->set_max_value (b);
+    return _type->get_rand_value ();
 }
-
 
 std::string TypeULLINT::get_rand_value_str () {
     return std::to_string ((unsigned long long int) get_rand_value ()) + "ULL";

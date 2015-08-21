@@ -44,10 +44,7 @@ TreeElem TreeElem::get_rand_obj_op (std::shared_ptr<Type> _type) {
 void TreeElem::determine_range () {
        // TODO: replace everything
     spread_oper_type (get_oper_type(Operator::Side::SELF));
-    set_oper_max_value(Operator::Side::LEFT, get_oper_max_value(Operator::Side::SELF) / 2);
-    set_oper_max_value(Operator::Side::RGHT, get_oper_max_value(Operator::Side::SELF) / 2);
-    set_oper_min_value(Operator::Side::LEFT, get_oper_min_value(Operator::Side::SELF) / 2);
-    set_oper_min_value(Operator::Side::RGHT, get_oper_min_value(Operator::Side::SELF) / 2);
+    oper.determine_range();
 }
 
 bool TreeElem::get_is_op () { return this->is_op; }

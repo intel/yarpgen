@@ -168,10 +168,10 @@ int main () {
     std::cout << c.emit_usage() << std::endl;
 
     std::vector<Array> in;
-    in.push_back(Array ("a1", 2, 6));
-    in.push_back(Array ("a2", 3, 5));
+    in.push_back(Array ("a1", 0, 6));
+    in.push_back(Array ("a2", 0, 5));
     std::vector<Array> out;
-    Array arr = Array ("b", 4, 7);
+    Array arr = Array ("b", 1, 7);
     arr.set_max_value (50);
     arr.set_min_value (10);
     out.push_back(arr);
@@ -190,10 +190,9 @@ int main () {
 
     a.set_depth(5);
     a.random_fill ();
-    in.at(0).dbg_dump();
-    std::cout << in.at(0).emit_definition (true) << std::endl;
-    std::cout << in.at(0).emit_definition (false) << std::endl;
-    a.dbg_dump();
+//    in.at(0).dbg_dump();
+//    in.at(1).dbg_dump();
+//    a.dbg_dump();
     std::cout << a.emit_usage() << std::endl;
 
     Type a = Type::get_rand_obj ();
@@ -210,8 +209,10 @@ int main () {
     TreeElem a = TreeElem::get_rand_obj_op ();
     a.dbg_dump();
 */
-
     Loop a;
     a.random_fill ();
     std::cout << a.emit_usage() << std::endl;
+//    std::cout << "/*" << std::endl;
+//    a.dbg_dump();
+//    std::cout << "*/" << std::endl;
 }
