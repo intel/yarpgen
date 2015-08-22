@@ -16,14 +16,14 @@ limitations under the License.
 
 #include "loop.h"
 
-unsigned int MAX_ARRAY_NUM = 20;
-unsigned int MIN_ARRAY_NUM = 4;
+unsigned int MAX_ARRAY_NUM = 200;
+unsigned int MIN_ARRAY_NUM = 20;
 
-unsigned int MAX_STMNT_NUM = 20;
-unsigned int MIN_STMNT_NUM = 4;
+unsigned int MAX_STMNT_NUM = 200;
+unsigned int MIN_STMNT_NUM = 20;
 
-unsigned int MAX_DEPTH = 20;
-unsigned int MIN_DEPTH = 3;
+unsigned int MAX_DEPTH = 200;
+unsigned int MIN_DEPTH = 6;
 
 Loop::Loop () {
     this->loop_type = LoopType::FOR;
@@ -66,6 +66,9 @@ unsigned int Loop::init_array () {
         this->in.push_back(Array::get_rand_obj ("in_" + std::to_string(i)));
         min_size = min_size < this->in.at(i).get_size() ? min_size : this->in.at(i).get_size();
         this->out.push_back(Array::get_rand_obj ("out_" + std::to_string(i)));
+        //TODO: move to get_rand_obj
+        std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::VOLAT);
+        this->out.at(i).set_modifier(modifier_dis(rand_gen));        
         min_size = min_size < this->out.at(i).get_size() ? min_size : this->out.at(i).get_size();
     }
     return min_size;
@@ -167,13 +170,14 @@ void Loop::random_fill () {
 
 std::string Loop::emit_usage () {
     std::string ret = "#include <cstdint>\n";
-    ret += "uint64_t foo () {\n\t";
+    ret += "#include <iostream>\n";
 
-    for (auto i = this->in.begin(); i != this->in.end(); ++i) 
-        ret += i->emit_definition (true) + "\t";
+    for (auto i = this->in.begin(); i != this->in.end(); ++i)
+        ret += i->emit_definition (true);
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        ret += i->emit_definition (true) + "\t";
+        ret += i->emit_definition (false);
 
+    ret += "void foo () {\n\t";
     switch (get_loop_type ()) {
         case LoopType::FOR:
             ret += "for (";
@@ -223,14 +227,18 @@ std::string Loop::emit_usage () {
         ret += std::to_string(get_end_value ()) + ");\n";
     }
 
+    ret += "}\n";
+
     unsigned int min_size = UINT_MAX;
     for (auto i = this->in.begin(); i != this->in.end(); ++i)
         min_size = std::min(min_size, i->get_size());
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
         min_size = std::min(min_size, i->get_size());
 
-    ret += "\tuint64_t ret = 0;\n";
-    ret += "\tfor (uint64_t i = 0; i < " + std::to_string(min_size) + "; ++i) {\n\t";
+    ret += "uint64_t checksum () {\n\t";
+    ret += "foo ();\n\t";
+    ret += "uint64_t ret = 0;\n\t";
+    ret += "for (uint64_t i = 0; i < " + std::to_string(min_size) + "; ++i) {\n\t";
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
         ret += "\tret ^= " + i->emit_usage() + ";\n\t";
     ret += "}\n\t";

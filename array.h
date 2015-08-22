@@ -39,13 +39,28 @@ class Array {
         std::vector<uint64_t> get_bound_value () const;
         bool get_is_fp () const;
         bool get_is_signed () const;
+        void set_modifier (unsigned int _mod);
+        unsigned int get_modifier ();
+        void set_is_static (bool _stat);
+        bool get_is_static ();
         std::string emit_definition (bool rand_init);
         std::string emit_usage ();
         static Array get_rand_obj (std::string _name);
         void dbg_dump ();
 
+    public:
+        enum Mod {
+            NTHNG,
+            VOLAT,
+            CONST,
+            CONST_VOLAT,
+            MAX_MOD
+        };
+
     private:
         std::string name;
+        unsigned int modifier;
+        bool is_static;
         unsigned int size;
         std::shared_ptr<Type> type;
 };

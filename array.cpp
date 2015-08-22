@@ -16,8 +16,8 @@ limitations under the License.
 
 #include "array.h"
 
-unsigned int MAX_ARRAY_SIZE = 250;
-unsigned int MIN_ARRAY_SIZE = 20;
+unsigned int MAX_ARRAY_SIZE = 1000;
+unsigned int MIN_ARRAY_SIZE = 200;
 
 Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->name = _name;
@@ -28,7 +28,12 @@ Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
 Array Array::get_rand_obj (std::string _name) {
     std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
     std::uniform_int_distribution<unsigned int> size_dis(MIN_ARRAY_SIZE, MAX_ARRAY_SIZE);
-    return Array (_name, type_dis(rand_gen), size_dis(rand_gen));
+    Array ret = Array (_name, type_dis(rand_gen), size_dis(rand_gen));
+    std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::MAX_MOD - 1);
+    ret.set_modifier(modifier_dis(rand_gen));
+    std::uniform_int_distribution<unsigned int> static_dis(0, 1);
+    ret.set_is_static(static_dis(rand_gen));
+    return ret;
 }
 
 std::string Array::emit_usage () {
@@ -37,7 +42,21 @@ std::string Array::emit_usage () {
 }
 
 std::string Array::emit_definition (bool rand_init) {
-    std::string ret = get_type ()->emit_usage ();
+    std::string ret = get_is_static() ? "static " : "";
+    switch (get_modifier()) {
+        case VOLAT:
+            ret += "volatile ";
+            break;
+        case CONST:
+            ret += "const ";
+            break;
+        case CONST_VOLAT:
+            ret += "const volatile ";
+            break;
+        case NTHNG:
+            break;
+    }
+    ret += get_type ()->emit_usage ();
     ret += " " + get_name ();
     ret += " [" + std::to_string(get_size ()) + "] ";
     ret += " = {";
@@ -81,3 +100,10 @@ std::vector<uint64_t> Array::get_bound_value () const { return this->type->get_b
 bool Array::get_is_fp () const { return this->type->get_is_fp(); }
 
 bool Array::get_is_signed () const { return this->type->get_is_signed(); }
+
+void Array::set_modifier (unsigned int _mod) { this->modifier = _mod; }
+
+unsigned int Array::get_modifier () { return this->modifier; }
+
+void Array::set_is_static (bool _stat) { this->is_static = _stat; }
+bool Array::get_is_static () { return this->is_static; }

@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cstdint>
 
-extern uint64_t foo ();
+extern uint64_t checksum ();
 
 int main () {
-    std::cout << foo () << std::endl;
+    std::cout << checksum () << std::endl;
     return 0;
 }

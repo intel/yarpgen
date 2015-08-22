@@ -23,7 +23,7 @@ cd ./result
 while [ "$?" -eq "0" ]
 do
     rm test.cpp test.s icc-no-opt.log icc-opt.log test.optrpt
-    ../a.out > test.cpp
+    ../a.out 1> test.cpp
 
     icpc test.cpp -S -O0 -restrict -std=c++11
     icpc test.s driver.cpp -O0 -restrict -o out -std=c++11
@@ -39,7 +39,7 @@ do
     clang++ test.s driver.cpp -O3 -o out -std=c++11
     ./out > clang-opt.log
 
-    #cat test.optrpt
+#    cat test.optrpt
     diff icc-opt.log icc-no-opt.log
     diff clang-opt.log clang-no-opt.log
     diff icc-opt.log clang-opt.log
