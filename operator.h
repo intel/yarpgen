@@ -44,7 +44,7 @@ class Operator {
         void set_bound_value (unsigned int side, std::vector<uint64_t> bval);
         std::vector<uint64_t> get_bound_value (unsigned int side) const;
         void add_bound_value (unsigned int side, uint64_t bval);
-        bool check_val_in_domains (unsigned int side, uint64_t val);        
+        bool check_val_in_domains (unsigned int side, uint64_t val);
         void determine_range ();
         static Operator get_rand_obj ();
         std::string emit_usage ();
@@ -52,20 +52,20 @@ class Operator {
 
     public:
         enum OperType {
-            UN_INC, // +
-            UN_DEC, // -
-            LOG_NOT, // !
+//            UN_INC, // +
+//            UN_DEC, // -
+//            LOG_NOT, // !
             MUL, // *
             DIV, // /
             MOD, // %
             ADD, // +
             SUB, // -
-            BIT_SHL, // <<
-            BIT_SHR, // >>
-            MAX_OPER_TYPE 
+//            BIT_SHL, // <<
+//            BIT_SHR, // >>
+            MAX_OPER_TYPE
         };
         enum Side {
-            LEFT, 
+            LEFT,
             RGHT,
             SELF,
             MAX_SIDE

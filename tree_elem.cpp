@@ -36,7 +36,7 @@ TreeElem TreeElem::get_rand_obj_op (unsigned int _type_id) {
 }
 
 TreeElem TreeElem::get_rand_obj_op (std::shared_ptr<Type> _type) {
-    TreeElem ret = TreeElem::get_rand_obj_op (Type::TypeID::UCHAR);
+    TreeElem ret = TreeElem::get_rand_obj_op (Type::TypeID::UINT);
     ret.spread_oper_type (_type);
     return ret;
 }
@@ -49,7 +49,7 @@ void TreeElem::determine_range () {
 
 bool TreeElem::get_is_op () { return this->is_op; }
 
-std::string TreeElem::get_arr_name () { 
+std::string TreeElem::get_arr_name () {
     if (this->array != NULL)
         return this->array->get_name();
     return "";
@@ -64,7 +64,7 @@ unsigned int TreeElem::get_arr_size () {
 std::string TreeElem::get_arr_type_name () {
     if (this->array != NULL)
         return this->array->get_type_name();
-    return 0; 
+    return 0;
 }
 
 void TreeElem::set_arr_max_value (int64_t _max_val) {
@@ -142,8 +142,8 @@ Operator TreeElem::get_oper () { return this->oper; }
 std::string TreeElem::get_type_name () {
     if (get_is_op())
         return get_oper_type_name(Operator::Side::SELF);
-    else 
-        return get_arr_type_name(); 
+    else
+        return get_arr_type_name();
 }
 
 uint64_t TreeElem::get_max_value () {

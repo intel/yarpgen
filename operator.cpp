@@ -18,7 +18,7 @@ limitations under the License.
 
 Operator::Operator () {
     this->id = MAX_OPER_TYPE;
-    spread_type(Type::init (Type::TypeID::UCHAR));
+    spread_type(Type::init (Type::TypeID::UINT));
     this->name = "";
     this->num_of_op = 0;
     this->cause_ub = false;
@@ -26,8 +26,9 @@ Operator::Operator () {
 
 Operator::Operator (unsigned int _id) {
     this->id = _id;
-    spread_type(Type::init (Type::TypeID::UCHAR));
+    spread_type(Type::init (Type::TypeID::UINT));
     switch (_id) {
+/*
         case OperType::UN_INC:
             this->name = "+";
             this->num_of_op = 1;
@@ -40,6 +41,7 @@ Operator::Operator (unsigned int _id) {
             this->name = "!";
             this->num_of_op = 1;
             break;
+*/
         case OperType::MUL:
             this->name = "*";
             this->num_of_op = 2;
@@ -60,6 +62,7 @@ Operator::Operator (unsigned int _id) {
             this->name = "-";
             this->num_of_op = 2;
             break;
+/*
         case OperType::BIT_SHL:
             this->name = "<<";
             this->num_of_op = 2;
@@ -68,6 +71,7 @@ Operator::Operator (unsigned int _id) {
             this->name = ">>";
             this->num_of_op = 2;
             break;
+*/
         case OperType::MAX_OPER_TYPE:
             this->name = "ERROR in Operator";
             this->num_of_op = 0;
@@ -84,6 +88,7 @@ void Operator::spread_type (std::shared_ptr<Type> _type) {
     set_type (Operator::Side::LEFT, Type::init(_type->get_id()));
     set_type (Operator::Side::RGHT, Type::init(_type->get_id()));
     switch(get_id()) {
+/*
         case OperType::UN_INC:
             this->cause_ub = false;
             break;
@@ -93,6 +98,7 @@ void Operator::spread_type (std::shared_ptr<Type> _type) {
         case OperType::LOG_NOT:
             this->cause_ub = get_is_signed (Operator::Side::SELF);
             break;
+*/
         case OperType::MUL:
             this->cause_ub = get_is_signed (Operator::Side::SELF);
             break;
@@ -108,12 +114,14 @@ void Operator::spread_type (std::shared_ptr<Type> _type) {
         case OperType::SUB:
             this->cause_ub = get_is_signed (Operator::Side::SELF);
             break;
+/*
         case OperType::BIT_SHL:
             this->cause_ub = true;
             break;
         case OperType::BIT_SHR:
             this->cause_ub = true;
             break;
+*/
         case OperType::MAX_OPER_TYPE:
             this->cause_ub = false;
             break;
@@ -125,6 +133,7 @@ void Operator::determine_range () {
     if (!can_cause_ub())
         return;
     switch (get_id()) {
+/*
         case OperType::UN_INC:
             return;
         case OperType::UN_DEC:
@@ -133,6 +142,7 @@ void Operator::determine_range () {
         case OperType::LOG_NOT:
             // TODO: for signed and fp
             break;
+*/
         case OperType::MUL:
             // TODO: for signed and fp
             break;
@@ -150,14 +160,16 @@ void Operator::determine_range () {
         case OperType::SUB:
             // TODO: for signed and fp
             break;
+/*
         case OperType::BIT_SHL:
-            set_max_value(Operator::Side::RGHT, get_type(Operator::Side::SELF)->get_bit_size());
+            set_max_value(Operator::Side::RGHT, get_type(Operator::Side::SELF)->get_bit_size() - 1);
             break;
         case OperType::BIT_SHR:
-            set_max_value(Operator::Side::RGHT, get_type(Operator::Side::SELF)->get_bit_size());
+            set_max_value(Operator::Side::RGHT, get_type(Operator::Side::SELF)->get_bit_size() - 1);
             break;
+*/
         case OperType::MAX_OPER_TYPE:
-            break;            
+            break;
     };
 }
 
@@ -221,7 +233,7 @@ uint64_t Operator::get_min_value (unsigned int side) const {
     return 0;
 }
 
-void Operator::set_bound_value (unsigned int side, std::vector<uint64_t> bval) { 
+void Operator::set_bound_value (unsigned int side, std::vector<uint64_t> bval) {
     if (this->type [side] != NULL)
         this->type [side]->set_bound_value (bval);
 }
@@ -233,14 +245,14 @@ std::vector<uint64_t> Operator::get_bound_value (unsigned int side) const {
     return ret;
 }
 
-void Operator::add_bound_value (unsigned int side, uint64_t bval) { 
+void Operator::add_bound_value (unsigned int side, uint64_t bval) {
     if (this->type [side] != NULL)
-        this->type [side]->add_bound_value (bval); 
+        this->type [side]->add_bound_value (bval);
 }
 
-bool Operator::check_val_in_domains (unsigned int side, uint64_t val) { 
+bool Operator::check_val_in_domains (unsigned int side, uint64_t val) {
     if (this->type [side] != NULL)
-        return this->type [side]->check_val_in_domains (val); 
+        return this->type [side]->check_val_in_domains (val);
     return false;
 }
 

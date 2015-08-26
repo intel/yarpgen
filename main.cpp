@@ -212,7 +212,7 @@ int main () {
     Loop a;
     a.random_fill ();
     std::cout << a.emit_usage() << std::endl;
-//    std::cout << "/*" << std::endl;
-//    a.dbg_dump();
-//    std::cout << "*/" << std::endl;
+    std::cout << "/*" << std::endl;
+    a.dbg_dump();
+    std::cout << "*/" << std::endl;
 }

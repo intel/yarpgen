@@ -59,8 +59,8 @@ class Type {
 
     public:
         enum TypeID {
-            UCHAR,
-            USHRT,
+//            UCHAR,
+//            USHRT,
             UINT,
             ULINT,
             ULLINT,
@@ -79,7 +79,7 @@ class Type {
         bool is_fp;
         bool is_signed;
 };
-
+/*
 class TypeUCHAR : public Type {
     public:
         TypeUCHAR ();
@@ -95,7 +95,7 @@ class TypeUSHRT : public Type {
         std::string get_rand_value_str ();
         uint64_t get_rand_value (uint64_t a, uint64_t b);
 };
-
+*/
 class TypeUINT : public Type {
     public:
         TypeUINT ();

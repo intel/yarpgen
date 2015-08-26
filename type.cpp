@@ -21,6 +21,7 @@ int rand_dev () {
     std::random_device rd;
     int ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
+    std::cerr << "/*SEED " << ret << "*/\n";
     return ret;
 }
 
@@ -29,12 +30,14 @@ std::mt19937_64 rand_gen(rand_dev());
 std::shared_ptr<Type> Type::init (unsigned int _type_id) {
     std::shared_ptr<Type> ret (NULL);
     switch (_type_id) {
+/*
         case TypeID::UCHAR:
             ret = std::make_shared<TypeUCHAR> (TypeUCHAR());
             break;
         case TypeID::USHRT:
             ret = std::make_shared<TypeUSHRT> (TypeUSHRT());
             break;
+*/
         case TypeID::UINT:
             ret = std::make_shared<TypeUINT> (TypeUINT());
             break;
@@ -136,13 +139,13 @@ void Type::combine_bound_value (std::shared_ptr<Type> _type) {
         this->bound_val.push_back(_type->get_bound_value().at(i));
 }
 */
-
+/*
 TypeUCHAR::TypeUCHAR () {
     this->id = Type::TypeID::UCHAR;
     this->name = "unsigned char";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = UCHAR_MAX;
-    this->bit_size = sizeof (unsigned char);
+    this->bit_size = sizeof (unsigned char) * CHAR_BIT;
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -170,7 +173,7 @@ TypeUSHRT::TypeUSHRT () {
     this->name = "unsigned short";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = USHRT_MAX;
-    this->bit_size = sizeof (unsigned short);
+    this->bit_size = sizeof (unsigned short) * CHAR_BIT;
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -192,13 +195,13 @@ uint64_t TypeUSHRT::get_rand_value (uint64_t a, uint64_t b) {
 std::string TypeUSHRT::get_rand_value_str () {
     return std::to_string ((unsigned short) get_rand_value ());
 }
-
+*/
 TypeUINT::TypeUINT () {
     this->id = Type::TypeID::UINT;
     this->name = "unsigned int";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = UINT_MAX;
-    this->bit_size = sizeof (unsigned int);
+    this->bit_size = sizeof (unsigned int) * CHAR_BIT;
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -226,7 +229,7 @@ TypeULINT::TypeULINT () {
     this->name = "unsigned long int";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = ULONG_MAX;
-    this->bit_size = sizeof (unsigned long int);
+    this->bit_size = sizeof (unsigned long int) * CHAR_BIT;
     this->is_fp = false;
     this->is_signed = false;
 }
@@ -254,7 +257,7 @@ TypeULLINT::TypeULLINT () {
     this->name = "unsigned long long int";
     this->min_val = this->abs_min = 0;
     this->max_val = this->abs_max = ULLONG_MAX;
-    this->bit_size = sizeof (unsigned long long int);
+    this->bit_size = sizeof (unsigned long long int) * CHAR_BIT;
     this->is_fp = false;
     this->is_signed = false;
 }

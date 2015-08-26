@@ -75,5 +75,5 @@ class Loop {
         unsigned int loop_type;
         std::shared_ptr<Type> iter_type;
         uint64_t step;
-        unsigned int condition; 
+        unsigned int condition;
 };

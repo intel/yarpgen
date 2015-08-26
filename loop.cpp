@@ -27,7 +27,7 @@ unsigned int MIN_DEPTH = 6;
 
 Loop::Loop () {
     this->loop_type = LoopType::FOR;
-    this->iter_type = Type::init (Type::TypeID::UCHAR);
+    this->iter_type = Type::init (Type::TypeID::UINT);
     this->step = 1;
     this->condition = CondType::LT;
 }
@@ -68,7 +68,7 @@ unsigned int Loop::init_array () {
         this->out.push_back(Array::get_rand_obj ("out_" + std::to_string(i)));
         //TODO: move to get_rand_obj
         std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::VOLAT);
-        this->out.at(i).set_modifier(modifier_dis(rand_gen));        
+        this->out.at(i).set_modifier(modifier_dis(rand_gen));
         min_size = min_size < this->out.at(i).get_size() ? min_size : this->out.at(i).get_size();
     }
     return min_size;
@@ -96,7 +96,7 @@ void Loop::random_fill () {
         incomp_cond = false;
         set_iter_type (Type::get_rand_obj());
 
-        std::uniform_int_distribution<unsigned int> cond_type_dis(0, MAX_COND - 1); 
+        std::uniform_int_distribution<unsigned int> cond_type_dis(0, MAX_COND - 1);
         set_condition (cond_type_dis(rand_gen));
 
 
@@ -110,7 +110,7 @@ void Loop::random_fill () {
                 end_val = get_start_value();
                 _step = iter_type->get_rand_value(iter_type->get_abs_min(), iter_type->get_abs_max());
                 incomp_cond = _step == 0;
-                break; 
+                break;
             case NE:
                 if (!this->iter_type->get_is_signed()) {
                     end_val = this->iter_type->get_rand_value(get_start_value(), (max_val - 1));
@@ -123,12 +123,12 @@ void Loop::random_fill () {
                     do {
                         _step = diff / step_dis(rand_gen);
                     }
-                    while (_step % diff != 0);
+                    while (diff % _step != 0);
                 }
                 break;
             case GT:
                 if (!this->iter_type->get_is_signed()) {
-                    incomp_cond = true;   
+                    incomp_cond = true;
                     break;
                 }
                 end_val = this->iter_type->get_rand_value(0, (get_start_value() != 0) ? (get_start_value() - 1) : 0);
@@ -163,7 +163,7 @@ void Loop::random_fill () {
         }
     }
     while (incomp_cond);
-    
+
     init_stmnt();
 
 }
