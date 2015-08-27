@@ -16,19 +16,19 @@ limitations under the License.
 
 #include "loop.h"
 
-unsigned int MAX_ARRAY_NUM = 200;
-unsigned int MIN_ARRAY_NUM = 20;
+unsigned int MAX_ARRAY_NUM = 10;
+unsigned int MIN_ARRAY_NUM = 1;
 
-unsigned int MAX_STMNT_NUM = 200;
-unsigned int MIN_STMNT_NUM = 20;
+unsigned int MAX_STMNT_NUM = 3;
+unsigned int MIN_STMNT_NUM = 1;
 
-unsigned int MAX_DEPTH = 200;
-unsigned int MIN_DEPTH = 6;
+unsigned int MAX_DEPTH = 50;
+unsigned int MIN_DEPTH = 4;
 
 Loop::Loop () {
     this->loop_type = LoopType::FOR;
     this->iter_type = Type::init (Type::TypeID::UINT);
-    this->step = 1;
+    set_step (1);
     this->condition = CondType::LT;
 }
 
@@ -46,32 +46,43 @@ void Loop::set_start_value (uint64_t _start_val) { this->iter_type->set_min_valu
 
 uint64_t Loop::get_start_value () const { return this->iter_type->get_min_value(); }
 
+std::string Loop::get_start_value_str () const { return this->iter_type->get_min_value_str(); }
+
 void Loop::set_end_value (uint64_t _end_val) { this->iter_type->set_max_value(_end_val); }
 
 uint64_t Loop::get_end_value () const { return this->iter_type->get_max_value(); }
 
-void Loop::set_step (uint64_t _step) { this->step = _step; }
+std::string Loop::get_end_value_str () const { return this->iter_type->get_max_value_str(); }
 
-uint64_t Loop::get_step () const { return this->step; }
+void Loop::set_step (uint64_t _step) { this->iter_type->set_value(_step); }
+
+uint64_t Loop::get_step () const { return this->iter_type->get_value(); }
+
+std::string Loop::get_step_str () const { return this->iter_type->get_value_str (); }
 
 void Loop::set_condition (unsigned int _condition) { this->condition = _condition; }
 
 unsigned int Loop::get_condition () const { return this->condition; }
 
-unsigned int Loop::init_array () {
+unsigned int Loop::get_min_size () { return this->min_size; }
+
+std::string Loop::get_out_num_str () { return this->out_num_str; }
+
+void Loop::init_array () {
     std::uniform_int_distribution<unsigned int> dis(MIN_ARRAY_NUM, MAX_ARRAY_NUM);
     int arr_num = dis(rand_gen);
-    unsigned int min_size = UINT_MAX;
+    min_size = UINT_MAX;
     for (int i = 0; i < arr_num; ++i) {
-        this->in.push_back(Array::get_rand_obj ("in_" + std::to_string(i)));
+        this->in.push_back(Array::get_rand_obj ("in_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str));
         min_size = min_size < this->in.at(i).get_size() ? min_size : this->in.at(i).get_size();
-        this->out.push_back(Array::get_rand_obj ("out_" + std::to_string(i)));
+        this->out.push_back(Array::get_rand_obj ("out_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str));
+
         //TODO: move to get_rand_obj
         std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::VOLAT);
         this->out.at(i).set_modifier(modifier_dis(rand_gen));
-        min_size = min_size < this->out.at(i).get_size() ? min_size : this->out.at(i).get_size();
+
+        min_size = std::min (min_size , this->out.at(i).get_size());
     }
-    return min_size;
 }
 
 void Loop::init_stmnt () {
@@ -84,8 +95,10 @@ void Loop::init_stmnt () {
 
 }
 
-void Loop::random_fill () {
-    unsigned int min_size = init_array();
+void Loop::random_fill (unsigned int outside_num) {
+    this->out_num_str = std::to_string(outside_num);
+
+    init_array();
 
     std::uniform_int_distribution<unsigned int> loop_type_dis(0, MAX_LOOP_TYPE - 1);
     set_loop_type (loop_type_dis(rand_gen));
@@ -168,82 +181,75 @@ void Loop::random_fill () {
 
 }
 
-std::string Loop::emit_usage () {
-    std::string ret = "#include <cstdint>\n";
-    ret += "#include <iostream>\n";
-
+std::string Loop::emit_array_def () {
+    std::string ret = "";
     for (auto i = this->in.begin(); i != this->in.end(); ++i)
-        ret += i->emit_definition (true);
+        ret += i->emit_definition (true) + ";\n";
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        ret += i->emit_definition (false);
+        ret += i->emit_definition (false) + ";\n";
+    return ret;
+}
 
-    ret += "void foo () {\n\t";
+std::string Loop::emit_array_decl (std::string start) {
+    std::string ret = "";
+    for (auto i = this->in.begin(); i != this->in.end(); ++i)
+        ret += start + i->emit_declaration () + ";\n";
+    for (auto i = this->out.begin(); i != this->out.end(); ++i)
+        ret += start + i->emit_declaration () + ";\n";
+    return ret;
+}
+
+std::string Loop::emit_array_usage (std::string start, bool is_out) {
+    std::string ret = "";
+    for (auto i = (is_out ? out.begin(): in.begin()); i != (is_out ? out.end() : in.end()); ++i)
+        ret += start + i->emit_usage() + ";\n\t";
+    return ret;
+}
+
+std::string Loop::emit_body () {
+    std::string ret = "";
+
     switch (get_loop_type ()) {
         case LoopType::FOR:
             ret += "for (";
             ret += this->iter_type->emit_usage ();
-            ret += " i = " + std::to_string(get_start_value ()) + ";";
-            ret += " i " + get_condition_name () + " ";
-            ret += std::to_string(get_end_value ()) + ";";
-            ret += " i += " + std::to_string(get_step ()) + ") { \n\t";
+            ret += " i_" + out_num_str + " = " + get_start_value_str () + ";";
+            ret += " i_" + out_num_str + " " +  get_condition_name () + " ";
+            ret += get_end_value_str () + ";";
+            ret += " i_" + out_num_str + " += " + get_step_str () + ") { \n\t";
             break;
         case LoopType::WHILE:
             ret += this->iter_type->emit_usage ();
-            ret += " i = " + std::to_string(get_start_value ()) + ";\n";
+            ret += " i_" + out_num_str + " = " + get_start_value_str () + ";\n";
             ret += "\twhile (";
-            ret += " i " + get_condition_name () + " ";
-            ret += std::to_string(get_end_value ()) + ") {\n\t";
+            ret += " i_" + out_num_str + " " + get_condition_name () + " ";
+            ret += get_end_value_str () + ") {\n\t";
             break;
         case LoopType::DO_WHILE:
             ret += this->iter_type->emit_usage ();
-            ret += " i = " + std::to_string(get_start_value ()) + ";\n";
+            ret += " i_" + out_num_str + " = " + get_start_value_str () + ";\n";
             ret += "\tdo {\n\t";
             break;
         default:
             ret += "ERROR IN LOOP TYPE";
             break;
     }
-/*
-    ret += this->iter_type->emit_usage ();
-    ret += " i = " + std::to_string(get_start_value ()) + ";";
-    ret += " i " + get_condition_name () + " ";
-    ret += std::to_string(get_end_value ()) + ";";
-    ret += " i += " + std::to_string(get_step ()) + ") { \n";
-*/
 
     for (auto i = this->stmnt.begin(); i != this->stmnt.end(); ++i)
         ret += "\t" + i->emit_usage () + ";\n\t";
 
     if (get_loop_type () == LoopType::DO_WHILE ||
         get_loop_type () == LoopType::WHILE) {
-        ret += "\ti += " + std::to_string(get_step ()) + ";\n\t";
+        ret += "\ti_" + out_num_str + " += " + get_step_str () + ";\n\t";
     }
 
     ret += "}\n";
 
     if (get_loop_type () == LoopType::DO_WHILE) {
         ret += "\twhile (";
-        ret += " i " + get_condition_name () + " ";
-        ret += std::to_string(get_end_value ()) + ");\n";
+        ret += " i_" + out_num_str + " " + get_condition_name () + " ";
+        ret += get_end_value_str () + ");\n";
     }
-
-    ret += "}\n";
-
-    unsigned int min_size = UINT_MAX;
-    for (auto i = this->in.begin(); i != this->in.end(); ++i)
-        min_size = std::min(min_size, i->get_size());
-    for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        min_size = std::min(min_size, i->get_size());
-
-    ret += "uint64_t checksum () {\n\t";
-    ret += "foo ();\n\t";
-    ret += "uint64_t ret = 0;\n\t";
-    ret += "for (uint64_t i = 0; i < " + std::to_string(min_size) + "; ++i) {\n\t";
-    for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        ret += "\tret ^= " + i->emit_usage() + ";\n\t";
-    ret += "}\n\t";
-    ret += "return ret;\n";
-    ret += "}\n";
     return ret;
 }
 
@@ -295,7 +301,7 @@ void Loop::dbg_dump () {
     this->iter_type->dbg_dump ();
     std::cout << "start_val " << get_start_value() << std::endl;
     std::cout << "end_val " << get_end_value() << std::endl;
-    std::cout << "step " << this->step << std::endl;
+    std::cout << "step " << get_step() << std::endl;
 
     std::string cond_str;
     switch (this->condition) {

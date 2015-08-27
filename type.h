@@ -38,11 +38,16 @@ class Type {
         bool get_is_signed ();
         void set_max_value (uint64_t _max_val);
         uint64_t get_max_value ();
+        virtual std::string get_max_value_str () = 0;
         void set_min_value (uint64_t _min_val);
         uint64_t get_min_value ();
+        virtual std::string get_min_value_str () = 0;
         uint64_t get_abs_max ();
         uint64_t get_abs_min ();
         uint64_t get_bit_size ();
+        void set_value (uint64_t _val);
+        uint64_t get_value ();
+        virtual std::string get_value_str () = 0;
         void set_bound_value (std::vector<uint64_t> bval);
         std::vector<uint64_t> get_bound_value ();
         void add_bound_value (uint64_t bval);
@@ -75,6 +80,7 @@ class Type {
         uint64_t abs_max;
         uint64_t abs_min;
         uint64_t bit_size;
+        uint64_t value;
         std::vector<uint64_t> bound_val;
         bool is_fp;
         bool is_signed;
@@ -102,6 +108,10 @@ class TypeUINT : public Type {
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
         uint64_t get_rand_value (uint64_t a, uint64_t b);
+        std::string get_value_str ();
+        std::string get_max_value_str ();
+        std::string get_min_value_str ();
+
 };
 
 class TypeULINT : public Type {
@@ -110,6 +120,9 @@ class TypeULINT : public Type {
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
         uint64_t get_rand_value (uint64_t a, uint64_t b);
+        std::string get_value_str ();
+        std::string get_max_value_str ();
+        std::string get_min_value_str ();
 };
 
 class TypeULLINT : public Type {
@@ -118,4 +131,7 @@ class TypeULLINT : public Type {
         uint64_t get_rand_value ();
         std::string get_rand_value_str ();
         uint64_t get_rand_value (uint64_t a, uint64_t b);
+        std::string get_value_str ();
+        std::string get_max_value_str ();
+        std::string get_min_value_str ();
 };

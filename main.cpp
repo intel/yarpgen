@@ -20,6 +20,7 @@ limitations under the License.
 #include "operator.h"
 #include "tree_elem.h"
 #include "logic.h"
+#include "master.h"
 
 int main () {
 /*
@@ -209,10 +210,13 @@ int main () {
     TreeElem a = TreeElem::get_rand_obj_op ();
     a.dbg_dump();
 */
-    Loop a;
-    a.random_fill ();
-    std::cout << a.emit_usage() << std::endl;
-    std::cout << "/*" << std::endl;
-    a.dbg_dump();
-    std::cout << "*/" << std::endl;
+    Master a (".");
+    a.emit_main();
+    a.emit_decl();
+    a.emit_init();
+    a.emit_check();
+    a.emit_func();
+//    std::cout << "/*" << std::endl;
+//    a.dbg_dump();
+//    std::cout << "*/" << std::endl;
 }

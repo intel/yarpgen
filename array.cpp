@@ -17,7 +17,7 @@ limitations under the License.
 #include "array.h"
 
 unsigned int MAX_ARRAY_SIZE = 1000;
-unsigned int MIN_ARRAY_SIZE = 200;
+unsigned int MIN_ARRAY_SIZE = 250;
 
 Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->name = _name;
@@ -25,23 +25,36 @@ Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->size = _size;
 }
 
-Array Array::get_rand_obj (std::string _name) {
+Array Array::get_rand_obj (std::string _name, std::string _iter_name) {
     std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
     std::uniform_int_distribution<unsigned int> size_dis(MIN_ARRAY_SIZE, MAX_ARRAY_SIZE);
     Array ret = Array (_name, type_dis(rand_gen), size_dis(rand_gen));
+    ret.set_iter_name (_iter_name);
     std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::MAX_MOD - 1);
     ret.set_modifier(modifier_dis(rand_gen));
     std::uniform_int_distribution<unsigned int> static_dis(0, 1);
-    ret.set_is_static(static_dis(rand_gen));
+    // TODO: enable static and extern
+//    ret.set_is_static(static_dis(rand_gen));
+    ret.set_is_static(false);
     return ret;
 }
 
 std::string Array::emit_usage () {
-    std::string ret = this->get_name () + " [i]";
+    std::string ret = this->get_name () + " [" + this->get_iter_name () + "]";
     return ret;
 }
 
 std::string Array::emit_definition (bool rand_init) {
+    std::string ret = emit_declaration ();
+    ret += " = {";
+    ret += rand_init ? get_type()->get_rand_value_str() : "0";
+    for (int i = 1; i < get_size(); i++)
+        ret += ", " + (rand_init ? get_type()->get_rand_value_str() : "0");
+    ret += "}";
+    return ret;
+}
+
+std::string Array::emit_declaration () {
     std::string ret = get_is_static() ? "static " : "";
     switch (get_modifier()) {
         case VOLAT:
@@ -58,12 +71,7 @@ std::string Array::emit_definition (bool rand_init) {
     }
     ret += get_type ()->emit_usage ();
     ret += " " + get_name ();
-    ret += " [" + std::to_string(get_size ()) + "] ";
-    ret += " = {";
-    ret += rand_init ? get_type()->get_rand_value_str() : "0";
-    for (int i = 1; i < get_size(); i++)
-        ret += ", " + (rand_init ? get_type()->get_rand_value_str() : "0");
-    ret += "};\n";
+    ret += " [" + std::to_string(get_size ()) + "]";
     return ret;
 }
 
@@ -74,6 +82,10 @@ void Array::dbg_dump () {
 }
 
 std::string Array::get_name () const { return this->name; }
+
+void  Array::set_iter_name (std::string _iter_name) { this->iter_name = _iter_name; }
+
+std::string Array::get_iter_name () { return this->iter_name; }
 
 void Array::set_size (unsigned int _size) { this->size = _size; }
 

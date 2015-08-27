@@ -21,23 +21,18 @@
 cd ./result
 
 while [ "$?" -eq "0" ]
-#while [ "0" -eq "0" ]
 do
-    rm test.cpp test.s icc-no-opt.log icc-opt.log # test.optrpt
-    ../a.out 1> test.cpp
+    rm driver.cpp func.cpp init.cpp check.cpp init.h icc-no-opt.log icc-opt.log clang-no-opt.log clang-opt.log
+    ../a.out
 
-    icpc test.cpp -S -O0 -restrict -std=c++11
-    icpc test.s driver.cpp -O0 -restrict -o out -std=c++11
+    icpc init.cpp driver.cpp func.cpp check.cpp -o out -O0 -restrict -std=c++11
     ./out > icc-no-opt.log
-    icpc test.cpp -S -O3 -restrict -std=c++11
-    icpc test.s driver.cpp -O3 -restrict -o out -std=c++11
+    icpc init.cpp driver.cpp func.cpp check.cpp -o out -O3 -restrict -std=c++11
     ./out > icc-opt.log
 
-    clang++ test.cpp -S -O0 -std=c++11
-    clang++ test.s driver.cpp -O0 -o out -std=c++11
+    clang++ init.cpp driver.cpp func.cpp check.cpp -o out -O0 -std=c++11
     ./out > clang-no-opt.log
-    clang++ test.cpp -S -O3 -std=c++11
-    clang++ test.s driver.cpp -O3 -o out -std=c++11
+    clang++ init.cpp driver.cpp func.cpp check.cpp -o out -O3 -std=c++11
     ./out > clang-opt.log
 
 #    cat test.optrpt

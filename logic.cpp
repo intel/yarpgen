@@ -34,7 +34,7 @@ Statement::Statement (unsigned int _num_of_out, std::shared_ptr<std::vector<Arra
 
 void Statement::push_out_arr_type () {
     TreeElem subtree = this->tree.get_value<TreeElem>();
-    if (this->out_arrays != NULL) 
+    if (this->out_arrays != NULL)
         subtree.set_oper_type(Operator::Side::SELF, this->out_arrays->at(this->num_of_out).get_type ());
     this->tree.put_value(subtree);
 }

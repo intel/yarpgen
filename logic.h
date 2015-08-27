@@ -43,7 +43,7 @@ class Statement {
         std::string emit_level (ArithTree &apt, unsigned int level, unsigned int info_type);
         std::string emit_type ();
         std::string emit_domain (bool is_max);
-        ArithTree& determ_and_prop_on_level (ArithTree &apt); 
+        ArithTree& determ_and_prop_on_level (ArithTree &apt);
         void push_out_arr_type ();
 
     private:

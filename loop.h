@@ -39,19 +39,27 @@ class Loop {
         std::string get_iter_type_name () const;
         void set_start_value (uint64_t _start_val);
         uint64_t get_start_value () const;
+        std::string get_start_value_str () const;
         void set_end_value (uint64_t _end_val);
         uint64_t get_end_value () const;
+        std::string get_end_value_str () const;
         void set_step (uint64_t _step);
         uint64_t get_step () const;
+        std::string get_step_str () const;
         void set_condition (unsigned int _condition);
         unsigned int get_condition () const;
-        std::string emit_usage ();
-        void random_fill ();
+        std::string get_out_num_str ();
+        unsigned int get_min_size ();
+        std::string emit_body ();
+        std::string emit_array_def ();
+        std::string emit_array_usage (std::string start, bool is_out);
+        std::string emit_array_decl (std::string start);
+        void random_fill (unsigned int outside_num);
         void dbg_dump ();
 
     private:
         std::string get_condition_name ();
-        unsigned int init_array ();
+        void init_array ();
         void init_stmnt ();
 
     public:
@@ -76,4 +84,6 @@ class Loop {
         std::shared_ptr<Type> iter_type;
         uint64_t step;
         unsigned int condition;
+        std::string out_num_str;
+        unsigned int min_size;
 };

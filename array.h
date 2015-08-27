@@ -26,6 +26,8 @@ class Array {
         explicit Array () : type(NULL) {};
         explicit Array (std::string _name, unsigned int _type_id, unsigned int _size);
         std::string get_name () const;
+        void set_iter_name (std::string _iter_name);
+        std::string get_iter_name ();
         void set_size (unsigned int _size);
         unsigned int get_size () const;
         std::shared_ptr<Type> get_type ();
@@ -45,7 +47,8 @@ class Array {
         bool get_is_static ();
         std::string emit_definition (bool rand_init);
         std::string emit_usage ();
-        static Array get_rand_obj (std::string _name);
+        std::string emit_declaration ();
+        static Array get_rand_obj (std::string _name, std::string _iter_name);
         void dbg_dump ();
 
     public:
@@ -59,6 +62,7 @@ class Array {
 
     private:
         std::string name;
+        std::string iter_name;
         unsigned int modifier;
         bool is_static;
         unsigned int size;

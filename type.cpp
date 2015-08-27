@@ -79,6 +79,10 @@ uint64_t Type::get_abs_min () { return this->abs_min; }
 
 uint64_t Type::get_bit_size () { return this->bit_size; }
 
+ void Type::set_value (uint64_t _val) { this->value = _val; }
+
+uint64_t Type::get_value () {  return this->value; }
+
 void Type::set_bound_value (std::vector<uint64_t> bval) { this->bound_val = bval; }
 
 std::vector<uint64_t> Type::get_bound_value () { return this->bound_val; }
@@ -224,6 +228,18 @@ std::string TypeUINT::get_rand_value_str () {
     return std::to_string ((unsigned int) get_rand_value ()) + "U";
 }
 
+std::string TypeUINT::get_value_str () {
+    return std::to_string ((unsigned int) get_value ()) + "U";
+}
+
+std::string TypeUINT::get_max_value_str () {
+    return std::to_string ((unsigned int) get_max_value ()) + "U";
+}
+
+std::string TypeUINT::get_min_value_str () {
+    return std::to_string ((unsigned int) get_min_value ()) + "U";
+}
+
 TypeULINT::TypeULINT () {
     this->id = Type::TypeID::ULINT;
     this->name = "unsigned long int";
@@ -252,6 +268,18 @@ std::string TypeULINT::get_rand_value_str () {
     return std::to_string ((unsigned long int) get_rand_value ()) + "UL";
 }
 
+std::string TypeULINT::get_value_str () {
+    return std::to_string ((unsigned long int) get_value ()) + "UL";
+}
+
+std::string TypeULINT::get_max_value_str () {
+    return std::to_string ((unsigned long int) get_max_value ()) + "UL";
+}
+
+std::string TypeULINT::get_min_value_str () {
+    return std::to_string ((unsigned long int) get_min_value ()) + "UL";
+}
+
 TypeULLINT::TypeULLINT () {
     this->id = Type::TypeID::ULLINT;
     this->name = "unsigned long long int";
@@ -278,4 +306,16 @@ uint64_t TypeULLINT::get_rand_value (uint64_t a, uint64_t b) {
 
 std::string TypeULLINT::get_rand_value_str () {
     return std::to_string ((unsigned long long int) get_rand_value ()) + "ULL";
+}
+
+std::string TypeULLINT::get_value_str () {
+    return std::to_string ((unsigned long long int) get_value ()) + "ULL";
+}
+
+std::string TypeULLINT::get_max_value_str () {
+    return std::to_string ((unsigned long long int) get_max_value ()) + "ULL";
+}
+
+std::string TypeULLINT::get_min_value_str () {
+    return std::to_string ((unsigned long long int) get_min_value ()) + "ULL";
 }
