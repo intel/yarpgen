@@ -25,9 +25,9 @@ do
     rm driver.cpp func.cpp init.cpp check.cpp init.h icc-no-opt.log icc-opt.log clang-no-opt.log clang-opt.log
     ../a.out
 
-    icpc init.cpp driver.cpp func.cpp check.cpp -o out -O0 -restrict -std=c++11
+    icpc init.cpp driver.cpp func.cpp check.cpp -o out -O0 -restrict -std=c++11 -vec-threshold0
     ./out > icc-no-opt.log
-    icpc init.cpp driver.cpp func.cpp check.cpp -o out -O3 -restrict -std=c++11
+    icpc init.cpp driver.cpp func.cpp check.cpp -o out -O3 -restrict -std=c++11 -vec-threshold0
     ./out > icc-opt.log
 
     clang++ init.cpp driver.cpp func.cpp check.cpp -o out -O0 -std=c++11

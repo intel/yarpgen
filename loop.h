@@ -35,6 +35,7 @@ class Loop {
         void set_loop_type (unsigned int _loop_type);
         unsigned int get_loop_type () const;
         void set_iter_type (std::shared_ptr<Type> _type);
+        std::shared_ptr<Type> get_iter_type ();
         unsigned int get_iter_type_id () const;
         std::string get_iter_type_name () const;
         void set_start_value (uint64_t _start_val);
@@ -53,14 +54,17 @@ class Loop {
         std::string emit_body ();
         std::string emit_array_def ();
         std::string emit_array_usage (std::string start, bool is_out);
-        std::string emit_array_decl (std::string start);
-        void random_fill (unsigned int outside_num);
+        std::string emit_array_decl (std::string start, std::string end);
+        void random_fill (unsigned int outside_num, bool need_reuse, Loop loop);
         void dbg_dump ();
 
     private:
         std::string get_condition_name ();
         void init_array ();
         void init_stmnt ();
+        uint64_t step_distr (uint64_t min, uint64_t max);
+        bool can_reuse (Loop loop);
+        void rand_fill_bound ();
 
     public:
         enum CondType {

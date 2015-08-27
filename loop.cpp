@@ -38,6 +38,8 @@ unsigned int Loop::get_loop_type () const { return this->loop_type; }
 
 void Loop::set_iter_type (std::shared_ptr<Type> _type) { this->iter_type = _type; }
 
+std::shared_ptr<Type> Loop::get_iter_type () { return this->iter_type; }
+
 unsigned int Loop::get_iter_type_id () const {return this->iter_type->get_id(); }
 
 std::string Loop::get_iter_type_name () const { return this->iter_type->get_name (); }
@@ -78,8 +80,7 @@ void Loop::init_array () {
         this->out.push_back(Array::get_rand_obj ("out_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str));
 
         //TODO: move to get_rand_obj
-        std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::VOLAT);
-        this->out.at(i).set_modifier(modifier_dis(rand_gen));
+        this->out.at(i).set_modifier(Array::Mod::NTHNG);
 
         min_size = std::min (min_size , this->out.at(i).get_size());
     }
@@ -95,16 +96,85 @@ void Loop::init_stmnt () {
 
 }
 
-void Loop::random_fill (unsigned int outside_num) {
-    this->out_num_str = std::to_string(outside_num);
+uint64_t Loop::step_distr (uint64_t min, uint64_t max) {
+    uint64_t ret = 0;
+    bool init = true;
+    unsigned int perc = 0;
+    std::uniform_int_distribution<unsigned int> step_dis(0,100 );
+    do {
+        init = true;
+        perc = step_dis (rand_gen);
+        if (perc < 25)
+            ret = 1;
+        else if (perc < 35)
+            ret = 2;
+        else if (perc < 45)
+            ret = 3;
+        else if (perc < 55)
+            ret = 4;
+        else if (perc < 65)
+            ret = 8;
+        else
+            ret = iter_type->get_rand_value(min, max);
 
-    init_array();
+        if (min == max)
+            ret = min;
+        else if (ret < min || ret > max)
+            init = false;
+    }
+    while (!init);
+    return ret;
+}
 
+bool Loop::can_reuse (Loop loop) {
+    set_loop_type (loop.get_loop_type ());
+    set_iter_type (Type::get_copy(loop.get_iter_type ()));
+    set_condition (loop.get_condition ());
+    set_step (loop.get_step ());
+
+    bool ret = true;
+    uint64_t max_val = get_end_value() < min_size ? get_end_value() : min_size;
+    if (get_start_value () > max_val - 1)
+        ret = false;
+    switch (get_condition()) {
+        case EQ:
+            break;
+        case NE:
+            if (!this->iter_type->get_is_signed()) {
+                if (get_end_value() < get_start_value() || get_end_value() > (max_val - 1))
+                    ret = false;
+            }
+            break;
+        case GT:
+            if (!this->iter_type->get_is_signed())
+                    ret = false;
+                    break;
+            break;
+        case GE:
+            if (!this->iter_type->get_is_signed())
+                    ret = false;
+                    break;
+            break;
+        case LT:
+            if (get_end_value() > max_val)
+                ret = false;
+            break;
+        case LE:
+            if (get_end_value() < get_start_value() || get_end_value() >  (max_val - 1))
+                ret = false;
+            break;
+        case MAX_COND:
+                ret = false;
+            break;
+    }
+    return ret;
+}
+
+void Loop::rand_fill_bound () {
     std::uniform_int_distribution<unsigned int> loop_type_dis(0, MAX_LOOP_TYPE - 1);
     set_loop_type (loop_type_dis(rand_gen));
 
     bool incomp_cond;
-
     do {
         incomp_cond = false;
         set_iter_type (Type::get_rand_obj());
@@ -121,7 +191,7 @@ void Loop::random_fill (unsigned int outside_num) {
         switch (get_condition()) {
             case EQ:
                 end_val = get_start_value();
-                _step = iter_type->get_rand_value(iter_type->get_abs_min(), iter_type->get_abs_max());
+                _step = step_distr(iter_type->get_abs_min(), iter_type->get_abs_max());
                 incomp_cond = _step == 0;
                 break;
             case NE:
@@ -139,7 +209,7 @@ void Loop::random_fill (unsigned int outside_num) {
                     while (diff % _step != 0);
                 }
                 break;
-            case GT:
+           case GT:
                 if (!this->iter_type->get_is_signed()) {
                     incomp_cond = true;
                     break;
@@ -154,13 +224,16 @@ void Loop::random_fill (unsigned int outside_num) {
                 end_val = this->iter_type->get_rand_value(0, get_start_value());
                 break;
             case LT:
-                end_val = this->iter_type->get_rand_value((get_start_value() != this->iter_type->get_abs_max()) ? 
+                end_val = this->iter_type->get_rand_value((get_start_value() != this->iter_type->get_abs_max()) ?
                                                           (get_start_value() + 1) : this->iter_type->get_abs_max(), max_val);
-                _step = this->iter_type->get_rand_value(1, end_val - get_start_value());
+                _step = step_distr(1, end_val - get_start_value());
                 break;
             case LE:
                 end_val = this->iter_type->get_rand_value(get_start_value(), (max_val - 1));
-                _step = this->iter_type->get_rand_value(1, end_val - get_start_value());
+                if (end_val == get_start_value())
+                    _step = step_distr(1, iter_type->get_abs_max());
+                else
+                    _step = step_distr(1, end_val - get_start_value());
                 break;
             case MAX_COND:
                 break;
@@ -176,26 +249,34 @@ void Loop::random_fill (unsigned int outside_num) {
         }
     }
     while (incomp_cond);
+}
+
+void Loop::random_fill (unsigned int outside_num, bool need_reuse, Loop loop) {
+    this->out_num_str = std::to_string(outside_num);
+
+    init_array();
+
+    if (!need_reuse || !can_reuse (loop))
+        rand_fill_bound ();
 
     init_stmnt();
-
 }
 
 std::string Loop::emit_array_def () {
     std::string ret = "";
     for (auto i = this->in.begin(); i != this->in.end(); ++i)
-        ret += i->emit_definition (true) + ";\n";
+        ret += i->emit_definition (true);
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        ret += i->emit_definition (false) + ";\n";
+        ret += i->emit_definition (false);
     return ret;
 }
 
-std::string Loop::emit_array_decl (std::string start) {
+std::string Loop::emit_array_decl (std::string start, std::string end) {
     std::string ret = "";
     for (auto i = this->in.begin(); i != this->in.end(); ++i)
-        ret += start + i->emit_declaration () + ";\n";
+        ret += start + i->emit_declaration () + end + ";\n";
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        ret += start + i->emit_declaration () + ";\n";
+        ret += start + i->emit_declaration () + end + ";\n";
     return ret;
 }
 

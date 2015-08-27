@@ -55,6 +55,7 @@ class Type {
         bool check_val_in_domains (std::string val);
 //        void combine_bound_value (std::shared_ptr<Type> _type);
         void combine_range (std::shared_ptr<Type> _type);
+        static std::shared_ptr<Type> get_copy (std::shared_ptr<Type> type);
         static std::shared_ptr<Type> get_rand_obj ();
         virtual uint64_t get_rand_value () = 0;
         virtual std::string get_rand_value_str () = 0;

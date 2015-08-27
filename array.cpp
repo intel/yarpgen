@@ -16,8 +16,8 @@ limitations under the License.
 
 #include "array.h"
 
-unsigned int MAX_ARRAY_SIZE = 1000;
-unsigned int MIN_ARRAY_SIZE = 250;
+unsigned int MAX_ARRAY_SIZE = 10000;
+unsigned int MIN_ARRAY_SIZE = 1000;
 
 Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
     this->name = _name;
@@ -30,8 +30,10 @@ Array Array::get_rand_obj (std::string _name, std::string _iter_name) {
     std::uniform_int_distribution<unsigned int> size_dis(MIN_ARRAY_SIZE, MAX_ARRAY_SIZE);
     Array ret = Array (_name, type_dis(rand_gen), size_dis(rand_gen));
     ret.set_iter_name (_iter_name);
-    std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::MAX_MOD - 1);
-    ret.set_modifier(modifier_dis(rand_gen));
+    // TODO: volatile modifier prevents optimization, so disable it
+    // TODO: can't dymanically init global array, so disable it
+//    std::uniform_int_distribution<unsigned int> modifier_dis(0, Array::Mod::VOLAT - 1);
+    ret.set_modifier( Array::Mod::NTHNG);
     std::uniform_int_distribution<unsigned int> static_dis(0, 1);
     // TODO: enable static and extern
 //    ret.set_is_static(static_dis(rand_gen));
@@ -45,12 +47,9 @@ std::string Array::emit_usage () {
 }
 
 std::string Array::emit_definition (bool rand_init) {
-    std::string ret = emit_declaration ();
-    ret += " = {";
-    ret += rand_init ? get_type()->get_rand_value_str() : "0";
-    for (int i = 1; i < get_size(); i++)
-        ret += ", " + (rand_init ? get_type()->get_rand_value_str() : "0");
-    ret += "}";
+    std::string ret = "\tfor (int i = 0; i < " + std::to_string(get_size ()) + "; ++i)\n\t\t";
+    ret += get_name () + " [i] = " + (rand_init ? get_type()->get_rand_value_str() : "0");
+    ret += ";\n";
     return ret;
 }
 

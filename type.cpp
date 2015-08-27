@@ -57,6 +57,14 @@ std::shared_ptr<Type> Type::get_rand_obj () {
     return ret;
 }
 
+std::shared_ptr<Type> Type::get_copy (std::shared_ptr<Type> type) {
+    std::shared_ptr<Type> ret = Type::init(type->get_id ());
+    ret->set_max_value (type->get_max_value ());
+    ret->set_min_value (type->get_min_value ());
+    ret->set_value (type->get_value ());
+    return ret;
+}
+
 unsigned int Type::get_id () { return this->id; }
 
 std::string Type::get_name () { return this->name; }

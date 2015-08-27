@@ -54,8 +54,8 @@ class Array {
     public:
         enum Mod {
             NTHNG,
-            VOLAT,
             CONST,
+            VOLAT,
             CONST_VOLAT,
             MAX_MOD
         };

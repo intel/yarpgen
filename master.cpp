@@ -22,10 +22,14 @@ unsigned int MIN_LOOP_NUM = 1;
 Master::Master (std::string _folder) {
     this->folder = _folder;
     std::uniform_int_distribution<unsigned int> loop_num_dis(MIN_LOOP_NUM, MAX_LOOP_NUM);
+    std::uniform_int_distribution<unsigned int> reuse_dis(0, 100);
     unsigned int loop_num = loop_num_dis(rand_gen);
     for (int i = 0; i < loop_num; ++i) {
         Loop tmp_loop;
-        tmp_loop.random_fill (i);
+        if (reuse_dis(rand_gen) < 40 && i > 0)
+            tmp_loop.random_fill (i, true, loops.at(i - 1));
+        else
+            tmp_loop.random_fill (i, false, tmp_loop);
         loops.push_back(tmp_loop);
     }
 }
@@ -39,10 +43,12 @@ void Master::write_file (std::string of_name, std::string data) {
 
 std::string Master::emit_main () {
     std::string ret = "#include \"init.h\"\n\n";
+    ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
     ret += "extern uint64_t checksum ();\n";
     ret += "int main () {\n";
-    ret += "\tfoo();\n";
+    ret += "\tinit ();\n";
+    ret += "\tfoo ();\n";
     ret += "\tstd::cout << checksum () << std::endl;\n";
     ret += "\treturn 0;\n";
     ret += "}";
@@ -52,10 +58,14 @@ std::string Master::emit_main () {
 
 std::string Master::emit_init () {
     std::string ret = "#include \"init.h\"\n\n";
+    for (auto i = loops.begin (); i != loops.end (); ++i)
+        ret += i->emit_array_decl("", "");
+    ret += "void init () {\n";
     for (auto i = loops.begin (); i != loops.end (); ++i) {
         ret += i->emit_array_def ();
         ret += "\n";
     }
+    ret += "}";
     write_file("init.cpp", ret);
     return ret;
 }
@@ -67,7 +77,7 @@ std::string Master::emit_func() {
         ret += i->emit_body ();
         ret += "\n\t";
     }
-    ret += "}\n";
+    ret += "}";
     write_file("func.cpp", ret);
     return ret;
 }
@@ -83,7 +93,7 @@ std::string Master::emit_check() {
         ret += "}\n\n\t";
     }
     ret += "return ret;\n";
-    ret += "}\n";
+    ret += "}";
     write_file("check.cpp", ret);
     return ret;
 }
@@ -92,7 +102,7 @@ std::string Master::emit_decl() {
     std::string ret = "#include <cstdint>\n";
     ret += "#include <iostream>\n";
     for (auto i = loops.begin (); i != loops.end (); ++i)
-        ret += i->emit_array_decl("extern ");
+        ret += i->emit_array_decl("extern ", " __attribute__((aligned(32)))");
     write_file("init.h", ret);
     return ret;
 }
