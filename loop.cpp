@@ -280,10 +280,10 @@ std::string Loop::emit_array_decl (std::string start, std::string end) {
     return ret;
 }
 
-std::string Loop::emit_array_usage (std::string start, bool is_out) {
+std::string Loop::emit_array_usage (std::string start, std::string end, bool is_out) {
     std::string ret = "";
     for (auto i = (is_out ? out.begin(): in.begin()); i != (is_out ? out.end() : in.end()); ++i)
-        ret += start + i->emit_usage() + ";\n\t";
+        ret += start + i->emit_usage() + end + ";\n\t";
     return ret;
 }
 

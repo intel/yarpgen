@@ -53,7 +53,7 @@ class Loop {
         unsigned int get_min_size ();
         std::string emit_body ();
         std::string emit_array_def ();
-        std::string emit_array_usage (std::string start, bool is_out);
+        std::string emit_array_usage (std::string start, std::string end, bool is_out);
         std::string emit_array_decl (std::string start, std::string end);
         void random_fill (unsigned int outside_num, bool need_reuse, Loop loop);
         void dbg_dump ();

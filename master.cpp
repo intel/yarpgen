@@ -45,7 +45,7 @@ std::string Master::emit_main () {
     std::string ret = "#include \"init.h\"\n\n";
     ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
-    ret += "extern uint64_t checksum ();\n";
+    ret += "extern std::size_t checksum ();\n";
     ret += "int main () {\n";
     ret += "\tinit ();\n";
     ret += "\tfoo ();\n";
@@ -84,15 +84,15 @@ std::string Master::emit_func() {
 
 std::string Master::emit_check() {
     std::string ret = "#include \"init.h\"\n\n";
-    ret += "uint64_t checksum () {\n\t";
-    ret += "uint64_t ret = 0;\n\t";
+    ret += "std::size_t checksum () {\n\t";
+    ret += "std::size_t res = 0;\n\t";
     for (auto i = loops.begin (); i != loops.end (); ++i) {
         std::string iter_name = "i_" + i->get_out_num_str ();
         ret += "for (uint64_t " + iter_name + " = 0; " + iter_name + " < " + std::to_string(i->get_min_size ()) + "; ++" + iter_name + ") {\n\t";
-        ret += i->emit_array_usage("\tret ^= ", true);
+        ret += i->emit_array_usage("\tboost::hash_combine(res, ", ")", true);
         ret += "}\n\n\t";
     }
-    ret += "return ret;\n";
+    ret += "return res;\n";
     ret += "}";
     write_file("check.cpp", ret);
     return ret;
@@ -101,6 +101,7 @@ std::string Master::emit_check() {
 std::string Master::emit_decl() {
     std::string ret = "#include <cstdint>\n";
     ret += "#include <iostream>\n";
+    ret += "#include <boost/functional/hash.hpp>\n";
     for (auto i = loops.begin (); i != loops.end (); ++i)
         ret += i->emit_array_decl("extern ", " __attribute__((aligned(32)))");
     write_file("init.h", ret);
