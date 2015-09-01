@@ -21,7 +21,6 @@ int rand_dev () {
     std::random_device rd;
     int ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
-    std::cerr << "/*SEED " << ret << "*/\n";
     return ret;
 }
 
