@@ -271,12 +271,12 @@ std::string Loop::emit_array_def () {
     return ret;
 }
 
-std::string Loop::emit_array_decl (std::string start, std::string end) {
+std::string Loop::emit_array_decl (std::string start, std::string end, bool is_extern) {
     std::string ret = "";
     for (auto i = this->in.begin(); i != this->in.end(); ++i)
-        ret += start + i->emit_declaration () + end + ";\n";
+        ret += start + i->emit_declaration (is_extern) + end + ";\n";
     for (auto i = this->out.begin(); i != this->out.end(); ++i)
-        ret += start + i->emit_declaration () + end + ";\n";
+        ret += start + i->emit_declaration (is_extern) + end + ";\n";
     return ret;
 }
 

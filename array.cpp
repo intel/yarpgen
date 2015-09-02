@@ -19,16 +19,19 @@ limitations under the License.
 unsigned int MAX_ARRAY_SIZE = 10000;
 unsigned int MIN_ARRAY_SIZE = 1000;
 
-Array::Array (std::string _name, unsigned int _type_id, unsigned int _size) {
+Array::Array (std::string _name, unsigned int _type_id, unsigned int _ess_id,unsigned int _size) {
     this->name = _name;
     this->type = Type::init (_type_id);
     this->size = _size;
+    this->essence = _ess_id;
 }
 
 Array Array::get_rand_obj (std::string _name, std::string _iter_name) {
     std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
     std::uniform_int_distribution<unsigned int> size_dis(MIN_ARRAY_SIZE, MAX_ARRAY_SIZE);
-    Array ret = Array (_name, type_dis(rand_gen), size_dis(rand_gen));
+    std::uniform_int_distribution<unsigned int> ess_dis(0, Array::Ess::MAX_ESS - 1);
+
+    Array ret = Array (_name, type_dis(rand_gen), ess_dis (rand_gen), size_dis(rand_gen));
     ret.set_iter_name (_iter_name);
     // TODO: volatile modifier prevents optimization, so disable it
     // TODO: can't dymanically init global array, so disable it
@@ -42,7 +45,12 @@ Array Array::get_rand_obj (std::string _name, std::string _iter_name) {
 }
 
 std::string Array::emit_usage () {
-    std::string ret = this->get_name () + " [" + this->get_iter_name () + "]";
+    std::uniform_int_distribution<unsigned int> subscr_dis(0, 1);
+    std::string ret = this->get_name ();
+    if (get_essence() == Array::Ess::STD_ARR || get_essence() == Array::Ess::STD_VEC)
+        ret += subscr_dis(rand_gen) ? " [" + this->get_iter_name () + "]" : ".at(" + this->get_iter_name () + ")";
+    else
+        ret += " [" + this->get_iter_name () + "]";
     return ret;
 }
 
@@ -53,7 +61,7 @@ std::string Array::emit_definition (bool rand_init) {
     return ret;
 }
 
-std::string Array::emit_declaration () {
+std::string Array::emit_declaration (bool is_extern) {
     std::string ret = get_is_static() ? "static " : "";
     switch (get_modifier()) {
         case VOLAT:
@@ -68,9 +76,20 @@ std::string Array::emit_declaration () {
         case NTHNG:
             break;
     }
-    ret += get_type ()->emit_usage ();
-    ret += " " + get_name ();
-    ret += " [" + std::to_string(get_size ()) + "]";
+    if (get_essence() == Array::Ess::STD_ARR) {
+        ret += "std::array<" + get_type ()->emit_usage () + ", " + std::to_string(get_size ()) + ">";
+        ret += " " + get_name ();
+    }
+    else if (get_essence() == Array::Ess::STD_VEC) {
+        ret += "std::vector<" + get_type ()->emit_usage () + ">";
+        ret += " " + get_name ();
+        ret += is_extern ? "" : " (" + std::to_string(get_size ()) + ", 0)";
+    }
+    else {
+        ret += get_type ()->emit_usage ();
+        ret += " " + get_name ();
+        ret += " [" + std::to_string(get_size ()) + "]";
+    }
     return ret;
 }
 
@@ -117,4 +136,10 @@ void Array::set_modifier (unsigned int _mod) { this->modifier = _mod; }
 unsigned int Array::get_modifier () { return this->modifier; }
 
 void Array::set_is_static (bool _stat) { this->is_static = _stat; }
+
 bool Array::get_is_static () { return this->is_static; }
+
+void Array::set_essence (unsigned int _ess) { this->essence = _ess; }
+
+unsigned int Array::get_essence () { return this->essence; }
+

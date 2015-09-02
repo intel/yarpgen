@@ -59,7 +59,7 @@ std::string Master::emit_main () {
 std::string Master::emit_init () {
     std::string ret = "#include \"init.h\"\n\n";
     for (auto i = loops.begin (); i != loops.end (); ++i)
-        ret += i->emit_array_decl("", "");
+        ret += i->emit_array_decl("", "", false);
     ret += "void init () {\n";
     for (auto i = loops.begin (); i != loops.end (); ++i) {
         ret += i->emit_array_def ();
@@ -103,7 +103,7 @@ std::string Master::emit_decl() {
     ret += "#include <iostream>\n";
     ret += "#include <boost/functional/hash.hpp>\n";
     for (auto i = loops.begin (); i != loops.end (); ++i)
-        ret += i->emit_array_decl("extern ", " __attribute__((aligned(32)))");
+        ret += i->emit_array_decl("extern ", " __attribute__((aligned(32)))", true);
     write_file("init.h", ret);
     return ret;
 }

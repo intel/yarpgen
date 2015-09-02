@@ -24,7 +24,7 @@ extern unsigned int MIN_ARRAY_SIZE;
 class Array {
     public:
         explicit Array () : type(NULL) {};
-        explicit Array (std::string _name, unsigned int _type_id, unsigned int _size);
+        explicit Array (std::string _name, unsigned int _type_id, unsigned int _ess_id, unsigned int _size);
         std::string get_name () const;
         void set_iter_name (std::string _iter_name);
         std::string get_iter_name ();
@@ -45,9 +45,11 @@ class Array {
         unsigned int get_modifier ();
         void set_is_static (bool _stat);
         bool get_is_static ();
+        void set_essence (unsigned int _ess);
+        unsigned int get_essence ();
         std::string emit_definition (bool rand_init);
         std::string emit_usage ();
-        std::string emit_declaration ();
+        std::string emit_declaration (bool is_extern);
         static Array get_rand_obj (std::string _name, std::string _iter_name);
         void dbg_dump ();
 
@@ -60,9 +62,16 @@ class Array {
             MAX_MOD
         };
 
+        enum Ess {
+            C_ARR,
+            STD_ARR,
+            STD_VEC,
+            MAX_ESS
+        };
     private:
         std::string name;
         std::string iter_name;
+        unsigned int essence;
         unsigned int modifier;
         bool is_static;
         unsigned int size;
