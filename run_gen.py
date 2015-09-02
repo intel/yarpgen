@@ -39,7 +39,8 @@ def run_cmd (args):
 def gen_and_test(num, lock, end_time):
     print "Job #" + str(num)
     os.chdir(str(num))
-    while end_time > time.time():
+    inf = end_time == -1
+    while inf or end_time > time.time():
         seed = ""
         seed = subprocess.check_output(".." + os.sep + "yarpgen")
         print_debug ("Job #" + str(num) + " " + seed)
@@ -126,6 +127,8 @@ if __name__ == '__main__':
 
     start_time = time.time()
     end_time = start_time + args.timeout * 3600
+    if args.timeout == -1:
+        end_time = -1
 
     task_threads = [0] * args.num_jobs
     for num in range(args.num_jobs):
