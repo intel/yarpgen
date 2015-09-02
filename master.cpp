@@ -101,6 +101,8 @@ std::string Master::emit_check() {
 std::string Master::emit_decl() {
     std::string ret = "#include <cstdint>\n";
     ret += "#include <iostream>\n";
+    ret += "#include <array>\n";
+    ret += "#include <vector>\n";
     ret += "#include <boost/functional/hash.hpp>\n";
     for (auto i = loops.begin (); i != loops.end (); ++i)
         ret += i->emit_array_decl("extern ", " __attribute__((aligned(32)))", true);
