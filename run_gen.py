@@ -1,4 +1,4 @@
-import argparse
+#!/bin/python
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -17,6 +17,8 @@ import argparse
 #
 ###############################################################################
 
+
+import argparse
 import multiprocessing
 import os
 import sys
@@ -29,41 +31,67 @@ def print_debug (line):
         sys.stdout.write(line)
         sys.stdout.flush()
 
-def run_cmd (args):
+def run_cmd (job_num, args):
     try:
         return subprocess.check_output(args)
     except:
-        print_debug ("Exception in run cmd with args:" + str(args))
+        print_debug ("Exception in run cmd in process " + str(job_num) + " with args:" + str(args))
         raise
+
+def save_test (lock, gen_file):
+    lock.acquire()
+    folders = os.listdir(".." + os.sep + "result")
+    folders.sort()
+    if not folders:
+        dest = ".." + os.sep + "result" + os.sep + str(1)
+    else:
+        dest = ".." + os.sep + "result" + os.sep + str(int(folders[-1]) + 1)
+    print_debug("Test files were copied to " + dest)
+    os.makedirs(dest)
+    lock.release()
+    for i in gen_file.split():
+        shutil.copy(i, dest)
+
+
 
 def gen_and_test(num, lock, end_time):
     print "Job #" + str(num)
     os.chdir(str(num))
     inf = end_time == -1
+
+    test_files = "init.cpp driver.cpp func.cpp check.cpp"
+    gen_file = test_files + " init.h"
+    out_name = "out"
+
+    icc_flags = "-std=c++11 -vec-threshold0 -restrict"
+    clang_flags = "-std=c++11"
+
     while inf or end_time > time.time():
         seed = ""
         seed = subprocess.check_output(".." + os.sep + "yarpgen")
         print_debug ("Job #" + str(num) + " " + seed)
 
-        test_files = "init.cpp driver.cpp func.cpp check.cpp"
-        gen_file = test_files + " init.h"
-        out_name = "out"
-
-        icc_flags = "-std=c++11 -vec-threshold0 -restrict"
-        run_cmd(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
-        icc_no_opt = run_cmd ([out_name]) 
-        run_cmd(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"]) 
-        icc_opt = run_cmd ([out_name])
+        try:
+            run_cmd(num, ["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
+            icc_no_opt = run_cmd (num, [out_name])
+            run_cmd(num, ["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
+            icc_opt = run_cmd (num, [out_name])
+        except:
+            save_test(lock, gen_file)
+            continue
 
         diag = ""
         if icc_no_opt != icc_opt:
             diag += str(seed) + "\n" + "ICC opt differs from ICC no-opt\n"
 
-        clang_flags = "-std=c++11"
-        run_cmd(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O0"]) 
-        clang_no_opt = run_cmd ([out_name])
-        run_cmd(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
-        clang_opt = run_cmd ([out_name])
+        try:
+            run_cmd(num, ["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O0"]) 
+            clang_no_opt = run_cmd (num, [out_name])
+            run_cmd(num, ["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
+            clang_opt = run_cmd (num, [out_name])
+        except:
+            save_test(lock, gen_file)
+            continue
 
         if clang_no_opt != clang_opt:
             diag += str(seed) + "\n" + "CLANG opt differs from CLANG no-opt\n"
@@ -72,28 +100,16 @@ def gen_and_test(num, lock, end_time):
             diag += str(seed) + "\n" + "CLANG opt differs from ICC opt\n"
 
         if diag:
-            lock.acquire()
-            folders = os.listdir(".." + os.sep + "result")
-            folders.sort()
-            if not folders:
-                dest = ".." + os.sep + "result" + os.sep + str(1)
-            else:
-                dest = ".." + os.sep + "result" + os.sep + str(int(folders[-1]) + 1)
-            print_debug(diag + "Test files were copied to " + dest)
-            os.makedirs(dest)
-            lock.release()
-            for i in gen_file.split():
-               shutil.copy(i, dest)
+            print_debug (diag)
+            save_test (lock, gen_file)
  
 def print_compiler_version():
-    sp = run_cmd("which icc".split ())
+    sp = run_cmd(-1, "which icc".split ())
     print_debug("ICC folder: " + sp)
-    sp = run_cmd("icc -v".split ())
-    print_debug("ICC version: " + sp)
-    sp = run_cmd("which clang".split ())
+    sp = run_cmd(-1, "icc -v".split ())
+    sp = run_cmd(-1, "which clang".split ())
     print_debug("clang folder: " + sp)
-    sp = run_cmd("clang -v".split ())
-    print_debug("clang version: " + sp)
+    sp = run_cmd(-1, "clang -v".split ())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test system of random loop generator.')
