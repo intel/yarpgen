@@ -50,7 +50,7 @@ class Array {
         std::string emit_definition (bool rand_init);
         std::string emit_usage ();
         std::string emit_declaration (bool is_extern);
-        static Array get_rand_obj (std::string _name, std::string _iter_name);
+        static Array get_rand_obj (std::string _name, std::string _iter_name, unsigned int arr_ess);
         void dbg_dump ();
 
     public:

@@ -26,12 +26,11 @@ Array::Array (std::string _name, unsigned int _type_id, unsigned int _ess_id,uns
     this->essence = _ess_id;
 }
 
-Array Array::get_rand_obj (std::string _name, std::string _iter_name) {
+Array Array::get_rand_obj (std::string _name, std::string _iter_name, unsigned int arr_ess) {
     std::uniform_int_distribution<unsigned int> type_dis(0, Type::TypeID::MAX_TYPE_ID - 1);
     std::uniform_int_distribution<unsigned int> size_dis(MIN_ARRAY_SIZE, MAX_ARRAY_SIZE);
-    std::uniform_int_distribution<unsigned int> ess_dis(0, Array::Ess::MAX_ESS - 1);
 
-    Array ret = Array (_name, type_dis(rand_gen), ess_dis (rand_gen), size_dis(rand_gen));
+    Array ret = Array (_name, type_dis(rand_gen), arr_ess, size_dis(rand_gen));
     ret.set_iter_name (_iter_name);
     // TODO: volatile modifier prevents optimization, so disable it
     // TODO: can't dymanically init global array, so disable it

@@ -17,7 +17,7 @@ limitations under the License.
 #include "type.h"
 
 int rand_dev () {
-//    return 2107662808; // TODO: enable random
+//    return -954396712; // TODO: enable random
     std::random_device rd;
     int ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";

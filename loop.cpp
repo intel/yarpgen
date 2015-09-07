@@ -73,11 +73,21 @@ std::string Loop::get_out_num_str () { return this->out_num_str; }
 void Loop::init_array () {
     std::uniform_int_distribution<unsigned int> dis(MIN_ARRAY_NUM, MAX_ARRAY_NUM);
     int arr_num = dis(rand_gen);
+
+    std::uniform_int_distribution<unsigned int> var_ess_dis(0, 1);
+    unsigned int var_ess = var_ess_dis (rand_gen); // Can essence of array be combined
+    std::uniform_int_distribution<unsigned int> ess_dis(0, Array::Ess::MAX_ESS - 1);
+    unsigned int ess_type = ess_dis (rand_gen);
+
     min_size = UINT_MAX;
     for (int i = 0; i < arr_num; ++i) {
-        this->in.push_back(Array::get_rand_obj ("in_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str));
-        min_size = min_size < this->in.at(i).get_size() ? min_size : this->in.at(i).get_size();
-        this->out.push_back(Array::get_rand_obj ("out_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str));
+        if (var_ess == true)
+            ess_type = ess_dis (rand_gen);
+        this->in.push_back (Array::get_rand_obj ("in_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str, ess_type));
+        min_size = std::min (min_size, this->in.at(i).get_size());
+        if (var_ess == true)
+            ess_type = ess_dis (rand_gen);
+        this->out.push_back (Array::get_rand_obj ("out_" + out_num_str + "_" + std::to_string(i), "i_" + out_num_str, ess_type));
 
         //TODO: move to get_rand_obj
         this->out.at(i).set_modifier(Array::Mod::NTHNG);
