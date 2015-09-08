@@ -89,7 +89,7 @@ std::string Master::emit_check() {
     for (auto i = loops.begin (); i != loops.end (); ++i) {
         std::string iter_name = "i_" + i->get_out_num_str ();
         ret += "for (uint64_t " + iter_name + " = 0; " + iter_name + " < " + std::to_string(i->get_min_size ()) + "; ++" + iter_name + ") {\n\t";
-        ret += i->emit_array_usage("\tboost::hash_combine(res, ", ")", true);
+        ret += i->emit_array_usage("\thash(res, ", ")", true);
         ret += "}\n\n\t";
     }
     ret += "return res;\n";
@@ -98,12 +98,21 @@ std::string Master::emit_check() {
     return ret;
 }
 
+std::string Master::emit_hash() {
+    std::string ret = "#include <boost/functional/hash.hpp>\n";
+    ret += "void hash(size_t & seed, uint64_t const& v) {\n";
+    ret += "\tboost::hash_combine(seed, v);\n";
+    ret += "}";
+    write_file("hash.cpp", ret);
+    return ret;
+}
+
 std::string Master::emit_decl() {
     std::string ret = "#include <cstdint>\n";
     ret += "#include <iostream>\n";
     ret += "#include <array>\n";
     ret += "#include <vector>\n";
-    ret += "#include <boost/functional/hash.hpp>\n";
+    ret += "void hash(size_t & seed, uint64_t const& v);\n";
     for (auto i = loops.begin (); i != loops.end (); ++i)
         ret += i->emit_array_decl("extern ", " __attribute__((aligned(32)))", true);
     write_file("init.h", ret);

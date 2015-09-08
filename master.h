@@ -36,6 +36,7 @@ class Master {
         std::string emit_check();
         std::string emit_func();
         std::string emit_decl();
+        std::string emit_hash();
 
     private:
         void write_file (std::string of_name, std::string data);

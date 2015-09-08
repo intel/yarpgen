@@ -216,6 +216,7 @@ int main () {
     a.emit_init();
     a.emit_check();
     a.emit_func();
+    a.emit_hash();
 //    std::cout << "/*" << std::endl;
 //    a.dbg_dump();
 //    std::cout << "*/" << std::endl;

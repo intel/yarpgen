@@ -28,7 +28,7 @@ import time
 
 def print_debug (line):
     if args.verbose:
-        sys.stdout.write(line)
+        sys.stdout.write(line + "\n")
         sys.stdout.flush()
 
 def run_cmd (job_num, args):
@@ -59,12 +59,18 @@ def gen_and_test(num, lock, end_time):
     os.chdir(str(num))
     inf = end_time == -1
 
-    test_files = "init.cpp driver.cpp func.cpp check.cpp"
-    gen_file = test_files + " init.h"
+    test_files = "init.cpp driver.cpp func.cpp check.cpp hash.s"
+    gen_file = test_files + " init.h" + "hash.cpp"
     out_name = "out"
 
     icc_flags = "-std=c++11 -vec-threshold0 -restrict"
     clang_flags = "-std=c++11"
+
+    subprocess.check_output(".." + os.sep + "yarpgen")
+    try:
+        run_cmd(num, ["bash", "-c", "clang++ hash.cpp -S -o hash.s " + clang_flags + " -O3"])
+    except:
+        save_test(lock, gen_file)
 
     while inf or end_time > time.time():
         seed = ""
