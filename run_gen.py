@@ -60,7 +60,7 @@ def gen_and_test(num, lock, end_time):
     inf = end_time == -1
 
     test_files = "init.cpp driver.cpp func.cpp check.cpp hash.s"
-    gen_file = test_files + " init.h" + "hash.cpp"
+    gen_file = test_files + " init.h" + " hash.cpp"
     out_name = "out"
 
     icc_flags = "-std=c++11 -vec-threshold0 -restrict"
