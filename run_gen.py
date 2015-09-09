@@ -64,7 +64,7 @@ def gen_and_test(num, lock, end_time):
     out_name = "out"
 
     icc_flags = "-std=c++11 -vec-threshold0 -restrict"
-    clang_flags = "-std=c++11"
+    clang_flags = "-std=c++11 -fslp-vectorize-aggressive"
 
     subprocess.check_output(".." + os.sep + "yarpgen")
     try:
