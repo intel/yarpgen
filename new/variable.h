@@ -50,6 +50,7 @@ class Array : public Variable {
                     unsigned int _size, Ess _essence) :
                     Variable (_name, _type_id, _modifier),
                     size (_size), essence (_essence) {};
+    Ess get_essence () { return essence; }
     void dbg_dump ();
 
     private:
