@@ -14,20 +14,16 @@ int main () {
     var.set_max (50);
     var.dbg_dump ();
 
-    Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST, false, 20,
-                           Array::Ess::STD_VEC);
+    Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST_VOLAT, true, 20,
+                           Array::Ess::STD_ARR);
     arr.dbg_dump();
 
     VarUseExpr var_use;
     var_use.set_variable (std::make_shared<Variable> (var));
     std::cout << "VarUseExpr: " << var_use.emit () << std::endl;
 
-    VarUseExpr var_arr_use;
-    var_arr_use.set_variable (std::make_shared<Variable> (arr));
-    std::cout << "VarUseExpr arr: " << var_arr_use.emit () << std::endl;
-
     AssignExpr assign;
-    assign.set_to (std::make_shared<VarUseExpr> (var_arr_use));
+    assign.set_to (std::make_shared<VarUseExpr> (var_use));
     assign.set_from  (std::make_shared<VarUseExpr> (var_use));
     std::cout << "AssignExpr: " << assign.emit () << std::endl;
 
@@ -61,14 +57,9 @@ int main () {
     std::cout << "ConstExpr: " << cnst.emit () << std::endl;
 
     DeclStmnt decl;
-    std::cout << "====================" << std::endl;
-    arr.dbg_dump();
-    std::cout << "--------------------" << std::endl;
-    ((Array*)(std::make_shared<Variable> (arr)).get())->dbg_dump();
-    std::cout << "====================" << std::endl;
-    decl.set_variable (std::make_shared<Variable> (arr));
-    decl.set_init (std::make_shared<BinaryExpr> (bin_add));
+    decl.set_data (std::make_shared<Array> (arr));
     std::cout << "DeclStmnt: " << decl.emit () << std::endl;
-
+    decl.set_is_extern (true);
+    std::cout << "DeclStmnt: " << decl.emit () << std::endl;
     return 0;
 }

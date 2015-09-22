@@ -157,13 +157,14 @@ class Stmnt : public Node {
 
 class DeclStmnt : public Stmnt {
     public:
-        DeclStmnt () : var (NULL), init (NULL) { id = Node::NodeID::DECL; }
-        void set_variable (std::shared_ptr<Variable> _var) { var = _var; }
+        DeclStmnt () : data (NULL), init (NULL) { id = Node::NodeID::DECL; }
+        void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
+        void set_data (std::shared_ptr<Data> _data) { data = _data; }
         void set_init (std::shared_ptr<Expr> _init) { init = _init; }
         std::string emit ();
 
     private:
         bool is_extern;
-        std::shared_ptr<Variable> var;
+        std::shared_ptr<Data> data;
         std::shared_ptr<Expr> init;
 };

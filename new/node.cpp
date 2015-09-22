@@ -219,8 +219,9 @@ std::shared_ptr<Stmnt> Stmnt::init (Node::NodeID _id) {
 
 std::string DeclStmnt::emit () {
     std::string ret = "";
+    ret += data->get_is_static() && !is_extern ? "static " : "";
     ret += is_extern ? "extern " : "";
-    switch (var->get_modifier()) {
+    switch (data->get_modifier()) {
         case Variable::Mod::VOLAT:
             ret += "volatile ";
             break;
@@ -233,38 +234,39 @@ std::string DeclStmnt::emit () {
         case Variable::Mod::NTHNG:
             break;
          case Variable::Mod::MAX_MOD:
-                std::cerr << "ERROR in DeclStmnt::emit" << std::endl;
+                std::cerr << "ERROR in DeclStmnt::emit bad modifier" << std::endl;
                     break;
     }
-    if (var->get_class_id() == Variable::VarClassID::ARR) {
-        std::shared_ptr<Array> arr = std::static_pointer_cast<Array>(var);
-        std::cout << "Debug: " << arr->get_size() << std::endl;
+    if (data->get_class_id() == Variable::VarClassID::ARR) {
+        std::shared_ptr<Array> arr = std::static_pointer_cast<Array>(data);
         switch (arr->get_essence()) {
             case Array::Ess::STD_ARR:
-                ret += "std::array<" + arr->get_type()->get_name() + ", " + std::to_string(arr->get_size()) + ">";
+                ret += "std::array<" + arr->get_base_type()->get_name() + ", " + std::to_string(arr->get_size()) + ">";
                 ret += " " + arr->get_name();
                 break;
             case Array::Ess::STD_VEC:
-                ret += "std::vector" + arr->get_type()->get_name() + ">";
+                ret += "std::vector<" + arr->get_base_type()->get_name() + ">";
                 ret += " " + arr->get_name();
                 ret += is_extern ? "" : " (" + std::to_string(arr->get_size()) + ", 0)";
                 break;
             case Array::Ess::C_ARR:
-                ret +=  arr->get_type()->get_name();
+                ret +=  arr->get_base_type()->get_name();
                 ret += " " + arr->get_name();
                 ret += " [" + std::to_string(arr->get_size()) + "]";
                 break;
             case Array::Ess::MAX_ESS:
-                std::cerr << "ERROR in DeclStmnt::emit" << std::endl;
+                std::cerr << "ERROR in DeclStmnt::emit bad array essence" << std::endl;
                 break;
         }
     }
     else {
-        ret += var->get_type()->get_name() + " " + var->get_name();
+        ret += data->get_type()->get_name() + " " + data->get_name();
     }
     if (init != NULL) {
-        if (var->get_class_id() == Variable::VarClassID::ARR)
+        if (data->get_class_id() == Variable::VarClassID::ARR) {
             std::cerr << "ERROR in DeclStmnt::emit init of array" << std::endl;
+            return ret;
+        }
         ret += " = " + init->emit();
     }
     return ret;
