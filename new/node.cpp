@@ -20,6 +20,9 @@ std::shared_ptr<Expr> Expr::init (Node::NodeID _id) {
         case Node::NodeID::INDEX:
             ret = std::make_shared<IndexExpr> (IndexExpr());
             break;
+        case Node::NodeID::TYPE_CAST:
+            ret = std::make_shared<TypeCastExpr> (TypeCastExpr());
+            break;
         case Node::NodeID::VAR_USE:
             ret = std::make_shared<VarUseExpr> (VarUseExpr());
             break;
@@ -205,11 +208,23 @@ std::string ConstExpr::emit () {
     return ret;
 }
 
+std::string TypeCastExpr::emit () {
+    std::string ret = "(" + type->get_name() + ")";
+    ret += expr->emit();
+    return ret;
+}
+
 std::shared_ptr<Stmnt> Stmnt::init (Node::NodeID _id) {
     std::shared_ptr<Stmnt> ret (NULL);
     switch (_id) {
         case Node::NodeID::DECL:
             ret = std::make_shared<DeclStmnt> (DeclStmnt());
+            break;
+        case Node::NodeID::EXPR:
+            ret = std::make_shared<ExprStmnt> (ExprStmnt());
+            break;
+        case Node::NodeID::CNT_LOOP:
+            ret = std::make_shared<CntLoopStmnt> (CntLoopStmnt());
             break;
         case Node::NodeID::MAX_STMNT_ID:
             break;
@@ -267,7 +282,54 @@ std::string DeclStmnt::emit () {
             std::cerr << "ERROR in DeclStmnt::emit init of array" << std::endl;
             return ret;
         }
+        if (is_extern) {
+            std::cerr << "ERROR in DeclStmnt::emit init of extern" << std::endl;
+            return ret;
+        }
         ret += " = " + init->emit();
     }
+    return ret;
+}
+
+std::string ExprStmnt::emit() {
+    return expr->emit();
+}
+
+std::string CntLoopStmnt::emit() {
+    std::string ret;
+    switch (loop_id) {
+        case LoopStmnt::LoopID::FOR:
+            ret += "for (";
+            ret += iter_decl->emit() + "; ";
+            ret += cond->emit() + "; ";
+            ret += step_expr->emit() + ") {\n";
+            break;
+        case LoopStmnt::LoopID::WHILE:
+            ret += iter_decl->emit() + ";\n";
+            ret += "while (" + cond->emit() + ") {\n";
+            break;
+        case LoopStmnt::LoopID::DO_WHILE:
+            ret += iter_decl->emit() + ";\n";
+            ret += "do {\n";
+            break;
+        case LoopStmnt::LoopID::MAX_LOOP_ID:
+            std::cerr << "ERROR in CntLoopStmnt::emit invalid loop id" << std::endl;
+            break;
+    }
+
+    for (auto i = this->body.begin(); i != this->body.end(); ++i)
+        ret += (*i)->emit() + "\n";
+
+    if (loop_id == LoopStmnt::LoopID::WHILE ||
+        loop_id == LoopStmnt::LoopID::DO_WHILE) {
+        ret += ret += step_expr->emit() + "\n";
+    }
+
+    ret += "}\n";
+
+    if (loop_id == LoopStmnt::LoopID::DO_WHILE) {
+        ret += "while (" + cond->emit() + ");";
+    }
+
     return ret;
 }

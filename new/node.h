@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "type.h"
 #include "variable.h"
 
@@ -11,11 +13,14 @@ class Node {
             BINARY,
             CONST,
             INDEX,
+            TYPE_CAST,
             UNARY,
             VAR_USE,
             MAX_EXPR_ID,
             // Stmt type
             DECL,
+            EXPR,
+            CNT_LOOP,
             MAX_STMNT_ID
         };
 
@@ -149,6 +154,18 @@ class ConstExpr : public Expr {
        uint64_t data;
 };
 
+class TypeCastExpr : public Expr {
+    public:
+        TypeCastExpr () : type (NULL), expr (NULL) { id = Node::NodeID::TYPE_CAST; }
+        void set_type (std::shared_ptr<Type> _type) { type = _type; }
+        void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
+        std::string emit ();
+
+    private:
+        std::shared_ptr<Type> type;
+        std::shared_ptr<Expr> expr;
+};
+
 class Stmnt : public Node {
     public:
         Stmnt () {};
@@ -167,4 +184,47 @@ class DeclStmnt : public Stmnt {
         bool is_extern;
         std::shared_ptr<Data> data;
         std::shared_ptr<Expr> init;
+};
+
+class ExprStmnt : public Stmnt {
+    public:
+        ExprStmnt () : expr (NULL) { id = Node::NodeID::EXPR; }
+        void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
+        std::string emit ();
+
+    private:
+        std::shared_ptr<Expr> expr;
+};
+
+class LoopStmnt : public Stmnt {
+    public:
+        enum LoopID {
+            FOR, WHILE, DO_WHILE, MAX_LOOP_ID
+        };
+
+        LoopStmnt () : loop_id(MAX_LOOP_ID), cond(NULL) { id = Node::NodeID::MAX_STMNT_ID; }
+        void add_to_body (std::shared_ptr<Stmnt> stmnt) { body.push_back(stmnt); }
+        void set_cond (std::shared_ptr<Expr> _cond) { cond = _cond; }
+        void set_loop_type (LoopID _loop_id) { loop_id = _loop_id; }
+        virtual std::string emit () = 0;
+
+    protected:
+        LoopID loop_id;
+        std::vector<std::shared_ptr<Stmnt>> body;
+        std::shared_ptr<Expr> cond;
+};
+
+class CntLoopStmnt : public LoopStmnt {
+    public:
+        CntLoopStmnt () : iter(NULL), iter_decl(NULL), step_expr(NULL), step_val(NULL) { id = Node::NodeID::CNT_LOOP; }
+        void set_iter (std::shared_ptr<Variable> _iter) { iter = _iter; }
+        void set_iter_decl (std::shared_ptr<DeclStmnt> _iter_decl) { iter_decl = _iter_decl; }
+        void set_step_expr (std::shared_ptr<Expr> _step_expr) { step_expr = _step_expr; }
+        std::string emit ();
+
+    private:
+        std::shared_ptr<Variable> iter;
+        std::shared_ptr<DeclStmnt> iter_decl;
+        std::shared_ptr<Expr> step_expr;
+        std::shared_ptr<Variable> step_val;
 };
