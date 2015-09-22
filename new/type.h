@@ -10,6 +10,8 @@ class Type {
             UINT,
             ULINT,
             ULLINT,
+            MAX_INT_ID,
+            PTR,
             MAX_TYPE_ID
         };
 
@@ -52,6 +54,13 @@ class TypeULINT : public Type {
 class TypeULLINT : public Type {
     public:
         TypeULLINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypePTR : public Type {
+    public:
+        TypePTR ();
         std::string get_max_str ();
         std::string get_min_str ();
 };

@@ -1,9 +1,12 @@
 #include "variable.h"
 
-Variable::Variable (std::string _name, Type::TypeID _type_id, Mod _modifier) {
+Variable::Variable (std::string _name, Type::TypeID _type_id, Mod _modifier, bool _is_static) {
     type = Type::init (_type_id);
     name = _name;
     modifier = _modifier;
+    is_static = _is_static;
+    class_id = VAR;
+    align = 0;
     switch (type->get_id ()) {
         case Type::TypeID::UINT:
             value.uint_val = type->get_min ();
@@ -20,8 +23,10 @@ Variable::Variable (std::string _name, Type::TypeID _type_id, Mod _modifier) {
             min.ullint_val = type->get_min ();
             max.ullint_val = type->get_max ();
             break;
+        case Type::TypeID::PTR:
+        case Type::TypeID::MAX_INT_ID:
         case Type::TypeID::MAX_TYPE_ID:
-            std::cerr << "BAD TYPE IN VARIABLE: set_value" << std::endl;
+            std::cerr << "BAD TYPE IN VARIABLE" << std::endl;
             break;
     }
 }
@@ -37,7 +42,7 @@ void Variable::dbg_dump () {
 }
 
 void Variable::set_type (Type::TypeID _type_id) {
-    // TODO: add value, max an min convertion
+    // TODO: add value, max and min convertion
     type = Type::init (_type_id);
 }
 
@@ -52,6 +57,8 @@ void Variable::set_value (uint64_t _val) {
         case Type::TypeID::ULLINT:
             value.ullint_val = (unsigned long long int) _val;
             break;
+        case Type::TypeID::PTR:
+        case Type::TypeID::MAX_INT_ID:
         case Type::TypeID::MAX_TYPE_ID:
             std::cerr << "BAD TYPE IN VARIABLE: set_value" << std::endl;
             break;
@@ -69,6 +76,8 @@ void Variable::set_max (uint64_t _max) {
         case Type::TypeID::ULLINT:
             max.ullint_val = (unsigned long long int) _max;
             break;
+        case Type::TypeID::PTR:
+        case Type::TypeID::MAX_INT_ID:
         case Type::TypeID::MAX_TYPE_ID:
             std::cerr << "BAD TYPE IN VARIABLE: set_value" << std::endl;
             break;
@@ -86,6 +95,8 @@ void Variable::set_min (uint64_t _min) {
         case Type::TypeID::ULLINT:
             min.ullint_val = (unsigned long long int) _min;
             break;
+        case Type::TypeID::PTR:
+        case Type::TypeID::MAX_INT_ID:
         case Type::TypeID::MAX_TYPE_ID:
             std::cerr << "BAD TYPE IN VARIABLE: set_value" << std::endl;
             break;

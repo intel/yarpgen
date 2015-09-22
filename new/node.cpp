@@ -14,6 +14,9 @@ std::shared_ptr<Expr> Expr::init (Node::NodeID _id) {
         case Node::NodeID::BINARY:
             ret = std::make_shared<BinaryExpr> (BinaryExpr());
             break;
+        case Node::NodeID::CONST:
+            ret = std::make_shared<ConstExpr> (ConstExpr());
+            break;
         case Node::NodeID::INDEX:
             ret = std::make_shared<IndexExpr> (IndexExpr());
             break;
@@ -177,5 +180,92 @@ std::string UnaryExpr::emit () {
         ret = "((" + arg->emit() + ")" + op_str + ")";
     else
         ret = "(" + op_str + "(" +  arg->emit() + "))";
+    return ret;
+}
+
+std::string ConstExpr::emit () {
+    std::string ret = "";
+    switch (get_type_id ()) {
+        case Type::TypeID::UINT:
+            ret += std::to_string((unsigned int) data);
+            break;
+        case Type::TypeID::ULINT:
+            ret += std::to_string((unsigned long int) data);
+            break;
+        case Type::TypeID::ULLINT:
+            ret += std::to_string((unsigned long long int) data);
+            break;
+        case Type::TypeID::PTR:
+        case Type::TypeID::MAX_INT_ID:
+        case Type::TypeID::MAX_TYPE_ID:
+            std::cerr << "BAD TYPE in ConstExpr::emit ()" << std::endl;
+            break;
+    }
+    ret += type->get_suffix ();
+    return ret;
+}
+
+std::shared_ptr<Stmnt> Stmnt::init (Node::NodeID _id) {
+    std::shared_ptr<Stmnt> ret (NULL);
+    switch (_id) {
+        case Node::NodeID::DECL:
+            ret = std::make_shared<DeclStmnt> (DeclStmnt());
+            break;
+        case Node::NodeID::MAX_STMNT_ID:
+            break;
+    }
+    return ret;
+}
+
+std::string DeclStmnt::emit () {
+    std::string ret = "";
+    ret += is_extern ? "extern " : "";
+    switch (var->get_modifier()) {
+        case Variable::Mod::VOLAT:
+            ret += "volatile ";
+            break;
+        case Variable::Mod::CONST:
+            ret += "const ";
+            break;
+        case Variable::Mod::CONST_VOLAT:
+            ret += "const volatile ";
+            break;
+        case Variable::Mod::NTHNG:
+            break;
+         case Variable::Mod::MAX_MOD:
+                std::cerr << "ERROR in DeclStmnt::emit" << std::endl;
+                    break;
+    }
+    if (var->get_class_id() == Variable::VarClassID::ARR) {
+        std::shared_ptr<Array> arr = std::static_pointer_cast<Array>(var);
+        std::cout << "Debug: " << arr->get_size() << std::endl;
+        switch (arr->get_essence()) {
+            case Array::Ess::STD_ARR:
+                ret += "std::array<" + arr->get_type()->get_name() + ", " + std::to_string(arr->get_size()) + ">";
+                ret += " " + arr->get_name();
+                break;
+            case Array::Ess::STD_VEC:
+                ret += "std::vector" + arr->get_type()->get_name() + ">";
+                ret += " " + arr->get_name();
+                ret += is_extern ? "" : " (" + std::to_string(arr->get_size()) + ", 0)";
+                break;
+            case Array::Ess::C_ARR:
+                ret +=  arr->get_type()->get_name();
+                ret += " " + arr->get_name();
+                ret += " [" + std::to_string(arr->get_size()) + "]";
+                break;
+            case Array::Ess::MAX_ESS:
+                std::cerr << "ERROR in DeclStmnt::emit" << std::endl;
+                break;
+        }
+    }
+    else {
+        ret += var->get_type()->get_name() + " " + var->get_name();
+    }
+    if (init != NULL) {
+        if (var->get_class_id() == Variable::VarClassID::ARR)
+            std::cerr << "ERROR in DeclStmnt::emit init of array" << std::endl;
+        ret += " = " + init->emit();
+    }
     return ret;
 }

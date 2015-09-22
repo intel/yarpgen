@@ -7,15 +7,15 @@ int main () {
     type = Type::init (Type::TypeID::UINT);
     type->dbg_dump();
 
-    Variable var = Variable("i", Type::TypeID::UINT, Variable::Mod::NTHNG);
+    Variable var = Variable("i", Type::TypeID::UINT, Variable::Mod::NTHNG, false);
     var.set_modifier (Variable::Mod::CONST);
     var.set_value (10);
     var.set_min (5);
     var.set_max (50);
     var.dbg_dump ();
 
-    Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST, 20, 
-                           Array::Ess::STD_ARR);
+    Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST, false, 20,
+                           Array::Ess::STD_VEC);
     arr.dbg_dump();
 
     VarUseExpr var_use;
@@ -54,5 +54,21 @@ int main () {
     unary.set_op (UnaryExpr::Op::BitNot);
     unary.set_arg (std::make_shared<IndexExpr> (index));
     std::cout << "UnaryExpr: " << unary.emit () << std::endl;
+
+    ConstExpr cnst;
+    cnst.set_type (Type::TypeID::ULLINT);
+    cnst.set_data (123321);
+    std::cout << "ConstExpr: " << cnst.emit () << std::endl;
+
+    DeclStmnt decl;
+    std::cout << "====================" << std::endl;
+    arr.dbg_dump();
+    std::cout << "--------------------" << std::endl;
+    ((Array*)(std::make_shared<Variable> (arr)).get())->dbg_dump();
+    std::cout << "====================" << std::endl;
+    decl.set_variable (std::make_shared<Variable> (arr));
+    decl.set_init (std::make_shared<BinaryExpr> (bin_add));
+    std::cout << "DeclStmnt: " << decl.emit () << std::endl;
+
     return 0;
 }

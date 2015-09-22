@@ -9,11 +9,14 @@ class Node {
             // Expr types
             ASSIGN,
             BINARY,
+            CONST,
             INDEX,
-            VAR_USE,
             UNARY,
-            MAX_EXPR_ID
+            VAR_USE,
+            MAX_EXPR_ID,
             // Stmt type
+            DECL,
+            MAX_STMNT_ID
         };
 
         bool get_is_expr () { return is_expr; }
@@ -133,4 +136,34 @@ class UnaryExpr : public Expr {
     private:
         Op op;
         std::shared_ptr<Expr> arg;
+};
+
+class ConstExpr : public Expr {
+    public:
+        ConstExpr () : data (0) { id = Node::NodeID::CONST; }
+        void set_type (Type::TypeID type_id) { type = Type::init (type_id); }
+        void set_data (uint64_t _data) { data = _data; }
+        std::string emit ();
+
+    private:
+       uint64_t data;
+};
+
+class Stmnt : public Node {
+    public:
+        Stmnt () {};
+        static std::shared_ptr<Stmnt> init (Node::NodeID _id);
+};
+
+class DeclStmnt : public Stmnt {
+    public:
+        DeclStmnt () : var (NULL), init (NULL) { id = Node::NodeID::DECL; }
+        void set_variable (std::shared_ptr<Variable> _var) { var = _var; }
+        void set_init (std::shared_ptr<Expr> _init) { init = _init; }
+        std::string emit ();
+
+    private:
+        bool is_extern;
+        std::shared_ptr<Variable> var;
+        std::shared_ptr<Expr> init;
 };

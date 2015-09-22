@@ -12,6 +12,10 @@ std::shared_ptr<Type> Type::init (Type::TypeID _type_id) {
          case Type::TypeID::ULLINT:
             ret = std::make_shared<TypeULLINT> (TypeULLINT());
             break;
+        case Type::TypeID::PTR:
+            ret = std::make_shared<TypePTR> (TypePTR());
+            break;
+        case MAX_INT_ID:
         case Type::TypeID::MAX_TYPE_ID:
             break;
     }
@@ -83,4 +87,23 @@ std::string TypeULLINT::get_max_str () {
 
 std::string TypeULLINT::get_min_str () {
     return std::to_string (get_min ()) + get_suffix ();
+}
+
+TypePTR::TypePTR () {
+    id = Type::TypeID::PTR;
+    name = "*";
+    suffix = "";
+    min = 0;
+    max = 0;
+    bit_size = sizeof (unsigned int*) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
+}
+
+std::string TypePTR::get_max_str () {
+    return "";
+}
+
+std::string TypePTR::get_min_str () {
+    return "";
 }
