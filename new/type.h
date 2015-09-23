@@ -7,8 +7,16 @@
 class Type {
     public:
         enum TypeID {
+            BOOL,
+            CHAR,
+            UCHAR,
+            SHRT,
+            USHRT,
+            INT,
             UINT,
+            LINT,
             ULINT,
+            LLINT,
             ULLINT,
             MAX_INT_ID,
             PTR,
@@ -17,9 +25,12 @@ class Type {
 
         explicit Type () {};
         static std::shared_ptr<Type> init (Type::TypeID _type_id);
+        static bool can_repr_value (Type::TypeID a, Type::TypeID b); // if type a can represent all of the values of the type b
+        static Type::TypeID get_corr_unsig (Type::TypeID _type_id);
         Type::TypeID get_id () { return id; }
         std::string get_name () { return name; }
         std::string get_suffix() { return suffix; }
+        bool get_is_signed () { return is_signed; }
         uint64_t get_min () { return min; }
         uint64_t get_max () { return max; }
         void dbg_dump();
@@ -37,6 +48,48 @@ class Type {
         bool is_signed;
 };
 
+class TypeBOOL : public Type {
+    public:
+        TypeBOOL ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeCHAR : public Type {
+    public:
+        TypeCHAR ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeUCHAR : public Type {
+    public:
+        TypeUCHAR ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeSHRT : public Type {
+    public:
+        TypeSHRT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeUSHRT : public Type {
+    public:
+        TypeUSHRT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeINT : public Type {
+    public:
+        TypeINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
 class TypeUINT : public Type {
     public:
         TypeUINT ();
@@ -44,9 +97,23 @@ class TypeUINT : public Type {
         std::string get_min_str ();
 };
 
+class TypeLINT : public Type {
+    public:
+        TypeLINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
 class TypeULINT : public Type {
     public:
         TypeULINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeLLINT : public Type {
+    public:
+        TypeLLINT ();
         std::string get_max_str ();
         std::string get_min_str ();
 };

@@ -71,13 +71,118 @@ std::string IndexExpr::emit () {
     return ret;
 }
 
-void BinaryExpr::determ_type () {
+std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
+    //[conv.prom]
+    if (arg->get_type_id() >= Type::TypeID::INT) // can't perform integral promotiom
+        return arg;
+    TypeCastExpr ret;
+    ret.set_type(Type::init(Type::TypeID::INT));
+    ret.set_expr(arg);
+    return std::make_shared<TypeCastExpr>(ret);
+}
+
+std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
+    if (arg->get_type_id() == Type::TypeID::BOOL)
+        return arg;
+    TypeCastExpr ret;
+    ret.set_type(Type::init(Type::TypeID::BOOL));
+    ret.set_expr(arg);
+    return std::make_shared<TypeCastExpr>(ret);
+}
+
+void BinaryExpr::perform_arith_conv () {
+    // integral promotion should be a part of it, but it was moved to base class
+    // 10.5.1
+    if (arg0->get_type_id() == arg1->get_type_id())
+        return;
+    // 10.5.2
+    if (arg0->get_type()->get_is_signed() == arg1->get_type()->get_is_signed()) {
+        TypeCastExpr ins;
+        ins.set_type(Type::init(std::max(arg0->get_type_id(), arg1->get_type_id())));
+        if (arg0->get_type_id() <  arg1->get_type_id()) {
+            ins.set_expr(arg0);
+            arg0 = std::make_shared<TypeCastExpr>(ins);
+        }
+        else {
+            ins.set_expr(arg1);
+            arg1 = std::make_shared<TypeCastExpr>(ins);
+        }
+        return;
+    }
+    if ((!arg0->get_type()->get_is_signed() && (arg0->get_type_id() >= arg1->get_type_id())) || // 10.5.3
+         (arg0->get_type()->get_is_signed() && Type::can_repr_value (arg1->get_type_id(), arg0->get_type_id()))) { // 10.5.4
+        TypeCastExpr ins;
+        ins.set_type(Type::init(arg0->get_type_id()));
+        ins.set_expr(arg1);
+        arg1 = std::make_shared<TypeCastExpr>(ins);
+        return;
+    }
+    if ((!arg1->get_type()->get_is_signed() && (arg1->get_type_id() >= arg0->get_type_id())) || // 10.5.3
+         (arg1->get_type()->get_is_signed() && Type::can_repr_value (arg0->get_type_id(), arg1->get_type_id()))) { // 10.5.4
+        TypeCastExpr ins;
+        ins.set_type(Type::init(arg1->get_type_id()));
+        ins.set_expr(arg0);
+        arg0 = std::make_shared<TypeCastExpr>(ins);
+        return;
+    }
+    // 10.5.5
+    TypeCastExpr ins0;
+    TypeCastExpr ins1;
+    if (arg0->get_type()->get_is_signed()) {
+        ins0.set_type(Type::init(Type::get_corr_unsig(arg0->get_type_id())));
+        ins1.set_type(Type::init(Type::get_corr_unsig(arg0->get_type_id())));
+    }
+    if (arg1->get_type()->get_is_signed()) {
+        ins0.set_type(Type::init(Type::get_corr_unsig(arg1->get_type_id())));
+        ins1.set_type(Type::init(Type::get_corr_unsig(arg1->get_type_id())));
+    }
+    ins0.set_expr(arg0);
+    arg0 = std::make_shared<TypeCastExpr>(ins0);
+    ins1.set_expr(arg1);
+    arg1 = std::make_shared<TypeCastExpr>(ins1);
+}
+
+void BinaryExpr::propagate_type () {
     if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
+        std::cerr << "ERROR: BinaryExpr::propagate_type specify args" << std::endl;
         type = Type::init (Type::TypeID::MAX_TYPE_ID);
         return;
     }
-    // TODO: add integer promotion and implicit type conversion
-    type = Type::init (std::max(arg0->get_type_id(), arg1->get_type_id()));
+    switch (op) {
+        case Add:
+        case Sub:
+        case Mul:
+        case Div:
+        case Mod:
+        case Lt:
+        case Gt:
+        case Le:
+        case Ge:
+        case Eq:
+        case Ne:
+        case BitAnd:
+        case BitXor:
+        case BitOr:
+            // arithmetic conversions
+            arg0 = integral_prom (arg0);
+            arg1 = integral_prom (arg1);
+            perform_arith_conv();
+            break;
+        case Shl:
+        case Shr:
+            arg0 = integral_prom (arg0);
+            arg1 = integral_prom (arg1);
+            break;
+        case LogAnd:
+        case LogOr:
+            arg0 = conv_to_bool (arg0);
+            arg1 = conv_to_bool (arg1);
+            break;
+        case MaxOp:
+            std::cerr << "ERROR: BinaryExpr::propagate_type bad operator" << std::endl;
+            break;
+    }
+    type = Type::init (arg0->get_type_id());
 }
 
 std::string BinaryExpr::emit () {
@@ -145,12 +250,30 @@ std::string BinaryExpr::emit () {
         return ret;
 }
 
-void UnaryExpr::determ_type () {
+void UnaryExpr::propagate_type () {
     if (op == MaxOp || arg == NULL) {
+        std::cerr << "ERROR: UnaryExpr::propagate_type specify args" << std::endl;
         type = Type::init (Type::TypeID::MAX_TYPE_ID);
         return;
     }
-    // TODO: add integer promotion and implicit type conversion
+    switch (op) {
+        case PreInc:
+        case PreDec:
+        case PostInc:
+        case PostDec:
+            break;
+        case Plus:
+        case Negate:
+        case BitNot:
+            arg = integral_prom (arg);
+            break;
+        case LogNot:
+            arg = conv_to_bool (arg);
+            break;
+        case MaxOp:
+            std::cerr << "ERROR: UnaryExpr::propagate_type bad operator" << std::endl;
+            break;
+    }
     type = Type::init (arg->get_type_id());
 }
 
@@ -164,6 +287,9 @@ std::string UnaryExpr::emit () {
         case PreDec:
         case PostDec:
             op_str = "--";
+            break;
+        case Plus:
+            op_str = "+";
             break;
         case Negate:
             op_str = "-";
@@ -189,11 +315,35 @@ std::string UnaryExpr::emit () {
 std::string ConstExpr::emit () {
     std::string ret = "";
     switch (get_type_id ()) {
+        case Type::TypeID::BOOL:
+            ret += std::to_string((bool) data);
+            break;
+        case Type::TypeID::CHAR:
+            ret += std::to_string((signed char) data);
+            break;
+        case Type::TypeID::UCHAR:
+            ret += std::to_string((unsigned char) data);
+            break;
+        case Type::TypeID::SHRT:
+            ret += std::to_string((short) data);
+            break;
+        case Type::TypeID::USHRT:
+            ret += std::to_string((unsigned short) data);
+            break;
+        case Type::TypeID::INT:
+            ret += std::to_string((int) data);
+            break;
         case Type::TypeID::UINT:
             ret += std::to_string((unsigned int) data);
             break;
+        case Type::TypeID::LINT:
+            ret += std::to_string((long int) data);
+            break;
         case Type::TypeID::ULINT:
             ret += std::to_string((unsigned long int) data);
+            break;
+        case Type::TypeID::LLINT:
+            ret += std::to_string((long long int) data);
             break;
         case Type::TypeID::ULLINT:
             ret += std::to_string((unsigned long long int) data);

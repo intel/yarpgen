@@ -38,8 +38,16 @@ class Data {
         uint64_t align;
         VarClassID class_id;
         union TypeVal {
+            bool bool_val;
+            signed char char_val;
+            unsigned char uchar_val;
+            short shrt_val;
+            unsigned short ushrt_val;
+            int int_val;
             unsigned int uint_val;
+            long int lint_val;
             unsigned long int ulint_val;
+            long long int llint_val;
             unsigned long long int ullint_val;
         };
 };
