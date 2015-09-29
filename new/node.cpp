@@ -96,7 +96,7 @@ void BinaryExpr::perform_arith_conv () {
     if (arg0->get_type_id() == arg1->get_type_id())
         return;
     // 10.5.2
-    if (arg0->get_type()->get_is_signed() == arg1->get_type()->get_is_signed()) {
+    if (arg0->get_type_sign() == arg1->get_type_sign()) {
         TypeCastExpr ins;
         ins.set_type(Type::init(std::max(arg0->get_type_id(), arg1->get_type_id())));
         if (arg0->get_type_id() <  arg1->get_type_id()) {
@@ -109,16 +109,16 @@ void BinaryExpr::perform_arith_conv () {
         }
         return;
     }
-    if ((!arg0->get_type()->get_is_signed() && (arg0->get_type_id() >= arg1->get_type_id())) || // 10.5.3
-         (arg0->get_type()->get_is_signed() && Type::can_repr_value (arg1->get_type_id(), arg0->get_type_id()))) { // 10.5.4
+    if ((!arg0->get_type_sign() && (arg0->get_type_id() >= arg1->get_type_id())) || // 10.5.3
+         (arg0->get_type_sign() && Type::can_repr_value (arg1->get_type_id(), arg0->get_type_id()))) { // 10.5.4
         TypeCastExpr ins;
         ins.set_type(Type::init(arg0->get_type_id()));
         ins.set_expr(arg1);
         arg1 = std::make_shared<TypeCastExpr>(ins);
         return;
     }
-    if ((!arg1->get_type()->get_is_signed() && (arg1->get_type_id() >= arg0->get_type_id())) || // 10.5.3
-         (arg1->get_type()->get_is_signed() && Type::can_repr_value (arg0->get_type_id(), arg1->get_type_id()))) { // 10.5.4
+    if ((!arg1->get_type_sign() && (arg1->get_type_id() >= arg0->get_type_id())) || // 10.5.3
+         (arg1->get_type_sign() && Type::can_repr_value (arg0->get_type_id(), arg1->get_type_id()))) { // 10.5.4
         TypeCastExpr ins;
         ins.set_type(Type::init(arg1->get_type_id()));
         ins.set_expr(arg0);
@@ -128,11 +128,11 @@ void BinaryExpr::perform_arith_conv () {
     // 10.5.5
     TypeCastExpr ins0;
     TypeCastExpr ins1;
-    if (arg0->get_type()->get_is_signed()) {
+    if (arg0->get_type_sign()) {
         ins0.set_type(Type::init(Type::get_corr_unsig(arg0->get_type_id())));
         ins1.set_type(Type::init(Type::get_corr_unsig(arg0->get_type_id())));
     }
-    if (arg1->get_type()->get_is_signed()) {
+    if (arg1->get_type_sign()) {
         ins0.set_type(Type::init(Type::get_corr_unsig(arg1->get_type_id())));
         ins1.set_type(Type::init(Type::get_corr_unsig(arg1->get_type_id())));
     }
@@ -427,6 +427,8 @@ std::string DeclStmnt::emit () {
     else {
         ret += data->get_type()->get_name() + " " + data->get_name();
     }
+    if (data->get_align() != 0)
+        ret += " __attribute__((aligned(" + std::to_string(data->get_align()) + ")))";
     if (init != NULL) {
         if (data->get_class_id() == Variable::VarClassID::ARR) {
             std::cerr << "ERROR in DeclStmnt::emit init of array" << std::endl;
@@ -468,7 +470,7 @@ std::string CntLoopStmnt::emit() {
     }
 
     for (auto i = this->body.begin(); i != this->body.end(); ++i)
-        ret += (*i)->emit() + "\n";
+        ret += (*i)->emit() + ";\n";
 
     if (loop_id == LoopStmnt::LoopID::WHILE ||
         loop_id == LoopStmnt::LoopID::DO_WHILE) {

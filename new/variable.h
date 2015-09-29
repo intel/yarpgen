@@ -6,8 +6,8 @@ class Data {
     public:
         enum Mod {
             NTHNG,
-            CONST,
             VOLAT,
+            CONST,
             CONST_VOLAT,
             MAX_MOD
         };

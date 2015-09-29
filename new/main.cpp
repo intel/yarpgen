@@ -1,8 +1,10 @@
 #include "type.h"
 #include "variable.h"
 #include "node.h"
+#include "master.h"
 
 int main () {
+/*
     std::shared_ptr<Type> type;
     type = Type::init (Type::TypeID::UINT);
     type->dbg_dump();
@@ -15,7 +17,8 @@ int main () {
     var.dbg_dump ();
 
     Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST_VOLAT, true, 20,
-                           Array::Ess::STD_ARR);
+                           Array::Ess::STD_VEC);
+    arr.set_align(32);
     arr.dbg_dump();
 
     VarUseExpr var_use;
@@ -91,6 +94,10 @@ int main () {
     tc.set_type(Type::init(Type::TypeID::ULLINT));
     tc.set_expr(std::make_shared<UnaryExpr> (unary));
     std::cout << "TypeCastExpr: " << tc.emit () << std::endl;
+*/
+    Master mas;
+    mas.generate ();
+    std::cout << "\n\nOut:\n" << mas.emit () << std::endl;
 
     return 0;
 }

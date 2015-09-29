@@ -38,7 +38,7 @@ class Expr : public Node {
         Expr ();
         static std::shared_ptr<Expr> init (Node::NodeID _id);
         Type::TypeID get_type_id () { return type->get_id (); }
-        std::shared_ptr<Type> get_type () { return type; }
+        bool get_type_sign () { return type->get_is_signed(); }
         virtual void propagate_type () = 0;
 
     protected:
