@@ -474,7 +474,7 @@ std::string CntLoopStmnt::emit() {
 
     if (loop_id == LoopStmnt::LoopID::WHILE ||
         loop_id == LoopStmnt::LoopID::DO_WHILE) {
-        ret += ret += step_expr->emit() + "\n";
+        ret += step_expr->emit() + ";\n";
     }
 
     ret += "}\n";

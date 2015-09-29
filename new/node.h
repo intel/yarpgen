@@ -191,7 +191,7 @@ class Stmnt : public Node {
 
 class DeclStmnt : public Stmnt {
     public:
-        DeclStmnt () : data (NULL), init (NULL) { id = Node::NodeID::DECL; }
+        DeclStmnt () : data (NULL), init (NULL), is_extern(false) { id = Node::NodeID::DECL; }
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         void set_data (std::shared_ptr<Data> _data) { data = _data; }
         void set_init (std::shared_ptr<Expr> _init) { init = _init; }
@@ -233,7 +233,7 @@ class LoopStmnt : public Stmnt {
 
 class CntLoopStmnt : public LoopStmnt {
     public:
-        CntLoopStmnt () : iter(NULL), iter_decl(NULL), step_expr(NULL), step_val(NULL) { id = Node::NodeID::CNT_LOOP; }
+        CntLoopStmnt () : iter(NULL), iter_decl(NULL), step_expr(NULL) { id = Node::NodeID::CNT_LOOP; }
         void set_iter (std::shared_ptr<Variable> _iter) { iter = _iter; }
         void set_iter_decl (std::shared_ptr<DeclStmnt> _iter_decl) { iter_decl = _iter_decl; }
         void set_step_expr (std::shared_ptr<Expr> _step_expr) { step_expr = _step_expr; }
@@ -243,5 +243,4 @@ class CntLoopStmnt : public LoopStmnt {
         std::shared_ptr<Variable> iter;
         std::shared_ptr<DeclStmnt> iter_decl;
         std::shared_ptr<Expr> step_expr;
-        std::shared_ptr<Variable> step_val;
 };

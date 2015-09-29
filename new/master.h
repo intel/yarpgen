@@ -6,17 +6,19 @@
 #include "type.h"
 #include "node.h"
 
-class ControlStruct {
-    public:
-        std::string ext_num;
+struct ControlStruct {
+    std::string ext_num;
 
-        std::vector<Type::TypeID> allowed_types;
+    std::vector<Type::TypeID> allowed_types;
 
-        int min_arr_num;
-        int max_arr_num;
-        int min_arr_size;
-        int max_arr_size;
-        Array::Ess primary_ess;
+    int min_arr_num;
+    int max_arr_num;
+    int min_arr_size;
+    int max_arr_size;
+    Array::Ess primary_ess;
+
+    uint64_t min_var_val;
+    uint64_t max_var_val;
 };
 
 class Master {
@@ -60,11 +62,36 @@ class ArrayGen : public Gen {
 
 class LoopGen : public Gen {
     public:
-        LoopGen (ControlStruct _ctrl) : Gen (_ctrl), min_arr_size (UINT_MAX) {}
+        LoopGen (ControlStruct _ctrl) : Gen (_ctrl), min_ex_arr_size (UINT64_MAX) {}
         void generate ();
 
     private:
-        unsigned int min_arr_size;
+        uint64_t min_ex_arr_size;
         std::vector<std::shared_ptr<Data>> inp_sym_table;
         std::vector<std::shared_ptr<Data>> out_sym_table;
+};
+
+class VarValGen : public Gen {
+    public:
+        VarValGen (ControlStruct _ctrl, Type::TypeID _type_id) : Gen (_ctrl), type_id(_type_id), val(0) {}
+        void generate();
+        void generate_step();
+        uint64_t get_value () { return val; }
+
+    private:
+        Type::TypeID type_id;
+        uint64_t val;
+};
+
+class StepExprGen : public Gen {
+    public:
+        StepExprGen (ControlStruct _ctrl, std::shared_ptr<Variable> _var, int64_t _step) :
+                     Gen (_ctrl), var(_var), step(_step), expr(NULL) {}
+        void generate ();
+        std::shared_ptr<Expr> get_expr () { return expr; }
+
+    private:
+        int64_t step;
+        std::shared_ptr<Expr> expr;
+        std::shared_ptr<Variable> var;
 };
