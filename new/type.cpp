@@ -115,7 +115,7 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
 }
 
 Type::TypeID Type::get_corr_unsig (Type::TypeID _type_id) {
-    // This function is used for different conversion rules, so it can be called only after integral promotion 
+    // This function is used for different conversion rules, so it can be called only after integral promotion
     switch (_type_id) {
         case INT:
         case UINT:

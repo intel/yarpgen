@@ -427,7 +427,7 @@ std::string DeclStmnt::emit () {
     else {
         ret += data->get_type()->get_name() + " " + data->get_name();
     }
-    if (data->get_align() != 0)
+    if (data->get_align() != 0 && is_extern) // TODO: Should we set __attribute__ to non-extern variable?
         ret += " __attribute__((aligned(" + std::to_string(data->get_align()) + ")))";
     if (init != NULL) {
         if (data->get_class_id() == Variable::VarClassID::ARR) {

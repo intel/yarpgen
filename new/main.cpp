@@ -97,7 +97,11 @@ int main () {
 */
     Master mas;
     mas.generate ();
-    std::cout << "\n\nOut:\n" << mas.emit () << std::endl;
+    std::cout << "#include <vector>" << std::endl;
+    std::cout << "#include <memory>" << std::endl;
+    std::cout << "void foo () { " << std::endl;
+    std::cout << mas.emit () << std::endl;
+    std::cout << "}" << std::endl;
 
     return 0;
 }

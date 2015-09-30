@@ -13,8 +13,10 @@ const int NUM_OF_MIXED_TYPES = 3;
 
 const bool ESSENCE_DIFFER = false;
 
+const int MAX_ARITH_DEPTH = 3;
+
 uint64_t rand_dev () {
-//    return -954396712; // TODO: enable random
+//    return 149370038; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
@@ -46,6 +48,8 @@ Master::Master () {
 
     ctrl.min_var_val = 0;
     ctrl.max_var_val = UINT_MAX;
+
+    ctrl.max_arith_depth = MAX_ARITH_DEPTH;
 }
 
 void Master::generate () {
@@ -90,27 +94,63 @@ void LoopGen::generate () {
     loop.set_loop_type (loop_type);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-    // Iterator
-    std::uniform_int_distribution<int> var_type_dis(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
-    Type::TypeID var_type = (Type::TypeID) var_type_dis(rand_gen);
-    Variable iter ("i_" + ctrl.ext_num, var_type, Variable::Mod::NTHNG, false);
+    // Trip
+    TripGen trip_gen (ctrl, min_ex_arr_size);
+    trip_gen.generate ();
+    loop.set_iter(trip_gen.get_iter());
+    loop.set_iter_decl(trip_gen.get_iter_decl());
+    loop.set_step_expr(trip_gen.get_step_expr());
+    loop.set_cond(trip_gen.get_cond());
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-    // Trip
+    // Body
+    std::vector<std::shared_ptr<Expr>> inp_expr;
+
+    VarUseExpr iter_use;
+    iter_use.set_variable(trip_gen.get_iter());
+
+
+    for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
+        IndexExpr arr_index;
+        arr_index.set_index(std::make_shared<VarUseExpr> (iter_use));
+        arr_index.set_base(std::static_pointer_cast<Array>(*i));
+        inp_expr.push_back(std::make_shared<IndexExpr> (arr_index));
+    }
+
+    for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
+        IndexExpr out_arr_index;
+        out_arr_index.set_index(std::make_shared<VarUseExpr> (iter_use));
+        out_arr_index.set_base(std::static_pointer_cast<Array>(*i));
+
+        ArithExprGen arith_expr_gen (ctrl, inp_expr, std::make_shared<IndexExpr> (out_arr_index));
+        arith_expr_gen.generate();
+        loop.add_to_body(arith_expr_gen.get_expr_stmnt());
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+    program.push_back(std::make_shared<CntLoopStmnt> (loop));
+}
+
+void TripGen::generate () {
+    std::uniform_int_distribution<int> var_type_dis(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
+    Type::TypeID var_type = (Type::TypeID) var_type_dis(rand_gen);
+    Variable iter_var ("i_" + ctrl.ext_num, var_type, Variable::Mod::NTHNG, false);
+    iter = std::make_shared<Variable> (iter_var);
+
     // Start value
     ControlStruct tmp_ctrl = ctrl;
     tmp_ctrl.min_var_val = 0;
-    int64_t max_arr_indx = std::min(iter.get_max (), min_ex_arr_size) - 1; // TODO: I hope it will work
+    int64_t max_arr_indx = std::min(iter->get_max (), min_ex_arr_size) - 1; // TODO: I hope it will work
     tmp_ctrl.max_var_val= max_arr_indx;
     VarValGen var_val_gen (tmp_ctrl, var_type);
     var_val_gen.generate();
     int64_t start_val = var_val_gen.get_value();
-    iter.set_min(start_val);
+    iter->set_min(start_val);
 
     // Step
     std::uniform_int_distribution<int> step_dir_dis(0, 1);
     int step_dir = step_dir_dis(rand_gen) ? 1 : -1;
-    step_dir = iter.get_type()->get_is_signed() ? step_dir : 1;
+    step_dir = iter->get_type()->get_is_signed() ? step_dir : 1;
     if (step_dir < 0 || start_val == max_arr_indx) { // Negative step
         tmp_ctrl.min_var_val = -1 * start_val;
         tmp_ctrl.max_var_val = -1;
@@ -122,7 +162,7 @@ void LoopGen::generate () {
     var_val_gen = VarValGen (tmp_ctrl, Type::TypeID::LLINT);
     var_val_gen.generate_step();
     int64_t step = var_val_gen.get_value();
-    iter.set_value(step);
+    iter->set_value(step);
 
     int64_t max_step_num = 0;
     if (step_dir < 0) { // Negative step
@@ -147,24 +187,26 @@ void LoopGen::generate () {
         end_value = std::min(end_value, max_arr_indx);
         hit_end = false;
     }
-    iter.set_max(end_value);
+    iter->set_max(end_value);
 
-    // Place all information about step and iterator into loop
-    loop.set_iter(std::make_shared<Variable> (iter));
-    ConstExpr iter_init;
-    iter_init.set_type(iter.get_type()->get_id());
-    iter_init.set_data(iter.get_min());
-    DeclStmnt iter_decl;
-    iter_decl.set_data(std::make_shared<Variable> (iter));
-    iter_decl.set_init(std::make_shared<ConstExpr> (iter_init));
-    loop.set_iter_decl(std::make_shared<DeclStmnt> (iter_decl));
-
-    StepExprGen step_expr_gen (ctrl, std::make_shared<Variable> (iter), step);
+    StepExprGen step_expr_gen (ctrl, iter, step);
     step_expr_gen.generate();
-    loop.set_step_expr(step_expr_gen.get_expr());
+    step_expr = step_expr_gen.get_expr();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-    // Condition
+    gen_condition(hit_end, step);
+}
+
+std::shared_ptr<DeclStmnt> TripGen::get_iter_decl () {
+    ConstExpr iter_init;
+    iter_init.set_type(iter->get_type()->get_id());
+    iter_init.set_data(iter->get_min());
+    DeclStmnt iter_decl;
+    iter_decl.set_data(iter);
+    iter_decl.set_init(std::make_shared<ConstExpr> (iter_init));
+    return std::make_shared<DeclStmnt> (iter_decl);
+}
+
+void TripGen::gen_condition (bool hit_end, int64_t step) {
     std::vector<BinaryExpr::Op> allowed_cmp_op;
     if (hit_end)
         allowed_cmp_op.push_back(BinaryExpr::Op::Ne);
@@ -180,19 +222,64 @@ void LoopGen::generate () {
     BinaryExpr::Op cmp_op = allowed_cmp_op.at(cmp_op_dis(rand_gen));
 
     ConstExpr end_val_expr;
-    end_val_expr.set_type(iter.get_type()->get_id());
-    end_val_expr.set_data(iter.get_max());
+    end_val_expr.set_type(iter->get_type()->get_id());
+    end_val_expr.set_data(iter->get_max());
 
     VarUseExpr iter_use;
-    iter_use.set_variable(std::make_shared<Variable> (iter));
+    iter_use.set_variable(iter);
 
     BinaryExpr cond_expr;
     cond_expr.set_op(cmp_op);
     cond_expr.set_lhs(std::make_shared<VarUseExpr> (iter_use));
     cond_expr.set_rhs(std::make_shared<ConstExpr> (end_val_expr));
-    loop.set_cond(std::make_shared<BinaryExpr> (cond_expr));
+    cond = std::make_shared<BinaryExpr> (cond_expr);
+}
 
-    program.push_back(std::make_shared<CntLoopStmnt> (loop));
+void ArithExprGen::generate () {
+    res_expr = gen_level(0);
+    if (out == NULL)
+        return;
+    AssignExpr assign;
+    assign.set_to(out);
+    assign.set_from(res_expr);
+    res_expr = std::make_shared<AssignExpr> (assign);
+}
+
+std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
+    std::uniform_int_distribution<int> node_type_dis(0, 100);
+    int node_type = node_type_dis(rand_gen);
+    if (node_type < 10 || depth == ctrl.max_arith_depth) { // Array
+        std::uniform_int_distribution<int> inp_use_dis(0, inp.size() - 1);
+        int inp_use = inp_use_dis(rand_gen);
+        inp.at(inp_use)->propagate_type();
+        return inp.at(inp_use);
+    }
+    else if (node_type < 40) { // Unary expr
+        UnaryExpr unary;
+        std::uniform_int_distribution<int> op_type_dis(UnaryExpr::Op::Plus, UnaryExpr::Op::MaxOp - 1);
+        UnaryExpr::Op op_type = (UnaryExpr::Op) op_type_dis(rand_gen);
+        unary.set_op(op_type);
+        unary.set_arg(gen_level(depth + 1));
+        unary.propagate_type();
+        return std::make_shared<UnaryExpr> (unary);
+    }
+    else { // Binary expr
+        BinaryExpr binary;
+        std::uniform_int_distribution<int> op_type_dis(0, BinaryExpr::Op::MaxOp - 1);
+        BinaryExpr::Op op_type = (BinaryExpr::Op) op_type_dis(rand_gen);
+        binary.set_op(op_type);
+        binary.set_lhs(gen_level(depth + 1));
+        binary.set_rhs(gen_level(depth + 1));
+        binary.propagate_type();
+        return std::make_shared<BinaryExpr> (binary);
+    }
+    return NULL;
+}
+
+std::shared_ptr<Stmnt> ArithExprGen::get_expr_stmnt () {
+    ExprStmnt ret;
+    ret.set_expr(res_expr);
+    return std::make_shared<ExprStmnt> (ret);
 }
 
 void ArrayGen::generate () {
@@ -363,13 +450,12 @@ void StepExprGen::generate () {
 
 std::string Master::emit () {
     std::string ret = "";
-/*
+
     for (auto i = sym_table.begin(); i != sym_table.end(); ++i) {
         DeclStmnt decl;
         decl.set_data(*i);
         ret += decl.emit() + ";\n";
     }
-*/
 
     for (auto i = program.begin(); i != program.end(); ++i) {
         ret += (*i)->emit() + "\n";

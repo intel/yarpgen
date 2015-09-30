@@ -75,7 +75,7 @@ class IndexExpr : public Expr {
         void set_base (std::shared_ptr<Array> _base);
         void set_index (std::shared_ptr<Expr> _index) { index = _index; }
         void set_is_subscr (bool _is_subscr) { is_subscr = _is_subscr || base->get_essence() == Array::Ess::C_ARR; }
-        void propagate_type () { type = base->get_type(); }
+        void propagate_type () { type = base->get_base_type(); }
         std::string emit ();
 
     private:
@@ -172,14 +172,13 @@ class ConstExpr : public Expr {
 
 class TypeCastExpr : public Expr {
     public:
-        TypeCastExpr () : type (NULL), expr (NULL) { id = Node::NodeID::TYPE_CAST; }
+        TypeCastExpr () : expr (NULL) { id = Node::NodeID::TYPE_CAST; }
         void set_type (std::shared_ptr<Type> _type) { type = _type; }
         void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
         void propagate_type () {};
         std::string emit ();
 
     private:
-        std::shared_ptr<Type> type;
         std::shared_ptr<Expr> expr;
 };
 

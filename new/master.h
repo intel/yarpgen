@@ -19,6 +19,8 @@ struct ControlStruct {
 
     uint64_t min_var_val;
     uint64_t max_var_val;
+
+    int max_arith_depth;
 };
 
 class Master {
@@ -94,4 +96,37 @@ class StepExprGen : public Gen {
         int64_t step;
         std::shared_ptr<Expr> expr;
         std::shared_ptr<Variable> var;
+};
+
+class TripGen : public Gen {
+    public:
+        TripGen (ControlStruct _ctrl, uint64_t _min_ex_arr_size) : Gen (_ctrl), min_ex_arr_size(_min_ex_arr_size) {}
+        void generate ();
+        std::shared_ptr<Variable> get_iter () { return iter; }
+        std::shared_ptr<DeclStmnt> get_iter_decl ();
+        std::shared_ptr<Expr> get_step_expr () { return step_expr; }
+        std::shared_ptr<Expr> get_cond () { return cond; }
+
+    private:
+        void gen_condition (bool hit_end, int64_t step);
+        std::shared_ptr<Variable> iter;
+        uint64_t min_ex_arr_size;
+        std::shared_ptr<Expr> step_expr;
+        std::shared_ptr<Expr> cond;
+};
+
+class ArithExprGen : public Gen {
+    public:
+        ArithExprGen (ControlStruct _ctrl,
+                      std::vector<std::shared_ptr<Expr>> _inp,
+                      std::shared_ptr<Expr> _out) :
+                      Gen (_ctrl), inp(_inp), out(_out) {}
+        void generate();
+        std::shared_ptr<Stmnt> get_expr_stmnt ();
+
+    private:
+        std::shared_ptr<Expr> gen_level (int depth);
+        std::vector<std::shared_ptr<Expr>> inp;
+        std::shared_ptr<Expr> out;
+        std::shared_ptr<Expr> res_expr;
 };
