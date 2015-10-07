@@ -23,7 +23,7 @@ class Node {
             CNT_LOOP,
             MAX_STMNT_ID
         };
-
+        Node () : id (MAX_EXPR_ID), is_expr(false) {}
         bool get_is_expr () { return is_expr; }
         NodeID get_id () { return id; }
         virtual std::string emit () = 0;
@@ -35,21 +35,34 @@ class Node {
 
 class Expr : public Node {
     public:
-        Expr ();
+        enum UB {
+            NoUB,
+            NullPtr, // NULL ptr dereferencing
+            SignOvf, // Signed overflow
+            ZeroDiv, // FPE
+            ShiftRhs, // Shift by negative and big value
+            SignShift, // Shift of negative value
+        };
+        Expr () : value("", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = false;}
         static std::shared_ptr<Expr> init (Node::NodeID _id);
-        Type::TypeID get_type_id () { return type->get_id (); }
-        bool get_type_sign () { return type->get_is_signed(); }
+        Type::TypeID get_type_id () { return value.get_type()->get_id (); }
+        bool get_type_is_signed () { return value.get_type()->get_is_signed(); }
+        uint64_t get_type_bit_size () { return value.get_type()->get_bit_size(); }
+        uint64_t get_value () { return value.get_value(); }
+        bool get_type_sign () { return value.get_type()->get_is_signed(); }
         virtual void propagate_type () = 0;
+        virtual UB propagate_value () = 0;
 
     protected:
-        std::shared_ptr<Type> type;
+        Variable value;
 };
 
 class VarUseExpr : public Expr {
     public:
         VarUseExpr () : var (NULL) { id = Node::NodeID::VAR_USE; }
         void set_variable (std::shared_ptr<Variable> _var);
-        void propagate_type () { type = var->get_type(); }
+        void propagate_type () { value.set_type(var->get_type()); }
+        UB propagate_value () { value.set_value(var->get_value()); return NoUB; }
         std::string emit () { return var->get_name (); }
 
     private:
@@ -61,7 +74,8 @@ class AssignExpr : public Expr {
         AssignExpr () : to (NULL), from (NULL) { id = Node::NodeID::ASSIGN; }
         void set_to (std::shared_ptr<Expr> _to);
         void set_from (std::shared_ptr<Expr> _from);
-        void propagate_type () { type = Type::init(to->get_type_id()); }
+        void propagate_type () { value.set_type(Type::init(to->get_type_id())); }
+        UB propagate_value () { value.set_value(from->get_value()); return NoUB; }
         std::string emit ();
 
     private:
@@ -75,7 +89,8 @@ class IndexExpr : public Expr {
         void set_base (std::shared_ptr<Array> _base);
         void set_index (std::shared_ptr<Expr> _index) { index = _index; }
         void set_is_subscr (bool _is_subscr) { is_subscr = _is_subscr || base->get_essence() == Array::Ess::C_ARR; }
-        void propagate_type () { type = base->get_base_type(); }
+        void propagate_type () { value.set_type(base->get_base_type()); }
+        UB propagate_value () { value.set_value(base->get_value()); return NoUB; }
         std::string emit ();
 
     private:
@@ -124,6 +139,7 @@ class BinaryExpr : public ArithExpr {
         void set_lhs (std::shared_ptr<Expr> _arg0) { arg0 = _arg0; }
         void set_rhs (std::shared_ptr<Expr> _arg1) { arg1 = _arg1; }
         void propagate_type ();
+        UB propagate_value ();
         std::string emit ();
 
     private:
@@ -151,6 +167,7 @@ class UnaryExpr : public ArithExpr {
         void set_op (Op _op) { op = _op; }
         void set_arg (std::shared_ptr<Expr> _arg) { arg = _arg; }
         void propagate_type ();
+        UB propagate_value ();
         std::string emit ();
 
     private:
@@ -161,9 +178,10 @@ class UnaryExpr : public ArithExpr {
 class ConstExpr : public Expr {
     public:
         ConstExpr () : data (0) { id = Node::NodeID::CONST; }
-        void set_type (Type::TypeID type_id) { type = Type::init (type_id); }
+        void set_type (Type::TypeID type_id) { value.set_type(Type::init (type_id)); }
         void set_data (uint64_t _data) { data = _data; }
         void propagate_type () {};
+        UB propagate_value () { value.set_value(data); return NoUB; }
         std::string emit ();
 
     private:
@@ -173,9 +191,10 @@ class ConstExpr : public Expr {
 class TypeCastExpr : public Expr {
     public:
         TypeCastExpr () : expr (NULL) { id = Node::NodeID::TYPE_CAST; }
-        void set_type (std::shared_ptr<Type> _type) { type = _type; }
+        void set_type (std::shared_ptr<Type> _type) { value.set_type(_type); }
         void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
         void propagate_type () {};
+        UB propagate_value () { value.set_value(expr->get_value()); return NoUB; }
         std::string emit ();
 
     private:

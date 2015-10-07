@@ -50,7 +50,7 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     std::shared_ptr<Type> B = init(b);
     bool int_eq_long = sizeof(int) == sizeof(long int);
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);;
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
     switch (a) {
         case INT:
             return B->get_is_signed();

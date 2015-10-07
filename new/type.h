@@ -31,6 +31,7 @@ class Type {
         std::string get_name () { return name; }
         std::string get_suffix() { return suffix; }
         bool get_is_signed () { return is_signed; }
+        uint64_t get_bit_size () { return bit_size; }
         uint64_t get_min () { return min; }
         uint64_t get_max () { return max; }
         void dbg_dump();

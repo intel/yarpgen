@@ -252,6 +252,7 @@ std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
         std::uniform_int_distribution<int> inp_use_dis(0, inp.size() - 1);
         int inp_use = inp_use_dis(rand_gen);
         inp.at(inp_use)->propagate_type();
+        inp.at(inp_use)->propagate_value();
         return inp.at(inp_use);
     }
     else if (node_type < 40) { // Unary expr
@@ -261,6 +262,7 @@ std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
         unary.set_op(op_type);
         unary.set_arg(gen_level(depth + 1));
         unary.propagate_type();
+        unary.propagate_value();
         return std::make_shared<UnaryExpr> (unary);
     }
     else { // Binary expr
@@ -271,6 +273,7 @@ std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
         binary.set_lhs(gen_level(depth + 1));
         binary.set_rhs(gen_level(depth + 1));
         binary.propagate_type();
+        binary.propagate_value();
         return std::make_shared<BinaryExpr> (binary);
     }
     return NULL;
@@ -294,6 +297,12 @@ void ArrayGen::generate () {
 
     Array inp = Array ("in_" + ctrl.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     inp.set_align (32);
+    ControlStruct tmp_ctrl = ctrl;
+    tmp_ctrl.min_var_val = inp.get_type()->get_min();
+    tmp_ctrl.max_var_val = inp.get_type()->get_max();
+    VarValGen var_val_gen (tmp_ctrl, inp.get_base_type()->get_id());
+    var_val_gen.generate();
+    inp.set_value(var_val_gen.get_value());
     inp_arr = std::make_shared<Array> (inp);
     sym_table.push_back(std::make_shared<Array> (inp));
 
@@ -303,6 +312,11 @@ void ArrayGen::generate () {
 
     Array out = Array ("out_" + ctrl.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     out.set_align (32);
+    tmp_ctrl.min_var_val = out.get_type()->get_min();
+    tmp_ctrl.max_var_val = out.get_type()->get_max();
+    var_val_gen = VarValGen (tmp_ctrl, out.get_base_type()->get_id());
+    var_val_gen.generate();
+    out.set_value(var_val_gen.get_value());
     out_arr = std::make_shared<Array> (out);
     sym_table.push_back(std::make_shared<Array> (out));
 }

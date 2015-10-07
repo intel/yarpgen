@@ -38,13 +38,14 @@ class Data {
         void set_align (uint64_t _align) { align = _align; }
         uint64_t get_align () { return align; }
         std::string get_name () { return name; }
+        void set_type(std::shared_ptr<Type> _type) { type = _type; }
         std::shared_ptr<Type> get_type () { return type; }
-        void set_value (uint64_t _val);
-        void set_max (uint64_t _max);
-        void set_min (uint64_t _min);
-        uint64_t get_value ();
-        uint64_t get_max ();
-        uint64_t get_min ();
+        virtual void set_value (uint64_t _val) = 0;
+        virtual void set_max (uint64_t _max)= 0;
+        virtual void set_min (uint64_t _min) = 0;
+        virtual uint64_t get_value () = 0;
+        virtual uint64_t get_max () = 0;
+        virtual uint64_t get_min () = 0;
         virtual void dbg_dump () = 0;
 
     protected:
@@ -62,6 +63,12 @@ class Data {
 class Variable : public Data{
     public:
         explicit Variable (std::string _name, Type::TypeID _type_id, Mod _modifier, bool _is_static);
+        void set_value (uint64_t _val);
+        void set_max (uint64_t _max);
+        void set_min (uint64_t _min);
+        uint64_t get_value ();
+        uint64_t get_max ();
+        uint64_t get_min ();
         void dbg_dump ();
 };
 
@@ -74,12 +81,18 @@ class Array : public Data {
             MAX_ESS
         };
 
-    explicit Array (std::string _name, Type::TypeID _base_type_id,  Mod _modifier, bool _is_static,
-                    uint64_t _size, Ess _essence);
-    std::shared_ptr<Type> get_base_type () { return base_type; }
-    uint64_t get_size () { return size; }
-    Ess get_essence () { return essence; }
-    void dbg_dump ();
+        explicit Array (std::string _name, Type::TypeID _base_type_id,  Mod _modifier, bool _is_static,
+                        uint64_t _size, Ess _essence);
+        std::shared_ptr<Type> get_base_type () { return base_type; }
+        uint64_t get_size () { return size; }
+        Ess get_essence () { return essence; }
+        void set_value (uint64_t _val);
+        void set_max (uint64_t _max);
+        void set_min (uint64_t _min);
+        uint64_t get_value ();
+        uint64_t get_max ();
+        uint64_t get_min ();
+        void dbg_dump ();
 
     private:
         std::shared_ptr<Type> base_type;

@@ -95,6 +95,7 @@ int main () {
     tc.set_expr(std::make_shared<UnaryExpr> (unary));
     std::cout << "TypeCastExpr: " << tc.emit () << std::endl;
 */
+/*
     Master mas;
     mas.generate ();
     std::cout << "#include <vector>" << std::endl;
@@ -102,6 +103,32 @@ int main () {
     std::cout << "void foo () { " << std::endl;
     std::cout << mas.emit () << std::endl;
     std::cout << "}" << std::endl;
+*/
+
+    ConstExpr lhs;
+    lhs.set_type (Type::TypeID::LLINT);
+    lhs.set_data (INT_MAX);
+    lhs.propagate_type();
+    lhs.propagate_value();
+    std::cout << "ConstExpr: " << lhs.emit () << std::endl;
+
+    ConstExpr rhs;
+    rhs.set_type (Type::TypeID::LLINT);
+    rhs.set_data(2);
+    rhs.propagate_type();
+    rhs.propagate_value();
+    std::cout << "ConstExpr: " << rhs.emit () << std::endl;
+
+    BinaryExpr bin_expr;
+    bin_expr.set_op (BinaryExpr::Op::Shr);
+    bin_expr.set_lhs (std::make_shared<ConstExpr> (lhs));
+    bin_expr.set_rhs (std::make_shared<ConstExpr> (rhs));
+    bin_expr.propagate_type();
+    Expr::UB tmp = bin_expr.propagate_value();
+    std::cout << "UB: " << tmp << std::endl;
+    std::cout << "BinaryExpr: " << bin_expr.emit () << std::endl;
+    std::cout << "Type: " << bin_expr.get_type_id () << std::endl;
+    std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
 
     return 0;
 }
