@@ -39,9 +39,11 @@ class Expr : public Node {
             NoUB,
             NullPtr, // NULL ptr dereferencing
             SignOvf, // Signed overflow
+            SignOvfMin, // Special case of signed overflow: INT_MIN * (-1)
             ZeroDiv, // FPE
-            ShiftRhs, // Shift by negative and big value
-            SignShift, // Shift of negative value
+            ShiftRhsNeg, // Shift by negative value
+            ShiftRhsLarge, // // Shift by large value
+            NegShift, // Shift of negative value
         };
         Expr () : value("", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = false;}
         static std::shared_ptr<Expr> init (Node::NodeID _id);
@@ -74,7 +76,7 @@ class AssignExpr : public Expr {
         AssignExpr () : to (NULL), from (NULL) { id = Node::NodeID::ASSIGN; }
         void set_to (std::shared_ptr<Expr> _to);
         void set_from (std::shared_ptr<Expr> _from);
-        void propagate_type () { value.set_type(Type::init(to->get_type_id())); }
+        void propagate_type ();
         UB propagate_value () { value.set_value(from->get_value()); return NoUB; }
         std::string emit ();
 
@@ -136,8 +138,11 @@ class BinaryExpr : public ArithExpr {
 
         BinaryExpr () : op (MaxOp), arg0 (NULL), arg1 (NULL) { id = Node::NodeID::BINARY; }
         void set_op (Op _op) { op = _op; }
+        Op get_op () { return op; }
         void set_lhs (std::shared_ptr<Expr> _arg0) { arg0 = _arg0; }
         void set_rhs (std::shared_ptr<Expr> _arg1) { arg1 = _arg1; }
+        std::shared_ptr<Expr> get_lhs() { return arg0; }
+        std::shared_ptr<Expr> get_rhs() { return arg1; }
         void propagate_type ();
         UB propagate_value ();
         std::string emit ();
@@ -165,6 +170,7 @@ class UnaryExpr : public ArithExpr {
         };
         UnaryExpr () : op (MaxOp), arg (NULL) { id = Node::NodeID::UNARY; }
         void set_op (Op _op) { op = _op; }
+        Op get_op () { return op; }
         void set_arg (std::shared_ptr<Expr> _arg) { arg = _arg; }
         void propagate_type ();
         UB propagate_value ();

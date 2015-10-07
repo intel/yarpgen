@@ -46,6 +46,18 @@ void AssignExpr::set_from (std::shared_ptr<Expr> _from) {
     from = _from;
 }
 
+void AssignExpr::propagate_type () {
+    value.set_type(Type::init(to->get_type_id()));
+
+    if (from->get_type_id() != to->get_type_id())
+        return;
+    TypeCastExpr ins;
+    ins.set_type(Type::init(to->get_type_id()));
+    ins.set_expr(from);
+    ins.propagate_value();
+    from = std::make_shared<TypeCastExpr>(ins);
+}
+
 std::string AssignExpr::emit () {
     std::string ret = to->emit();
     ret += " = ";
@@ -379,6 +391,8 @@ Expr::UB BinaryExpr::propagate_value () {
                     break;
                 case Type::TypeID::INT:
                     s_tmp = (long long int) a * (long long int) b;
+                    if ((int) a == INT_MIN && (int) b == -1)
+                        return SignOvfMin;
                     if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                         return SignOvf;
                     value.set_value((int) s_tmp);
@@ -387,6 +401,8 @@ Expr::UB BinaryExpr::propagate_value () {
                     value.set_value((unsigned int) a * (unsigned int) b);
                     break;
                 case Type::TypeID::LINT:
+                    if ((long int) a == LONG_MIN && (long int) b == -1)
+                        return SignOvfMin;
                     if (!long_eq_long_long) {
                         s_tmp = (long long int) a * (long long int) b;
                         if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
@@ -403,6 +419,8 @@ Expr::UB BinaryExpr::propagate_value () {
                     value.set_value((unsigned long int) a * (unsigned long int) b);
                     break;
                 case Type::TypeID::LLINT:
+                    if ((long long int) a == LLONG_MIN && (long long int) b == -1)
+                        return SignOvfMin;
                     if (!check_int64_mul((long long int) a, (long long int) b, &s_tmp))
                         return SignOvf;
                     value.set_value((long long int) s_tmp);
@@ -445,7 +463,8 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) s_tmp);
                     }
                     else {
-                        if ((long int) a == LONG_MIN && (long int) b == -1)
+                        if (((long int) a == LONG_MIN && (long int) b == -1) || 
+                            ((long int) b == LONG_MIN && (long int) a == -1))
                             return SignOvf;
                         value.set_value((long int) a / (long int) b);
                     }
@@ -454,7 +473,8 @@ Expr::UB BinaryExpr::propagate_value () {
                     value.set_value((unsigned long int) a / (unsigned long int) b);
                     break;
                 case Type::TypeID::LLINT:
-                    if ((long long int) a == LLONG_MIN && (long long int) b == -1)
+                    if (((long long int) a == LLONG_MIN && (long long int) b == -1) ||
+                        ((long long int) b == LLONG_MIN && (long long int) a == -1))
                         return SignOvf;
                     value.set_value((long long int) a / (long long int) b);
                     break;
@@ -496,7 +516,8 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) a % (long int) b);
                     }
                     else {
-                        if ((long int) a == LONG_MIN && (long int) b == -1)
+                        if (((long int) a == LONG_MIN && (long int) b == -1) ||
+                            ((long int) b == LONG_MIN && (long int) a == -1))
                             return SignOvf;
                         value.set_value((long int) a % (long int) b);
                     }
@@ -505,7 +526,8 @@ Expr::UB BinaryExpr::propagate_value () {
                     value.set_value((unsigned long int) a % (unsigned long int) b);
                     break;
                 case Type::TypeID::LLINT:
-                    if ((long long int) a == LLONG_MIN && (long long int) b == -1)
+                    if (((long long int) a == LLONG_MIN && (long long int) b == -1) ||
+                        ((long long int) b == LLONG_MIN && (long long int) a == -1))
                         return SignOvf;
                     value.set_value((long long int) a % (long long int) b);
                     break;
@@ -747,11 +769,12 @@ Expr::UB BinaryExpr::propagate_value () {
                 std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                 break;
             }
-            if ((arg1->get_type_is_signed() && (int64_t) b < 0) || 
-                (b >= arg0->get_type_bit_size()))
-                    return ShiftRhs;
+            if (arg1->get_type_is_signed() && (int64_t) b < 0)
+                return ShiftRhsNeg;
+            if (b >= arg0->get_type_bit_size())
+                    return ShiftRhsLarge;
             if (arg0->get_type_is_signed() && (int64_t) a < 0)
-                return SignShift;
+                return NegShift;
             // TODO: I hope it will work
             if (op == Shl)
                 value.set_value(a << b);

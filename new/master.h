@@ -125,6 +125,8 @@ class ArithExprGen : public Gen {
         std::shared_ptr<Stmnt> get_expr_stmnt ();
 
     private:
+        std::shared_ptr<Expr> rebuild_unary(Expr::UB ub, std::shared_ptr<Expr> expr);
+        std::shared_ptr<Expr> rebuild_binary(Expr::UB ub, std::shared_ptr<Expr> expr);
         std::shared_ptr<Expr> gen_level (int depth);
         std::vector<std::shared_ptr<Expr>> inp;
         std::shared_ptr<Expr> out;
