@@ -28,7 +28,8 @@ import time
 
 def print_debug (line):
     if args.verbose:
-        sys.stdout.write(line + "\n")
+        sys.stdout.write(str(line))
+        sys.stdout.write("\n")
         sys.stdout.flush()
 
 def run_cmd (job_num, args):
@@ -38,16 +39,16 @@ def run_cmd (job_num, args):
         print_debug ("Exception in run cmd in process " + str(job_num) + " with args:" + str(args))
         raise
 
-def save_test (lock, gen_file):
+def save_test (lock, gen_file, seed):
     lock.acquire()
-    folders = os.listdir(".." + os.sep + "result")
-    folders.sort()
-    if not folders:
-        dest = ".." + os.sep + "result" + os.sep + str(1)
+    str_seed = str(seed).split()[1][:-2]
+    dest = ".." + os.sep + "result" + os.sep + str_seed
+    if (os.path.exists(dest)):
+        lock.release()
+        return
     else:
-        dest = ".." + os.sep + "result" + os.sep + str(int(folders[-1]) + 1)
+        os.makedirs(dest)
     print_debug("Test files were copied to " + dest)
-    os.makedirs(dest)
     lock.release()
     for i in gen_file.split():
         shutil.copy(i, dest)
@@ -66,17 +67,50 @@ def gen_and_test(num, lock, end_time):
     icc_flags = "-std=c++11 -vec-threshold0 -restrict"
     clang_flags = "-std=c++11 -fslp-vectorize-aggressive"
 
+    compiler_passes = []
+    wrap_exe = []
+    compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
+    wrap_exe.append(out_name);
+    compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
+    wrap_exe.append(out_name);
+    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O0"])
+    wrap_exe.append(out_name);
+    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
+    wrap_exe.append(out_name);
+#    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
+#    wrap_exe.append(out_name);
+    compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -xMIC-AVX512 -O3"])
+    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name]);
+    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -march=knl -O3"])
+    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name]);
+
     subprocess.check_output(".." + os.sep + "yarpgen")
     try:
         run_cmd(num, ["bash", "-c", "clang++ hash.cpp -S -o hash.s " + clang_flags + " -O3"])
     except:
-        save_test(lock, gen_file)
+        save_test(lock, gen_file, "hash-error")
 
     while inf or end_time > time.time():
         seed = ""
         seed = subprocess.check_output(".." + os.sep + "yarpgen")
         print_debug ("Job #" + str(num) + " " + seed)
+        pass_res = set()
+        for i in range(len(compiler_passes)):
+#            print_debug("Job #" + str(num))
+#            print_debug(str(i))
+#            print_debug (str(compiler_passes[i]))
+#            print_debug (str(wrap_exe[i]))
+            try:
+                run_cmd(num, compiler_passes[i])
+                pass_res.add(run_cmd(num, wrap_exe [i]))
+            except:
+                save_test(lock, gen_file, seed)
+                continue
+            if len(pass_res) > 1:
+                    print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]))
+                    save_test (lock, gen_file, seed)
 
+'''
         try:
             run_cmd(num, ["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
             icc_no_opt = run_cmd (num, [out_name])
@@ -108,7 +142,8 @@ def gen_and_test(num, lock, end_time):
         if diag:
             print_debug (diag)
             save_test (lock, gen_file)
- 
+'''
+
 def print_compiler_version():
     sp = run_cmd(-1, "which icc".split ())
     print_debug("ICC folder: " + sp)
