@@ -16,7 +16,9 @@ const bool ESSENCE_DIFFER = false;
 const int MAX_ARITH_DEPTH = 3;
 
 uint64_t rand_dev () {
-//    return 2981148335; // TODO: enable random
+    // WTF? 2911598495
+    // WTF? 228611402 UBSAN BUG?
+    return 3664183318; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
@@ -183,11 +185,11 @@ void TripGen::generate () {
     int64_t end_value = start_val + step_num * step;
     end_value += hit_end ? 0 : step / 2;
     if (end_value < 0L) {
-        end_value = std::max(end_value, 0L);
+        end_value = 0L;
         hit_end = false;
     }
-    if (end_value > max_arr_indx) {
-        if ((start_val + step_num * step) < max_arr_indx) {
+    if (end_value >= max_arr_indx) {
+        if ((start_val + step_num * step) <= max_arr_indx) {
             end_value = start_val + step_num * step;
             hit_end = true;
         }
@@ -378,9 +380,10 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 const_expr.set_type(rhs->get_type_id());
 
                 std::shared_ptr<Expr> lhs = ret->get_lhs();
-                uint64_t max_sht_val = lhs->get_type_bit_size() - 1;
-                if ((ret->get_op() == BinaryExpr::Shl) && (lhs->get_type_is_signed()))
-                    max_sht_val = std::max((uint64_t)0, max_sht_val - msb((int64_t)lhs->get_value()));
+                uint64_t max_sht_val = lhs->get_type_bit_size();
+                if ((ret->get_op() == BinaryExpr::Shl) && (lhs->get_type_is_signed()) && (ub == Expr::ShiftRhsLarge))
+                    max_sht_val = max_sht_val - msb((uint64_t)lhs->get_value());
+//                std::cout << "max_sht_val " << max_sht_val << std::endl;
                 std::uniform_int_distribution<uint64_t> const_val_dis(0, max_sht_val);
                 uint64_t const_val = const_val_dis(rand_gen);
                 if (ub == Expr::ShiftRhsNeg)

@@ -555,7 +555,7 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             break;
         case Lt:
-            switch(value.get_type()->get_id()) {
+            switch(get_rhs()->get_type_id()) {
                 case Type::TypeID::BOOL:
                 case Type::TypeID::CHAR:
                 case Type::TypeID::UCHAR:
@@ -589,7 +589,7 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             break;
         case Gt:
-            switch(value.get_type()->get_id()) {
+            switch(get_rhs()->get_type_id()) {
                 case Type::TypeID::BOOL:
                 case Type::TypeID::CHAR:
                 case Type::TypeID::UCHAR:
@@ -623,7 +623,7 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             break;
         case Le:
-            switch(value.get_type()->get_id()) {
+            switch(get_rhs()->get_type_id()) {
                 case Type::TypeID::BOOL:
                 case Type::TypeID::CHAR:
                 case Type::TypeID::UCHAR:
@@ -657,7 +657,7 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             break;
         case Ge:
-            switch(value.get_type()->get_id()) {
+            switch(get_rhs()->get_type_id()) {
                 case Type::TypeID::BOOL:
                 case Type::TypeID::CHAR:
                 case Type::TypeID::UCHAR:
@@ -691,7 +691,7 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             break;
         case Eq:
-            switch(value.get_type()->get_id()) {
+            switch(get_rhs()->get_type_id()) {
                 case Type::TypeID::BOOL:
                 case Type::TypeID::CHAR:
                 case Type::TypeID::UCHAR:
@@ -725,7 +725,7 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             break;
         case Ne:
-            switch(value.get_type()->get_id()) {
+            switch(get_rhs()->get_type_id()) {
                 case Type::TypeID::BOOL:
                 case Type::TypeID::CHAR:
                 case Type::TypeID::UCHAR:
@@ -782,15 +782,15 @@ Expr::UB BinaryExpr::propagate_value () {
                 std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                 break;
             }
-            if (arg1->get_type_is_signed() && (int64_t) b < 0)
-                return ShiftRhsNeg;
-            std::cout << "DEBUG: " << a << " | " << msb(a) << std::endl;
-            if (b >= (arg0->get_type_bit_size()))
-                return ShiftRhsLarge;
             if (arg0->get_type_is_signed() && (int64_t) a < 0)
                 return NegShift;
+            if (arg1->get_type_is_signed() && (int64_t) b < 0)
+                return ShiftRhsNeg;
+//            std::cout << "DEBUG: " << a << " | " << msb(a) << std::endl;
+            if (b >= (arg0->get_type_bit_size()))
+                return ShiftRhsLarge;
             if (op == Shl && arg0->get_type_is_signed() && 
-               (b >= (arg0->get_type_bit_size() - msb((int64_t)a)))) // msb applied only for unsigned values
+               (b >= (arg0->get_type_bit_size() - msb((uint64_t)a)))) // msb applied only for unsigned values
                 return ShiftRhsLarge;
             // TODO: I hope it will work
             if (op == Shl)
@@ -813,6 +813,7 @@ Expr::UB BinaryExpr::propagate_value () {
 
 std::string BinaryExpr::emit () {
     std::string ret = "((" + arg0->emit() + ")";
+    ret += "/*" + std::to_string(get_value()) + "*/";
     switch (op) {
         case Add:
             ret += " + ";
@@ -1077,9 +1078,9 @@ std::string UnaryExpr::emit () {
     }
     std::string ret = "";
     if (op == PostInc || op == PostDec)
-        ret = "((" + arg->emit() + ")" + op_str + ")";
+        ret = "(("  "/*" + std::to_string(get_value()) + "*/" + arg->emit() + ")" + op_str + ")";
     else
-        ret = "(" + op_str + "(" +  arg->emit() + "))";
+        ret = "(" + op_str + "(" + "/*" + std::to_string(get_value()) + "*/" + arg->emit() + "))";
     return ret;
 }
 
