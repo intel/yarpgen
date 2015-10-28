@@ -3,7 +3,7 @@
 const int MIN_LOOP_NUM = 3;
 const int MAX_LOOP_NUM = 10;
 
-const int MIN_ARR_NUM = 1;
+const int MIN_ARR_NUM = 3;
 const int MAX_ARR_NUM = 10;
 
 const int MIN_ARR_SIZE = 1000;
@@ -16,7 +16,7 @@ const bool ESSENCE_DIFFER = false;
 const int MAX_ARITH_DEPTH = 3;
 
 uint64_t rand_dev () {
-//    return 149370038; // TODO: enable random
+//    return 2981148335; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
@@ -25,7 +25,9 @@ uint64_t rand_dev () {
 
 std::mt19937_64 rand_gen(rand_dev());
 
-Master::Master () {
+Master::Master (std::string _out_folder) {
+    out_folder = _out_folder;
+
     ctrl.ext_num = "";
 
     int gen_types = 0;
@@ -60,7 +62,8 @@ void Master::generate () {
         ctrl.ext_num = "lp" + std::to_string(i);
         LoopGen loop_gen (ctrl);
         loop_gen.generate();
-        sym_table.insert(sym_table.end(), loop_gen.get_sym_table().begin(), loop_gen.get_sym_table().end());
+        inp_sym_table.insert(inp_sym_table.end(), loop_gen.get_inp_sym_table().begin(), loop_gen.get_inp_sym_table().end());
+        out_sym_table.insert(out_sym_table.end(), loop_gen.get_out_sym_table().begin(), loop_gen.get_out_sym_table().end());
         program.insert(program.end(), loop_gen.get_program().begin(), loop_gen.get_program().end());
     }
 }
@@ -184,8 +187,14 @@ void TripGen::generate () {
         hit_end = false;
     }
     if (end_value > max_arr_indx) {
-        end_value = std::min(end_value, max_arr_indx);
-        hit_end = false;
+        if ((start_val + step_num * step) < max_arr_indx) {
+            end_value = start_val + step_num * step;
+            hit_end = true;
+        }
+        else {
+            end_value = std::min((start_val + step_num * step), max_arr_indx);
+            hit_end = false;
+        }
     }
     iter->set_max(end_value);
 
@@ -211,12 +220,14 @@ void TripGen::gen_condition (bool hit_end, int64_t step) {
     if (hit_end)
         allowed_cmp_op.push_back(BinaryExpr::Op::Ne);
     if (step < 0) {
+        if (!hit_end)
+            allowed_cmp_op.push_back(BinaryExpr::Op::Ge);
         allowed_cmp_op.push_back(BinaryExpr::Op::Gt);
-        allowed_cmp_op.push_back(BinaryExpr::Op::Ge);
     }
     else {
+        if (!hit_end)
+            allowed_cmp_op.push_back(BinaryExpr::Op::Le);
         allowed_cmp_op.push_back(BinaryExpr::Op::Lt);
-        allowed_cmp_op.push_back(BinaryExpr::Op::Le);
     }
     std::uniform_int_distribution<int> cmp_op_dis(0, allowed_cmp_op.size() - 1);
     BinaryExpr::Op cmp_op = allowed_cmp_op.at(cmp_op_dis(rand_gen));
@@ -286,7 +297,6 @@ std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
 }
 
 std::shared_ptr<Expr> ArithExprGen::rebuild_unary (Expr::UB ub, std::shared_ptr<Expr> expr) {
-    std::cerr << "DEBUG" << std::endl;
     if (expr->get_id() != Node::NodeID::UNARY) {
         std::cerr << "ERROR: ArithExprGen::rebuild_unary : not UnaryExpr" << std::endl;
         return NULL;
@@ -325,8 +335,16 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_unary (Expr::UB ub, std::shared_ptr<
     return ret;
 }
 
+static uint64_t msb(uint64_t x) {
+    uint64_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
+}
+
 std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr<Expr> expr) {
-    std::cerr << "DEBUG" << std::endl;
     if (expr->get_id() != Node::NodeID::BINARY) {
         std::cerr << "ERROR: ArithExprGen::rebuild_binary : not BinaryExpr" << std::endl;
         return NULL;
@@ -354,19 +372,24 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
             break;
         case BinaryExpr::Shr:
         case BinaryExpr::Shl:
-            if (ub == Expr::ShiftRhsNeg || Expr::ShiftRhsLarge) {
+            if ((ub == Expr::ShiftRhsNeg) || (ub == Expr::ShiftRhsLarge)) {
                 std::shared_ptr<Expr> rhs = ret->get_rhs();
                 ConstExpr const_expr;
                 const_expr.set_type(rhs->get_type_id());
 
                 std::shared_ptr<Expr> lhs = ret->get_lhs();
-                std::uniform_int_distribution<uint64_t> const_val_dis(0, lhs->get_type_bit_size() - 1);
+                uint64_t max_sht_val = lhs->get_type_bit_size() - 1;
+                if ((ret->get_op() == BinaryExpr::Shl) && (lhs->get_type_is_signed()))
+                    max_sht_val = std::max((uint64_t)0, max_sht_val - msb((int64_t)lhs->get_value()));
+                std::uniform_int_distribution<uint64_t> const_val_dis(0, max_sht_val);
                 uint64_t const_val = const_val_dis(rand_gen);
                 if (ub == Expr::ShiftRhsNeg)
                     const_val += std::abs((long long int) rhs->get_value());
                 else
                     const_val = rhs->get_value() - const_val;
                 const_expr.set_data(const_val);
+                const_expr.propagate_type();
+                const_expr.propagate_value();
 
                 BinaryExpr ins;
                 if (ub == Expr::ShiftRhsNeg)
@@ -377,7 +400,15 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 ins.set_rhs(std::make_shared<ConstExpr> (const_expr));
                 ins.propagate_type();
                 Expr::UB ins_ub = ins.propagate_value();
-                ret = std::make_shared<BinaryExpr> (ins);
+//                std::cout << "ret " << ret->emit() << std::endl;
+//                std::cout << "ins " << ins.emit() << std::endl;
+//                std::cout << "ins val " << ins.get_value() << std::endl;
+//                std::cout << "ret lhs " << lhs->get_value() << std::endl;
+//                std::cout << "ret rhs " << rhs->get_value() << std::endl;
+//                std::cout << "ret lhs type " << lhs->get_type_id() << std::endl;
+//                std::cout << "ret rhs type " << rhs->get_type_id() << std::endl;
+                ret->set_rhs(std::make_shared<BinaryExpr> (ins));
+//                std::cout << "ret new " << ret->emit() << std::endl;
                 if (ins_ub) {
                     std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild" << std::cerr;
                     ret = std::static_pointer_cast<BinaryExpr> (rebuild_binary(ins_ub, ret));
@@ -389,6 +420,8 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 const_expr.set_type(lhs->get_type_id());
                 uint64_t const_val = Type::init(lhs->get_type_id())->get_max();
                 const_expr.set_data(const_val);
+                const_expr.propagate_type();
+                const_expr.propagate_value();
 
                 BinaryExpr ins;
                 ins.set_op(BinaryExpr::Op::Add);
@@ -396,7 +429,7 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 ins.set_rhs(std::make_shared<ConstExpr> (const_expr));
                 ins.propagate_type();
                 Expr::UB ins_ub = ins.propagate_value();
-                ret = std::make_shared<BinaryExpr> (ins);
+                ret->set_lhs(std::make_shared<BinaryExpr> (ins));
                 if (ins_ub) {
                     std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild" << std::cerr;
                     ret = std::static_pointer_cast<BinaryExpr> (rebuild_binary(ins_ub, ret));
@@ -422,8 +455,7 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
     ret->propagate_type();
     Expr::UB ret_ub = ret->propagate_value();
     if (ret_ub) {
-        std::cerr << "ERROR: ArithExprGen::rebuild_binary : illegal strategy" << std::endl;
-        return NULL;
+        return rebuild_binary(ret_ub, ret);
     }
     return ret;
 }
@@ -447,8 +479,8 @@ void ArrayGen::generate () {
     Array inp = Array ("in_" + ctrl.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     inp.set_align (32);
     ControlStruct tmp_ctrl = ctrl;
-    tmp_ctrl.min_var_val = inp.get_type()->get_min();
-    tmp_ctrl.max_var_val = inp.get_type()->get_max();
+    tmp_ctrl.min_var_val = inp.get_base_type()->get_min();
+    tmp_ctrl.max_var_val = inp.get_base_type()->get_max();
     VarValGen var_val_gen (tmp_ctrl, inp.get_base_type()->get_id());
     var_val_gen.generate();
     inp.set_value(var_val_gen.get_value());
@@ -461,11 +493,7 @@ void ArrayGen::generate () {
 
     Array out = Array ("out_" + ctrl.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     out.set_align (32);
-    tmp_ctrl.min_var_val = out.get_type()->get_min();
-    tmp_ctrl.max_var_val = out.get_type()->get_max();
-    var_val_gen = VarValGen (tmp_ctrl, out.get_base_type()->get_id());
-    var_val_gen.generate();
-    out.set_value(var_val_gen.get_value());
+    out.set_value(0);
     out_arr = std::make_shared<Array> (out);
     sym_table.push_back(std::make_shared<Array> (out));
 }
@@ -611,17 +639,151 @@ void StepExprGen::generate () {
     }
 }
 
-std::string Master::emit () {
+void Master::write_file (std::string of_name, std::string data) {
+    std::ofstream out_file;
+    out_file.open (out_folder + "/" + of_name);
+    out_file << data;
+    out_file.close ();
+}
+
+std::string Master::emit_main () {
     std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+    ret += "extern void init ();\n";
+    ret += "extern void foo ();\n";
+//    ret += "extern std::size_t checksum ();\n";
+    ret += "int main () {\n";
+    ret += "    init ();\n";
+    ret += "    foo ();\n";
+//    ret += "    std::cout << checksum () << std::endl;\n";
+    ret += "    return 0;\n";
+    ret += "}";
+    write_file("driver.cpp", ret);
+    return ret;
+}
 
-    for (auto i = sym_table.begin(); i != sym_table.end(); ++i) {
-        DeclStmnt decl;
-        decl.set_data(*i);
-        ret += decl.emit() + ";\n";
-    }
-
+std::string Master::emit_func () {
+    std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+    ret += "void foo () {\n";
     for (auto i = program.begin(); i != program.end(); ++i) {
         ret += (*i)->emit() + "\n";
     }
+    ret += "}";
+    write_file("func.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_loop (std::shared_ptr<Data> arr) {
+    std::string ret = "";
+
+    Variable iter = Variable("i", Type::TypeID::INT, Variable::Mod::NTHNG, false);
+    iter.set_value (0);
+
+    VarUseExpr iter_use;
+    iter_use.set_variable(std::make_shared<Variable>(iter));
+
+    IndexExpr arr_use;
+    arr_use.set_base(std::static_pointer_cast<Array>(arr));
+    arr_use.set_index(std::make_shared<VarUseExpr>(iter_use));
+
+    ConstExpr init_val;
+    init_val.set_type(std::static_pointer_cast<Array>(arr)->get_base_type()->get_id());
+    init_val.set_data((arr)->get_value());
+
+    AssignExpr init_expr;
+    init_expr.set_to(std::make_shared<IndexExpr>(arr_use));
+    init_expr.set_from(std::make_shared<ConstExpr>(init_val));
+
+    ExprStmnt init_stmnt;
+    init_stmnt.set_expr(std::make_shared<AssignExpr>(init_expr));
+
+    ConstExpr iter_init;
+    iter_init.set_type(Type::TypeID::INT);
+    iter_init.set_data(0);
+
+    DeclStmnt iter_decl;
+    iter_decl.set_data(std::make_shared<Variable>(iter));
+    iter_decl.set_init(std::make_shared<ConstExpr>(iter_init));
+
+    ConstExpr trip_val;
+    trip_val.set_type(Type::TypeID::INT);
+    trip_val.set_data(std::static_pointer_cast<Array>(arr)->get_size());
+
+    BinaryExpr cond;
+    cond.set_op(BinaryExpr::Op::Lt);
+    cond.set_lhs (std::make_shared<VarUseExpr> (iter_use));
+    cond.set_rhs (std::make_shared<ConstExpr> (trip_val));
+
+    UnaryExpr step;
+    step.set_op (UnaryExpr::Op::PreInc);
+    step.set_arg (std::make_shared<VarUseExpr> (iter_use));
+
+    CntLoopStmnt init_loop;
+    init_loop.set_loop_type(LoopStmnt::LoopID::FOR);
+    init_loop.add_to_body(std::make_shared<ExprStmnt> (init_stmnt));
+    init_loop.set_cond(std::make_shared<BinaryExpr> (cond));
+    init_loop.set_iter(std::make_shared<Variable> (iter));
+    init_loop.set_iter_decl(std::make_shared<DeclStmnt> (iter_decl));
+    init_loop.set_step_expr (std::make_shared<UnaryExpr> (step));
+
+    return init_loop.emit();
+}
+
+std::string Master::emit_init () {
+    std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+
+    for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
+        DeclStmnt decl;
+        decl.set_data(*i);
+        decl.set_is_extern(false);
+        ret += decl.emit() + ";\n";
+    }
+
+    for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
+        DeclStmnt decl;
+        decl.set_data(*i);
+        decl.set_is_extern(false);
+        ret += decl.emit() + ";\n";
+    }
+
+    ret += "void init () {\n";
+
+    for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
+        ret += emit_loop(*i) + "\n";
+    }
+
+    for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
+        ret += emit_loop(*i) + "\n";
+    }
+
+    ret += "}";
+    write_file("init.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_decl () {
+    std::string ret = "";
+    ret += "#include <cstdint>\n";
+    ret += "#include <iostream>\n";
+    ret += "#include <array>\n";
+    ret += "#include <vector>\n";
+
+    for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
+        DeclStmnt decl;
+        decl.set_data(*i);
+        decl.set_is_extern(true);
+        ret += decl.emit() + ";\n";
+    }
+
+    for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
+        DeclStmnt decl;
+        decl.set_data(*i);
+        decl.set_is_extern(true);
+        ret += decl.emit() + ";\n";
+    }
+
+    write_file("init.h", ret);
     return ret;
 }

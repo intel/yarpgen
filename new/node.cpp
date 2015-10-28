@@ -61,6 +61,7 @@ void AssignExpr::propagate_type () {
 std::string AssignExpr::emit () {
     std::string ret = to->emit();
     ret += " = ";
+    ret += "/*" + std::to_string(from->get_value()) + "*/";
     ret += from->emit();
     return ret;
 }
@@ -197,7 +198,10 @@ void BinaryExpr::propagate_type () {
             std::cerr << "ERROR: BinaryExpr::propagate_type bad operator" << std::endl;
             break;
     }
-    value.set_type(Type::init (arg0->get_type_id()));
+    if (op == Lt || op == Gt || op == Le || op == Ge || op == Eq || op == Ne)
+        value.set_type(Type::init (Type::TypeID::INT)); // promote bool to int TODO: it isn't right way to do it for cmp operations
+    else
+        value.set_type(Type::init (arg0->get_type_id()));
 }
 
 bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
@@ -227,16 +231,16 @@ bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
     uint32_t a1 = a_abs >> 32;
     uint32_t b1 = b_abs >> 32;
 
-    if ((a1 != 0) && (b1 != 0)) {
+    if ((a1 != 0) && (b1 != 0))
         return false;
-    } else if (a1 != 0) {
-        ret = ((((uint64_t) b0) * a1) << 32) + ((uint64_t) a0) * b0;
-    } else if (b1 != 0) {
-        ret = ((((uint64_t) a0) * b1) << 32) + ((uint64_t) a0) * b0;
-    } else {
-        ret = a_abs * b_abs;
-    }
 
+    uint64_t tmp = (((uint64_t) a1) * b0) + (((uint64_t) b1) * a0);
+    if (tmp > 0xFFFFFFFF)
+        return false;
+
+    ret = (tmp << 32) + (((uint64_t) a0) * b0);
+    if (ret < (tmp << 32))
+        return false;
 
     if ((sign < 0) && (ret > (uint64_t) INT64_MIN)) {
         return false;
@@ -246,6 +250,15 @@ bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
         *res = ret * sign;
     }
     return true;
+}
+
+static uint64_t msb(uint64_t x) {
+    uint64_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
 }
 
 Expr::UB BinaryExpr::propagate_value () {
@@ -771,10 +784,14 @@ Expr::UB BinaryExpr::propagate_value () {
             }
             if (arg1->get_type_is_signed() && (int64_t) b < 0)
                 return ShiftRhsNeg;
-            if (b >= arg0->get_type_bit_size())
-                    return ShiftRhsLarge;
+            std::cout << "DEBUG: " << a << " | " << msb(a) << std::endl;
+            if (b >= (arg0->get_type_bit_size()))
+                return ShiftRhsLarge;
             if (arg0->get_type_is_signed() && (int64_t) a < 0)
                 return NegShift;
+            if (op == Shl && arg0->get_type_is_signed() && 
+               (b >= (arg0->get_type_bit_size() - msb((int64_t)a)))) // msb applied only for unsigned values
+                return ShiftRhsLarge;
             // TODO: I hope it will work
             if (op == Shl)
                 value.set_value(a << b);

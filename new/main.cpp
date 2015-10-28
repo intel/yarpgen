@@ -3,7 +3,7 @@
 #include "node.h"
 #include "master.h"
 
-int main () {
+int main (int argv, char* argc[]) {
 /*
     std::shared_ptr<Type> type;
     type = Type::init (Type::TypeID::UINT);
@@ -96,13 +96,17 @@ int main () {
     std::cout << "TypeCastExpr: " << tc.emit () << std::endl;
 */
 
-    Master mas;
+    if (argv < 2) {
+        std::cerr << "Specify output folder!" << std::endl;
+        return -1;
+    }
+
+    Master mas (argc [1]);
     mas.generate ();
-    std::cout << "#include <vector>" << std::endl;
-    std::cout << "#include <memory>" << std::endl;
-    std::cout << "void foo () { " << std::endl;
-    std::cout << mas.emit () << std::endl;
-    std::cout << "}" << std::endl;
+    mas.emit_func ();
+    mas.emit_init ();
+    mas.emit_decl ();
+    mas.emit_main ();
 /*
 
     ConstExpr lhs;

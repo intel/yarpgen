@@ -2,6 +2,7 @@
 
 #include <random>
 #include <algorithm>
+#include <fstream>
 
 #include "type.h"
 #include "node.h"
@@ -25,14 +26,22 @@ struct ControlStruct {
 
 class Master {
     public:
-        Master ();
+        Master (std::string _out_folder);
         void generate ();
-        std::string emit ();
+        std::string emit_func ();
+        std::string emit_init ();
+        std::string emit_decl ();
+        std::string emit_main ();
 
     private:
+        void write_file (std::string of_name, std::string data);
+        std::string emit_loop (std::shared_ptr<Data> arr);
+
         ControlStruct ctrl;
         std::vector<std::shared_ptr<Stmnt>> program;
-        std::vector<std::shared_ptr<Data>> sym_table;
+        std::vector<std::shared_ptr<Data>> inp_sym_table;
+        std::vector<std::shared_ptr<Data>> out_sym_table;
+        std::string out_folder;
 };
 
 class Gen {
@@ -65,6 +74,8 @@ class ArrayGen : public Gen {
 class LoopGen : public Gen {
     public:
         LoopGen (ControlStruct _ctrl) : Gen (_ctrl), min_ex_arr_size (UINT64_MAX) {}
+        std::vector<std::shared_ptr<Data>>& get_inp_sym_table () { return inp_sym_table; }
+        std::vector<std::shared_ptr<Data>>& get_out_sym_table () { return out_sym_table; }
         void generate ();
 
     private:
