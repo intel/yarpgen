@@ -109,7 +109,7 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
                     return true;
             }
         default:
-            std::cerr << "ERROR: Type::can_repr_value" << std::cerr;
+            std::cerr << "ERROR: Type::can_repr_value" << std::endl;
             return false;
     }
 }
@@ -127,7 +127,7 @@ Type::TypeID Type::get_corr_unsig (Type::TypeID _type_id) {
         case ULLINT:
             return ULLINT;
         default:
-            std::cerr << "ERROR: Type::get_corr_unsig" << std::cerr;
+            std::cerr << "ERROR: Type::get_corr_unsig" << std::endl;
             return MAX_INT_ID;
     }
 }

@@ -413,7 +413,7 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 ret->set_rhs(std::make_shared<BinaryExpr> (ins));
 //                std::cout << "ret new " << ret->emit() << std::endl;
                 if (ins_ub) {
-                    std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild" << std::cerr;
+                    std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild" << std::endl;
                     ret = std::static_pointer_cast<BinaryExpr> (rebuild_binary(ins_ub, ret));
                 }
             }
@@ -434,7 +434,7 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 Expr::UB ins_ub = ins.propagate_value();
                 ret->set_lhs(std::make_shared<BinaryExpr> (ins));
                 if (ins_ub) {
-                    std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild" << std::cerr;
+                    std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild" << std::endl;
                     ret = std::static_pointer_cast<BinaryExpr> (rebuild_binary(ins_ub, ret));
                 }
             }
@@ -452,7 +452,7 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
         case BinaryExpr::LogOr:
             break;
         case BinaryExpr::MaxOp:
-            std::cerr << "ArithExprGen::rebuild_binary : invalid Op" << std::cerr;
+            std::cerr << "ArithExprGen::rebuild_binary : invalid Op" << std::endl;
             break;
     }
     ret->propagate_type();
