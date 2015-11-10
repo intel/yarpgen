@@ -42,7 +42,7 @@ def run_cmd (job_num, args):
 def save_test (lock, gen_file, seed):
     lock.acquire()
     str_seed = str(seed).split()[1][:-2]
-    dest = ".." + os.sep + "result" + os.sep + str_seed
+    dest = ".." + os.sep + "result" + os.sep + "S_" + str_seed
     if (os.path.exists(dest)):
         lock.release()
         return
