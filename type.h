@@ -17,122 +17,134 @@ limitations under the License.
 #pragma once
 
 #include <iostream>
-#include <string>
-#include <cstdint>
 #include <climits>
-#include <random>
-#include <typeinfo>
-#include <algorithm>
 #include <memory>
-
-int rand_dev ();
-extern std::mt19937_64 rand_gen;
 
 class Type {
     public:
-        explicit Type () {};
-        static std::shared_ptr<Type> init (unsigned int _type_id);
-        unsigned int get_id ();
-        std::string get_name ();
-        bool get_is_fp ();
-        bool get_is_signed ();
-        void set_max_value (uint64_t _max_val);
-        uint64_t get_max_value ();
-        virtual std::string get_max_value_str () = 0;
-        void set_min_value (uint64_t _min_val);
-        uint64_t get_min_value ();
-        virtual std::string get_min_value_str () = 0;
-        uint64_t get_abs_max ();
-        uint64_t get_abs_min ();
-        uint64_t get_bit_size ();
-        void set_value (uint64_t _val);
-        uint64_t get_value ();
-        virtual std::string get_value_str () = 0;
-        void set_bound_value (std::vector<uint64_t> bval);
-        std::vector<uint64_t> get_bound_value ();
-        void add_bound_value (uint64_t bval);
-        bool check_val_in_domains (uint64_t val);
-        bool check_val_in_domains (std::string val);
-//        void combine_bound_value (std::shared_ptr<Type> _type);
-        void combine_range (std::shared_ptr<Type> _type);
-        static std::shared_ptr<Type> get_copy (std::shared_ptr<Type> type);
-        static std::shared_ptr<Type> get_rand_obj ();
-        virtual uint64_t get_rand_value () = 0;
-        virtual std::string get_rand_value_str () = 0;
-        virtual uint64_t get_rand_value (uint64_t a, uint64_t b) = 0;
-        std::string emit_usage ();
-        void dbg_dump();
-
-    public:
         enum TypeID {
-//            UCHAR,
-//            USHRT,
+            BOOL,
+            CHAR,
+            UCHAR,
+            SHRT,
+            USHRT,
+            INT,
             UINT,
+            LINT,
             ULINT,
+            LLINT,
             ULLINT,
+            MAX_INT_ID,
+            PTR,
             MAX_TYPE_ID
         };
 
+        explicit Type () {};
+        static std::shared_ptr<Type> init (Type::TypeID _type_id);
+        static bool can_repr_value (Type::TypeID a, Type::TypeID b); // if type a can represent all of the values of the type b
+        static Type::TypeID get_corr_unsig (Type::TypeID _type_id);
+        Type::TypeID get_id () { return id; }
+        std::string get_name () { return name; }
+        std::string get_suffix() { return suffix; }
+        bool get_is_signed () { return is_signed; }
+        uint64_t get_bit_size () { return bit_size; }
+        uint64_t get_min () { return min; }
+        uint64_t get_max () { return max; }
+        void dbg_dump();
+        virtual std::string get_max_str () = 0;
+        virtual std::string get_min_str () = 0;
+
     protected:
-        unsigned int id;
+        TypeID id;
         std::string name;
-        uint64_t max_val;
-        uint64_t min_val;
-        uint64_t abs_max;
-        uint64_t abs_min;
-        uint64_t bit_size;
-        uint64_t value;
-        std::vector<uint64_t> bound_val;
+        std::string suffix;
+        uint64_t min;
+        uint64_t max;
+        unsigned int bit_size;
         bool is_fp;
         bool is_signed;
 };
-/*
+
+class TypeBOOL : public Type {
+    public:
+        TypeBOOL ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeCHAR : public Type {
+    public:
+        TypeCHAR ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
 class TypeUCHAR : public Type {
     public:
         TypeUCHAR ();
-        uint64_t get_rand_value ();
-        std::string get_rand_value_str ();
-        uint64_t get_rand_value (uint64_t a, uint64_t b);
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeSHRT : public Type {
+    public:
+        TypeSHRT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
 };
 
 class TypeUSHRT : public Type {
     public:
         TypeUSHRT ();
-        uint64_t get_rand_value ();
-        std::string get_rand_value_str ();
-        uint64_t get_rand_value (uint64_t a, uint64_t b);
+        std::string get_max_str ();
+        std::string get_min_str ();
 };
-*/
+
+class TypeINT : public Type {
+    public:
+        TypeINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
 class TypeUINT : public Type {
     public:
         TypeUINT ();
-        uint64_t get_rand_value ();
-        std::string get_rand_value_str ();
-        uint64_t get_rand_value (uint64_t a, uint64_t b);
-        std::string get_value_str ();
-        std::string get_max_value_str ();
-        std::string get_min_value_str ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
 
+class TypeLINT : public Type {
+    public:
+        TypeLINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
 };
 
 class TypeULINT : public Type {
     public:
         TypeULINT ();
-        uint64_t get_rand_value ();
-        std::string get_rand_value_str ();
-        uint64_t get_rand_value (uint64_t a, uint64_t b);
-        std::string get_value_str ();
-        std::string get_max_value_str ();
-        std::string get_min_value_str ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypeLLINT : public Type {
+    public:
+        TypeLLINT ();
+        std::string get_max_str ();
+        std::string get_min_str ();
 };
 
 class TypeULLINT : public Type {
     public:
         TypeULLINT ();
-        uint64_t get_rand_value ();
-        std::string get_rand_value_str ();
-        uint64_t get_rand_value (uint64_t a, uint64_t b);
-        std::string get_value_str ();
-        std::string get_max_value_str ();
-        std::string get_min_value_str ();
+        std::string get_max_str ();
+        std::string get_min_str ();
+};
+
+class TypePTR : public Type {
+    public:
+        TypePTR ();
+        std::string get_max_str ();
+        std::string get_min_str ();
 };

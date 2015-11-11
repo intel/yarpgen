@@ -15,209 +15,151 @@ limitations under the License.
 */
 
 #include "type.h"
-#include "array.h"
-#include "loop.h"
-#include "operator.h"
-#include "tree_elem.h"
-#include "logic.h"
+#include "variable.h"
+#include "node.h"
 #include "master.h"
 
-int main () {
+int main (int argv, char* argc[]) {
 /*
-    std::shared_ptr<Type> a = Type::init (Type::TypeID::UINT);
-    std::cout << a->get_id() << std::endl;
-    std::cout << a->get_name () << std::endl;
-    std::cout << a->get_is_fp() << std::endl;
-    std::cout << a->get_is_signed() << std::endl;
-    std::cout << a->get_max_value() << std::endl;
-    std::cout << a->get_min_value() << std::endl;
-    a->set_max_value(50);
-    a->set_min_value(10);
-    std::cout << a->get_max_value() << std::endl;
-    std::cout << a->get_min_value() << std::endl;
-    std::cout << a->get_abs_min() << std::endl;
-    std::cout << a->get_abs_max() << std::endl;
-    std::cout << a->get_rand_value() << std::endl;
-    std::cout << a->get_rand_value_str() << std::endl;
-    a->add_bound_value(0);
-    std::cout << a->check_val_in_domains (0U)  << std::endl;
-    std::cout << a->check_val_in_domains ("MAX")  << std::endl;
+    std::shared_ptr<Type> type;
+    type = Type::init (Type::TypeID::UINT);
+    type->dbg_dump();
 
-    std::shared_ptr<Type> b = Type::init (Type::TypeID::UINT);
-    b->set_max_value(40);
-    b->set_min_value(5);
-    b->add_bound_value(1);
-    a->dbg_dump ();
-    b->dbg_dump();
-    b->combine_range(a);
-    b->dbg_dump();
+    Variable var = Variable("i", Type::TypeID::UINT, Variable::Mod::NTHNG, false);
+    var.set_modifier (Variable::Mod::CONST);
+    var.set_value (10);
+    var.set_min (5);
+    var.set_max (50);
+    var.dbg_dump ();
 
-    Array a ("a", Type::TypeID::ULLINT, 10);
-    a.dbg_dump();
-    std::cout << a.get_name()  << std::endl;
-    std::cout << a.get_size()  << std::endl;
-    a.set_size(100);
-    std::vector<uint64_t> v;
-    v.push_back(20);
-    a.set_bound_value(v);
-    std::cout << a.get_size()  << std::endl;
-    std::cout << a.get_type_id()  << std::endl;
-    std::cout << a.get_type_name()  << std::endl;
-    std::cout << a.get_is_fp() << std::endl;
-    std::cout << a.get_is_signed() << std::endl;
-    std::cout << a.get_max_value() << std::endl;
-    std::cout << a.get_min_value() << std::endl;
-    a.set_max_value(ULLONG_MAX);
-    a.set_min_value(ULLONG_MAX - 1);
-    std::cout << a.get_max_value() << std::endl;
-    std::cout << a.get_min_value() << std::endl;
-    std::cout << a.emit_usage () <<  std::endl;
+    Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST_VOLAT, true, 20,
+                           Array::Ess::STD_VEC);
+    arr.set_align(32);
+    arr.dbg_dump();
 
-    Array b;
-    b = a;
-    b.dbg_dump ();
-    std::cout << (b.get_bound_value()).at(0) <<  std::endl;
+    VarUseExpr var_use;
+    var_use.set_variable (std::make_shared<Variable> (var));
+    std::cout << "VarUseExpr: " << var_use.emit () << std::endl;
 
-    Loop a;
-    std::cout << a.emit_usage () << std::endl;
-    a.dbg_dump ();
-    std::cout << a.get_loop_type() << std::endl;
-    a.set_loop_type (Loop::LoopType::WHILE);
-    std::cout << a.get_loop_type() << std::endl;
-    std::cout << a.get_iter_type_name() << std::endl;
-    a.set_iter_type(Type::TypeID::UINT);
-    std::cout << a.get_iter_type_id() << std::endl;
-    std::cout << a.get_iter_type_name() << std::endl;
-    std::cout << a.get_start_value() << std::endl;
-    a.set_start_value(10);
-    std::cout << a.get_start_value() << std::endl;
-    std::cout << a.get_end_value() << std::endl;
-    a.set_end_value(15);
-    std::cout << a.get_end_value() << std::endl;
-    std::cout << a.get_step() << std::endl;
-    a.set_step(2);
-    std::cout << a.get_step() << std::endl;
-    std::cout << a.get_condition() << std::endl;
-    a.set_condition (Loop::CondType::EQ);
-    std::cout << a.get_condition() << std::endl;
-    a.dbg_dump ();
+    AssignExpr assign;
+    assign.set_to (std::make_shared<VarUseExpr> (var_use));
+    assign.set_from  (std::make_shared<VarUseExpr> (var_use));
+    std::cout << "AssignExpr: " << assign.emit () << std::endl;
 
-    Loop b;
-    b = a;
-    b.dbg_dump ();   
-    std::cout << a.emit_usage () << std::endl;
+    IndexExpr index;
+    index.set_base (std::make_shared<Array> (arr));
+    index.set_index (std::make_shared<VarUseExpr> (var_use));
+    index.set_is_subscr(true);
+    std::cout << "IndexExpr: " << index.emit () << std::endl;
+    index.set_is_subscr(false);
+    std::cout << "IndexExpr: " << index.emit () << std::endl;
 
-    Operator a (0);
-    std::cout << a.get_id () << std::endl;
-    std::cout << a.get_name () << std::endl;
-    std::cout << a.can_cause_ub () << std::endl;
-    std::cout << a.get_num_of_op () << std::endl;
-    std::shared_ptr<Type> t = Type::init (Type::TypeID::UINT);
-    a.set_type (Operator::Side::LEFT, t);
-    std::cout << a.get_type_id (Operator::Side::LEFT) << std::endl;
-    std::cout << a.get_type_name(Operator::Side::LEFT) << std::endl;
-    std::cout << a.get_is_fp (Operator::Side::LEFT) << std::endl;
-    std::cout << a.get_is_signed (Operator::Side::LEFT) << std::endl;
-    std::cout << a.get_max_value (Operator::Side::LEFT) << std::endl;
-    a.set_max_value (Operator::Side::LEFT, 20);
-    std::cout << a.get_max_value (Operator::Side::LEFT) << std::endl;
-    std::cout << a.get_min_value (Operator::Side::LEFT) << std::endl;
-    a.set_min_value (Operator::Side::LEFT, 10);
-    std::cout << a.get_min_value (Operator::Side::LEFT) << std::endl;
-    a.dbg_dump();
-    std::cout << a.emit_usage() << std::endl;
+    BinaryExpr bin_add;
+    bin_add.set_op (BinaryExpr::Op::Add);
+    bin_add.set_lhs (std::make_shared<VarUseExpr> (var_use));
+    bin_add.set_rhs (std::make_shared<VarUseExpr> (var_use));
+    std::cout << "BinaryExpr: " << bin_add.emit () << std::endl;
 
-    Operator b;
-    b = a;
-    b.dbg_dump();
+    AssignExpr assign2;
+    assign2.set_to (std::make_shared<IndexExpr> (index));
+    assign2.set_from  (std::make_shared<BinaryExpr> (bin_add));
+    std::cout << "AssignExpr: " << assign2.emit () << std::endl;
 
-    Array b ("b", Type::TypeID::ULLINT, 10);
-    TreeElem c (true, NULL, Operator::OperType::MUL);
-    c.dbg_dump();
-    TreeElem a (false, std::make_shared<Array> (b), Operator::OperType::MAX_OPER_TYPE);
-    a.dbg_dump();
+    UnaryExpr unary;
+    unary.set_op (UnaryExpr::Op::BitNot);
+    unary.set_arg (std::make_shared<IndexExpr> (index));
+    std::cout << "UnaryExpr: " << unary.emit () << std::endl;
 
-    std::cout << a.get_is_op() << std::endl;
-    std::cout << a.get_arr_name () << std::endl;
-    std::cout << a.get_arr_size ()  << std::endl;
-    std::cout << a.get_arr_type_name () << std::endl;
-    std::cout << a.get_arr_max_value () << std::endl;
-    a.set_arr_max_value (10);
-    std::cout << a.get_arr_max_value () << std::endl;
-    a.set_arr_min_value (2);
-    std::cout << a.get_arr_min_value () << std::endl;
-    std::cout << a.get_arr_is_fp () << std::endl;
-    std::cout << a.get_arr_is_signed () << std::endl;
-    std::cout << c.get_oper_id () << std::endl;
-    std::cout << c.get_oper_name () << std::endl;
-    std::cout << c.get_num_of_op () << std::endl;
-    std::shared_ptr<Type> t = Type::init (Type::TypeID::UINT);
-    c.set_oper_type(Operator::Side::LEFT, t);
-    std::cout << c.get_oper_type_id (Operator::Side::LEFT) << std::endl;
-    std::cout << c.get_oper_type_name(Operator::Side::LEFT) << std::endl;
-    std::cout << c.get_oper_type_is_fp (Operator::Side::LEFT) << std::endl;
-    std::cout << c.get_oper_type_is_signed (Operator::Side::LEFT) << std::endl;
-    std::cout << c.get_oper_max_value (Operator::Side::LEFT) << std::endl;
-    c.set_oper_max_value (Operator::Side::LEFT, 20);
-    std::cout << c.get_oper_max_value (Operator::Side::LEFT) << std::endl;
-    std::cout << c.get_oper_min_value (Operator::Side::LEFT) << std::endl;
-    c.set_oper_min_value (Operator::Side::LEFT, 10);
-    std::cout << c.get_oper_min_value (Operator::Side::LEFT) << std::endl;
-    std::cout << c.can_oper_cause_ub () << std::endl;
-    c.dbg_dump();
-    std::cout << a.emit_usage() << std::endl;
-    std::cout << c.emit_usage() << std::endl;
+    ConstExpr cnst;
+    cnst.set_type (Type::TypeID::ULLINT);
+    cnst.set_data (123321);
+    std::cout << "ConstExpr: " << cnst.emit () << std::endl;
 
-    std::vector<Array> in;
-    in.push_back(Array ("a1", 0, 6));
-    in.push_back(Array ("a2", 0, 5));
-    std::vector<Array> out;
-    Array arr = Array ("b", 1, 7);
-    arr.set_max_value (50);
-    arr.set_min_value (10);
-    out.push_back(arr);
-    Statement a (0, std::make_shared<std::vector<Array>>(in), std::make_shared<std::vector<Array>>(out));
+    DeclStmnt decl;
+    decl.set_data (std::make_shared<Array> (arr));
+    std::cout << "DeclStmnt: " << decl.emit () << std::endl;
+    decl.set_is_extern (true);
+    std::cout << "DeclStmnt: " << decl.emit () << std::endl;
 
-    std::cout << a.get_num_of_out () << std::endl;
-    std::cout << a.get_depth () << std::endl;
-    a.set_depth(5);
-    std::cout << a.get_depth () << std::endl;
-    std::cout << a.get_init_oper_type () << std::endl;
-    a.set_init_oper_type (Operator::OperType::SUB);
-    std::cout << a.get_init_oper_type () << std::endl;
+    ExprStmnt ex_st;
+    ex_st.set_expr (std::make_shared<AssignExpr>(assign2));
+    std::cout << "ExprStmnt: " << ex_st.emit () << std::endl;
 
-//    in.at(0).dbg_dump();
-//    in.at(1).dbg_dump();
+    BinaryExpr cond;
+    cond.set_op(BinaryExpr::Op::Le);
+    cond.set_lhs (std::make_shared<VarUseExpr> (var_use));
+    cond.set_rhs (std::make_shared<ConstExpr> (cnst));
 
-    a.set_depth(5);
-    a.random_fill ();
-//    in.at(0).dbg_dump();
-//    in.at(1).dbg_dump();
-//    a.dbg_dump();
-    std::cout << a.emit_usage() << std::endl;
+    UnaryExpr step;
+    step.set_op (UnaryExpr::Op::PreInc);
+    step.set_arg (std::make_shared<VarUseExpr> (var_use));
 
-    Type a = Type::get_rand_obj ();
-    a.dbg_dump();
+    DeclStmnt iter_decl;
+    iter_decl.set_data (std::make_shared<Variable> (var));
 
-    Array a = Array::get_rand_obj ();
-    a.dbg_dump();
-    Array b = Array::get_rand_obj ();
-    b.dbg_dump();
+    CntLoopStmnt cnt_loop;
+    cnt_loop.set_loop_type(LoopStmnt::LoopID::FOR);
+    cnt_loop.add_to_body(std::make_shared<ExprStmnt> (ex_st));
+    cnt_loop.set_cond(std::make_shared<BinaryExpr> (cond));
+    cnt_loop.set_iter(std::make_shared<Variable> (var));
+    cnt_loop.set_iter_decl(std::make_shared<DeclStmnt> (iter_decl));
+    cnt_loop.set_step_expr (std::make_shared<UnaryExpr> (step));
+    std::cout << "CntLoopStmnt: " << cnt_loop.emit () << std::endl;
 
-    Operator a = Operator::get_rand_obj ();
-    a.dbg_dump();
+    TypeCastExpr tc;
+    tc.set_type(Type::init(Type::TypeID::ULLINT));
+    tc.set_expr(std::make_shared<UnaryExpr> (unary));
+    std::cout << "TypeCastExpr: " << tc.emit () << std::endl;
 
-    TreeElem a = TreeElem::get_rand_obj_op ();
-    a.dbg_dump();
+    ExprListExpr expr_list;
+    expr_list.add_to_list(std::make_shared<TypeCastExpr>(tc));
+    expr_list.add_to_list(std::make_shared<UnaryExpr>(step));
+    std::cout << "ExprListExpr: " << expr_list.emit () << std::endl;
+
+    FuncCallExpr fc;
+    fc.set_name("hash");
+    fc.set_args(std::make_shared<ExprListExpr> (expr_list));
+    std::cout << "FuncCallExpr: " << fc.emit () << std::endl;
 */
-    Master a (".");
-    a.emit_main();
-    a.emit_decl();
-    a.emit_init();
-    a.emit_check();
-    a.emit_func();
-    a.emit_hash();
-//    std::cout << "/*" << std::endl;
-//    a.dbg_dump();
-//    std::cout << "*/" << std::endl;
+    std::string test_dir = "./";
+    if (argv == 2) {
+        test_dir = argc [1];
+    }
+
+    Master mas (test_dir);
+    mas.generate ();
+    mas.emit_func ();
+    mas.emit_init ();
+    mas.emit_decl ();
+    mas.emit_hash ();
+    mas.emit_check ();
+    mas.emit_main ();
+
+/*
+    ConstExpr lhs;
+    lhs.set_type (Type::TypeID::LLINT);
+    lhs.set_data (INT_MAX);
+    lhs.propagate_type();
+    lhs.propagate_value();
+    std::cout << "ConstExpr: " << lhs.emit () << std::endl;
+
+    ConstExpr rhs;
+    rhs.set_type (Type::TypeID::LLINT);
+    rhs.set_data(2);
+    rhs.propagate_type();
+    rhs.propagate_value();
+    std::cout << "ConstExpr: " << rhs.emit () << std::endl;
+
+    BinaryExpr bin_expr;
+    bin_expr.set_op (BinaryExpr::Op::Shr);
+    bin_expr.set_lhs (std::make_shared<ConstExpr> (lhs));
+    bin_expr.set_rhs (std::make_shared<ConstExpr> (rhs));
+    bin_expr.propagate_type();
+    Expr::UB tmp = bin_expr.propagate_value();
+    std::cout << "UB: " << tmp << std::endl;
+    std::cout << "BinaryExpr: " << bin_expr.emit () << std::endl;
+    std::cout << "Type: " << bin_expr.get_type_id () << std::endl;
+    std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
+*/
+    return 0;
 }

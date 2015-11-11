@@ -16,313 +16,372 @@ limitations under the License.
 
 #include "type.h"
 
-int rand_dev () {
-//    return -954396712; // TODO: enable random
-    std::random_device rd;
-    int ret = rd ();
-    std::cout << "/*SEED " << ret << "*/\n";
-    return ret;
-}
-
-std::mt19937_64 rand_gen(rand_dev());
-
-std::shared_ptr<Type> Type::init (unsigned int _type_id) {
+std::shared_ptr<Type> Type::init (Type::TypeID _type_id) {
     std::shared_ptr<Type> ret (NULL);
     switch (_type_id) {
-/*
-        case TypeID::UCHAR:
+        case Type::TypeID::BOOL:
+            ret = std::make_shared<TypeBOOL> (TypeBOOL());
+            break;
+        case Type::TypeID::CHAR:
+            ret = std::make_shared<TypeCHAR> (TypeCHAR());
+            break;
+        case Type::TypeID::UCHAR:
             ret = std::make_shared<TypeUCHAR> (TypeUCHAR());
             break;
-        case TypeID::USHRT:
+        case Type::TypeID::SHRT:
+            ret = std::make_shared<TypeSHRT> (TypeSHRT());
+            break;
+        case Type::TypeID::USHRT:
             ret = std::make_shared<TypeUSHRT> (TypeUSHRT());
             break;
-*/
-        case TypeID::UINT:
+        case Type::TypeID::INT:
+            ret = std::make_shared<TypeINT> (TypeINT());
+            break;
+        case Type::TypeID::UINT:
             ret = std::make_shared<TypeUINT> (TypeUINT());
             break;
-        case TypeID::ULINT:
+        case Type::TypeID::LINT:
+            ret = std::make_shared<TypeLINT> (TypeLINT());
+            break;
+        case Type::TypeID::ULINT:
             ret = std::make_shared<TypeULINT> (TypeULINT());
             break;
-         case TypeID::ULLINT:
+         case Type::TypeID::LLINT:
+            ret = std::make_shared<TypeLLINT> (TypeLLINT());
+            break;
+         case Type::TypeID::ULLINT:
             ret = std::make_shared<TypeULLINT> (TypeULLINT());
+            break;
+        case Type::TypeID::PTR:
+            ret = std::make_shared<TypePTR> (TypePTR());
+            break;
+        case MAX_INT_ID:
+        case Type::TypeID::MAX_TYPE_ID:
             break;
     }
     return ret;
 }
 
-std::shared_ptr<Type> Type::get_rand_obj () {
-    std::uniform_int_distribution<unsigned int> dis(0, Type::TypeID::MAX_TYPE_ID - 1);
-    std::shared_ptr<Type> ret = init (dis(rand_gen));
-    return ret;
+bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
+    // This function is used for different conversion rules, so it can be called only after integral promotion
+    std::shared_ptr<Type> B = init(b);
+    bool int_eq_long = sizeof(int) == sizeof(long int);
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
+    switch (a) {
+        case INT:
+            return B->get_is_signed();
+        case UINT:
+            if (B->get_id() == INT)
+                return false;
+            if (B->get_id() == LINT)
+                return !int_eq_long;
+            return true;
+        case LINT:
+            if (!B->get_is_signed())
+                return false;
+            if (B->get_id() == INT)
+                return int_eq_long;
+            return true;
+        case ULINT:
+            switch (B->get_id()) {
+                case INT:
+                    return false;
+                case UINT:
+                    return int_eq_long;
+                case LINT:
+                    return false;
+                case ULINT:
+                    return true;
+                case LLINT:
+                    return !long_eq_long_long;
+                case ULLINT:
+                    return true;
+            }
+        case LLINT:
+            switch (B->get_id()) {
+                case INT:
+                case UINT:
+                   return false;
+                case LINT:
+                    return long_eq_long_long;
+                case ULINT:
+                   return false;
+                case LLINT:
+                    return true;
+                case ULLINT:
+                   return false;
+            }
+        case ULLINT:
+            switch (B->get_id()) {
+                case INT:
+                case UINT:
+                case LINT:
+                   return false;
+                case ULINT:
+                   return long_eq_long_long;
+                case LLINT:
+                   return false;
+                case ULLINT:
+                    return true;
+            }
+        default:
+            std::cerr << "ERROR: Type::can_repr_value" << std::endl;
+            return false;
+    }
 }
 
-std::shared_ptr<Type> Type::get_copy (std::shared_ptr<Type> type) {
-    std::shared_ptr<Type> ret = Type::init(type->get_id ());
-    ret->set_max_value (type->get_max_value ());
-    ret->set_min_value (type->get_min_value ());
-    ret->set_value (type->get_value ());
-    return ret;
+Type::TypeID Type::get_corr_unsig (Type::TypeID _type_id) {
+    // This function is used for different conversion rules, so it can be called only after integral promotion
+    switch (_type_id) {
+        case INT:
+        case UINT:
+            return UINT;
+        case LINT:
+        case ULINT:
+            return ULINT;
+        case LLINT:
+        case ULLINT:
+            return ULLINT;
+        default:
+            std::cerr << "ERROR: Type::get_corr_unsig" << std::endl;
+            return MAX_INT_ID;
+    }
 }
-
-unsigned int Type::get_id () { return this->id; }
-
-std::string Type::get_name () { return this->name; }
-
-bool Type::get_is_fp () { return this->is_fp; }
-
-bool Type::get_is_signed () { return this->is_signed; }
-
-void Type::set_max_value (uint64_t _max_val) { this->max_val = _max_val; }
-
-uint64_t Type::get_max_value () { return this->max_val; }
-
-void Type::set_min_value (uint64_t _min_val) { this->min_val = _min_val; }
-
-uint64_t Type::get_min_value () { return this->min_val; }
-
-uint64_t Type::get_abs_max () { return this->abs_max; }
-
-uint64_t Type::get_abs_min () { return this->abs_min; }
-
-uint64_t Type::get_bit_size () { return this->bit_size; }
-
- void Type::set_value (uint64_t _val) { this->value = _val; }
-
-uint64_t Type::get_value () {  return this->value; }
-
-void Type::set_bound_value (std::vector<uint64_t> bval) { this->bound_val = bval; }
-
-std::vector<uint64_t> Type::get_bound_value () { return this->bound_val; }
-
-void Type::add_bound_value (uint64_t bval) { this->bound_val.push_back(bval); }
-
-bool Type::check_val_in_domains (uint64_t val) {
-    bool ret = (get_min_value() <= val);
-    ret &= (val <= get_max_value());
-    ret |= (std::find(bound_val.begin(), bound_val.end(), val) != bound_val.end());
-    return ret;
-}
-
-std::string Type::emit_usage () {
-    return get_name ();
-}
-
-void Type::combine_range (std::shared_ptr<Type> _type) {
-    //TODO: need something for signed values and fp
-
-    //TODO: bound values
-//    this->combine_bound_value (_type);
-    uint64_t val_1 = get_min_value ();
-    uint64_t val_2 = _type->get_min_value ();
-    uint64_t comb_min = std::max (val_1, val_2);
-    val_1 = get_max_value ();
-    val_2 = _type->get_max_value ();
-    uint64_t comb_max = std::min(val_1, val_2);
-    this->set_min_value(std::min(comb_min, comb_max));
-    this->set_max_value(std::max(comb_min, comb_max));
-}
-
 
 void Type::dbg_dump () {
-    std::cout << "name " << this->name << std::endl;
-    std::cout << "min_val " << this->min_val << std::endl;
-    std::cout << "max_val " << this->max_val << std::endl;
-    std::cout << "bound values ";
-    for (std::vector<uint64_t>::iterator i = this->bound_val.begin(); i != bound_val.end(); ++i)
-        std::cout << *i << ' ';
-    std::cout << std::endl;
-    std::cout << "is_fp " << this->is_fp << std::endl;
-    std::cout << "is_signed " << this->is_signed << std::endl;
+    std::cout << "name: " << name << std::endl;
+    std::cout << "id: " << id << std::endl;
+    std::cout << "min: " << min <<  suffix << std::endl;
+    std::cout << "max: " << max <<  suffix << std::endl;
+    std::cout << "bit_size: " << bit_size << std::endl;
+    std::cout << "is_fp: " << is_fp << std::endl;
+    std::cout << "is_signed: " << is_signed << std::endl;
 }
 
-bool Type::check_val_in_domains (std::string val) {
-    if (val == "MAX")
-        return check_val_in_domains(get_abs_max());
-    if (val == "MIN")
-        return check_val_in_domains(get_abs_min());
-    return false;
+TypeBOOL::TypeBOOL () {
+    id = Type::TypeID::BOOL;
+    name = "bool";
+    suffix = "";
+    min = false;
+    max = true;
+    bit_size = sizeof (bool) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-/*
-void Type::combine_bound_value (std::shared_ptr<Type> _type) {
-    // TODO: ret is const ref
-    for (int i = 0; i < _type->get_bound_value().size(); ++i)
-        this->bound_val.push_back(_type->get_bound_value().at(i));
+std::string TypeBOOL::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
-*/
-/*
+
+std::string TypeBOOL::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
+}
+
+TypeCHAR::TypeCHAR () {
+    id = Type::TypeID::CHAR;
+    name = "signed char";
+    suffix = "";
+    min = SCHAR_MIN;
+    max = SCHAR_MAX;
+    bit_size = sizeof (char) * CHAR_BIT;
+    is_fp = false;
+    is_signed = true;
+}
+
+std::string TypeCHAR::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
+}
+
+std::string TypeCHAR::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
+}
+
 TypeUCHAR::TypeUCHAR () {
-    this->id = Type::TypeID::UCHAR;
-    this->name = "unsigned char";
-    this->min_val = this->abs_min = 0;
-    this->max_val = this->abs_max = UCHAR_MAX;
-    this->bit_size = sizeof (unsigned char) * CHAR_BIT;
-    this->is_fp = false;
-    this->is_signed = false;
+    id = Type::TypeID::UCHAR;
+    name = "unsigned char";
+    suffix = "";
+    min = 0;
+    max = UCHAR_MAX;
+    bit_size = sizeof (unsigned char) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-uint64_t TypeUCHAR::get_rand_value () {
-//    TODO: add boundary values
-    std::uniform_int_distribution<unsigned char> dis(this->min_val, this->max_val);
-    uint64_t ret = dis(rand_gen); 
-    return ret;
+std::string TypeUCHAR::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-uint64_t TypeUCHAR::get_rand_value (uint64_t a, uint64_t b) {
-    std::shared_ptr<Type> _type = Type::init(get_id());
-    _type->set_min_value (a);
-    _type->set_max_value (b);
-    return _type->get_rand_value ();
+std::string TypeUCHAR::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
-std::string TypeUCHAR::get_rand_value_str () {
-    return std::to_string ((unsigned char) get_rand_value ());
+TypeSHRT::TypeSHRT () {
+    id = Type::TypeID::SHRT;
+    name = "short";
+    suffix = "";
+    min = SHRT_MIN;
+    max = SHRT_MAX;
+    bit_size = sizeof (short) * CHAR_BIT;
+    is_fp = false;
+    is_signed = true;
+}
+
+std::string TypeSHRT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
+}
+
+std::string TypeSHRT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
 TypeUSHRT::TypeUSHRT () {
-    this->id = Type::TypeID::USHRT;
-    this->name = "unsigned short";
-    this->min_val = this->abs_min = 0;
-    this->max_val = this->abs_max = USHRT_MAX;
-    this->bit_size = sizeof (unsigned short) * CHAR_BIT;
-    this->is_fp = false;
-    this->is_signed = false;
+    id = Type::TypeID::USHRT;
+    name = "unsigned short";
+    suffix = "";
+    min = 0;
+    max = USHRT_MAX;
+    bit_size = sizeof (unsigned short) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-uint64_t TypeUSHRT::get_rand_value () {
-//    TODO: add boundary values
-    std::uniform_int_distribution<unsigned short> dis(this->min_val, this->max_val);
-    uint64_t ret = dis(rand_gen);
-    return ret;
+std::string TypeUSHRT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-uint64_t TypeUSHRT::get_rand_value (uint64_t a, uint64_t b) {
-    std::shared_ptr<Type> _type = Type::init(get_id());
-    _type->set_min_value (a);
-    _type->set_max_value (b);
-    return _type->get_rand_value ();
+std::string TypeUSHRT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
-std::string TypeUSHRT::get_rand_value_str () {
-    return std::to_string ((unsigned short) get_rand_value ());
+TypeINT::TypeINT () {
+    id = Type::TypeID::INT;
+    name = "int";
+    suffix = "";
+    min = INT_MIN;
+    max = INT_MAX;
+    bit_size = sizeof (int) * CHAR_BIT;
+    is_fp = false;
+    is_signed = true;
 }
-*/
+
+std::string TypeINT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
+}
+
+std::string TypeINT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
+}
+
 TypeUINT::TypeUINT () {
-    this->id = Type::TypeID::UINT;
-    this->name = "unsigned int";
-    this->min_val = this->abs_min = 0;
-    this->max_val = this->abs_max = UINT_MAX;
-    this->bit_size = sizeof (unsigned int) * CHAR_BIT;
-    this->is_fp = false;
-    this->is_signed = false;
+    id = Type::TypeID::UINT;
+    name = "unsigned int";
+    suffix = "U";
+    min = 0;
+    max = UINT_MAX;
+    bit_size = sizeof (unsigned int) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-uint64_t TypeUINT::get_rand_value () {
-//    TODO: add boundary values
-    std::uniform_int_distribution<unsigned int> dis(this->min_val, this->max_val);
-    uint64_t ret = dis(rand_gen);
-    return ret;
+std::string TypeUINT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-uint64_t TypeUINT::get_rand_value (uint64_t a, uint64_t b) {
-    std::shared_ptr<Type> _type = Type::init(get_id());
-    _type->set_min_value (a);
-    _type->set_max_value (b);
-    return _type->get_rand_value ();
+std::string TypeUINT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
-std::string TypeUINT::get_rand_value_str () {
-    return std::to_string ((unsigned int) get_rand_value ()) + "U";
+TypeLINT::TypeLINT () {
+    id = Type::TypeID::LINT;
+    name = "long int";
+    suffix = "L";
+    min = LONG_MIN;;
+    max = LONG_MAX;
+    bit_size = sizeof (long int) * CHAR_BIT;
+    is_fp = false;
+    is_signed = true;
 }
 
-std::string TypeUINT::get_value_str () {
-    return std::to_string ((unsigned int) get_value ()) + "U";
+std::string TypeLINT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-std::string TypeUINT::get_max_value_str () {
-    return std::to_string ((unsigned int) get_max_value ()) + "U";
-}
-
-std::string TypeUINT::get_min_value_str () {
-    return std::to_string ((unsigned int) get_min_value ()) + "U";
+std::string TypeLINT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
 TypeULINT::TypeULINT () {
-    this->id = Type::TypeID::ULINT;
-    this->name = "unsigned long int";
-    this->min_val = this->abs_min = 0;
-    this->max_val = this->abs_max = ULONG_MAX;
-    this->bit_size = sizeof (unsigned long int) * CHAR_BIT;
-    this->is_fp = false;
-    this->is_signed = false;
+    id = Type::TypeID::ULINT;
+    name = "unsigned long int";
+    suffix = "UL";
+    min = 0;
+    max = ULONG_MAX;
+    bit_size = sizeof (unsigned long int) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-uint64_t TypeULINT::get_rand_value () {
-//    TODO: add boundary values
-    std::uniform_int_distribution<unsigned long int> dis(this->min_val, this->max_val);
-    uint64_t ret = dis(rand_gen);
-    return ret;
+std::string TypeULINT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-uint64_t TypeULINT::get_rand_value (uint64_t a, uint64_t b) {
-    std::shared_ptr<Type> _type = Type::init(get_id());
-    _type->set_min_value (a);
-    _type->set_max_value (b);
-    return _type->get_rand_value ();
+std::string TypeULINT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
-std::string TypeULINT::get_rand_value_str () {
-    return std::to_string ((unsigned long int) get_rand_value ()) + "UL";
+TypeLLINT::TypeLLINT () {
+    id = Type::TypeID::LLINT;
+    name = "long long int";
+    suffix = "LL";
+    min = LLONG_MIN;
+    max = LLONG_MAX;
+    bit_size = sizeof (long long int) * CHAR_BIT;
+    is_fp = false;
+    is_signed = true;
 }
 
-std::string TypeULINT::get_value_str () {
-    return std::to_string ((unsigned long int) get_value ()) + "UL";
+std::string TypeLLINT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-std::string TypeULINT::get_max_value_str () {
-    return std::to_string ((unsigned long int) get_max_value ()) + "UL";
-}
-
-std::string TypeULINT::get_min_value_str () {
-    return std::to_string ((unsigned long int) get_min_value ()) + "UL";
+std::string TypeLLINT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
 TypeULLINT::TypeULLINT () {
-    this->id = Type::TypeID::ULLINT;
-    this->name = "unsigned long long int";
-    this->min_val = this->abs_min = 0;
-    this->max_val = this->abs_max = ULLONG_MAX;
-    this->bit_size = sizeof (unsigned long long int) * CHAR_BIT;
-    this->is_fp = false;
-    this->is_signed = false;
+    id = Type::TypeID::ULLINT;
+    name = "unsigned long long int";
+    suffix = "ULL";
+    min = 0;
+    max = ULLONG_MAX;
+    bit_size = sizeof (unsigned long long int) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-uint64_t TypeULLINT::get_rand_value () {
-//    TODO: add boundary values
-    std::uniform_int_distribution<unsigned long long int> dis(this->min_val, this->max_val);
-    uint64_t ret = dis(rand_gen);
-    return ret;
+std::string TypeULLINT::get_max_str () {
+    return std::to_string (get_max ()) + get_suffix ();
 }
 
-uint64_t TypeULLINT::get_rand_value (uint64_t a, uint64_t b) {
-    std::shared_ptr<Type> _type = Type::init(get_id());
-    _type->set_min_value (a);
-    _type->set_max_value (b);
-    return _type->get_rand_value ();
+std::string TypeULLINT::get_min_str () {
+    return std::to_string (get_min ()) + get_suffix ();
 }
 
-std::string TypeULLINT::get_rand_value_str () {
-    return std::to_string ((unsigned long long int) get_rand_value ()) + "ULL";
+TypePTR::TypePTR () {
+    id = Type::TypeID::PTR;
+    name = "*";
+    suffix = "";
+    min = 0;
+    max = 0;
+    bit_size = sizeof (unsigned int*) * CHAR_BIT;
+    is_fp = false;
+    is_signed = false;
 }
 
-std::string TypeULLINT::get_value_str () {
-    return std::to_string ((unsigned long long int) get_value ()) + "ULL";
+std::string TypePTR::get_max_str () {
+    return "";
 }
 
-std::string TypeULLINT::get_max_value_str () {
-    return std::to_string ((unsigned long long int) get_max_value ()) + "ULL";
-}
-
-std::string TypeULLINT::get_min_value_str () {
-    return std::to_string ((unsigned long long int) get_min_value ()) + "ULL";
+std::string TypePTR::get_min_str () {
+    return "";
 }

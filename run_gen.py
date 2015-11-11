@@ -70,19 +70,19 @@ def gen_and_test(num, lock, end_time):
     compiler_passes = []
     wrap_exe = []
     compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
-    wrap_exe.append(out_name);
+    wrap_exe.append(out_name)
     compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
-    wrap_exe.append(out_name);
+    wrap_exe.append(out_name)
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O0"])
-    wrap_exe.append(out_name);
+    wrap_exe.append(out_name)
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
-    wrap_exe.append(out_name);
-#    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
-#    wrap_exe.append(out_name);
+    wrap_exe.append(out_name)
+    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
+    wrap_exe.append(out_name)
     compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -xMIC-AVX512 -O3"])
-    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name]);
+    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -march=knl -O3"])
-    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name]);
+    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
 
     subprocess.check_output(".." + os.sep + "yarpgen")
     try:
