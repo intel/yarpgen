@@ -31,11 +31,13 @@ class Master {
         std::string emit_func ();
         std::string emit_init ();
         std::string emit_decl ();
+        std::string emit_hash ();
+        std::string emit_check ();
         std::string emit_main ();
 
     private:
         void write_file (std::string of_name, std::string data);
-        std::string emit_loop (std::shared_ptr<Data> arr);
+        std::string emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCallExpr> func_call = NULL);
 
         ControlStruct ctrl;
         std::vector<std::shared_ptr<Stmnt>> program;

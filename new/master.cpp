@@ -16,9 +16,7 @@ const bool ESSENCE_DIFFER = false;
 const int MAX_ARITH_DEPTH = 3;
 
 uint64_t rand_dev () {
-    // WTF? 2911598495
-    // WTF? 228611402 UBSAN BUG?
-    return 3664183318; // TODO: enable random
+    //return 9436354; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
@@ -145,7 +143,7 @@ void TripGen::generate () {
     // Start value
     ControlStruct tmp_ctrl = ctrl;
     tmp_ctrl.min_var_val = 0;
-    int64_t max_arr_indx = std::min(iter->get_max (), min_ex_arr_size) - 1; // TODO: I hope it will work
+    int64_t max_arr_indx = std::min(iter->get_max (), min_ex_arr_size - 1); // TODO: I hope it will work
     tmp_ctrl.max_var_val= max_arr_indx;
     VarValGen var_val_gen (tmp_ctrl, var_type);
     var_val_gen.generate();
@@ -155,6 +153,16 @@ void TripGen::generate () {
     // Step
     std::uniform_int_distribution<int> step_dir_dis(0, 1);
     int step_dir = step_dir_dis(rand_gen) ? 1 : -1;
+    if (start_val == max_arr_indx) {
+        if (!iter->get_type()->get_is_signed()) { // If we have unsigned iterator, we can't go upper than top of array
+            start_val = 0;
+            iter->set_min(start_val);
+        }
+        else
+            step_dir = -1;
+    }
+    if (start_val == 0)
+        step_dir = 1;
     step_dir = iter->get_type()->get_is_signed() ? step_dir : 1;
     if (step_dir < 0 || start_val == max_arr_indx) { // Negative step
         tmp_ctrl.min_var_val = -1 * start_val;
@@ -170,34 +178,65 @@ void TripGen::generate () {
     iter->set_value(step);
 
     int64_t max_step_num = 0;
-    if (step_dir < 0) { // Negative step
-        max_step_num = std::abs(start_val / step); // Trip from 0 to start_val
-    }
-    else { // Positive step
-        max_step_num = std::abs((max_arr_indx - start_val) / step); // Trip from start_val to max_arr_indx
+    int64_t a = 0;
+    switch (var_type) {
+        case Type::TypeID::CHAR:
+            a = ((signed char) step_dir < 0) ? start_val : (max_arr_indx - start_val);
+            max_step_num = std::abs((signed char) a / (signed char) step);
+            break;
+        case Type::TypeID::UCHAR:
+            a = max_arr_indx - start_val;
+            max_step_num = (unsigned char) a / (unsigned char) step;
+            break;
+        case Type::TypeID::SHRT:
+            a = ((signed short) step_dir < 0) ? start_val : (max_arr_indx - start_val);
+            max_step_num = std::abs((signed short) a / (signed short) step);
+            break;
+        case Type::TypeID::USHRT:
+            a = max_arr_indx - start_val;
+            max_step_num = (unsigned short) a / (unsigned short) step;
+            break;
+        case Type::TypeID::INT:
+            a = ((signed int) step_dir < 0) ? start_val : (max_arr_indx - start_val);
+            max_step_num = std::abs((signed int) a / (signed int) step);
+            break;
+        case Type::TypeID::UINT:
+            a = max_arr_indx - start_val;
+            max_step_num = (unsigned int) a / (unsigned int) step;
+            break;
+        case Type::TypeID::LINT:
+            a = ((signed long int) step_dir < 0) ? start_val : (max_arr_indx - start_val);
+            max_step_num = std::abs((signed long int) a / (signed long int) step);
+            break;
+        case Type::TypeID::ULINT:
+            a = max_arr_indx - start_val;
+            max_step_num = (unsigned long int) a / (unsigned long int) step;
+            break;
+        case Type::TypeID::LLINT:
+            a = ((signed long long int) step_dir < 0) ? start_val : (max_arr_indx - start_val);
+            max_step_num = std::abs((signed long long int) a / (signed long long int) step);
+            break;
+        case Type::TypeID::ULLINT:
+            a = max_arr_indx - start_val;
+            max_step_num = (unsigned long long int) a / (unsigned long long int) step;
+            break;
+        case Type::TypeID::BOOL:
+        case Type::TypeID::MAX_INT_ID:
+        case Type::TypeID::PTR:
+        case Type::TypeID::MAX_TYPE_ID:
+            std::cerr << "ERROR: TripGen::generate : bad iterator type" << std::endl;
+            break;
     }
     std::uniform_int_distribution<int> step_num_dis(1, max_step_num);
     int64_t step_num = step_num_dis(rand_gen);
 
     // End value
-    std::uniform_int_distribution<int> end_diff_dis(0, 1);
-    bool hit_end = end_diff_dis(rand_gen);
     int64_t end_value = start_val + step_num * step;
+    int64_t next_end_value = start_val + (step_num + 1) * step;
+    bool can_iter_of = (next_end_value >= max_arr_indx) || (next_end_value < 0);
+    std::uniform_int_distribution<int> end_diff_dis(0, 1);
+    bool hit_end = end_diff_dis(rand_gen) || can_iter_of;
     end_value += hit_end ? 0 : step / 2;
-    if (end_value < 0L) {
-        end_value = 0L;
-        hit_end = false;
-    }
-    if (end_value >= max_arr_indx) {
-        if ((start_val + step_num * step) <= max_arr_indx) {
-            end_value = start_val + step_num * step;
-            hit_end = true;
-        }
-        else {
-            end_value = std::min((start_val + step_num * step), max_arr_indx);
-            hit_end = false;
-        }
-    }
     iter->set_max(end_value);
 
     StepExprGen step_expr_gen (ctrl, iter, step);
@@ -654,11 +693,11 @@ std::string Master::emit_main () {
     ret += "#include \"init.h\"\n\n";
     ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
-//    ret += "extern std::size_t checksum ();\n";
+    ret += "extern unsigned long long int checksum ();\n";
     ret += "int main () {\n";
     ret += "    init ();\n";
     ret += "    foo ();\n";
-//    ret += "    std::cout << checksum () << std::endl;\n";
+    ret += "    std::cout << checksum () << std::endl;\n";
     ret += "    return 0;\n";
     ret += "}";
     write_file("driver.cpp", ret);
@@ -677,7 +716,7 @@ std::string Master::emit_func () {
     return ret;
 }
 
-std::string Master::emit_loop (std::shared_ptr<Data> arr) {
+std::string Master::emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCallExpr> func_call) {
     std::string ret = "";
 
     Variable iter = Variable("i", Type::TypeID::INT, Variable::Mod::NTHNG, false);
@@ -690,16 +729,22 @@ std::string Master::emit_loop (std::shared_ptr<Data> arr) {
     arr_use.set_base(std::static_pointer_cast<Array>(arr));
     arr_use.set_index(std::make_shared<VarUseExpr>(iter_use));
 
-    ConstExpr init_val;
-    init_val.set_type(std::static_pointer_cast<Array>(arr)->get_base_type()->get_id());
-    init_val.set_data((arr)->get_value());
-
-    AssignExpr init_expr;
-    init_expr.set_to(std::make_shared<IndexExpr>(arr_use));
-    init_expr.set_from(std::make_shared<ConstExpr>(init_val));
-
     ExprStmnt init_stmnt;
-    init_stmnt.set_expr(std::make_shared<AssignExpr>(init_expr));
+    if (func_call == NULL) {
+        ConstExpr init_val;
+        init_val.set_type(std::static_pointer_cast<Array>(arr)->get_base_type()->get_id());
+        init_val.set_data((arr)->get_value());
+
+        AssignExpr init_expr;
+        init_expr.set_to(std::make_shared<IndexExpr>(arr_use));
+        init_expr.set_from(std::make_shared<ConstExpr>(init_val));
+
+        init_stmnt.set_expr(std::make_shared<AssignExpr>(init_expr));
+    }
+    else {
+        func_call->add_to_args(std::make_shared<IndexExpr>(arr_use));
+        init_stmnt.set_expr(func_call);
+    }
 
     ConstExpr iter_init;
     iter_init.set_type(Type::TypeID::INT);
@@ -773,6 +818,8 @@ std::string Master::emit_decl () {
     ret += "#include <array>\n";
     ret += "#include <vector>\n";
 
+    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n";
+
     for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
         DeclStmnt decl;
         decl.set_data(*i);
@@ -788,5 +835,49 @@ std::string Master::emit_decl () {
     }
 
     write_file("init.h", ret);
+    return ret;
+}
+
+std::string Master::emit_hash () {
+    std::string ret = "#include <functional>\n";
+    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v) {\n";
+    ret += "    seed ^= v + 0x9e3779b9 + (seed<<6) + (seed>>2);\n";
+    ret += "}\n";
+    write_file("hash.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_check () { // TODO: rewrite with IR
+    std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+
+    ret += "unsigned long long int checksum () {\n";
+
+    Variable seed = Variable("seed", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false);
+    VarUseExpr seed_use;
+    seed_use.set_variable (std::make_shared<Variable> (seed));
+
+    ConstExpr zero_init;
+    zero_init.set_type (Type::TypeID::ULLINT);
+    zero_init.set_data (0);
+
+    DeclStmnt seed_decl;
+    seed_decl.set_data (std::make_shared<Variable> (seed));
+    seed_decl.set_init (std::make_shared<ConstExpr> (zero_init));
+
+    ret += seed_decl.emit() + ";\n";
+
+    ExprListExpr hash_args;
+    hash_args.add_to_list(std::make_shared<VarUseExpr> (seed_use));
+
+    for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
+        FuncCallExpr hash_func;
+        hash_func.set_name("hash");
+        hash_func.set_args(std::make_shared<ExprListExpr> (hash_args));
+        ret += emit_loop(*i, std::make_shared<FuncCallExpr>(hash_func)) + "\n";
+    }
+    ret += "    return seed;\n";
+    ret += "}";
+    write_file("check.cpp", ret);
     return ret;
 }

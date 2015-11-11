@@ -12,8 +12,14 @@ std::shared_ptr<Expr> Expr::init (Node::NodeID _id) {
         case Node::NodeID::CONST:
             ret = std::make_shared<ConstExpr> (ConstExpr());
             break;
+        case Node::NodeID::FUNC_CALL:
+            ret = std::make_shared<FuncCallExpr> (FuncCallExpr());
+            break;
         case Node::NodeID::INDEX:
             ret = std::make_shared<IndexExpr> (IndexExpr());
+            break;
+        case Node::NodeID::EXPR_LIST:
+            ret = std::make_shared<ExprListExpr> (ExprListExpr());
             break;
         case Node::NodeID::TYPE_CAST:
             ret = std::make_shared<TypeCastExpr> (TypeCastExpr());
@@ -1134,6 +1140,19 @@ std::string TypeCastExpr::emit () {
     std::string ret = "(" + value.get_type()->get_name() + ")";
     ret += expr->emit();
     return ret;
+}
+
+std::string ExprListExpr::emit () {
+    std::string ret = "(";
+    for (auto i = expr_list.begin(); i != expr_list.end(); ++i)
+        ret += (*i)->emit() + ", ";
+    ret = ret.substr(0, ret.size() - 2); // Remove last comma
+    ret += ")";
+    return ret;
+}
+
+std::string FuncCallExpr::emit () {
+    return name.c_str() + args->emit();
 }
 
 std::shared_ptr<Stmnt> Stmnt::init (Node::NodeID _id) {

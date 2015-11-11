@@ -94,8 +94,17 @@ int main (int argv, char* argc[]) {
     tc.set_type(Type::init(Type::TypeID::ULLINT));
     tc.set_expr(std::make_shared<UnaryExpr> (unary));
     std::cout << "TypeCastExpr: " << tc.emit () << std::endl;
-*/
 
+    ExprListExpr expr_list;
+    expr_list.add_to_list(std::make_shared<TypeCastExpr>(tc));
+    expr_list.add_to_list(std::make_shared<UnaryExpr>(step));
+    std::cout << "ExprListExpr: " << expr_list.emit () << std::endl;
+
+    FuncCallExpr fc;
+    fc.set_name("hash");
+    fc.set_args(std::make_shared<ExprListExpr> (expr_list));
+    std::cout << "FuncCallExpr: " << fc.emit () << std::endl;
+*/
     if (argv < 2) {
         std::cerr << "Specify output folder!" << std::endl;
         return -1;
@@ -106,9 +115,11 @@ int main (int argv, char* argc[]) {
     mas.emit_func ();
     mas.emit_init ();
     mas.emit_decl ();
+    mas.emit_hash ();
+    mas.emit_check ();
     mas.emit_main ();
-/*
 
+/*
     ConstExpr lhs;
     lhs.set_type (Type::TypeID::LLINT);
     lhs.set_data (INT_MAX);

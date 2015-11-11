@@ -12,6 +12,8 @@ class Node {
             ASSIGN,
             BINARY,
             CONST,
+            EXPR_LIST,
+            FUNC_CALL,
             INDEX,
             TYPE_CAST,
             UNARY,
@@ -205,6 +207,33 @@ class TypeCastExpr : public Expr {
 
     private:
         std::shared_ptr<Expr> expr;
+};
+
+class ExprListExpr : public Expr {
+    public:
+        ExprListExpr () { id = Node::NodeID::EXPR_LIST; }
+        void add_to_list(std::shared_ptr<Expr> expr) { expr_list.push_back(expr); }
+        void propagate_type () {};
+        UB propagate_value () { return NoUB; }
+        std::string emit ();
+
+    private:
+        std::vector<std::shared_ptr<Expr>> expr_list;
+};
+
+class FuncCallExpr : public Expr {
+    public:
+        FuncCallExpr () : name (""), args (NULL) { id = Node::NodeID::FUNC_CALL; }
+        void set_name (std::string _name) { name = _name; }
+        void set_args (std::shared_ptr<Expr> _args) { args = _args; }
+        void add_to_args (std::shared_ptr<Expr> _arg) { std::static_pointer_cast<ExprListExpr>(args)->add_to_list(_arg); }
+        void propagate_type () {};
+        UB propagate_value () { return NoUB; }
+        std::string emit ();
+
+    private:
+        std::string name; // TODO: rewrite with IR representation
+        std::shared_ptr<Expr> args;
 };
 
 class Stmnt : public Node {
