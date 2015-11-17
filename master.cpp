@@ -32,7 +32,7 @@ const bool ESSENCE_DIFFER = false;
 const int MAX_ARITH_DEPTH = 3;
 
 uint64_t rand_dev () {
-    //return 9436354; // TODO: enable random
+    //return 1062911530; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";

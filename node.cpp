@@ -83,7 +83,6 @@ void AssignExpr::propagate_type () {
 std::string AssignExpr::emit () {
     std::string ret = to->emit();
     ret += " = ";
-    ret += "/*" + std::to_string(from->get_value()) + "*/";
     ret += from->emit();
     return ret;
 }
@@ -835,7 +834,6 @@ Expr::UB BinaryExpr::propagate_value () {
 
 std::string BinaryExpr::emit () {
     std::string ret = "((" + arg0->emit() + ")";
-    ret += "/*" + std::to_string(get_value()) + "*/";
     switch (op) {
         case Add:
             ret += " + ";
@@ -1100,9 +1098,9 @@ std::string UnaryExpr::emit () {
     }
     std::string ret = "";
     if (op == PostInc || op == PostDec)
-        ret = "(("  "/*" + std::to_string(get_value()) + "*/" + arg->emit() + ")" + op_str + ")";
+        ret = "((" + arg->emit() + ")" + op_str + ")";
     else
-        ret = "(" + op_str + "(" + "/*" + std::to_string(get_value()) + "*/" + arg->emit() + "))";
+        ret = "(" + op_str + "(" + arg->emit() + "))";
     return ret;
 }
 
