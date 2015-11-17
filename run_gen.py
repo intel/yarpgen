@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/local/bin/python2.7
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -43,7 +43,7 @@ def run_cmd (job_num, args):
         ret_code = e.returncode
     return ret_code, output
 
-def save_test (lock, gen_file, cmd, fail_type, output, seed):
+def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
     lock.acquire()
     str_seed = str(seed).split()[1][:-2]
     dest = ".." + os.sep + "result"
@@ -77,6 +77,9 @@ def save_test (lock, gen_file, cmd, fail_type, output, seed):
         if (pre_filter_str [i] in str(output)):
             dest += os.sep + pre_filter_dir [i]
 
+    if not tag == "":
+        dest += os.sep + tag
+
     dest += os.sep + "S_" + str_seed
     if (os.path.exists(dest)):
         log = open(dest + os.sep + "log.txt", "a")
@@ -100,7 +103,6 @@ def save_test (lock, gen_file, cmd, fail_type, output, seed):
         shutil.copy(i, dest)
 
 
-
 def gen_and_test(num, lock, end_time):
     print "Job #" + str(num)
     os.chdir(str(num))
@@ -115,32 +117,41 @@ def gen_and_test(num, lock, end_time):
 
     compiler_passes = []
     wrap_exe = []
+    fail_tag = []
     compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
     wrap_exe.append(out_name)
+    fail_tag.append("icc" + os.sep + "run-uns")
     compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
     wrap_exe.append(out_name)
+    fail_tag.append("icc" + os.sep + "run-uns")
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O0"])
     wrap_exe.append(out_name)
+    fail_tag.append("clang" + os.sep + "run-uns")
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
     wrap_exe.append(out_name)
+    fail_tag.append("clang" + os.sep + "run-uns")
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
     wrap_exe.append(out_name)
+    fail_tag.append("gen")
     compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -xMIC-AVX512 -O3"])
     wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+    fail_tag.append("icc" + os.sep + "knl-runfail")
     compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -march=knl -O3"])
     wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+    fail_tag.append("clang" + os.sep + "knl-runfail")
 
     subprocess.check_output(".." + os.sep + "yarpgen")
     hash_args = ["bash", "-c", "clang++ hash.cpp -S -o hash.s " + clang_flags + " -O3"]
     ret_code, output = run_cmd(num, hash_args)
     if (ret_code != 0):
-        save_test(lock, gen_file, hash_args, "compfail", output , "hash-error")
+        save_test(lock, gen_file, hash_args, "", "compfail", output , "hash-error")
 
     while inf or end_time > time.time():
         seed = ""
         seed = subprocess.check_output(".." + os.sep + "yarpgen")
         print_debug ("Job #" + str(num) + " " + seed)
         pass_res = set()
+        tag = ""
         for i in range(len(compiler_passes)):
 #            print_debug("Job #" + str(num))
 #            print_debug(str(i))
@@ -148,17 +159,19 @@ def gen_and_test(num, lock, end_time):
 #            print_debug (str(wrap_exe[i]))
             ret_code, output = run_cmd(num, compiler_passes[i])
             if (ret_code != 0):
-                save_test(lock, gen_file, compiler_passes[i], "compfail", output, seed)
+                save_test(lock, gen_file, compiler_passes[i], "", "compfail", output, seed)
                 continue
             ret_code, output = run_cmd(num, wrap_exe [i])
             if (ret_code != 0):
-                save_test(lock, gen_file, wrap_exe [i], "runfail", output, seed)
+                save_test(lock, gen_file, wrap_exe [i], "", "runfail", output, seed)
                 continue
             else:
                 pass_res.add(output)
             if len(pass_res) > 1:
+                    if tag == "":
+                        tag = fail_tag[i]
                     print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]))
-                    save_test (lock, gen_file, compiler_passes [i], "runfail", "output differs", seed)
+                    save_test (lock, gen_file, compiler_passes [i], tag, "runfail", "output differs", seed)
 
 def print_compiler_version():
     ret_code, output = run_cmd(-1, "which icc".split ())
