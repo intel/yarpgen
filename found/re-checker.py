@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python2.7
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -42,16 +42,16 @@ def print_debug (line):
 
 def test(num, file_queue, out_passed_queue, out_failed_queue):
         test_files = "init.cpp driver.cpp func.cpp check.cpp hash.cpp"
-        icc_flags = "-std=c++11 -vec-threshold0 -restrict"
+        icc_flags = "-std=c++11 -vec-threshold0 -restrict -xMIC_AVX512"
         clang_flags = "-std=c++11 -fslp-vectorize-aggressive"
-        out_name = "out"
+        out_name = "./out"
 
         compiler_passes = []
         wrap_exe = []
         compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
-        wrap_exe.append(out_name)
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
         compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
-        wrap_exe.append(out_name)
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
 
         cwd_save = os.getcwd()
 

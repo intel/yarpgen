@@ -32,7 +32,7 @@ const bool ESSENCE_DIFFER = false;
 const int MAX_ARITH_DEPTH = 3;
 
 uint64_t rand_dev () {
-    //return 1062911530; // TODO: enable random
+//    return 1646987221; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
@@ -47,7 +47,7 @@ Master::Master (std::string _out_folder) {
     ctrl.ext_num = "";
 
     int gen_types = 0;
-    std::uniform_int_distribution<int> type_dis(0, Type::TypeID::MAX_INT_ID - 1);
+    std::uniform_int_distribution<int> type_dis(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
     while (gen_types < NUM_OF_MIXED_TYPES) {
         Type::TypeID type = (Type::TypeID) type_dis(rand_gen);
         if (std::find(ctrl.allowed_types.begin(), ctrl.allowed_types.end(), type) == ctrl.allowed_types.end()) {
