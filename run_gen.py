@@ -63,6 +63,15 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
     pre_filter_str.append("L0 constraint violated")
     pre_filter_dir.append("const_viol")
 
+    pre_filter_str.append("line 19467")
+    pre_filter_dir.append("stridestore")
+
+    pre_filter_str.append("line 1883")
+    pre_filter_dir.append("too_big")
+
+    pre_filter_str.append("check_il_consistency failure")
+    pre_filter_dir.append("check_il")
+
     #CLANG
     pre_filter_str.append("any_extend")
     pre_filter_dir.append("any_extend")
@@ -72,6 +81,15 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
 
     pre_filter_str.append("i32 = X86ISD::CMP")
     pre_filter_dir.append("cmp")
+
+    pre_filter_str.append("llvm::sys::PrintStackTrace")
+    pre_filter_dir.append("crash")
+
+    pre_filter_str.append(" = masked_load<")
+    pre_filter_dir.append("masked_load")
+
+    pre_filter_str.append("= masked_store<")
+    pre_filter_dir.append("masked_store")
 
     for i in range(len(pre_filter_str)):
         if (pre_filter_str [i] in str(output)):
@@ -118,27 +136,29 @@ def gen_and_test(num, lock, end_time):
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
-    compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
-    wrap_exe.append(out_name)
-    fail_tag.append("icc" + os.sep + "run-uns")
-    compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
-    wrap_exe.append(out_name)
-    fail_tag.append("icc" + os.sep + "run-uns")
-    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O0"])
-    wrap_exe.append(out_name)
-    fail_tag.append("clang" + os.sep + "run-uns")
-    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
-    wrap_exe.append(out_name)
-    fail_tag.append("clang" + os.sep + "run-uns")
-    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
-    wrap_exe.append(out_name)
-    fail_tag.append("gen")
-    compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -xMIC-AVX512 -O3"])
-    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
-    fail_tag.append("icc" + os.sep + "knl-runfail")
-    compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -march=knl -O3"])
-    wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
-    fail_tag.append("clang" + os.sep + "knl-runfail")
+    if ("icc" in args.compiler):
+        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
+        wrap_exe.append(out_name)
+        fail_tag.append("icc" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
+        wrap_exe.append(out_name)
+        fail_tag.append("icc" + os.sep + "run-uns")
+    if ("clang" in args.compiler):
+        fail_tag.append("clang" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
+        wrap_exe.append(out_name)
+        fail_tag.append("clang" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
+        wrap_exe.append(out_name)
+        fail_tag.append("gen")
+    if ("icc" in args.compiler):
+        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -xMIC-AVX512 -O3"])
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        fail_tag.append("icc" + os.sep + "knl-runfail")
+    if ("clang" in args.compiler):
+        compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -march=knl -O3"])
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        fail_tag.append("clang" + os.sep + "knl-runfail")
 
     subprocess.check_output(".." + os.sep + "yarpgen")
     hash_args = ["bash", "-c", "clang++ hash.cpp -S -o hash.s " + clang_flags + " -O3"]
@@ -168,20 +188,18 @@ def gen_and_test(num, lock, end_time):
             else:
                 pass_res.add(output)
             if len(pass_res) > 1:
-                    if tag == "":
-                        tag = fail_tag[i]
-                    print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]))
-                    save_test (lock, gen_file, compiler_passes [i], tag, "runfail", "output differs", seed)
+                if tag == "":
+                    tag = fail_tag[i]
+                print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]))
+                save_test (lock, gen_file, compiler_passes [i], tag, "runfail", "output differs", seed)
 
 def print_compiler_version():
-    ret_code, output = run_cmd(-1, "which icc".split ())
-    print_debug("ICC folder: " + output)
-    ret_code, output = run_cmd(-1, "icc -v".split ())
-    print_debug("ICC version: " + output)
-    ret_code, output = run_cmd(-1, "which clang".split ())
-    print_debug("clang folder: " + output)
-    ret_code, output = run_cmd(-1, "clang -v".split ())
-    print_debug("clang version: " + output)
+    compilers = args.compiler.split()
+    for i in compilers:
+        ret_code, output = run_cmd(-1, ("which " + i).split ())
+        print_debug(i + " folder: " + output)
+        ret_code, output = run_cmd(-1, (i + " -v").split ())
+        print_debug(i + " version: " + output)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test system of random loop generator.')
@@ -191,20 +209,24 @@ if __name__ == '__main__':
                         help='timeout for generator in hours. -1 means infinitive')
     parser.add_argument('-j', '--jobs', dest='num_jobs', default=multiprocessing.cpu_count(), type=int,
                         help='Maximum number of jobs to run in parallel')
+    parser.add_argument('-f', '--folder', dest='folder', default="test", type=str,
+                        help='Test folder')
+    parser.add_argument('-c', '--compiler', dest='compiler', default="icc clang", type=str,
+                        help='Test compilers')
     args = parser.parse_args()
 
     print_compiler_version()
 
 #    if os.path.exists("test"):
 #       shutil.rmtree("test")
-    if not os.path.exists("test"):
-        os.makedirs("test")
-    if os.path.exists("yarpgen"):
-        shutil.copy("yarpgen", "test")
-    else:
+    if not os.path.exists(args.folder):
+        os.makedirs(args.folder)
+#    if os.path.exists("yarpgen"):
+#        shutil.copy("yarpgen", args.folder)
+    if not os.path.exists((args.folder) + os.sep + "yarpgen"):
         print_debug ("No binary file of generator was found.")
         sys.exit(-1)
-    os.chdir("test")
+    os.chdir(args.folder)
     if not os.path.exists("result"):
         os.makedirs("result")
     for i in range(args.num_jobs):
@@ -214,7 +236,7 @@ if __name__ == '__main__':
     lock = multiprocessing.Lock()
 
     start_time = time.time()
-    end_time = start_time + args.timeout * 3600
+    end_time = start_time + args.timeout * 1
     if args.timeout == -1:
         end_time = -1
 
