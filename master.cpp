@@ -68,6 +68,8 @@ Master::Master (std::string _out_folder) {
     ctrl.max_var_val = UINT_MAX;
 
     ctrl.max_arith_depth = MAX_ARITH_DEPTH;
+
+    ctrl.self_dep = true;
 }
 
 void Master::generate () {
@@ -136,12 +138,18 @@ void LoopGen::generate () {
         inp_expr.push_back(std::make_shared<IndexExpr> (arr_index));
     }
 
+    std::vector<std::shared_ptr<Expr>> tmp_inp_expr;
     for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
         IndexExpr out_arr_index;
         out_arr_index.set_index(std::make_shared<VarUseExpr> (iter_use));
         out_arr_index.set_base(std::static_pointer_cast<Array>(*i));
 
-        ArithExprGen arith_expr_gen (ctrl, inp_expr, std::make_shared<IndexExpr> (out_arr_index));
+        tmp_inp_expr = inp_expr;
+        if (ctrl.self_dep) {
+            tmp_inp_expr.push_back(std::make_shared<IndexExpr> (out_arr_index));
+        }
+
+        ArithExprGen arith_expr_gen (ctrl, tmp_inp_expr, std::make_shared<IndexExpr> (out_arr_index));
         arith_expr_gen.generate();
         loop.add_to_body(arith_expr_gen.get_expr_stmnt());
     }
@@ -554,7 +562,12 @@ void ArrayGen::generate () {
 
     Array out = Array ("out_" + ctrl.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     out.set_align (32);
-    out.set_value(0);
+    tmp_ctrl = ctrl;
+    tmp_ctrl.min_var_val = out.get_base_type()->get_min();
+    tmp_ctrl.max_var_val = out.get_base_type()->get_max();
+    var_val_gen = VarValGen (tmp_ctrl, out.get_base_type()->get_id());
+    var_val_gen.generate();
+    out.set_value(var_val_gen.get_value());
     out_arr = std::make_shared<Array> (out);
     sym_table.push_back(std::make_shared<Array> (out));
 }

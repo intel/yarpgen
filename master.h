@@ -40,6 +40,8 @@ struct ControlStruct {
     uint64_t max_var_val;
 
     int max_arith_depth;
+
+    bool self_dep;
 };
 
 class Master {
