@@ -236,7 +236,7 @@ if __name__ == '__main__':
     lock = multiprocessing.Lock()
 
     start_time = time.time()
-    end_time = start_time + args.timeout * 1
+    end_time = start_time + args.timeout * 3600
     if args.timeout == -1:
         end_time = -1
 
