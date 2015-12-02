@@ -42,6 +42,7 @@ struct ControlStruct {
     int max_arith_depth;
 
     bool self_dep;
+    bool inter_war_dep;
 };
 
 class Master {

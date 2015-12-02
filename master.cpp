@@ -70,6 +70,7 @@ Master::Master (std::string _out_folder) {
     ctrl.max_arith_depth = MAX_ARITH_DEPTH;
 
     ctrl.self_dep = true;
+    ctrl.inter_war_dep = true;
 }
 
 void Master::generate () {
@@ -138,20 +139,39 @@ void LoopGen::generate () {
         inp_expr.push_back(std::make_shared<IndexExpr> (arr_index));
     }
 
-    std::vector<std::shared_ptr<Expr>> tmp_inp_expr;
+    std::vector<std::shared_ptr<Expr>> out_expr;
+
     for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
         IndexExpr out_arr_index;
         out_arr_index.set_index(std::make_shared<VarUseExpr> (iter_use));
         out_arr_index.set_base(std::static_pointer_cast<Array>(*i));
+        out_expr.push_back(std::make_shared<IndexExpr> (out_arr_index));
+    }
 
-        tmp_inp_expr = inp_expr;
-        if (ctrl.self_dep) {
-            tmp_inp_expr.push_back(std::make_shared<IndexExpr> (out_arr_index));
+    std::vector<std::shared_ptr<Expr>> tmp_inp_expr;
+    if (ctrl.inter_war_dep) {
+        tmp_inp_expr = out_expr;
+        tmp_inp_expr.insert(tmp_inp_expr.end(), inp_expr.begin(), inp_expr.end());
+    }
+
+    for (int i = 0; i < out_sym_table.size(); ++i) {
+        if (ctrl.inter_war_dep) {
+            if (!ctrl.self_dep) {
+                tmp_inp_expr.erase(tmp_inp_expr.begin());
+            }
+        }
+        else {
+            tmp_inp_expr = inp_expr;
+            tmp_inp_expr.push_back(out_expr.at(i));
         }
 
-        ArithExprGen arith_expr_gen (ctrl, tmp_inp_expr, std::make_shared<IndexExpr> (out_arr_index));
+        ArithExprGen arith_expr_gen (ctrl, tmp_inp_expr, out_expr.at(i));
         arith_expr_gen.generate();
         loop.add_to_body(arith_expr_gen.get_expr_stmnt());
+
+        if (ctrl.inter_war_dep) {
+            tmp_inp_expr.erase(tmp_inp_expr.begin());
+        }
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
