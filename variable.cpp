@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//////////////////////////////////////////////////////////////////////////////
+
 #include "variable.h"
 
 Data::Data (std::string _name, Type::TypeID _type_id, Mod _modifier, bool _is_static) {

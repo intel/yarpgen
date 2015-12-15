@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//////////////////////////////////////////////////////////////////////////////
+
 #include "type.h"
 
 std::shared_ptr<Type> Type::init (Type::TypeID _type_id) {
