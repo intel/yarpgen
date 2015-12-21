@@ -941,6 +941,7 @@ std::string Master::emit_decl () {
     ret += "#include <iostream>\n";
     ret += "#include <array>\n";
     ret += "#include <vector>\n";
+    ret += "#include <valarray>\n";
 
     ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n";
 

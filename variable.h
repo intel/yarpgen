@@ -96,6 +96,7 @@ class Array : public Data {
             C_ARR,
             STD_ARR,
             STD_VEC,
+            VAL_ARR,
             MAX_ESS
         };
 
