@@ -21,7 +21,7 @@ limitations under the License.
 const int MIN_LOOP_NUM = 3;
 const int MAX_LOOP_NUM = 10;
 
-const int MIN_ARR_NUM = 3;
+const int MIN_ARR_NUM = 7;
 const int MAX_ARR_NUM = 10;
 
 const int MIN_ARR_SIZE = 1000;
@@ -34,7 +34,7 @@ const bool ESSENCE_DIFFER = false;
 const int MAX_ARITH_DEPTH = 3;
 
 uint64_t rand_dev () {
-//    return 1646987221; // TODO: enable random
+//    return 1666667516; // TODO: enable random
     std::random_device rd;
     uint64_t ret = rd ();
     std::cout << "/*SEED " << ret << "*/\n";
@@ -73,6 +73,8 @@ Master::Master (std::string _out_folder) {
 
     ctrl.self_dep = true;
     ctrl.inter_war_dep = true;
+
+    ctrl.else_branch = true;
 }
 
 void Master::generate () {
@@ -150,13 +152,41 @@ void LoopGen::generate () {
         out_expr.push_back(std::make_shared<IndexExpr> (out_arr_index));
     }
 
+    std::vector<std::shared_ptr<Stmnt>> body = body_gen(inp_expr, out_expr);
+    for (int i = 0; i < body.size(); ++i) {
+        loop.add_to_body(body.at(i));
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+    program.push_back(std::make_shared<CntLoopStmnt> (loop));
+}
+
+std::vector<std::shared_ptr<Stmnt>> LoopGen::body_gen (std::vector<std::shared_ptr<Expr>> inp_expr,
+                                                       std::vector<std::shared_ptr<Expr>> out_expr) {
+    std::vector<std::shared_ptr<Stmnt>> ret;
+
     std::vector<std::shared_ptr<Expr>> tmp_inp_expr;
     if (ctrl.inter_war_dep) {
         tmp_inp_expr = out_expr;
         tmp_inp_expr.insert(tmp_inp_expr.end(), inp_expr.begin(), inp_expr.end());
     }
 
-    for (int i = 0; i < out_sym_table.size(); ++i) {
+    std::uniform_int_distribution<int> if_prob_dis(0, 100);
+    bool if_exist = if_prob_dis(rand_gen) > 50 ? true : false;
+    std::uniform_int_distribution<int> if_start_dis(0, out_expr.size() - 1);
+    int if_start = if_start_dis(rand_gen);
+    std::uniform_int_distribution<int> inside_if_dis(1, out_expr.size() - if_start);
+    int if_end = inside_if_dis(rand_gen) + if_start;
+
+    IfStmnt if_stmnt;
+//    std::cerr << "if_exist " << if_exist << std::endl;
+//    std::cerr << "if_start " << if_start << std::endl;
+//    std::cerr << "if_end " << if_end << std::endl;
+    std::uniform_int_distribution<int> else_branch_dis(0, 1);
+    if_stmnt.set_else_exist(ctrl.else_branch && else_branch_dis(rand_gen));
+
+    for (int i = 0; i < out_expr.size(); ++i) {
+//        std::cerr << "i start " << i << std::endl;
         if (ctrl.inter_war_dep) {
             if (!ctrl.self_dep) {
                 tmp_inp_expr.erase(tmp_inp_expr.begin());
@@ -167,17 +197,57 @@ void LoopGen::generate () {
             tmp_inp_expr.push_back(out_expr.at(i));
         }
 
-        ArithExprGen arith_expr_gen (ctrl, tmp_inp_expr, out_expr.at(i));
-        arith_expr_gen.generate();
-        loop.add_to_body(arith_expr_gen.get_expr_stmnt());
+        if (if_exist && if_start == i) {
+            ArithExprGen arith_expr_gen (ctrl, tmp_inp_expr, NULL);
+            arith_expr_gen.generate();
+            if_stmnt.set_cond(arith_expr_gen.get_expr());
+            std::vector<std::shared_ptr<Expr>>::const_iterator first = out_expr.begin() + if_start;
+            std::vector<std::shared_ptr<Expr>>::const_iterator last = out_expr.begin() + if_end;
+            std::vector<std::shared_ptr<Expr>> if_out_expr(first, last);
+//            std::cerr << "if_out_expr.size() " << if_out_expr.size() << std::endl;
+            std::vector<std::shared_ptr<Stmnt>> if_body = body_gen(inp_expr, if_out_expr);
+//            std::cerr << "if_body.size() " << if_body.size() << std::endl;
+            if (!if_stmnt.get_else_exist()) {
+                for (int j = 0; j < if_body.size(); ++j) {
+                    if_stmnt.add_if_stmnt(if_body.at(j));
+                }
+            }
+            else {
+                std::uniform_int_distribution<int> add_to_branch_dis(0, 100);
+                int add_to_branch [if_body.size()];
+                for (int j = 0; j < if_body.size(); ++j) {
+                    add_to_branch [j] = add_to_branch_dis(rand_gen);
+                }
+                for (int j = 0; j < if_body.size(); ++j) {
+                    if (add_to_branch [j] <= 60)
+                        if_stmnt.add_if_stmnt(if_body.at(j));
+                }
+                std::vector<std::shared_ptr<Stmnt>> else_body = body_gen(inp_expr, if_out_expr);
+                for (int j = 0; j < else_body.size(); ++j) {
+                    if (add_to_branch [j] <= 30 || (60 <= add_to_branch [j] && add_to_branch [j] <= 90))
+                        if_stmnt.add_else_stmnt(else_body.at(j));
+                }
+            }
+            ret.push_back(std::make_shared<IfStmnt>(if_stmnt));
+            i += if_end - if_start - 1;
 
-        if (ctrl.inter_war_dep) {
-            tmp_inp_expr.erase(tmp_inp_expr.begin());
+            if (ctrl.inter_war_dep) {
+                for (int j = if_start; j < if_end; ++j) {
+                    tmp_inp_expr.erase(tmp_inp_expr.begin());
+                }
+            }
         }
+        else {
+            ArithExprGen arith_expr_gen (ctrl, tmp_inp_expr, out_expr.at(i));
+            arith_expr_gen.generate();
+            ret.push_back(arith_expr_gen.get_expr_stmnt());
+            if (ctrl.inter_war_dep) {
+                tmp_inp_expr.erase(tmp_inp_expr.begin());
+            }
+        }
+//        std::cerr << "i = " << i << std::endl;
     }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-    program.push_back(std::make_shared<CntLoopStmnt> (loop));
+    return ret;
 }
 
 void TripGen::generate () {

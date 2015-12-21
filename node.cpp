@@ -1276,9 +1276,12 @@ std::string CntLoopStmnt::emit() {
             break;
     }
 
-    for (auto i = this->body.begin(); i != this->body.end(); ++i)
-        ret += (*i)->emit() + ";\n";
-
+    for (auto i = this->body.begin(); i != this->body.end(); ++i) {
+        if ((*i)->get_id() == NodeID::IF)
+            ret += (*i)->emit() + "\n";
+        else
+            ret += (*i)->emit() + ";\n";
+    }
     if (loop_id == LoopStmnt::LoopID::WHILE ||
         loop_id == LoopStmnt::LoopID::DO_WHILE) {
         ret += step_expr->emit() + ";\n";
@@ -1290,5 +1293,22 @@ std::string CntLoopStmnt::emit() {
         ret += "while (" + cond->emit() + ");";
     }
 
+    return ret;
+}
+
+std::string IfStmnt::emit () {
+    std::string ret;
+    ret += "if (" + cond->emit() + ") {\n";
+    for (auto i = if_branch.begin(); i != if_branch.end(); ++i) {
+        ret += (*i)->emit() + ";\n";
+    }
+    if (else_exist) {
+        ret += "}\n";
+        ret += "else {\n";
+        for (auto i = else_branch.begin(); i != else_branch.end(); ++i) {
+            ret += (*i)->emit() + ";\n";
+        }
+    }
+    ret += "}";
     return ret;
 }

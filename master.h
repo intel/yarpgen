@@ -45,6 +45,8 @@ struct ControlStruct {
 
     bool self_dep;
     bool inter_war_dep;
+
+    bool else_branch;
 };
 
 class Master {
@@ -104,6 +106,7 @@ class LoopGen : public Gen {
         void generate ();
 
     private:
+        std::vector<std::shared_ptr<Stmnt>> body_gen (std::vector<std::shared_ptr<Expr>> inp_expr, std::vector<std::shared_ptr<Expr>> out_expr);
         uint64_t min_ex_arr_size;
         std::vector<std::shared_ptr<Data>> inp_sym_table;
         std::vector<std::shared_ptr<Data>> out_sym_table;
@@ -159,6 +162,7 @@ class ArithExprGen : public Gen {
                       Gen (_ctrl), inp(_inp), out(_out) {}
         void generate();
         std::shared_ptr<Stmnt> get_expr_stmnt ();
+        std::shared_ptr<Expr> get_expr () { return res_expr; };
 
     private:
         std::shared_ptr<Expr> rebuild_unary(Expr::UB ub, std::shared_ptr<Expr> expr);

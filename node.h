@@ -41,6 +41,7 @@ class Node {
             DECL,
             EXPR,
             CNT_LOOP,
+            IF,
             MAX_STMNT_ID
         };
         Node () : id (MAX_EXPR_ID), is_expr(false) {}
@@ -65,7 +66,7 @@ class Expr : public Node {
             ShiftRhsLarge, // // Shift by large value
             NegShift, // Shift of negative value
         };
-        Expr () : value("", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = false;}
+        Expr () : value("", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = true;}
         static std::shared_ptr<Expr> init (Node::NodeID _id);
         Type::TypeID get_type_id () { return value.get_type()->get_id (); }
         bool get_type_is_signed () { return value.get_type()->get_is_signed(); }
@@ -314,4 +315,21 @@ class CntLoopStmnt : public LoopStmnt {
         std::shared_ptr<Variable> iter;
         std::shared_ptr<DeclStmnt> iter_decl;
         std::shared_ptr<Expr> step_expr;
+};
+
+class IfStmnt : public Stmnt {
+    public:
+        IfStmnt () : else_exist(false), cond(NULL) { id = Node::NodeID::IF; }
+        void set_cond (std::shared_ptr<Expr> _cond) { cond = _cond; }
+        void add_if_stmnt (std::shared_ptr<Stmnt> if_stmnt) { if_branch.push_back(if_stmnt); }
+        void add_else_stmnt (std::shared_ptr<Stmnt> else_stmnt) { else_branch.push_back(else_stmnt); }
+        void set_else_exist (bool _else_exist) { else_exist = _else_exist; }
+        bool get_else_exist () { return else_exist; }
+        std::string emit ();
+
+    private:
+        bool else_exist;
+        std::shared_ptr<Expr> cond;
+        std::vector<std::shared_ptr<Stmnt>> if_branch;
+        std::vector<std::shared_ptr<Stmnt>> else_branch;
 };

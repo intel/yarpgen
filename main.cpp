@@ -122,6 +122,14 @@ int main (int argv, char* argc[]) {
     fc.set_name("hash");
     fc.set_args(std::make_shared<ExprListExpr> (expr_list));
     std::cout << "FuncCallExpr: " << fc.emit () << std::endl;
+
+    IfStmnt if_stmnt;
+    if_stmnt.set_cond(std::make_shared<BinaryExpr> (cond));
+    if_stmnt.add_if_stmnt(std::make_shared<ExprStmnt> (ex_st));
+    std::cout << "IfStmnt: " << if_stmnt.emit () << std::endl;
+    if_stmnt.set_else_exist(true);
+    if_stmnt.add_else_stmnt(std::make_shared<ExprStmnt> (ex_st));
+    std::cout << "IfStmnt: " << if_stmnt.emit () << std::endl;
 */
     std::string test_dir = "./";
     if (argv == 2) {
