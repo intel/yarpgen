@@ -27,7 +27,7 @@ limitations under the License.
 
 uint64_t rand_dev ();
 
-struct ControlStruct {
+struct GenerationPolicy {
     std::string ext_num;
 
     std::vector<Type::TypeID> allowed_types;
@@ -64,7 +64,7 @@ class Master {
         void write_file (std::string of_name, std::string data);
         std::string emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCallExpr> func_call = NULL);
 
-        ControlStruct ctrl;
+        GenerationPolicy gen_policy;
         std::vector<std::shared_ptr<Stmnt>> program;
         std::vector<std::shared_ptr<Data>> inp_sym_table;
         std::vector<std::shared_ptr<Data>> out_sym_table;
@@ -73,21 +73,21 @@ class Master {
 
 class Gen {
     public:
-        Gen (ControlStruct _ctrl) : ctrl (_ctrl) {}
-        void set_ctrl (ControlStruct _ctrl) { ctrl = _ctrl; }
+        Gen (GenerationPolicy _gen_policy) : gen_policy (_gen_policy) {}
+        void set_gen_policy (GenerationPolicy _gen_policy) { gen_policy = _gen_policy; }
         std::vector<std::shared_ptr<Stmnt>>& get_program () { return program; }
         std::vector<std::shared_ptr<Data>>& get_sym_table () { return sym_table; }
         virtual void generate () = 0;
 
     protected:
-        ControlStruct ctrl;
+        GenerationPolicy gen_policy;
         std::vector<std::shared_ptr<Stmnt>> program;
         std::vector<std::shared_ptr<Data>> sym_table;
 };
 
 class ArrayGen : public Gen {
     public:
-        ArrayGen (ControlStruct _ctrl) : Gen (_ctrl) {}
+        ArrayGen (GenerationPolicy _gen_policy) : Gen (_gen_policy) {}
         std::shared_ptr<Array> get_inp_arr () { return inp_arr; }
         std::shared_ptr<Array> get_out_arr () { return out_arr; }
         void generate ();
@@ -100,7 +100,7 @@ class ArrayGen : public Gen {
 
 class LoopGen : public Gen {
     public:
-        LoopGen (ControlStruct _ctrl) : Gen (_ctrl), min_ex_arr_size (UINT64_MAX) {}
+        LoopGen (GenerationPolicy _gen_policy) : Gen (_gen_policy), min_ex_arr_size (UINT64_MAX) {}
         std::vector<std::shared_ptr<Data>>& get_inp_sym_table () { return inp_sym_table; }
         std::vector<std::shared_ptr<Data>>& get_out_sym_table () { return out_sym_table; }
         void generate ();
@@ -114,7 +114,7 @@ class LoopGen : public Gen {
 
 class VarValGen : public Gen {
     public:
-        VarValGen (ControlStruct _ctrl, Type::TypeID _type_id) : Gen (_ctrl), type_id(_type_id), val(0) {}
+        VarValGen (GenerationPolicy _gen_policy, Type::TypeID _type_id) : Gen (_gen_policy), type_id(_type_id), val(0) {}
         void generate();
         void generate_step();
         uint64_t get_value () { return val; }
@@ -126,8 +126,8 @@ class VarValGen : public Gen {
 
 class StepExprGen : public Gen {
     public:
-        StepExprGen (ControlStruct _ctrl, std::shared_ptr<Variable> _var, int64_t _step) :
-                     Gen (_ctrl), var(_var), step(_step), expr(NULL) {}
+        StepExprGen (GenerationPolicy _gen_policy, std::shared_ptr<Variable> _var, int64_t _step) :
+                     Gen (_gen_policy), var(_var), step(_step), expr(NULL) {}
         void generate ();
         std::shared_ptr<Expr> get_expr () { return expr; }
 
@@ -139,7 +139,7 @@ class StepExprGen : public Gen {
 
 class TripGen : public Gen {
     public:
-        TripGen (ControlStruct _ctrl, uint64_t _min_ex_arr_size) : Gen (_ctrl), min_ex_arr_size(_min_ex_arr_size) {}
+        TripGen (GenerationPolicy _gen_policy, uint64_t _min_ex_arr_size) : Gen (_gen_policy), min_ex_arr_size(_min_ex_arr_size) {}
         void generate ();
         std::shared_ptr<Variable> get_iter () { return iter; }
         std::shared_ptr<DeclStmnt> get_iter_decl ();
@@ -156,10 +156,10 @@ class TripGen : public Gen {
 
 class ArithExprGen : public Gen {
     public:
-        ArithExprGen (ControlStruct _ctrl,
+        ArithExprGen (GenerationPolicy _gen_policy,
                       std::vector<std::shared_ptr<Expr>> _inp,
                       std::shared_ptr<Expr> _out) :
-                      Gen (_ctrl), inp(_inp), out(_out) {}
+                      Gen (_gen_policy), inp(_inp), out(_out) {}
         void generate();
         std::shared_ptr<Stmnt> get_expr_stmnt ();
         std::shared_ptr<Expr> get_expr () { return res_expr; };
