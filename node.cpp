@@ -17,43 +17,6 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "node.h"
-
-std::shared_ptr<Expr> Expr::init (Node::NodeID _id) {
-    std::shared_ptr<Expr> ret (NULL);
-    switch (_id) {
-        case Node::NodeID::ASSIGN:
-            ret = std::make_shared<AssignExpr> (AssignExpr());
-            break;
-        case Node::NodeID::BINARY:
-            ret = std::make_shared<BinaryExpr> (BinaryExpr());
-            break;
-        case Node::NodeID::CONST:
-            ret = std::make_shared<ConstExpr> (ConstExpr());
-            break;
-        case Node::NodeID::FUNC_CALL:
-            ret = std::make_shared<FuncCallExpr> (FuncCallExpr());
-            break;
-        case Node::NodeID::INDEX:
-            ret = std::make_shared<IndexExpr> (IndexExpr());
-            break;
-        case Node::NodeID::EXPR_LIST:
-            ret = std::make_shared<ExprListExpr> (ExprListExpr());
-            break;
-        case Node::NodeID::TYPE_CAST:
-            ret = std::make_shared<TypeCastExpr> (TypeCastExpr());
-            break;
-        case Node::NodeID::VAR_USE:
-            ret = std::make_shared<VarUseExpr> (VarUseExpr());
-            break;
-        case Node::NodeID::UNARY:
-            ret = std::make_shared<UnaryExpr> (UnaryExpr());
-            break;
-        case Node::NodeID::MAX_EXPR_ID:
-            break;
-    }
-    return ret;
-}
-
 void VarUseExpr::set_variable (std::shared_ptr<Variable> _var) {
     var = _var;
     value.set_type(var->get_type());
@@ -1169,24 +1132,6 @@ std::string ExprListExpr::emit () {
 
 std::string FuncCallExpr::emit () {
     return name.c_str() + args->emit();
-}
-
-std::shared_ptr<Stmnt> Stmnt::init (Node::NodeID _id) {
-    std::shared_ptr<Stmnt> ret (NULL);
-    switch (_id) {
-        case Node::NodeID::DECL:
-            ret = std::make_shared<DeclStmnt> (DeclStmnt());
-            break;
-        case Node::NodeID::EXPR:
-            ret = std::make_shared<ExprStmnt> (ExprStmnt());
-            break;
-        case Node::NodeID::CNT_LOOP:
-            ret = std::make_shared<CntLoopStmnt> (CntLoopStmnt());
-            break;
-        case Node::NodeID::MAX_STMNT_ID:
-            break;
-    }
-    return ret;
 }
 
 std::string DeclStmnt::emit () {

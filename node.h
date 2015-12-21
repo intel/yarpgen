@@ -67,7 +67,6 @@ class Expr : public Node {
             NegShift, // Shift of negative value
         };
         Expr () : value("", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = true;}
-        static std::shared_ptr<Expr> init (Node::NodeID _id);
         Type::TypeID get_type_id () { return value.get_type()->get_id (); }
         bool get_type_is_signed () { return value.get_type()->get_is_signed(); }
         uint64_t get_type_bit_size () { return value.get_type()->get_bit_size(); }
@@ -258,7 +257,6 @@ class FuncCallExpr : public Expr {
 class Stmnt : public Node {
     public:
         Stmnt () {};
-        static std::shared_ptr<Stmnt> init (Node::NodeID _id);
 };
 
 class DeclStmnt : public Stmnt {

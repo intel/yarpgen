@@ -98,6 +98,8 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
                     return !long_eq_long_long;
                 case ULLINT:
                     return true;
+                default:
+                    std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
             }
         case LLINT:
             switch (B->get_id()) {
@@ -112,6 +114,8 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
                     return true;
                 case ULLINT:
                    return false;
+                default:
+                    std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
             }
         case ULLINT:
             switch (B->get_id()) {
@@ -125,6 +129,8 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
                    return false;
                 case ULLINT:
                     return true;
+                default:
+                    std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
             }
         default:
             std::cerr << "ERROR: Type::can_repr_value" << std::endl;
