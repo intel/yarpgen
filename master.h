@@ -49,6 +49,19 @@ struct GenerationPolicy {
     bool else_branch;
 };
 
+class RandValGen {
+    public:
+        RandValGen (uint64_t _seed);
+        template<typename T>
+        T get_rand_value (T from, T to);
+
+    private:
+        uint64_t seed;
+        std::mt19937_64 rand_gen;
+};
+
+extern std::shared_ptr<RandValGen> rand_val_gen;
+
 class Master {
     public:
         Master (std::string _out_folder);

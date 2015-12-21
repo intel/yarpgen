@@ -43,15 +43,34 @@ uint64_t rand_dev () {
 
 std::mt19937_64 rand_gen(rand_dev());
 
+std::shared_ptr<RandValGen> rand_val_gen;
+
+RandValGen::RandValGen (uint64_t _seed) {
+    if (_seed != 0) {
+        seed = _seed;
+    }
+    else {
+        std::random_device rd;
+        seed = rd ();
+    }
+    std::cout << "/*SEED " << seed << "*/\n";
+    rand_gen = std::mt19937_64(rand_dev());
+}
+
+template<typename T>
+T RandValGen::get_rand_value (T from, T to) {
+    std::uniform_int_distribution<T> dis(from, to);
+    return dis(rand_gen);
+}
+
 Master::Master (std::string _out_folder) {
     out_folder = _out_folder;
 
     gen_policy.ext_num = "";
 
     int gen_types = 0;
-    std::uniform_int_distribution<int> type_dis(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
     while (gen_types < NUM_OF_MIXED_TYPES) {
-        Type::TypeID type = (Type::TypeID) type_dis(rand_gen);
+        Type::TypeID type = (Type::TypeID) rand_val_gen->get_rand_value<int>(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
         if (std::find(gen_policy.allowed_types.begin(), gen_policy.allowed_types.end(), type) == gen_policy.allowed_types.end()) {
             gen_policy.allowed_types.push_back (type);
             gen_types++;
@@ -63,8 +82,7 @@ Master::Master (std::string _out_folder) {
     gen_policy.min_arr_size = MIN_ARR_SIZE;
     gen_policy.max_arr_size = MAX_ARR_SIZE;
 
-    std::uniform_int_distribution<int> ess_dis(0, Array::Ess::MAX_ESS - 1);
-    gen_policy.primary_ess = (Array::Ess) ess_dis (rand_gen);
+    gen_policy.primary_ess = (Array::Ess) rand_val_gen->get_rand_value<int>(0, Array::Ess::MAX_ESS - 1);
 
     gen_policy.min_var_val = 0;
     gen_policy.max_var_val = UINT_MAX;
@@ -79,8 +97,7 @@ Master::Master (std::string _out_folder) {
 
 void Master::generate () {
     // choose num of loops
-    std::uniform_int_distribution<int> loop_num_dis(MIN_LOOP_NUM, MAX_LOOP_NUM);
-    int loop_num = loop_num_dis(rand_gen);
+    int loop_num = rand_val_gen->get_rand_value<int>(MIN_LOOP_NUM, MAX_LOOP_NUM);
     for (int i = 0; i < loop_num; ++i) {
         gen_policy.ext_num = "lp" + std::to_string(i);
         LoopGen loop_gen (gen_policy);
@@ -93,8 +110,7 @@ void Master::generate () {
 
 void LoopGen::generate () {
     // Array
-    std::uniform_int_distribution<int> arr_num_dis(gen_policy.min_arr_num, gen_policy.max_arr_num);
-    int arr_num = arr_num_dis(rand_gen);
+    int arr_num = rand_val_gen->get_rand_value<int>(gen_policy.min_arr_num, gen_policy.max_arr_num);;
     for (int i = 0; i < arr_num; ++i) {
         GenerationPolicy tmp_gen_policy = gen_policy;
         tmp_gen_policy.ext_num += "_" + std::to_string(i);
@@ -115,8 +131,7 @@ void LoopGen::generate () {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Loop
     CntLoopStmt loop;
-    std::uniform_int_distribution<int> loop_id_dis(0, LoopStmt::LoopID::MAX_LOOP_ID - 1);
-    LoopStmt::LoopID loop_type = (LoopStmt::LoopID) loop_id_dis(rand_gen);
+    LoopStmt::LoopID loop_type = (LoopStmt::LoopID) rand_val_gen->get_rand_value<int>(0, LoopStmt::LoopID::MAX_LOOP_ID - 1);
     loop.set_loop_type (loop_type);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -171,19 +186,15 @@ std::vector<std::shared_ptr<Stmt>> LoopGen::body_gen (std::vector<std::shared_pt
         tmp_inp_expr.insert(tmp_inp_expr.end(), inp_expr.begin(), inp_expr.end());
     }
 
-    std::uniform_int_distribution<int> if_prob_dis(0, 100);
-    bool if_exist = if_prob_dis(rand_gen) > 50 ? true : false;
-    std::uniform_int_distribution<int> if_start_dis(0, out_expr.size() - 1);
-    int if_start = if_start_dis(rand_gen);
-    std::uniform_int_distribution<int> inside_if_dis(1, out_expr.size() - if_start);
-    int if_end = inside_if_dis(rand_gen) + if_start;
+    bool if_exist = rand_val_gen->get_rand_value<int>(0, 100) > 50 ? true : false;
+    int if_start = rand_val_gen->get_rand_value<int>(1, out_expr.size() - if_start);
+    int if_end = rand_val_gen->get_rand_value<int>(1, out_expr.size() - if_start) + if_start;
 
     IfStmt if_stmt;
 //    std::cerr << "if_exist " << if_exist << std::endl;
 //    std::cerr << "if_start " << if_start << std::endl;
 //    std::cerr << "if_end " << if_end << std::endl;
-    std::uniform_int_distribution<int> else_branch_dis(0, 1);
-    if_stmt.set_else_exist(gen_policy.else_branch && else_branch_dis(rand_gen));
+    if_stmt.set_else_exist(gen_policy.else_branch && rand_val_gen->get_rand_value<int>(0, 1));
 
     for (int i = 0; i < out_expr.size(); ++i) {
 //        std::cerr << "i start " << i << std::endl;
@@ -213,10 +224,9 @@ std::vector<std::shared_ptr<Stmt>> LoopGen::body_gen (std::vector<std::shared_pt
                 }
             }
             else {
-                std::uniform_int_distribution<int> add_to_branch_dis(0, 100);
                 int add_to_branch [if_body.size()];
                 for (int j = 0; j < if_body.size(); ++j) {
-                    add_to_branch [j] = add_to_branch_dis(rand_gen);
+                    add_to_branch [j] = rand_val_gen->get_rand_value<int>(0, 100);
                 }
                 for (int j = 0; j < if_body.size(); ++j) {
                     if (add_to_branch [j] <= 60)
@@ -251,8 +261,7 @@ std::vector<std::shared_ptr<Stmt>> LoopGen::body_gen (std::vector<std::shared_pt
 }
 
 void TripGen::generate () {
-    std::uniform_int_distribution<int> var_type_dis(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
-    Type::TypeID var_type = (Type::TypeID) var_type_dis(rand_gen);
+    Type::TypeID var_type = (Type::TypeID) rand_val_gen->get_rand_value<int>(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
     Variable iter_var ("i_" + gen_policy.ext_num, var_type, Variable::Mod::NTHNG, false);
     iter = std::make_shared<Variable> (iter_var);
 
@@ -267,8 +276,7 @@ void TripGen::generate () {
     iter->set_min(start_val);
 
     // Step
-    std::uniform_int_distribution<int> step_dir_dis(0, 1);
-    int step_dir = step_dir_dis(rand_gen) ? 1 : -1;
+    int step_dir = rand_val_gen->get_rand_value<int>(0, 1) ? 1 : -1;
     if (start_val == max_arr_indx) {
         if (!iter->get_type()->get_is_signed()) { // If we have unsigned iterator, we can't go upper than top of array
             start_val = 0;
@@ -343,15 +351,13 @@ void TripGen::generate () {
             std::cerr << "ERROR: TripGen::generate : bad iterator type" << std::endl;
             break;
     }
-    std::uniform_int_distribution<int> step_num_dis(1, max_step_num);
-    int64_t step_num = step_num_dis(rand_gen);
+    int64_t step_num = rand_val_gen->get_rand_value<int>(1, max_step_num);
 
     // End value
     int64_t end_value = start_val + step_num * step;
     int64_t next_end_value = start_val + (step_num + 1) * step;
     bool can_iter_of = (next_end_value >= max_arr_indx) || (next_end_value < 0);
-    std::uniform_int_distribution<int> end_diff_dis(0, 1);
-    bool hit_end = end_diff_dis(rand_gen) || can_iter_of;
+    bool hit_end = rand_val_gen->get_rand_value<int>(0, 1) || can_iter_of;
     end_value += hit_end ? 0 : step / 2;
     iter->set_max(end_value);
 
@@ -386,8 +392,7 @@ void TripGen::gen_condition (bool hit_end, int64_t step) {
             allowed_cmp_op.push_back(BinaryExpr::Op::Le);
         allowed_cmp_op.push_back(BinaryExpr::Op::Lt);
     }
-    std::uniform_int_distribution<int> cmp_op_dis(0, allowed_cmp_op.size() - 1);
-    BinaryExpr::Op cmp_op = allowed_cmp_op.at(cmp_op_dis(rand_gen));
+    BinaryExpr::Op cmp_op = allowed_cmp_op.at(rand_val_gen->get_rand_value<int>(0, allowed_cmp_op.size() - 1));
 
     ConstExpr end_val_expr;
     end_val_expr.set_type(iter->get_type()->get_id());
@@ -414,19 +419,16 @@ void ArithExprGen::generate () {
 }
 
 std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
-    std::uniform_int_distribution<int> node_type_dis(0, 100);
-    int node_type = node_type_dis(rand_gen);
+    int node_type = rand_val_gen->get_rand_value<int>(0, 100);
     if (node_type < 10 || depth == gen_policy.max_arith_depth) { // Array
-        std::uniform_int_distribution<int> inp_use_dis(0, inp.size() - 1);
-        int inp_use = inp_use_dis(rand_gen);
+        int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);;
         inp.at(inp_use)->propagate_type();
         inp.at(inp_use)->propagate_value();
         return inp.at(inp_use);
     }
     else if (node_type < 40) { // Unary expr
         UnaryExpr unary;
-        std::uniform_int_distribution<int> op_type_dis(UnaryExpr::Op::Plus, UnaryExpr::Op::MaxOp - 1);
-        UnaryExpr::Op op_type = (UnaryExpr::Op) op_type_dis(rand_gen);
+        UnaryExpr::Op op_type = (UnaryExpr::Op) rand_val_gen->get_rand_value<int>(UnaryExpr::Op::Plus, UnaryExpr::Op::MaxOp - 1);
         unary.set_op(op_type);
         unary.set_arg(gen_level(depth + 1));
         unary.propagate_type();
@@ -438,8 +440,7 @@ std::shared_ptr<Expr> ArithExprGen::gen_level (int depth) {
     }
     else { // Binary expr
         BinaryExpr binary;
-        std::uniform_int_distribution<int> op_type_dis(0, BinaryExpr::Op::MaxOp - 1);
-        BinaryExpr::Op op_type = (BinaryExpr::Op) op_type_dis(rand_gen);
+        BinaryExpr::Op op_type = (BinaryExpr::Op) rand_val_gen->get_rand_value<int>(0, BinaryExpr::Op::MaxOp - 1);
         binary.set_op(op_type);
         binary.set_lhs(gen_level(depth + 1));
         binary.set_rhs(gen_level(depth + 1));
@@ -539,8 +540,7 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                 if ((ret->get_op() == BinaryExpr::Shl) && (lhs->get_type_is_signed()) && (ub == Expr::ShiftRhsLarge))
                     max_sht_val = max_sht_val - msb((uint64_t)lhs->get_value());
 //                std::cout << "max_sht_val " << max_sht_val << std::endl;
-                std::uniform_int_distribution<uint64_t> const_val_dis(0, max_sht_val);
-                uint64_t const_val = const_val_dis(rand_gen);
+                uint64_t const_val = rand_val_gen->get_rand_value<int>(0, max_sht_val);
                 if (ub == Expr::ShiftRhsNeg) {
                     std::shared_ptr<Type> tmp_type = Type::init (rhs->get_type_id());
                     const_val += std::abs((long long int) rhs->get_value());
@@ -628,14 +628,11 @@ std::shared_ptr<Stmt> ArithExprGen::get_expr_stmt () {
 }
 
 void ArrayGen::generate () {
-    std::uniform_int_distribution<int> type_dis(0, gen_policy.allowed_types.size() - 1);
-    std::uniform_int_distribution<int> size_dis(gen_policy.min_arr_size, gen_policy.max_arr_size);
-    std::uniform_int_distribution<int> ess_dis(0, Array::Ess::MAX_ESS - 1);
     // TODO: add static and modifier option
-
-    Type::TypeID type = gen_policy.allowed_types.at(type_dis(rand_gen));
-    int size = size_dis(rand_gen);
-    Array::Ess ess = (Array::Ess) (ESSENCE_DIFFER ? ess_dis(rand_gen) : gen_policy.primary_ess);
+    Type::TypeID type = gen_policy.allowed_types.at(rand_val_gen->get_rand_value<int>(0, gen_policy.allowed_types.size() - 1));
+    int size = rand_val_gen->get_rand_value<int>(gen_policy.min_arr_size, gen_policy.max_arr_size);
+    Array::Ess ess = (Array::Ess) (ESSENCE_DIFFER ? rand_val_gen->get_rand_value<int>(0, Array::Ess::MAX_ESS - 1) : 
+                                                    gen_policy.primary_ess);
 
     Array inp = Array ("in_" + gen_policy.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     inp.set_align (32);
@@ -648,9 +645,10 @@ void ArrayGen::generate () {
     inp_arr = std::make_shared<Array> (inp);
     sym_table.push_back(std::make_shared<Array> (inp));
 
-    type = gen_policy.allowed_types.at(type_dis(rand_gen));
-    size = size_dis(rand_gen);
-    ess = (Array::Ess) (ESSENCE_DIFFER ? ess_dis(rand_gen) : gen_policy.primary_ess);
+    type = gen_policy.allowed_types.at(rand_val_gen->get_rand_value<int>(0, gen_policy.allowed_types.size() - 1));
+    size =  rand_val_gen->get_rand_value<int>(gen_policy.min_arr_size, gen_policy.max_arr_size);
+    ess = (Array::Ess) (ESSENCE_DIFFER ? rand_val_gen->get_rand_value<int>(0, Array::Ess::MAX_ESS - 1) : 
+                                         gen_policy.primary_ess);
 
     Array out = Array ("out_" + gen_policy.ext_num, type, Variable::Mod::NTHNG, false, size, ess);
     out.set_align (32);
@@ -668,68 +666,67 @@ void VarValGen::generate () {
     switch (type_id) {
         case Type::TypeID::BOOL:
             {
-                std::uniform_int_distribution<int> B_dis((bool) gen_policy.min_var_val, (bool) gen_policy.max_var_val);
-                val = (bool) B_dis (rand_gen);
+                val = (bool) rand_val_gen->get_rand_value<int>((bool) gen_policy.min_var_val, (bool) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::CHAR:
             {
-                std::uniform_int_distribution<signed char> SC_dis((signed char) gen_policy.min_var_val, (signed char) gen_policy.max_var_val);
-                val = (signed char) SC_dis (rand_gen);
+                val = (signed char) rand_val_gen->get_rand_value<signed char>((signed char) gen_policy.min_var_val, 
+                                                                              (signed char) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::UCHAR:
             {
-                std::uniform_int_distribution<unsigned char> UC_dis((unsigned char) gen_policy.min_var_val, (unsigned char) gen_policy.max_var_val);
-                val = (unsigned char) UC_dis (rand_gen);
+                val = (unsigned char) rand_val_gen->get_rand_value<unsigned char>((unsigned char) gen_policy.min_var_val,
+                                                                                  (unsigned char) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::SHRT:
             {
-                std::uniform_int_distribution<short> S_dis((short) gen_policy.min_var_val, (short) gen_policy.max_var_val);
-                val = (short) S_dis (rand_gen);
+                val = (short) rand_val_gen->get_rand_value<short>((short) gen_policy.min_var_val,
+                                                                  (short) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::USHRT:
             {
-                std::uniform_int_distribution<unsigned short> US_dis((unsigned short) gen_policy.min_var_val, (unsigned short) gen_policy.max_var_val);
-                val = (unsigned short) US_dis (rand_gen);
+                val = (unsigned short) rand_val_gen->get_rand_value<unsigned short>((unsigned short) gen_policy.min_var_val,
+                                                                                    (unsigned short) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::INT:
             {
-                std::uniform_int_distribution<int> I_dis((int) gen_policy.min_var_val, (int) gen_policy.max_var_val);
-                val = (int) I_dis (rand_gen);
+                val = (int) rand_val_gen->get_rand_value<int>((int) gen_policy.min_var_val,
+                                                              (int) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::UINT:
             {
-                std::uniform_int_distribution<unsigned int> UI_dis((unsigned int) gen_policy.min_var_val, (unsigned int) gen_policy.max_var_val);
-                val = (unsigned int) UI_dis (rand_gen);
+                val = (unsigned int) rand_val_gen->get_rand_value<unsigned int>((unsigned int) gen_policy.min_var_val,
+                                                                                (unsigned int) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::LINT:
             {
-                std::uniform_int_distribution<long int> LI_dis((long int) gen_policy.min_var_val, (long int) gen_policy.max_var_val);
-                val = (long int) LI_dis (rand_gen);
+                val = (long int) rand_val_gen->get_rand_value<long int>((long int) gen_policy.min_var_val,
+                                                                        (long int) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::ULINT:
             {
-                std::uniform_int_distribution<unsigned long int> ULI_dis((unsigned long int) gen_policy.min_var_val, (unsigned long int) gen_policy.max_var_val);
-                val = (unsigned long int) ULI_dis (rand_gen);
+                val = (unsigned long int) rand_val_gen->get_rand_value<unsigned long int>((unsigned long int) gen_policy.min_var_val,
+                                                                                          (unsigned long int) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::LLINT:
             {
-                std::uniform_int_distribution<long long int> LLI_dis((long long int) gen_policy.min_var_val, (long long int) gen_policy.max_var_val);
-                val = (long long int) LLI_dis (rand_gen);
+                val = (long long int) rand_val_gen->get_rand_value<long long int>((long long int) gen_policy.min_var_val,
+                                                                                  (long long int) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::ULLINT:
             {
-                std::uniform_int_distribution<unsigned long long int> ULLI_dis((unsigned long long int) gen_policy.min_var_val, (unsigned long long int) gen_policy.max_var_val);
-                val = (unsigned long long int) ULLI_dis (rand_gen);
+                val = (unsigned long long int) rand_val_gen->get_rand_value<unsigned long long int>((unsigned long long int) gen_policy.min_var_val,
+                                                                                                    (unsigned long long int) gen_policy.max_var_val);
             }
             break;
         case Type::TypeID::PTR:
@@ -743,8 +740,7 @@ void VarValGen::generate () {
 void VarValGen::generate_step () {
     generate();
 
-    std::uniform_int_distribution<int> step_dis(0, 100);
-    unsigned int step_dis_val = step_dis(rand_gen);
+    unsigned int step_dis_val = rand_val_gen->get_rand_value<int>(0, 100);
     int64_t tmp_val = 0;
     if (step_dis_val < 15) {
         tmp_val = 1;
@@ -773,9 +769,7 @@ void StepExprGen::generate () {
     VarUseExpr var_use;
     var_use.set_variable (var);
 
-    std::uniform_int_distribution<int> inc_dis(0, 100);
-
-    if ((step != 1 && step != -1) || inc_dis(rand_gen) < 33) {
+    if ((step != 1 && step != -1) || rand_val_gen->get_rand_value<int>(0, 100) < 33) {
         ConstExpr step_val_expr;
         step_val_expr.set_type(var->get_type()->get_id());
         step_val_expr.set_data(var->get_value());
@@ -793,8 +787,7 @@ void StepExprGen::generate () {
     }
     else {
         UnaryExpr step_expr;
-        std::uniform_int_distribution<int> pre_post_dis(0, 1);
-        if (pre_post_dis(rand_gen)) { // Pre
+        if (rand_val_gen->get_rand_value<int>(0, 1)) { // Pre
             step_expr.set_op(step == 1 ? UnaryExpr::Op::PreInc : UnaryExpr::Op::PreDec);
         }
         else { // Post

@@ -136,6 +136,8 @@ int main (int argv, char* argc[]) {
         test_dir = argc [1];
     }
 
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
+
     Master mas (test_dir);
     mas.generate ();
     mas.emit_func ();
