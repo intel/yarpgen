@@ -65,7 +65,7 @@ class Master {
         std::string emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCallExpr> func_call = NULL);
 
         GenerationPolicy gen_policy;
-        std::vector<std::shared_ptr<Stmnt>> program;
+        std::vector<std::shared_ptr<Stmt>> program;
         std::vector<std::shared_ptr<Data>> inp_sym_table;
         std::vector<std::shared_ptr<Data>> out_sym_table;
         std::string out_folder;
@@ -75,13 +75,13 @@ class Gen {
     public:
         Gen (GenerationPolicy _gen_policy) : gen_policy (_gen_policy) {}
         void set_gen_policy (GenerationPolicy _gen_policy) { gen_policy = _gen_policy; }
-        std::vector<std::shared_ptr<Stmnt>>& get_program () { return program; }
+        std::vector<std::shared_ptr<Stmt>>& get_program () { return program; }
         std::vector<std::shared_ptr<Data>>& get_sym_table () { return sym_table; }
         virtual void generate () = 0;
 
     protected:
         GenerationPolicy gen_policy;
-        std::vector<std::shared_ptr<Stmnt>> program;
+        std::vector<std::shared_ptr<Stmt>> program;
         std::vector<std::shared_ptr<Data>> sym_table;
 };
 
@@ -106,7 +106,7 @@ class LoopGen : public Gen {
         void generate ();
 
     private:
-        std::vector<std::shared_ptr<Stmnt>> body_gen (std::vector<std::shared_ptr<Expr>> inp_expr, std::vector<std::shared_ptr<Expr>> out_expr);
+        std::vector<std::shared_ptr<Stmt>> body_gen (std::vector<std::shared_ptr<Expr>> inp_expr, std::vector<std::shared_ptr<Expr>> out_expr);
         uint64_t min_ex_arr_size;
         std::vector<std::shared_ptr<Data>> inp_sym_table;
         std::vector<std::shared_ptr<Data>> out_sym_table;
@@ -142,7 +142,7 @@ class TripGen : public Gen {
         TripGen (GenerationPolicy _gen_policy, uint64_t _min_ex_arr_size) : Gen (_gen_policy), min_ex_arr_size(_min_ex_arr_size) {}
         void generate ();
         std::shared_ptr<Variable> get_iter () { return iter; }
-        std::shared_ptr<DeclStmnt> get_iter_decl ();
+        std::shared_ptr<DeclStmt> get_iter_decl ();
         std::shared_ptr<Expr> get_step_expr () { return step_expr; }
         std::shared_ptr<Expr> get_cond () { return cond; }
 
@@ -161,7 +161,7 @@ class ArithExprGen : public Gen {
                       std::shared_ptr<Expr> _out) :
                       Gen (_gen_policy), inp(_inp), out(_out) {}
         void generate();
-        std::shared_ptr<Stmnt> get_expr_stmnt ();
+        std::shared_ptr<Stmt> get_expr_stmt ();
         std::shared_ptr<Expr> get_expr () { return res_expr; };
 
     private:

@@ -114,9 +114,9 @@ void LoopGen::generate () {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Loop
-    CntLoopStmnt loop;
-    std::uniform_int_distribution<int> loop_id_dis(0, LoopStmnt::LoopID::MAX_LOOP_ID - 1);
-    LoopStmnt::LoopID loop_type = (LoopStmnt::LoopID) loop_id_dis(rand_gen);
+    CntLoopStmt loop;
+    std::uniform_int_distribution<int> loop_id_dis(0, LoopStmt::LoopID::MAX_LOOP_ID - 1);
+    LoopStmt::LoopID loop_type = (LoopStmt::LoopID) loop_id_dis(rand_gen);
     loop.set_loop_type (loop_type);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,18 +152,18 @@ void LoopGen::generate () {
         out_expr.push_back(std::make_shared<IndexExpr> (out_arr_index));
     }
 
-    std::vector<std::shared_ptr<Stmnt>> body = body_gen(inp_expr, out_expr);
+    std::vector<std::shared_ptr<Stmt>> body = body_gen(inp_expr, out_expr);
     for (int i = 0; i < body.size(); ++i) {
         loop.add_to_body(body.at(i));
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-    program.push_back(std::make_shared<CntLoopStmnt> (loop));
+    program.push_back(std::make_shared<CntLoopStmt> (loop));
 }
 
-std::vector<std::shared_ptr<Stmnt>> LoopGen::body_gen (std::vector<std::shared_ptr<Expr>> inp_expr,
+std::vector<std::shared_ptr<Stmt>> LoopGen::body_gen (std::vector<std::shared_ptr<Expr>> inp_expr,
                                                        std::vector<std::shared_ptr<Expr>> out_expr) {
-    std::vector<std::shared_ptr<Stmnt>> ret;
+    std::vector<std::shared_ptr<Stmt>> ret;
 
     std::vector<std::shared_ptr<Expr>> tmp_inp_expr;
     if (gen_policy.inter_war_dep) {
@@ -178,12 +178,12 @@ std::vector<std::shared_ptr<Stmnt>> LoopGen::body_gen (std::vector<std::shared_p
     std::uniform_int_distribution<int> inside_if_dis(1, out_expr.size() - if_start);
     int if_end = inside_if_dis(rand_gen) + if_start;
 
-    IfStmnt if_stmnt;
+    IfStmt if_stmt;
 //    std::cerr << "if_exist " << if_exist << std::endl;
 //    std::cerr << "if_start " << if_start << std::endl;
 //    std::cerr << "if_end " << if_end << std::endl;
     std::uniform_int_distribution<int> else_branch_dis(0, 1);
-    if_stmnt.set_else_exist(gen_policy.else_branch && else_branch_dis(rand_gen));
+    if_stmt.set_else_exist(gen_policy.else_branch && else_branch_dis(rand_gen));
 
     for (int i = 0; i < out_expr.size(); ++i) {
 //        std::cerr << "i start " << i << std::endl;
@@ -200,16 +200,16 @@ std::vector<std::shared_ptr<Stmnt>> LoopGen::body_gen (std::vector<std::shared_p
         if (if_exist && if_start == i) {
             ArithExprGen arith_expr_gen (gen_policy, tmp_inp_expr, NULL);
             arith_expr_gen.generate();
-            if_stmnt.set_cond(arith_expr_gen.get_expr());
+            if_stmt.set_cond(arith_expr_gen.get_expr());
             std::vector<std::shared_ptr<Expr>>::const_iterator first = out_expr.begin() + if_start;
             std::vector<std::shared_ptr<Expr>>::const_iterator last = out_expr.begin() + if_end;
             std::vector<std::shared_ptr<Expr>> if_out_expr(first, last);
 //            std::cerr << "if_out_expr.size() " << if_out_expr.size() << std::endl;
-            std::vector<std::shared_ptr<Stmnt>> if_body = body_gen(inp_expr, if_out_expr);
+            std::vector<std::shared_ptr<Stmt>> if_body = body_gen(inp_expr, if_out_expr);
 //            std::cerr << "if_body.size() " << if_body.size() << std::endl;
-            if (!if_stmnt.get_else_exist()) {
+            if (!if_stmt.get_else_exist()) {
                 for (int j = 0; j < if_body.size(); ++j) {
-                    if_stmnt.add_if_stmnt(if_body.at(j));
+                    if_stmt.add_if_stmt(if_body.at(j));
                 }
             }
             else {
@@ -220,15 +220,15 @@ std::vector<std::shared_ptr<Stmnt>> LoopGen::body_gen (std::vector<std::shared_p
                 }
                 for (int j = 0; j < if_body.size(); ++j) {
                     if (add_to_branch [j] <= 60)
-                        if_stmnt.add_if_stmnt(if_body.at(j));
+                        if_stmt.add_if_stmt(if_body.at(j));
                 }
-                std::vector<std::shared_ptr<Stmnt>> else_body = body_gen(inp_expr, if_out_expr);
+                std::vector<std::shared_ptr<Stmt>> else_body = body_gen(inp_expr, if_out_expr);
                 for (int j = 0; j < else_body.size(); ++j) {
                     if (add_to_branch [j] <= 30 || (60 <= add_to_branch [j] && add_to_branch [j] <= 90))
-                        if_stmnt.add_else_stmnt(else_body.at(j));
+                        if_stmt.add_else_stmt(else_body.at(j));
                 }
             }
-            ret.push_back(std::make_shared<IfStmnt>(if_stmnt));
+            ret.push_back(std::make_shared<IfStmt>(if_stmt));
             i += if_end - if_start - 1;
 
             if (gen_policy.inter_war_dep) {
@@ -240,7 +240,7 @@ std::vector<std::shared_ptr<Stmnt>> LoopGen::body_gen (std::vector<std::shared_p
         else {
             ArithExprGen arith_expr_gen (gen_policy, tmp_inp_expr, out_expr.at(i));
             arith_expr_gen.generate();
-            ret.push_back(arith_expr_gen.get_expr_stmnt());
+            ret.push_back(arith_expr_gen.get_expr_stmt());
             if (gen_policy.inter_war_dep) {
                 tmp_inp_expr.erase(tmp_inp_expr.begin());
             }
@@ -362,14 +362,14 @@ void TripGen::generate () {
     gen_condition(hit_end, step);
 }
 
-std::shared_ptr<DeclStmnt> TripGen::get_iter_decl () {
+std::shared_ptr<DeclStmt> TripGen::get_iter_decl () {
     ConstExpr iter_init;
     iter_init.set_type(iter->get_type()->get_id());
     iter_init.set_data(iter->get_min());
-    DeclStmnt iter_decl;
+    DeclStmt iter_decl;
     iter_decl.set_data(iter);
     iter_decl.set_init(std::make_shared<ConstExpr> (iter_init));
-    return std::make_shared<DeclStmnt> (iter_decl);
+    return std::make_shared<DeclStmt> (iter_decl);
 }
 
 void TripGen::gen_condition (bool hit_end, int64_t step) {
@@ -621,10 +621,10 @@ std::shared_ptr<Expr> ArithExprGen::rebuild_binary (Expr::UB ub, std::shared_ptr
     return ret;
 }
 
-std::shared_ptr<Stmnt> ArithExprGen::get_expr_stmnt () {
-    ExprStmnt ret;
+std::shared_ptr<Stmt> ArithExprGen::get_expr_stmt () {
+    ExprStmt ret;
     ret.set_expr(res_expr);
-    return std::make_shared<ExprStmnt> (ret);
+    return std::make_shared<ExprStmt> (ret);
 }
 
 void ArrayGen::generate () {
@@ -853,7 +853,7 @@ std::string Master::emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCa
     arr_use.set_base(std::static_pointer_cast<Array>(arr));
     arr_use.set_index(std::make_shared<VarUseExpr>(iter_use));
 
-    ExprStmnt init_stmnt;
+    ExprStmt init_stmt;
     if (func_call == NULL) {
         ConstExpr init_val;
         init_val.set_type(std::static_pointer_cast<Array>(arr)->get_base_type()->get_id());
@@ -863,18 +863,18 @@ std::string Master::emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCa
         init_expr.set_to(std::make_shared<IndexExpr>(arr_use));
         init_expr.set_from(std::make_shared<ConstExpr>(init_val));
 
-        init_stmnt.set_expr(std::make_shared<AssignExpr>(init_expr));
+        init_stmt.set_expr(std::make_shared<AssignExpr>(init_expr));
     }
     else {
         func_call->add_to_args(std::make_shared<IndexExpr>(arr_use));
-        init_stmnt.set_expr(func_call);
+        init_stmt.set_expr(func_call);
     }
 
     ConstExpr iter_init;
     iter_init.set_type(Type::TypeID::INT);
     iter_init.set_data(0);
 
-    DeclStmnt iter_decl;
+    DeclStmt iter_decl;
     iter_decl.set_data(std::make_shared<Variable>(iter));
     iter_decl.set_init(std::make_shared<ConstExpr>(iter_init));
 
@@ -891,12 +891,12 @@ std::string Master::emit_loop (std::shared_ptr<Data> arr, std::shared_ptr<FuncCa
     step.set_op (UnaryExpr::Op::PreInc);
     step.set_arg (std::make_shared<VarUseExpr> (iter_use));
 
-    CntLoopStmnt init_loop;
-    init_loop.set_loop_type(LoopStmnt::LoopID::FOR);
-    init_loop.add_to_body(std::make_shared<ExprStmnt> (init_stmnt));
+    CntLoopStmt init_loop;
+    init_loop.set_loop_type(LoopStmt::LoopID::FOR);
+    init_loop.add_to_body(std::make_shared<ExprStmt> (init_stmt));
     init_loop.set_cond(std::make_shared<BinaryExpr> (cond));
     init_loop.set_iter(std::make_shared<Variable> (iter));
-    init_loop.set_iter_decl(std::make_shared<DeclStmnt> (iter_decl));
+    init_loop.set_iter_decl(std::make_shared<DeclStmt> (iter_decl));
     init_loop.set_step_expr (std::make_shared<UnaryExpr> (step));
 
     return init_loop.emit();
@@ -907,14 +907,14 @@ std::string Master::emit_init () {
     ret += "#include \"init.h\"\n\n";
 
     for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
-        DeclStmnt decl;
+        DeclStmt decl;
         decl.set_data(*i);
         decl.set_is_extern(false);
         ret += decl.emit() + ";\n";
     }
 
     for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
-        DeclStmnt decl;
+        DeclStmt decl;
         decl.set_data(*i);
         decl.set_is_extern(false);
         ret += decl.emit() + ";\n";
@@ -946,14 +946,14 @@ std::string Master::emit_decl () {
     ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n";
 
     for (auto i = inp_sym_table.begin(); i != inp_sym_table.end(); ++i) {
-        DeclStmnt decl;
+        DeclStmt decl;
         decl.set_data(*i);
         decl.set_is_extern(true);
         ret += decl.emit() + ";\n";
     }
 
     for (auto i = out_sym_table.begin(); i != out_sym_table.end(); ++i) {
-        DeclStmnt decl;
+        DeclStmt decl;
         decl.set_data(*i);
         decl.set_is_extern(true);
         ret += decl.emit() + ";\n";
@@ -986,7 +986,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     zero_init.set_type (Type::TypeID::ULLINT);
     zero_init.set_data (0);
 
-    DeclStmnt seed_decl;
+    DeclStmt seed_decl;
     seed_decl.set_data (std::make_shared<Variable> (seed));
     seed_decl.set_init (std::make_shared<ConstExpr> (zero_init));
 

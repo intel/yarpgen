@@ -77,15 +77,15 @@ int main (int argv, char* argc[]) {
     cnst.set_data (123321);
     std::cout << "ConstExpr: " << cnst.emit () << std::endl;
 
-    DeclStmnt decl;
+    DeclStmt decl;
     decl.set_data (std::make_shared<Array> (arr));
-    std::cout << "DeclStmnt: " << decl.emit () << std::endl;
+    std::cout << "DeclStmt: " << decl.emit () << std::endl;
     decl.set_is_extern (true);
-    std::cout << "DeclStmnt: " << decl.emit () << std::endl;
+    std::cout << "DeclStmt: " << decl.emit () << std::endl;
 
-    ExprStmnt ex_st;
+    ExprStmt ex_st;
     ex_st.set_expr (std::make_shared<AssignExpr>(assign2));
-    std::cout << "ExprStmnt: " << ex_st.emit () << std::endl;
+    std::cout << "ExprStmt: " << ex_st.emit () << std::endl;
 
     BinaryExpr cond;
     cond.set_op(BinaryExpr::Op::Le);
@@ -96,17 +96,17 @@ int main (int argv, char* argc[]) {
     step.set_op (UnaryExpr::Op::PreInc);
     step.set_arg (std::make_shared<VarUseExpr> (var_use));
 
-    DeclStmnt iter_decl;
+    DeclStmt iter_decl;
     iter_decl.set_data (std::make_shared<Variable> (var));
 
-    CntLoopStmnt cnt_loop;
-    cnt_loop.set_loop_type(LoopStmnt::LoopID::FOR);
-    cnt_loop.add_to_body(std::make_shared<ExprStmnt> (ex_st));
+    CntLoopStmt cnt_loop;
+    cnt_loop.set_loop_type(LoopStmt::LoopID::FOR);
+    cnt_loop.add_to_body(std::make_shared<ExprStmt> (ex_st));
     cnt_loop.set_cond(std::make_shared<BinaryExpr> (cond));
     cnt_loop.set_iter(std::make_shared<Variable> (var));
-    cnt_loop.set_iter_decl(std::make_shared<DeclStmnt> (iter_decl));
+    cnt_loop.set_iter_decl(std::make_shared<DeclStmt> (iter_decl));
     cnt_loop.set_step_expr (std::make_shared<UnaryExpr> (step));
-    std::cout << "CntLoopStmnt: " << cnt_loop.emit () << std::endl;
+    std::cout << "CntLoopStmt: " << cnt_loop.emit () << std::endl;
 
     TypeCastExpr tc;
     tc.set_type(Type::init(Type::TypeID::ULLINT));
@@ -123,13 +123,13 @@ int main (int argv, char* argc[]) {
     fc.set_args(std::make_shared<ExprListExpr> (expr_list));
     std::cout << "FuncCallExpr: " << fc.emit () << std::endl;
 
-    IfStmnt if_stmnt;
-    if_stmnt.set_cond(std::make_shared<BinaryExpr> (cond));
-    if_stmnt.add_if_stmnt(std::make_shared<ExprStmnt> (ex_st));
-    std::cout << "IfStmnt: " << if_stmnt.emit () << std::endl;
-    if_stmnt.set_else_exist(true);
-    if_stmnt.add_else_stmnt(std::make_shared<ExprStmnt> (ex_st));
-    std::cout << "IfStmnt: " << if_stmnt.emit () << std::endl;
+    IfStmt if_stmt;
+    if_stmt.set_cond(std::make_shared<BinaryExpr> (cond));
+    if_stmt.add_if_stmt(std::make_shared<ExprStmt> (ex_st));
+    std::cout << "IfStmt: " << if_stmt.emit () << std::endl;
+    if_stmt.set_else_exist(true);
+    if_stmt.add_else_stmt(std::make_shared<ExprStmt> (ex_st));
+    std::cout << "IfStmt: " << if_stmt.emit () << std::endl;
 */
     std::string test_dir = "./";
     if (argv == 2) {

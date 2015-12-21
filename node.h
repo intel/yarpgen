@@ -42,7 +42,7 @@ class Node {
             EXPR,
             CNT_LOOP,
             IF,
-            MAX_STMNT_ID
+            MAX_STMT_ID
         };
         Node () : id (MAX_EXPR_ID), is_expr(false) {}
         bool get_is_expr () { return is_expr; }
@@ -254,14 +254,14 @@ class FuncCallExpr : public Expr {
         std::shared_ptr<Expr> args;
 };
 
-class Stmnt : public Node {
+class Stmt : public Node {
     public:
-        Stmnt () {};
+        Stmt () {};
 };
 
-class DeclStmnt : public Stmnt {
+class DeclStmt : public Stmt {
     public:
-        DeclStmnt () : data (NULL), init (NULL), is_extern(false) { id = Node::NodeID::DECL; }
+        DeclStmt () : data (NULL), init (NULL), is_extern(false) { id = Node::NodeID::DECL; }
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         void set_data (std::shared_ptr<Data> _data) { data = _data; }
         void set_init (std::shared_ptr<Expr> _init) { init = _init; }
@@ -273,9 +273,9 @@ class DeclStmnt : public Stmnt {
         std::shared_ptr<Expr> init;
 };
 
-class ExprStmnt : public Stmnt {
+class ExprStmt : public Stmt {
     public:
-        ExprStmnt () : expr (NULL) { id = Node::NodeID::EXPR; }
+        ExprStmt () : expr (NULL) { id = Node::NodeID::EXPR; }
         void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
         std::string emit ();
 
@@ -283,44 +283,44 @@ class ExprStmnt : public Stmnt {
         std::shared_ptr<Expr> expr;
 };
 
-class LoopStmnt : public Stmnt {
+class LoopStmt : public Stmt {
     public:
         enum LoopID {
             FOR, WHILE, DO_WHILE, MAX_LOOP_ID
         };
 
-        LoopStmnt () : loop_id(MAX_LOOP_ID), cond(NULL) { id = Node::NodeID::MAX_STMNT_ID; }
-        void add_to_body (std::shared_ptr<Stmnt> stmnt) { body.push_back(stmnt); }
+        LoopStmt () : loop_id(MAX_LOOP_ID), cond(NULL) { id = Node::NodeID::MAX_STMT_ID; }
+        void add_to_body (std::shared_ptr<Stmt> stmt) { body.push_back(stmt); }
         void set_cond (std::shared_ptr<Expr> _cond) { cond = _cond; }
         void set_loop_type (LoopID _loop_id) { loop_id = _loop_id; }
         virtual std::string emit () = 0;
 
     protected:
         LoopID loop_id;
-        std::vector<std::shared_ptr<Stmnt>> body;
+        std::vector<std::shared_ptr<Stmt>> body;
         std::shared_ptr<Expr> cond;
 };
 
-class CntLoopStmnt : public LoopStmnt {
+class CntLoopStmt : public LoopStmt {
     public:
-        CntLoopStmnt () : iter(NULL), iter_decl(NULL), step_expr(NULL) { id = Node::NodeID::CNT_LOOP; }
+        CntLoopStmt () : iter(NULL), iter_decl(NULL), step_expr(NULL) { id = Node::NodeID::CNT_LOOP; }
         void set_iter (std::shared_ptr<Variable> _iter) { iter = _iter; }
-        void set_iter_decl (std::shared_ptr<DeclStmnt> _iter_decl) { iter_decl = _iter_decl; }
+        void set_iter_decl (std::shared_ptr<DeclStmt> _iter_decl) { iter_decl = _iter_decl; }
         void set_step_expr (std::shared_ptr<Expr> _step_expr) { step_expr = _step_expr; }
         std::string emit ();
 
     private:
         std::shared_ptr<Variable> iter;
-        std::shared_ptr<DeclStmnt> iter_decl;
+        std::shared_ptr<DeclStmt> iter_decl;
         std::shared_ptr<Expr> step_expr;
 };
 
-class IfStmnt : public Stmnt {
+class IfStmt : public Stmt {
     public:
-        IfStmnt () : else_exist(false), cond(NULL) { id = Node::NodeID::IF; }
+        IfStmt () : else_exist(false), cond(NULL) { id = Node::NodeID::IF; }
         void set_cond (std::shared_ptr<Expr> _cond) { cond = _cond; }
-        void add_if_stmnt (std::shared_ptr<Stmnt> if_stmnt) { if_branch.push_back(if_stmnt); }
-        void add_else_stmnt (std::shared_ptr<Stmnt> else_stmnt) { else_branch.push_back(else_stmnt); }
+        void add_if_stmt (std::shared_ptr<Stmt> if_stmt) { if_branch.push_back(if_stmt); }
+        void add_else_stmt (std::shared_ptr<Stmt> else_stmt) { else_branch.push_back(else_stmt); }
         void set_else_exist (bool _else_exist) { else_exist = _else_exist; }
         bool get_else_exist () { return else_exist; }
         std::string emit ();
@@ -328,6 +328,6 @@ class IfStmnt : public Stmnt {
     private:
         bool else_exist;
         std::shared_ptr<Expr> cond;
-        std::vector<std::shared_ptr<Stmnt>> if_branch;
-        std::vector<std::shared_ptr<Stmnt>> else_branch;
+        std::vector<std::shared_ptr<Stmt>> if_branch;
+        std::vector<std::shared_ptr<Stmt>> else_branch;
 };

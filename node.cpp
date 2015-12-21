@@ -1134,7 +1134,7 @@ std::string FuncCallExpr::emit () {
     return name.c_str() + args->emit();
 }
 
-std::string DeclStmnt::emit () {
+std::string DeclStmt::emit () {
     std::string ret = "";
     ret += data->get_is_static() && !is_extern ? "static " : "";
     ret += is_extern ? "extern " : "";
@@ -1151,7 +1151,7 @@ std::string DeclStmnt::emit () {
         case Variable::Mod::NTHNG:
             break;
          case Variable::Mod::MAX_MOD:
-                std::cerr << "ERROR in DeclStmnt::emit bad modifier" << std::endl;
+                std::cerr << "ERROR in DeclStmt::emit bad modifier" << std::endl;
                     break;
     }
     if (data->get_class_id() == Variable::VarClassID::ARR) {
@@ -1177,7 +1177,7 @@ std::string DeclStmnt::emit () {
                 ret += is_extern ? "" : " ((int) 0, " + std::to_string(arr->get_size()) + ")";
                 break;
             case Array::Ess::MAX_ESS:
-                std::cerr << "ERROR in DeclStmnt::emit bad array essence" << std::endl;
+                std::cerr << "ERROR in DeclStmt::emit bad array essence" << std::endl;
                 break;
         }
     }
@@ -1188,11 +1188,11 @@ std::string DeclStmnt::emit () {
         ret += " __attribute__((aligned(" + std::to_string(data->get_align()) + ")))";
     if (init != NULL) {
         if (data->get_class_id() == Variable::VarClassID::ARR) {
-            std::cerr << "ERROR in DeclStmnt::emit init of array" << std::endl;
+            std::cerr << "ERROR in DeclStmt::emit init of array" << std::endl;
             return ret;
         }
         if (is_extern) {
-            std::cerr << "ERROR in DeclStmnt::emit init of extern" << std::endl;
+            std::cerr << "ERROR in DeclStmt::emit init of extern" << std::endl;
             return ret;
         }
         ret += " = " + init->emit();
@@ -1200,29 +1200,29 @@ std::string DeclStmnt::emit () {
     return ret;
 }
 
-std::string ExprStmnt::emit() {
+std::string ExprStmt::emit() {
     return expr->emit();
 }
 
-std::string CntLoopStmnt::emit() {
+std::string CntLoopStmt::emit() {
     std::string ret;
     switch (loop_id) {
-        case LoopStmnt::LoopID::FOR:
+        case LoopStmt::LoopID::FOR:
             ret += "for (";
             ret += iter_decl->emit() + "; ";
             ret += cond->emit() + "; ";
             ret += step_expr->emit() + ") {\n";
             break;
-        case LoopStmnt::LoopID::WHILE:
+        case LoopStmt::LoopID::WHILE:
             ret += iter_decl->emit() + ";\n";
             ret += "while (" + cond->emit() + ") {\n";
             break;
-        case LoopStmnt::LoopID::DO_WHILE:
+        case LoopStmt::LoopID::DO_WHILE:
             ret += iter_decl->emit() + ";\n";
             ret += "do {\n";
             break;
-        case LoopStmnt::LoopID::MAX_LOOP_ID:
-            std::cerr << "ERROR in CntLoopStmnt::emit invalid loop id" << std::endl;
+        case LoopStmt::LoopID::MAX_LOOP_ID:
+            std::cerr << "ERROR in CntLoopStmt::emit invalid loop id" << std::endl;
             break;
     }
 
@@ -1232,21 +1232,21 @@ std::string CntLoopStmnt::emit() {
         else
             ret += (*i)->emit() + ";\n";
     }
-    if (loop_id == LoopStmnt::LoopID::WHILE ||
-        loop_id == LoopStmnt::LoopID::DO_WHILE) {
+    if (loop_id == LoopStmt::LoopID::WHILE ||
+        loop_id == LoopStmt::LoopID::DO_WHILE) {
         ret += step_expr->emit() + ";\n";
     }
 
     ret += "}\n";
 
-    if (loop_id == LoopStmnt::LoopID::DO_WHILE) {
+    if (loop_id == LoopStmt::LoopID::DO_WHILE) {
         ret += "while (" + cond->emit() + ");";
     }
 
     return ret;
 }
 
-std::string IfStmnt::emit () {
+std::string IfStmt::emit () {
     std::string ret;
     ret += "if (" + cond->emit() + ") {\n";
     for (auto i = if_branch.begin(); i != if_branch.end(); ++i) {
