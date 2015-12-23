@@ -16,12 +16,69 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include <getopt.h>
+#include <cstdint>
+#include <iostream>
 #include "type.h"
 #include "variable.h"
 #include "node.h"
 #include "master.h"
 
-int main (int argv, char* argc[]) {
+int main (int argc, char* argv[]) {
+    extern char *optarg;
+    extern int optind;
+    char *pEnd;
+    std::string out_dir = "./";
+    int c;
+    uint64_t seed = 0;
+    static char usage[] = "usage: [-q -d <out_dir> -s <seed>]\n";
+    bool opt_parse_err = 0;
+    bool quiet = false;
+
+    while ((c = getopt(argc, argv, "qhd:s:")) != -1)
+        switch (c) {
+        case 'd':
+            out_dir = std::string(optarg);
+            break;
+        case 's':
+            seed = strtoull(optarg, &pEnd, 10);
+            break;
+        case 'q':
+            quiet = true;
+            break;
+        case 'h':
+        default:
+            opt_parse_err = true;
+            break;
+        }
+    if (optind < argc)  /* these are the arguments after the command-line options */ {
+        for (; optind < argc; optind++)
+            std::cerr << "Unrecognized option: " << argv[optind] << std::endl;
+        opt_parse_err = true;
+    }
+    if (argc == 1 && !quiet) {
+        std::cerr << "Using default options" << std::endl;
+        std::cerr << "For help type " << argv [0] << " -h" << std::endl;
+    }
+    if (opt_parse_err) {
+        std::cerr << usage << std::endl;
+        exit(-1);
+    }
+
+
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
+
+    Master mas (out_dir);
+    mas.generate ();
+    mas.emit_func ();
+    mas.emit_init ();
+    mas.emit_decl ();
+    mas.emit_hash ();
+    mas.emit_check ();
+    mas.emit_main ();
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test utilities
 /*
     std::shared_ptr<Type> type;
     type = Type::init (Type::TypeID::UINT);
@@ -130,24 +187,7 @@ int main (int argv, char* argc[]) {
     if_stmt.set_else_exist(true);
     if_stmt.add_else_stmt(std::make_shared<ExprStmt> (ex_st));
     std::cout << "IfStmt: " << if_stmt.emit () << std::endl;
-*/
-    std::string test_dir = "./";
-    if (argv == 2) {
-        test_dir = argc [1];
-    }
 
-    rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
-
-    Master mas (test_dir);
-    mas.generate ();
-    mas.emit_func ();
-    mas.emit_init ();
-    mas.emit_decl ();
-    mas.emit_hash ();
-    mas.emit_check ();
-    mas.emit_main ();
-
-/*
     ConstExpr lhs;
     lhs.set_type (Type::TypeID::LLINT);
     lhs.set_data (INT_MAX);

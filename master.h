@@ -25,8 +25,6 @@ limitations under the License.
 #include "type.h"
 #include "node.h"
 
-uint64_t rand_dev ();
-
 struct GenerationPolicy {
     std::string ext_num;
 

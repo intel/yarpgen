@@ -33,16 +33,6 @@ const bool ESSENCE_DIFFER = false;
 
 const int MAX_ARITH_DEPTH = 3;
 
-uint64_t rand_dev () {
-//    return 1666667516; // TODO: enable random
-    std::random_device rd;
-    uint64_t ret = rd ();
-    std::cout << "/*SEED " << ret << "*/\n";
-    return ret;
-}
-
-std::mt19937_64 rand_gen(rand_dev());
-
 std::shared_ptr<RandValGen> rand_val_gen;
 
 RandValGen::RandValGen (uint64_t _seed) {
@@ -54,7 +44,7 @@ RandValGen::RandValGen (uint64_t _seed) {
         seed = rd ();
     }
     std::cout << "/*SEED " << seed << "*/\n";
-    rand_gen = std::mt19937_64(rand_dev());
+    rand_gen = std::mt19937_64(seed);
 }
 
 template<typename T>
