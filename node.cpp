@@ -1174,7 +1174,7 @@ std::string DeclStmt::emit () {
             case Array::Ess::VAL_ARR:
                 ret += "std::valarray<" + arr->get_base_type()->get_name() + ">";
                 ret += " " + arr->get_name();
-                ret += is_extern ? "" : " ((int) 0, " + std::to_string(arr->get_size()) + ")";
+                ret += is_extern ? "" : " ((" + arr->get_base_type()->get_name() + ") 0, " + std::to_string(arr->get_size()) + ")";
                 break;
             case Array::Ess::MAX_ESS:
                 std::cerr << "ERROR in DeclStmt::emit bad array essence" << std::endl;

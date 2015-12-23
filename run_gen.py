@@ -126,49 +126,45 @@ def gen_and_test(num, lock, end_time):
     os.chdir(str(num))
     inf = end_time == -1
 
-    test_files = "init.cpp driver.cpp func.cpp check.cpp hash.s"
-    gen_file = test_files + " init.h" + " hash.cpp"
+    test_files = "init.cpp driver.cpp func.cpp check.cpp hash.cpp"
+    gen_file = test_files + " init.h"
     out_name = "out"
 
-    icc_flags = "-std=c++11 -vec-threshold0 -restrict"
-    clang_flags = "-std=c++11 -fslp-vectorize-aggressive"
+    shutil.copy(".." + os.sep + ".." + os.sep + "Test_Makefile", ".")
+    make_run_str = "make -f Test_Makefile "
 
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
     if ("icc" in args.compiler):
-        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
+        compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("icc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
+        compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("icc" + os.sep + "run-uns")
     if ("clang" in args.compiler):
-        fail_tag.append("clang" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -O3"])
+        compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("clang" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -fsanitize=undefined -O3"])
+        compiler_passes.append(["bash", "-c", make_run_str + "clang_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("clang" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
         wrap_exe.append(out_name)
         fail_tag.append("gen")
     if ("icc" in args.compiler):
-        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -xMIC-AVX512 -O3"])
+        compiler_passes.append(["bash", "-c", make_run_str + "icc_knl_opt"])
         wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
         fail_tag.append("icc" + os.sep + "knl-runfail")
     if ("clang" in args.compiler):
-        compiler_passes.append(["bash", "-c", "clang++ " + test_files + " -o " + out_name + " " + clang_flags + " -march=knl -O3"])
+        compiler_passes.append(["bash", "-c", make_run_str + "clang_knl_opt"])
         wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
         fail_tag.append("clang" + os.sep + "knl-runfail")
 
-    subprocess.check_output(".." + os.sep + "yarpgen")
-    hash_args = ["bash", "-c", "clang++ hash.cpp -S -o hash.s " + clang_flags + " -O3"]
-    ret_code, output = run_cmd(num, hash_args)
-    if (ret_code != 0):
-        save_test(lock, gen_file, hash_args, "", "compfail", output , "hash-error")
-
     while inf or end_time > time.time():
         seed = ""
-        seed = subprocess.check_output(".." + os.sep + "yarpgen")
+        seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q"])
         print_debug ("Job #" + str(num) + " " + seed)
         pass_res = set()
         tag = ""
@@ -221,8 +217,9 @@ if __name__ == '__main__':
 #       shutil.rmtree("test")
     if not os.path.exists(args.folder):
         os.makedirs(args.folder)
-#    if os.path.exists("yarpgen"):
-#        shutil.copy("yarpgen", args.folder)
+    if os.path.exists("yarpgen"):
+        shutil.copy("yarpgen", args.folder)
+        shutil.copy("Test_Makefile", args.folder)
     if not os.path.exists((args.folder) + os.sep + "yarpgen"):
         print_debug ("No binary file of generator was found.")
         sys.exit(-1)
@@ -236,7 +233,7 @@ if __name__ == '__main__':
     lock = multiprocessing.Lock()
 
     start_time = time.time()
-    end_time = start_time + args.timeout * 3600
+    end_time = start_time + args.timeout * 100
     if args.timeout == -1:
         end_time = -1
 
