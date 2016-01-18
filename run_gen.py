@@ -27,21 +27,59 @@ import subprocess
 import shutil
 import time
 
-def print_debug (line):
-    if args.verbose:
+yarpgen_home = os.environ["YARPGEN_HOME"]
+
+def print_debug (line, verbose):
+    if verbose:
         sys.stdout.write(str(line))
         sys.stdout.write("\n")
         sys.stdout.flush()
 
-def run_cmd (job_num, args):
+def run_cmd (job_num, args, verbose):
     try:
         output = subprocess.check_output(args, stderr=subprocess.STDOUT)
         ret_code = 0
     except subprocess.CalledProcessError as e:
-        print_debug ("Exception in run cmd in process " + str(job_num) + " with args:" + str(args))
+        print_debug ("Exception in run cmd in process " + str(job_num) + " with args:" + str(args), verbose)
         output = e.output
         ret_code = e.returncode
     return ret_code, output
+
+def fill_task(compiler):
+    shutil.copy(yarpgen_home + os.sep + "Test_Makefile", ".")
+    make_run_str = "make -f " + os.getcwd() + os.sep + "Test_Makefile "
+
+    out_name = "out"
+
+    compiler_passes = []
+    wrap_exe = []
+    fail_tag = []
+    if ("icc" in compiler):
+        compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("icc" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("icc" + os.sep + "run-uns")
+    if ("clang" in compiler):
+        compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("clang" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "clang_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("clang" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
+        wrap_exe.append(out_name)
+        fail_tag.append("gen")
+    if ("icc" in compiler):
+        compiler_passes.append(["bash", "-c", make_run_str + "icc_knl_opt"])
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        fail_tag.append("icc" + os.sep + "knl-runfail")
+    if ("clang" in compiler):
+        compiler_passes.append(["bash", "-c", make_run_str + "clang_knl_opt"])
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        fail_tag.append("clang" + os.sep + "knl-runfail")
+    return compiler_passes, wrap_exe, fail_tag
 
 def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
     lock.acquire()
@@ -108,7 +146,7 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
         return
     else:
         os.makedirs(dest)
-    print_debug("Test files were copied to " + dest)
+    print_debug("Test files were copied to " + dest, args.verbose)
     lock.release()
     log = open(dest + os.sep + "log.txt", "w")
     log.write("Seed: " + str(str_seed) + "\n")
@@ -130,54 +168,27 @@ def gen_and_test(num, lock, end_time):
     gen_file = test_files + " init.h"
     out_name = "out"
 
-    shutil.copy(".." + os.sep + ".." + os.sep + "Test_Makefile", ".")
-    make_run_str = "make -f Test_Makefile "
-
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
-    if ("icc" in args.compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("icc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("icc" + os.sep + "run-uns")
-    if ("clang" in args.compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("clang" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("clang" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
-        wrap_exe.append(out_name)
-        fail_tag.append("gen")
-    if ("icc" in args.compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_knl_opt"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
-        fail_tag.append("icc" + os.sep + "knl-runfail")
-    if ("clang" in args.compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_knl_opt"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
-        fail_tag.append("clang" + os.sep + "knl-runfail")
+    compiler_passes, wrap_exe, fail_tag = fill_task(args.compiler)
 
     while inf or end_time > time.time():
         seed = ""
         seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q"])
-        print_debug ("Job #" + str(num) + " " + seed)
+        print_debug ("Job #" + str(num) + " " + seed, args.verbose)
         pass_res = set()
         tag = ""
         for i in range(len(compiler_passes)):
-#            print_debug("Job #" + str(num))
-#            print_debug(str(i))
-#            print_debug (str(compiler_passes[i]))
-#            print_debug (str(wrap_exe[i]))
-            ret_code, output = run_cmd(num, compiler_passes[i])
+#            print_debug("Job #" + str(num), args.verbose)
+#            print_debug(str(i), args.verbose)
+#            print_debug (str(compiler_passes[i]), args.verbose)
+#            print_debug (str(wrap_exe[i]), args.verbose)
+            ret_code, output = run_cmd(num, compiler_passes[i], args.verbose)
             if (ret_code != 0):
                 save_test(lock, gen_file, compiler_passes[i], "", "compfail", output, seed)
                 continue
-            ret_code, output = run_cmd(num, wrap_exe [i])
+            ret_code, output = run_cmd(num, wrap_exe [i], args.verbose)
             if (ret_code != 0):
                 save_test(lock, gen_file, wrap_exe [i], "", "runfail", output, seed)
                 continue
@@ -186,16 +197,16 @@ def gen_and_test(num, lock, end_time):
             if len(pass_res) > 1:
                 if tag == "":
                     tag = fail_tag[i]
-                print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]))
+                print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]), args.verbose)
                 save_test (lock, gen_file, compiler_passes [i], tag, "runfail", "output differs", seed)
 
 def print_compiler_version():
     compilers = args.compiler.split()
     for i in compilers:
-        ret_code, output = run_cmd(-1, ("which " + i).split ())
-        print_debug(i + " folder: " + output)
-        ret_code, output = run_cmd(-1, (i + " -v").split ())
-        print_debug(i + " version: " + output)
+        ret_code, output = run_cmd(-1, ("which " + i).split (), args.verbose)
+        print_debug(i + " folder: " + output, args.verbose)
+        ret_code, output = run_cmd(-1, (i + " -v").split (), args.verbose)
+        print_debug(i + " version: " + output, args.verbose)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test system of random loop generator.')
@@ -221,7 +232,7 @@ if __name__ == '__main__':
         shutil.copy("yarpgen", args.folder)
         shutil.copy("Test_Makefile", args.folder)
     if not os.path.exists((args.folder) + os.sep + "yarpgen"):
-        print_debug ("No binary file of generator was found.")
+        print_debug ("No binary file of generator was found.", args.verbose)
         sys.exit(-1)
     os.chdir(args.folder)
     if not os.path.exists("result"):

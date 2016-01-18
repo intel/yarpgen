@@ -22,66 +22,48 @@ import subprocess
 import argparse
 import multiprocessing
 import os
+import shutil
 import sys
 
-def run_cmd (job_num, args):
-    try:
-        output = subprocess.check_output(args, stderr=subprocess.STDOUT)
-        ret_code = 0
-    except subprocess.CalledProcessError as e:
-        print_debug ("Exception in run cmd in process " + str(job_num) + " with args:" + str(args))
-        output = e.output
-        ret_code = e.returncode
-    return ret_code, output
-
-def print_debug (line):
-    if args.verbose:
-        sys.stdout.write(str(line))
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+yarpgen_home = os.environ["YARPGEN_HOME"]
+sys.path.insert(0, yarpgen_home)
+import run_gen
 
 def test(num, file_queue, out_passed_queue, out_failed_queue):
-        test_files = "init.cpp driver.cpp func.cpp check.cpp hash.cpp"
-        icc_flags = "-std=c++11 -vec-threshold0 -restrict -xMIC_AVX512"
-        clang_flags = "-std=c++11 -fslp-vectorize-aggressive"
-        out_name = "./out"
+    compiler_passes = []
+    wrap_exe = []
+    fail_tag = []
+    compiler_passes, wrap_exe, fail_tag = run_gen.fill_task(args.compiler)
+    
+    cwd_save = os.getcwd()
 
-        compiler_passes = []
-        wrap_exe = []
-        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O0"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
-        compiler_passes.append(["bash", "-c", "icc " + test_files + " -o " + out_name + " " + icc_flags + " -O3"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+    while not file_queue.empty():
+        test_seed_folder = file_queue.get()
+        run_gen.print_debug("Job #" + str(num) + " | " + str(args.folder + test_seed_folder), args.verbose)
+        os.chdir(cwd_save + os.sep + args.folder + test_seed_folder)
 
-        cwd_save = os.getcwd()
-
-        while not file_queue.empty():
-            test_seed_folder = file_queue.get()
-            print_debug("Job #" + str(num) + " | " + str(args.folder + test_seed_folder))
-            os.chdir(cwd_save + os.sep + args.folder + test_seed_folder)
-
-            pass_res = set()
-            failed_flag = False
-            for i in range(len(compiler_passes)):
-                ret_code, output = run_cmd(num, compiler_passes[i])
-                print_debug("compile output: " + str(output))
-                if (ret_code != 0):
-                    failed_flag = True
-                    break
-                ret_code, output = run_cmd(num, wrap_exe [i])
-                print_debug("run output: " + str(output))
-                if (ret_code != 0):
-                    failed_flag = True
-                    break
-                else:
-                    pass_res.add(output)
-                if len(pass_res) > 1:
-                    failed_flag = True
-                    break
-            if failed_flag:
-                out_failed_queue.put(test_seed_folder)
+        pass_res = set()
+        failed_flag = False
+        for i in range(len(compiler_passes)):
+            ret_code, output = run_gen.run_cmd(num, compiler_passes[i], args.verbose)
+            run_gen.print_debug("compile output: " + str(output), args.verbose)
+            if (ret_code != 0):
+                failed_flag = True
+                break
+            ret_code, output = run_gen.run_cmd(num, wrap_exe [i], args.verbose)
+            run_gen.print_debug("run output: " + str(output), args.verbose)
+            if (ret_code != 0):
+                failed_flag = True
+                break
             else:
-                out_passed_queue.put(test_seed_folder)
+                pass_res.add(output)
+            if len(pass_res) > 1:
+                failed_flag = True
+                break
+        if failed_flag:
+            out_failed_queue.put(test_seed_folder)
+        else:
+            out_passed_queue.put(test_seed_folder)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script for re-checking fail folder after fix')
@@ -91,15 +73,18 @@ if __name__ == '__main__':
                         help='folder for re-check')
     parser.add_argument('-j', '--jobs', dest='num_jobs', default=multiprocessing.cpu_count(), type=int,
                         help='Maximum number of jobs to run in parallel')
+    parser.add_argument('-c', '--compiler', dest='compiler', default="icc clang", type=str,
+                        help='Test compilers')
     args = parser.parse_args()
 
     print("Re-check folder is " + args.folder)
     files = os.listdir(args.folder)
     file_queue = multiprocessing.Queue()
-    print_debug("Test files: ")
-    for i in range(len(files)):
-        file_queue.put(files[i])
-        print_debug(files[i])
+    run_gen.print_debug("Test files: ", args.verbose)
+    for i in files:
+        if (i.startswith("S_")):
+          file_queue.put(i)
+          run_gen.print_debug(i, args.verbose)
     
     out_passed_queue = multiprocessing.Queue()
     out_failed_queue = multiprocessing.Queue()

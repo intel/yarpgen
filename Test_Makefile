@@ -27,7 +27,7 @@ clean:
 icc_no_opt:
 	icc $(CXXFLAGS) -O0 -vec-threshold0 -restrict -o $(EXECUTABLE) $(SOURCES)
 
-icc_opt: $(EXECUTABLE)
+icc_opt:
 	icc $(CXXFLAGS) -O3 -vec-threshold0 -restrict -o $(EXECUTABLE) $(SOURCES)
 
 clang_no_opt:
