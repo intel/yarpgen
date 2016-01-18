@@ -61,6 +61,13 @@ def fill_task(compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("icc" + os.sep + "run-uns")
+    if ("gcc" in args.compiler):
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_no_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("gcc" + os.sep + "run-uns")
     if ("clang" in compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
         wrap_exe.append(out_name)
@@ -128,6 +135,10 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
 
     pre_filter_str.append("= masked_store<")
     pre_filter_dir.append("masked_store")
+
+    #GCC
+    pre_filter_str.append("tree-vect-data-refs.c:889")
+    pre_filter_dir.append("inter_889")
 
     for i in range(len(pre_filter_str)):
         if (pre_filter_str [i] in str(output)):
@@ -244,7 +255,7 @@ if __name__ == '__main__':
     lock = multiprocessing.Lock()
 
     start_time = time.time()
-    end_time = start_time + args.timeout * 100
+    end_time = start_time + args.timeout * 3600
     if args.timeout == -1:
         end_time = -1
 

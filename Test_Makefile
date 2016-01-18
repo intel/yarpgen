@@ -30,6 +30,12 @@ icc_no_opt:
 icc_opt:
 	icc $(CXXFLAGS) -O3 -vec-threshold0 -restrict -o $(EXECUTABLE) $(SOURCES)
 
+gcc_no_opt:
+	g++ $(CXXFLAGS) -O0 -o $(EXECUTABLE) $(SOURCES)
+
+gcc_opt:
+	g++ $(CXXFLAGS) -O3 -o $(EXECUTABLE) $(SOURCES)
+
 clang_no_opt:
 	clang++ $(CXXFLAGS) -O0 -fslp-vectorize-aggressive -o $(EXECUTABLE) $(SOURCES)
 
