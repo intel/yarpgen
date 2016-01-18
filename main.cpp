@@ -34,8 +34,9 @@ int main (int argc, char* argv[]) {
     static char usage[] = "usage: [-q -d <out_dir> -s <seed>]\n";
     bool opt_parse_err = 0;
     bool quiet = false;
+    bool reduce = false;
 
-    while ((c = getopt(argc, argv, "qhd:s:")) != -1)
+    while ((c = getopt(argc, argv, "qhrd:s:")) != -1)
         switch (c) {
         case 'd':
             out_dir = std::string(optarg);
@@ -45,6 +46,9 @@ int main (int argc, char* argv[]) {
             break;
         case 'q':
             quiet = true;
+            break;
+        case 'r':
+            reduce = true;
             break;
         case 'h':
         default:
@@ -68,7 +72,7 @@ int main (int argc, char* argv[]) {
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
 
-    Master mas (out_dir);
+    Master mas (out_dir, reduce);
     mas.generate ();
     mas.emit_func ();
     mas.emit_init ();
@@ -76,6 +80,7 @@ int main (int argc, char* argv[]) {
     mas.emit_hash ();
     mas.emit_check ();
     mas.emit_main ();
+    mas.emit_reduce_log ();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test utilities

@@ -53,7 +53,7 @@ T RandValGen::get_rand_value (T from, T to) {
     return dis(rand_gen);
 }
 
-Master::Master (std::string _out_folder) {
+Master::Master (std::string _out_folder, bool reduce_mode) {
     out_folder = _out_folder;
 
     gen_policy.ext_num = "";
@@ -83,15 +83,55 @@ Master::Master (std::string _out_folder) {
     gen_policy.inter_war_dep = true;
 
     gen_policy.else_branch = true;
+
+    struct stat buffer;
+    std::string reduce_log_file = out_folder + "/" + "reduce_log.txt";
+    if (stat (reduce_log_file.c_str(), &buffer) != 0) { // reduce_log.txt doesn't exist
+        gen_policy.reduce_loop = true;
+        gen_policy.prev_loop = INT_MAX;
+        gen_policy.reduce_result = true;
+    }
+    else {
+        std::ifstream file(reduce_log_file.c_str());
+        std::string str; 
+        std::getline(file, str);
+
+        std::getline(file, str);
+        std::istringstream iss (str);
+        int n;
+        while( iss >> n ) {
+            gen_policy.del_loop.push_back(n);
+        }
+
+        std::getline(file, str);
+        std::getline(file, str);
+        gen_policy.prev_loop = std::stoi (str);
+
+        std::getline(file, str);
+        std::getline(file, str);
+        gen_policy.reduce_result = std::stoi (str);
+
+        if (gen_policy.prev_loop == -1)
+            gen_policy.reduce_loop = false;
+        if (gen_policy.reduce_loop && gen_policy.reduce_result)
+            gen_policy.del_loop.push_back(gen_policy.prev_loop);
+    }
 }
 
 void Master::generate () {
     // choose num of loops
     int loop_num = rand_val_gen->get_rand_value<int>(MIN_LOOP_NUM, MAX_LOOP_NUM);
+    if (gen_policy.prev_loop == INT_MAX)
+        gen_policy.prev_loop = loop_num - 1;
+    else if (gen_policy.reduce_loop)
+        gen_policy.prev_loop = gen_policy.prev_loop - 1;
     for (int i = 0; i < loop_num; ++i) {
         gen_policy.ext_num = "lp" + std::to_string(i);
         LoopGen loop_gen (gen_policy);
         loop_gen.generate();
+        if (std::find(gen_policy.del_loop.begin(), gen_policy.del_loop.end(), i) != gen_policy.del_loop.end() || // We can delete loop
+            gen_policy.prev_loop == i) // We will try to delete loop
+            continue;
         inp_sym_table.insert(inp_sym_table.end(), loop_gen.get_inp_sym_table().begin(), loop_gen.get_inp_sym_table().end());
         out_sym_table.insert(out_sym_table.end(), loop_gen.get_out_sym_table().begin(), loop_gen.get_out_sym_table().end());
         program.insert(program.end(), loop_gen.get_program().begin(), loop_gen.get_program().end());
@@ -987,5 +1027,17 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     ret += "    return seed;\n";
     ret += "}";
     write_file("check.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_reduce_log () {
+    std::string ret = "";
+    ret += "Deleted loops:\n";
+    for (auto i = gen_policy.del_loop.begin(); i != gen_policy.del_loop.end(); ++i)
+        ret += std::to_string(*(i)) + " ";
+    ret += "\nPrev loop:\n";
+    ret += std::to_string(gen_policy.prev_loop);
+
+    write_file("reduce_log.txt", ret);
     return ret;
 }

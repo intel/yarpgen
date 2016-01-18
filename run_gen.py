@@ -61,7 +61,7 @@ def fill_task(compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("icc" + os.sep + "run-uns")
-    if ("gcc" in args.compiler):
+    if ("gcc" in compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "gcc_no_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("gcc" + os.sep + "run-uns")

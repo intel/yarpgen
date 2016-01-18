@@ -21,6 +21,9 @@ limitations under the License.
 #include <random>
 #include <algorithm>
 #include <fstream>
+#include <sys/stat.h>
+#include <sstream>
+#include <string>
 
 #include "type.h"
 #include "node.h"
@@ -45,6 +48,11 @@ struct GenerationPolicy {
     bool inter_war_dep;
 
     bool else_branch;
+
+    std::vector<int> del_loop;
+    int prev_loop;
+    bool reduce_loop;
+    bool reduce_result;
 };
 
 class RandValGen {
@@ -62,7 +70,7 @@ extern std::shared_ptr<RandValGen> rand_val_gen;
 
 class Master {
     public:
-        Master (std::string _out_folder);
+        Master (std::string _out_folder, bool reduce_mode);
         void generate ();
         std::string emit_func ();
         std::string emit_init ();
@@ -70,6 +78,7 @@ class Master {
         std::string emit_hash ();
         std::string emit_check ();
         std::string emit_main ();
+        std::string emit_reduce_log ();
 
     private:
         void write_file (std::string of_name, std::string data);
