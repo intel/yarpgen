@@ -29,11 +29,16 @@ yarpgen_home = os.environ["YARPGEN_HOME"]
 sys.path.insert(0, yarpgen_home)
 import run_gen
 
-def reduce():
+def reduce_once():
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
-    compiler_passes, wrap_exe, fail_tag = run_gen.fill_task(args.compiler)
+    #compiler_passes, wrap_exe, fail_tag = run_gen.fill_task(args.compiler)
+
+    make_run_str = "make -f " + yarpgen_home + os.sep + "Test_Makefile "
+    compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
+    wrap_exe.append('out')
+    fail_tag.append("icc" + os.sep + "run-uns")
 
     seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q -r -s " + args.seed])
 
@@ -58,6 +63,14 @@ def reduce():
     with open("reduce_log.txt", "a") as red_log:
         red_log.write("\nResult\n")
         red_log.write(str(int(err_exist)))
+
+def reduce ():
+    reduce_once()
+    finish = False
+    while (not finish):
+        reduce_once()
+        with open("reduce_log.txt", "r") as red_log:
+            finish = "DONE!" in red_log.readline()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script for auto-reducing')

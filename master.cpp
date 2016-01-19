@@ -35,6 +35,109 @@ const int MAX_ARITH_DEPTH = 3;
 
 std::shared_ptr<RandValGen> rand_val_gen;
 
+ReductionPolicy::ReductionPolicy () {
+    reduction_mode = false;
+    phase = INT_MIN;
+    reduce_loop = false;
+    reduce_result = false;
+    prev_loop = INT_MIN;
+
+    reduce_body = false;
+    prev_stmt = INT_MIN;
+}
+
+void ReductionPolicy::init (bool _reduction_mode, std::string out_folder) {
+    reduction_mode = _reduction_mode;
+    reduce_loop = reduction_mode;
+
+    struct stat buffer;
+    std::string reduce_log_file = out_folder + "/" + "reduce_log.txt";
+    if (stat (reduce_log_file.c_str(), &buffer) != 0) { // reduce_log.txt doesn't exist
+        phase = 1;
+        prev_loop = INT_MAX;
+        reduce_result = true;
+        return;
+    }
+
+    // Read loop reduction parametres
+    std::ifstream file(reduce_log_file.c_str());
+    std::string str;
+
+    std::getline(file, str);
+    std::getline(file, str);
+    phase = std::stoi(str);
+
+    std::getline(file, str);
+    std::getline(file, str);
+    std::istringstream omit_iss (str);
+    int n;
+    while (omit_iss >> n) {
+        omitted_loop.push_back(n);
+    }
+
+    std::getline(file, str);
+    std::getline(file, str);
+    std::istringstream susp_iss (str);
+    while (susp_iss >> n) {
+        suspect_loop.push_back(n);
+    }
+
+    std::getline(file, str);
+    std::getline(file, str);
+    prev_loop = std::stoi (str);
+
+    if (phase == 1 && prev_loop == -1) {
+        reduce_loop = false;
+
+        phase = 2;
+        reduce_body = true;
+        prev_loop = suspect_loop.at(suspect_loop.size() - 1);
+        prev_stmt = INT_MAX;
+
+        reduce_result = true;
+        return;
+    }
+
+    if (phase == 2) {
+        reduce_loop = false;
+        reduce_body = true;
+
+        std::getline(file, str);
+        std::getline(file, str);
+        std::istringstream omit_stmt_iss (str);
+        while (omit_stmt_iss >> n) {
+            omitted_stmt.push_back(n);
+        }
+
+        std::getline(file, str);
+        std::getline(file, str);
+        std::istringstream susp_stmt_iss (str);
+        while (susp_stmt_iss >> n) {
+            suspect_stmt.push_back(n);
+        }
+
+        std::getline(file, str);
+        std::getline(file, str);
+        prev_stmt = std::stoi (str);
+    }
+
+    std::getline(file, str);
+    std::getline(file, str);
+    reduce_result = std::stoi (str);
+
+    if (phase == 1)
+      if (reduce_loop && reduce_result)
+         omitted_loop.push_back(prev_loop);
+      else
+         suspect_loop.push_back(prev_loop);
+
+    if (phase == 2)
+      if (reduce_body && reduce_result)
+         omitted_stmt.push_back(prev_stmt);
+      else
+         suspect_stmt.push_back(prev_stmt);
+}
+
 ReductionPolicy red_policy;
 
 RandValGen::RandValGen (uint64_t _seed) {
@@ -86,54 +189,25 @@ Master::Master (std::string _out_folder, bool reduce_mode) {
 
     gen_policy.else_branch = true;
 
-    red_policy.reduce_loop = reduce_mode;
-    struct stat buffer;
-    std::string reduce_log_file = out_folder + "/" + "reduce_log.txt";
-    if (stat (reduce_log_file.c_str(), &buffer) != 0) { // reduce_log.txt doesn't exist
-        red_policy.prev_loop = INT_MAX;
-        red_policy.reduce_result = true;
-    }
-    else {
-        std::ifstream file(reduce_log_file.c_str());
-        std::string str; 
-        std::getline(file, str);
-
-        std::getline(file, str);
-        std::istringstream iss (str);
-        int n;
-        while( iss >> n ) {
-            red_policy.del_loop.push_back(n);
-        }
-
-        std::getline(file, str);
-        std::getline(file, str);
-        red_policy.prev_loop = std::stoi (str);
-
-        std::getline(file, str);
-        std::getline(file, str);
-        red_policy.reduce_result = std::stoi (str);
-
-        if (red_policy.prev_loop == -1)
-            red_policy.reduce_loop = false;
-        if (red_policy.reduce_loop && red_policy.reduce_result)
-            red_policy.del_loop.push_back(red_policy.prev_loop);
-    }
-    std::cerr << red_policy.prev_loop << " | " << red_policy.reduce_result << " | " << red_policy.reduce_loop << std::endl;
+    red_policy.init(reduce_mode, out_folder);
 }
 
 void Master::generate () {
     // choose num of loops
     int loop_num = rand_val_gen->get_rand_value<int>(MIN_LOOP_NUM, MAX_LOOP_NUM);
-    if (red_policy.prev_loop == INT_MAX)
-        red_policy.prev_loop = loop_num - 1;
-    else if (red_policy.reduce_loop)
-        red_policy.prev_loop = red_policy.prev_loop - 1;
+    if (red_policy.reduction_mode && red_policy.reduce_loop) {
+        if (red_policy.prev_loop == INT_MAX)
+            red_policy.prev_loop = loop_num - 1;
+        else
+            red_policy.prev_loop = red_policy.prev_loop - 1;
+    }
     for (int i = 0; i < loop_num; ++i) {
         gen_policy.ext_num = "lp" + std::to_string(i);
         LoopGen loop_gen (gen_policy);
         loop_gen.generate();
-        if (std::find(red_policy.del_loop.begin(), red_policy.del_loop.end(), i) != red_policy.del_loop.end() || // We can delete loop
-            red_policy.prev_loop == i) // We will try to delete loop
+        if (red_policy.reduction_mode && 
+           (std::find(red_policy.omitted_loop.begin(), red_policy.omitted_loop.end(), i) != red_policy.omitted_loop.end() || // We can delete loop
+           (red_policy.reduce_loop && red_policy.prev_loop == i))) // We will try to delete loop
             continue;
         inp_sym_table.insert(inp_sym_table.end(), loop_gen.get_inp_sym_table().begin(), loop_gen.get_inp_sym_table().end());
         out_sym_table.insert(out_sym_table.end(), loop_gen.get_out_sym_table().begin(), loop_gen.get_out_sym_table().end());
@@ -201,7 +275,20 @@ void LoopGen::generate () {
     }
 
     std::vector<std::shared_ptr<Stmt>> body = body_gen(inp_expr, out_expr);
+
+    bool actual_loop = gen_policy.ext_num == ("lp" + std::to_string(red_policy.prev_loop));
+    if (red_policy.reduce_body && actual_loop) {
+        if (red_policy.prev_stmt == INT_MAX)
+            red_policy.prev_stmt = body.size() - 1;
+        else
+            red_policy.prev_stmt = red_policy.prev_stmt - 1;
+    }
+
     for (int i = 0; i < body.size(); ++i) {
+        if (red_policy.reduction_mode && 
+           (std::find(red_policy.omitted_stmt.begin(), red_policy.omitted_stmt.end(), i) != red_policy.omitted_stmt.end() || // We can delete loop
+           (red_policy.reduce_body && red_policy.prev_stmt == i))) // We will try to delete loop
+            continue;
         loop.add_to_body(body.at(i));
     }
 
@@ -1034,12 +1121,33 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 }
 
 std::string Master::emit_reduce_log () {
+    if (!red_policy.reduction_mode)
+      return "";
+
     std::string ret = "";
-    ret += "Deleted loops:\n";
-    for (auto i = red_policy.del_loop.begin(); i != red_policy.del_loop.end(); ++i)
+    ret += "Phase:\n";
+    ret += std::to_string(red_policy.phase);
+    ret += "\nOmitted loops:\n";
+    for (auto i = red_policy.omitted_loop.begin(); i != red_policy.omitted_loop.end(); ++i)
+        ret += std::to_string(*(i)) + " ";
+    ret += "\nSuspect loops:\n";
+    for (auto i = red_policy.suspect_loop.begin(); i != red_policy.suspect_loop.end(); ++i)
         ret += std::to_string(*(i)) + " ";
     ret += "\nPrev loop:\n";
     ret += std::to_string(red_policy.prev_loop);
+
+    if (red_policy.phase == 2) {
+        ret += "\nOmitted stmts:\n";
+        for (auto i = red_policy.omitted_stmt.begin(); i != red_policy.omitted_stmt.end(); ++i)
+            ret += std::to_string(*(i)) + " ";
+        ret += "\nSuspect stmts:\n";
+        for (auto i = red_policy.suspect_stmt.begin(); i != red_policy.suspect_stmt.end(); ++i)
+            ret += std::to_string(*(i)) + " ";
+        ret += "\nPrev stmt:\n";
+        ret += std::to_string(red_policy.prev_stmt);
+        if (red_policy.prev_stmt == -1)
+            ret = "DONE!\n";
+    }
 
     write_file("reduce_log.txt", ret);
     return ret;

@@ -50,11 +50,25 @@ struct GenerationPolicy {
     bool else_branch;
 };
 
-struct ReductionPolicy {
-    std::vector<int> del_loop;
-    int prev_loop;
-    bool reduce_loop;
-    bool reduce_result;
+class ReductionPolicy {
+    public:
+        bool reduction_mode;
+        int phase;
+
+        std::vector<int> omitted_loop;
+        std::vector<int> suspect_loop;
+        int prev_loop;
+        bool reduce_loop;
+
+        bool reduce_body;
+        std::vector<int> omitted_stmt;
+        std::vector<int> suspect_stmt;
+        int prev_stmt;
+
+        bool reduce_result;
+
+        ReductionPolicy ();
+        void init(bool _reduction_mode, std::string out_folder);
 };
 
 class RandValGen {
