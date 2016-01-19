@@ -35,7 +35,7 @@ def reduce():
     fail_tag = []
     compiler_passes, wrap_exe, fail_tag = run_gen.fill_task(args.compiler)
 
-    seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q -s " + args.seed])
+    seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q -r -s " + args.seed])
 
     pass_res = set()
     err_exist = False

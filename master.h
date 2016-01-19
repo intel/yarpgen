@@ -48,7 +48,9 @@ struct GenerationPolicy {
     bool inter_war_dep;
 
     bool else_branch;
+};
 
+struct ReductionPolicy {
     std::vector<int> del_loop;
     int prev_loop;
     bool reduce_loop;
