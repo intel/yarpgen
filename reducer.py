@@ -33,14 +33,9 @@ def reduce_once():
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
-    #compiler_passes, wrap_exe, fail_tag = run_gen.fill_task(args.compiler)
+    compiler_passes, wrap_exe, fail_tag = run_gen.fill_task(args.compiler)
 
-    make_run_str = "make -f " + yarpgen_home + os.sep + "Test_Makefile "
-    compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
-    wrap_exe.append('out')
-    fail_tag.append("icc" + os.sep + "run-uns")
-
-    seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q -r -s " + args.seed])
+    seed = subprocess.check_output(["bash", "-c", "yarpgen -q -r -s " + args.seed])
 
     pass_res = set()
     err_exist = False

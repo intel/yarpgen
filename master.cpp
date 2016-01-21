@@ -47,6 +47,8 @@ ReductionPolicy::ReductionPolicy () {
 }
 
 void ReductionPolicy::init (bool _reduction_mode, std::string out_folder) {
+    if (!_reduction_mode)
+        return;
     reduction_mode = _reduction_mode;
     reduce_loop = reduction_mode;
 
@@ -125,17 +127,19 @@ void ReductionPolicy::init (bool _reduction_mode, std::string out_folder) {
     std::getline(file, str);
     reduce_result = std::stoi (str);
 
-    if (phase == 1)
+    if (phase == 1) { 
       if (reduce_loop && reduce_result)
          omitted_loop.push_back(prev_loop);
       else
          suspect_loop.push_back(prev_loop);
+    }
 
-    if (phase == 2)
+    if (phase == 2) { 
       if (reduce_body && reduce_result)
          omitted_stmt.push_back(prev_stmt);
       else
          suspect_stmt.push_back(prev_stmt);
+    }
 }
 
 ReductionPolicy red_policy;
@@ -195,12 +199,14 @@ Master::Master (std::string _out_folder, bool reduce_mode) {
 void Master::generate () {
     // choose num of loops
     int loop_num = rand_val_gen->get_rand_value<int>(MIN_LOOP_NUM, MAX_LOOP_NUM);
+
     if (red_policy.reduction_mode && red_policy.reduce_loop) {
         if (red_policy.prev_loop == INT_MAX)
             red_policy.prev_loop = loop_num - 1;
         else
             red_policy.prev_loop = red_policy.prev_loop - 1;
     }
+
     for (int i = 0; i < loop_num; ++i) {
         gen_policy.ext_num = "lp" + std::to_string(i);
         LoopGen loop_gen (gen_policy);

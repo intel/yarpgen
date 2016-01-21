@@ -31,7 +31,7 @@ int main (int argc, char* argv[]) {
     std::string out_dir = "./";
     int c;
     uint64_t seed = 0;
-    static char usage[] = "usage: [-q -d <out_dir> -s <seed>]\n";
+    static char usage[] = "usage: [-q -d <out_dir> -s <seed> [-r DON'T USE IT MANUALLY!!!]]\n";
     bool opt_parse_err = 0;
     bool quiet = false;
     bool reduce = false;
