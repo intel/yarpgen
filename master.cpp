@@ -33,6 +33,9 @@ const bool ESSENCE_DIFFER = false;
 
 const int MAX_ARITH_DEPTH = 3;
 
+const int MAX_TMP_VAR_NUM = 3;
+const int MAX_TMP_ARITH_DEPTH = 2;
+
 std::shared_ptr<RandValGen> rand_val_gen;
 
 ReductionPolicy::ReductionPolicy () {
@@ -127,14 +130,14 @@ void ReductionPolicy::init (bool _reduction_mode, std::string out_folder) {
     std::getline(file, str);
     reduce_result = std::stoi (str);
 
-    if (phase == 1) { 
+    if (phase == 1) {
       if (reduce_loop && reduce_result)
          omitted_loop.push_back(prev_loop);
       else
          suspect_loop.push_back(prev_loop);
     }
 
-    if (phase == 2) { 
+    if (phase == 2) {
       if (reduce_body && reduce_result)
          omitted_stmt.push_back(prev_stmt);
       else
@@ -187,6 +190,9 @@ Master::Master (std::string _out_folder, bool reduce_mode) {
     gen_policy.max_var_val = UINT_MAX;
 
     gen_policy.max_arith_depth = MAX_ARITH_DEPTH;
+
+    gen_policy.max_tmp_var_num = MAX_TMP_VAR_NUM;
+    gen_policy.max_tmp_arith_depth = MAX_TMP_ARITH_DEPTH;
 
     gen_policy.self_dep = true;
     gen_policy.inter_war_dep = true;
@@ -280,36 +286,40 @@ void LoopGen::generate () {
         out_expr.push_back(std::make_shared<IndexExpr> (out_arr_index));
     }
 
-    std::vector<std::shared_ptr<Stmt>> body = body_gen(inp_expr, out_expr);
+    std::vector<BodyRet> body_ret = body_gen(inp_expr, out_expr, true);
 
     bool actual_loop = gen_policy.ext_num == ("lp" + std::to_string(red_policy.prev_loop));
     if (red_policy.reduce_body && actual_loop) {
         if (red_policy.prev_stmt == INT_MAX)
-            red_policy.prev_stmt = body.size() - 1;
+            red_policy.prev_stmt = body_ret.size() - 1;
         else
             red_policy.prev_stmt = red_policy.prev_stmt - 1;
     }
 
-    for (int i = 0; i < body.size(); ++i) {
+    for (int i = 0; i < body_ret.size(); ++i) {
         if (red_policy.reduction_mode && 
            (std::find(red_policy.omitted_stmt.begin(), red_policy.omitted_stmt.end(), i) != red_policy.omitted_stmt.end() || // We can delete loop
            (red_policy.reduce_body && red_policy.prev_stmt == i))) // We will try to delete loop
             continue;
-        loop.add_to_body(body.at(i));
+        loop.add_to_body(body_ret.at(i).stmt);
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
     program.push_back(std::make_shared<CntLoopStmt> (loop));
 }
 
-std::vector<std::shared_ptr<Stmt>> LoopGen::body_gen (std::vector<std::shared_ptr<Expr>> inp_expr,
-                                                       std::vector<std::shared_ptr<Expr>> out_expr) {
-    std::vector<std::shared_ptr<Stmt>> ret;
+std::vector<LoopGen::BodyRet> LoopGen::body_gen (std::vector<std::shared_ptr<Expr>> inp_expr,
+                                        std::vector<std::shared_ptr<Expr>> out_expr,
+                                        bool form_avail_inp) {
+    std::vector<BodyRet> ret;
 
-    std::vector<std::shared_ptr<Expr>> tmp_inp_expr;
-    if (gen_policy.inter_war_dep) {
-        tmp_inp_expr = out_expr;
-        tmp_inp_expr.insert(tmp_inp_expr.end(), inp_expr.begin(), inp_expr.end());
+    std::vector<std::shared_ptr<Expr>> avail_inp_expr;
+    if (form_avail_inp && gen_policy.inter_war_dep) {
+        avail_inp_expr = out_expr;
+        avail_inp_expr.insert(avail_inp_expr.end(), inp_expr.begin(), inp_expr.end());
+    }
+    else { // Self-dependency and no dependency
+        avail_inp_expr = inp_expr;
     }
 
     bool if_exist = rand_val_gen->get_rand_value<int>(0, 100) > 50 ? true : false;
@@ -324,61 +334,76 @@ std::vector<std::shared_ptr<Stmt>> LoopGen::body_gen (std::vector<std::shared_pt
 
     for (int i = 0; i < out_expr.size(); ++i) {
 //        std::cerr << "i start " << i << std::endl;
-        if (gen_policy.inter_war_dep) {
-            if (!gen_policy.self_dep) {
-                tmp_inp_expr.erase(tmp_inp_expr.begin());
-            }
-        }
-        else {
-            tmp_inp_expr = inp_expr;
-            tmp_inp_expr.push_back(out_expr.at(i));
+        if (gen_policy.inter_war_dep && !gen_policy.self_dep)
+            avail_inp_expr.erase(avail_inp_expr.begin());
+        else if (!gen_policy.inter_war_dep && gen_policy.self_dep)
+            avail_inp_expr.insert(avail_inp_expr.begin(), out_expr.at(i));
+
+        int create_tmp_var = rand_val_gen->get_rand_value<int>(0, 100) > 70 ? true : false;
+        create_tmp_var = create_tmp_var && (tmp_var_num < gen_policy.max_tmp_var_num);
+        if (create_tmp_var) {
+            GenerationPolicy tmp_gen_policy = gen_policy;
+            tmp_gen_policy.max_arith_depth = gen_policy.max_tmp_arith_depth;
+
+            TmpVariableGen tmp_variable_gen (tmp_gen_policy, avail_inp_expr, tmp_var_num);
+            tmp_variable_gen.generate();
+            BodyRet var_decl;
+            var_decl.stmt = tmp_variable_gen.get_var_decl();
+            var_decl.undel = 1;
+            ret.push_back(var_decl);
+            avail_inp_expr.push_back(tmp_variable_gen.get_var_use());
+            tmp_var_num++;
         }
 
         if (if_exist && if_start == i) {
-            ArithExprGen arith_expr_gen (gen_policy, tmp_inp_expr, NULL);
+            ArithExprGen arith_expr_gen (gen_policy, avail_inp_expr, NULL);
             arith_expr_gen.generate();
             if_stmt.set_cond(arith_expr_gen.get_expr());
             std::vector<std::shared_ptr<Expr>>::const_iterator first = out_expr.begin() + if_start;
             std::vector<std::shared_ptr<Expr>>::const_iterator last = out_expr.begin() + if_end;
             std::vector<std::shared_ptr<Expr>> if_out_expr(first, last);
 //            std::cerr << "if_out_expr.size() " << if_out_expr.size() << std::endl;
-            std::vector<std::shared_ptr<Stmt>> if_body = body_gen(inp_expr, if_out_expr);
+            std::vector<BodyRet> if_body_ret = body_gen(avail_inp_expr, if_out_expr, false);
 //            std::cerr << "if_body.size() " << if_body.size() << std::endl;
             if (!if_stmt.get_else_exist()) {
-                for (int j = 0; j < if_body.size(); ++j) {
-                    if_stmt.add_if_stmt(if_body.at(j));
+                for (int j = 0; j < if_body_ret.size(); ++j) {
+                    if_stmt.add_if_stmt(if_body_ret.at(j).stmt);
                 }
             }
             else {
-                int add_to_branch [if_body.size()];
-                for (int j = 0; j < if_body.size(); ++j) {
+                int add_to_branch [if_body_ret.size()];
+                for (int j = 0; j < if_body_ret.size(); ++j) {
                     add_to_branch [j] = rand_val_gen->get_rand_value<int>(0, 100);
                 }
-                for (int j = 0; j < if_body.size(); ++j) {
-                    if (add_to_branch [j] <= 60)
-                        if_stmt.add_if_stmt(if_body.at(j));
+                for (int j = 0; j < if_body_ret.size(); ++j) {
+                    if (add_to_branch [j] <= 60 || if_body_ret.at(j).undel)
+                        if_stmt.add_if_stmt(if_body_ret.at(j).stmt);
                 }
-                std::vector<std::shared_ptr<Stmt>> else_body = body_gen(inp_expr, if_out_expr);
-                for (int j = 0; j < else_body.size(); ++j) {
-                    if (add_to_branch [j] <= 30 || (60 <= add_to_branch [j] && add_to_branch [j] <= 90))
-                        if_stmt.add_else_stmt(else_body.at(j));
+                std::vector<BodyRet> else_body_ret = body_gen(avail_inp_expr, if_out_expr, false);
+                for (int j = 0; j < else_body_ret.size(); ++j) {
+                    if (add_to_branch [j] <= 30 || (60 <= add_to_branch [j] && add_to_branch [j] <= 90) || else_body_ret.at(j).undel)
+                        if_stmt.add_else_stmt(else_body_ret.at(j).stmt);
                 }
             }
-            ret.push_back(std::make_shared<IfStmt>(if_stmt));
+            BodyRet if_ret;
+            if_ret.stmt = std::make_shared<IfStmt>(if_stmt);
+            ret.push_back(if_ret);
             i += if_end - if_start - 1;
 
-            if (gen_policy.inter_war_dep) {
+            if (gen_policy.inter_war_dep && gen_policy.self_dep) {
                 for (int j = if_start; j < if_end; ++j) {
-                    tmp_inp_expr.erase(tmp_inp_expr.begin());
+                    avail_inp_expr.erase(avail_inp_expr.begin());
                 }
             }
         }
         else {
-            ArithExprGen arith_expr_gen (gen_policy, tmp_inp_expr, out_expr.at(i));
+            ArithExprGen arith_expr_gen (gen_policy, avail_inp_expr, out_expr.at(i));
             arith_expr_gen.generate();
-            ret.push_back(arith_expr_gen.get_expr_stmt());
-            if (gen_policy.inter_war_dep) {
-                tmp_inp_expr.erase(tmp_inp_expr.begin());
+            BodyRet arith_ret;
+            arith_ret.stmt = arith_expr_gen.get_expr_stmt();
+            ret.push_back(arith_ret);
+            if (gen_policy.inter_war_dep && gen_policy.self_dep) {
+                avail_inp_expr.erase(avail_inp_expr.begin());
             }
         }
 //        std::cerr << "i = " << i << std::endl;
@@ -922,6 +947,26 @@ void StepExprGen::generate () {
         step_expr.set_arg(std::make_shared<VarUseExpr> (var_use));
         expr = std::make_shared<UnaryExpr> (step_expr);
     }
+}
+
+void TmpVariableGen::generate () {
+    Type::TypeID type = gen_policy.allowed_types.at(rand_val_gen->get_rand_value<int>(0, gen_policy.allowed_types.size() - 1));
+    Variable tmp_var = Variable("tmp_var_" + gen_policy.ext_num + "_" + std::to_string(tmp_var_num), type, Variable::Mod::NTHNG, false);
+    var_ptr = std::make_shared<Variable> (tmp_var);
+
+    ArithExprGen arith_expr_gen (gen_policy, inp_expr, NULL);
+    arith_expr_gen.generate();
+    init_ptr = arith_expr_gen.get_expr();
+    var_ptr->set_value(init_ptr->get_value());
+
+    VarUseExpr tmp_var_use;
+    tmp_var_use.set_variable(var_ptr);
+    var_use_ptr = std::make_shared<VarUseExpr> (tmp_var_use);
+
+    DeclStmt tmp_var_decl;
+    tmp_var_decl.set_data(var_ptr);
+    tmp_var_decl.set_init(init_ptr);
+    var_decl_ptr = std::make_shared<DeclStmt> (tmp_var_decl);
 }
 
 void Master::write_file (std::string of_name, std::string data) {

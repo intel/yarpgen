@@ -44,6 +44,9 @@ struct GenerationPolicy {
 
     int max_arith_depth;
 
+    int max_tmp_var_num;
+    int max_tmp_arith_depth;
+
     bool self_dep;
     bool inter_war_dep;
 
@@ -136,16 +139,27 @@ class ArrayGen : public Gen {
 
 class LoopGen : public Gen {
     public:
-        LoopGen (GenerationPolicy _gen_policy) : Gen (_gen_policy), min_ex_arr_size (UINT64_MAX) {}
+        LoopGen (GenerationPolicy _gen_policy) : Gen (_gen_policy), min_ex_arr_size (UINT64_MAX), tmp_var_num (0) {}
         std::vector<std::shared_ptr<Data>>& get_inp_sym_table () { return inp_sym_table; }
         std::vector<std::shared_ptr<Data>>& get_out_sym_table () { return out_sym_table; }
         void generate ();
 
     private:
-        std::vector<std::shared_ptr<Stmt>> body_gen (std::vector<std::shared_ptr<Expr>> inp_expr, std::vector<std::shared_ptr<Expr>> out_expr);
+        struct BodyRet {
+            std::shared_ptr<Stmt> stmt;
+            bool undel;
+
+            BodyRet () : stmt (NULL), undel(-1) {}
+        };
+
+        std::vector<BodyRet> body_gen (std::vector<std::shared_ptr<Expr>> inp_expr, 
+                                       std::vector<std::shared_ptr<Expr>> out_expr, 
+                                       bool form_avail_inp);
         uint64_t min_ex_arr_size;
         std::vector<std::shared_ptr<Data>> inp_sym_table;
         std::vector<std::shared_ptr<Data>> out_sym_table;
+        int tmp_var_num;
+        std::vector<int> undel_stmt;
 };
 
 class VarValGen : public Gen {
@@ -207,4 +221,22 @@ class ArithExprGen : public Gen {
         std::vector<std::shared_ptr<Expr>> inp;
         std::shared_ptr<Expr> out;
         std::shared_ptr<Expr> res_expr;
+};
+
+class TmpVariableGen : public Gen {
+    public:
+        TmpVariableGen (GenerationPolicy _gen_policy, std::vector<std::shared_ptr<Expr>> _inp_expr, int _tmp_var_num) :
+                        Gen (_gen_policy), inp_expr (_inp_expr), tmp_var_num (_tmp_var_num),
+                        var_ptr (NULL), init_ptr (NULL), var_use_ptr (NULL), var_decl_ptr (NULL) {};
+        void generate();
+        std::shared_ptr<DeclStmt> get_var_decl () { return var_decl_ptr; }
+        std::shared_ptr<VarUseExpr> get_var_use () { return var_use_ptr; }
+
+    private:
+        std::vector<std::shared_ptr<Expr>> inp_expr;
+        int tmp_var_num;
+        std::shared_ptr<Variable> var_ptr;
+        std::shared_ptr<Expr> init_ptr;
+        std::shared_ptr<VarUseExpr> var_use_ptr;
+        std::shared_ptr<DeclStmt> var_decl_ptr;
 };
