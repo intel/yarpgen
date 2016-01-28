@@ -19,12 +19,38 @@ limitations under the License.
 #include "generator.h"
 
 void ScalarTypeGen::generate () {
-    Type::TypeID type_id = gen_policy->get_allowed_types().at(
-                           rand_val_gen->get_rand_value<int>(0, gen_policy->get_allowed_types().size() - 1));
-    type = Type::init (type_id);
+    type_id = gen_policy->get_allowed_types().at(rand_val_gen->get_rand_value<int>(0, gen_policy->get_allowed_types().size() - 1));
 }
 
 void ModifierGen::generate () {
     modifier = gen_policy->get_allowed_modifiers().at(
                rand_val_gen->get_rand_value<int>(0, gen_policy->get_allowed_modifiers().size() - 1));
+}
+
+void StaticSpecifierGen::generate () {
+    if (gen_policy->get_allow_static_var())
+        specifier = rand_val_gen->get_rand_value<int>(0, 1);
+    else
+        specifier = false;
+}
+
+int ScalarVariableGen::variable_num = 0;
+
+void ScalarVariableGen::generate () {
+    if (rand_init) {
+        ScalarTypeGen scalar_type_gen (gen_policy);
+        scalar_type_gen.generate ();
+        type_id = scalar_type_gen.get_type ();
+
+        ModifierGen modifier_gen (gen_policy);
+        modifier_gen.generate ();
+        modifier = modifier_gen.get_modifier ();
+
+        StaticSpecifierGen static_spec_gen (gen_policy);
+        static_spec_gen.generate ();
+        static_spec = static_spec_gen.get_specifier ();
+    }
+    Variable tmp_var ("var_" + std::to_string(variable_num), type_id, modifier, static_spec);
+    variable = std::make_shared<Variable>(tmp_var);
+    variable_num++;
 }

@@ -44,6 +44,8 @@ GenPolicy::GenPolicy () {
     rand_init_allowed_types();
 
     allowed_modifiers.push_back (Data::Mod::NTHNG);
+
+    allow_static_var = false;
 /*
     allow_local_var = true;
     allow_arrays = true;

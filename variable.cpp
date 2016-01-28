@@ -95,7 +95,7 @@ Variable::Variable (std::string _name, Type::TypeID _type_id, Mod _modifier, boo
 
 void Variable::dbg_dump () {
     std::cout << "type ";
-    std::cout << std::endl;
+    type->dbg_dump();
     std::cout << "name: " << name << std::endl;
     std::cout << "modifier: " << modifier << std::endl;
     std::cout << "value: " << value.uint_val << std::endl;

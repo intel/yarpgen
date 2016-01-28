@@ -58,14 +58,12 @@ class GenPolicy {
         bool get_allow_volatile () { return get_modifier (Data::Mod::VOLAT); }
         void set_allow_const (bool _allow_const) { set_modifier (_allow_const, Data::Mod::CONST); }
         bool get_allow_const () { return get_modifier (Data::Mod::CONST); }
-        void set_allow_const_volatile (bool _allow_const_volatile) { set_modifier (_allow_const_volatile, 
-                                                                                   Data::Mod::CONST_VOLAT); }
+        void set_allow_const_volatile (bool _allow_const_volatile) { set_modifier (_allow_const_volatile, Data::Mod::CONST_VOLAT); }
         bool get_allow_const_volatile () { return get_modifier (Data::Mod::CONST_VOLAT); }
         std::vector<Data::Mod>& get_allowed_modifiers () { return allowed_modifiers; }
 
-/*
-        void set_allow_ (bool _allow_) { allow_ = _allow_; }
-        bool get_allow_ () { return allow_; }
+        void set_allow_static_var (bool _allow_static_var) { allow_static_var = _allow_static_var; }
+        bool get_allow_static_var () { return allow_static_var; }
 
         // TODO: Add check for options compability
         void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
@@ -74,7 +72,6 @@ class GenPolicy {
         bool get_allow_arrays () { return allow_arrays; }
         void set_allow_scalar_variables (bool _allow_scalar_variables) { allow_scalar_variables = _allow_scalar_variables; }
         bool get_allow_scalar_variables () { return allow_scalar_variables; }
-*/
 
     private:
         // Number of allowed types
@@ -85,12 +82,13 @@ class GenPolicy {
         void set_modifier (bool value, Data::Mod modifier);
         bool get_modifier (Data::Mod modifier);
         std::vector<Data::Mod> allowed_modifiers;
-/*
+
+        bool allow_static_var;
+
         // Indicates whether the local variables are allowed
         bool allow_local_var;
         // Indicates whether the arrays  are allowed
         bool allow_arrays;
         // Indicates whether the scalar (non-array) variables are allowed
         bool allow_scalar_variables;
-*/
 };

@@ -34,12 +34,12 @@ class Generator {
 
 class ScalarTypeGen : public Generator {
     public:
-        ScalarTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), type (NULL) {};
-        std::shared_ptr<Type> get_type() { return type; }
+        ScalarTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), type_id (Type::TypeID::MAX_TYPE_ID) {};
+        Type::TypeID get_type() { return type_id; }
         void generate ();
 
     private:
-        std::shared_ptr<Type> type;
+        Type::TypeID type_id;
 };
 
 class ModifierGen : public Generator {
@@ -50,4 +50,33 @@ class ModifierGen : public Generator {
 
     private:
         Data::Mod modifier;
+};
+
+class StaticSpecifierGen : public Generator {
+    public:
+        StaticSpecifierGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), specifier (false) {}
+        bool get_specifier () { return specifier; }
+        void generate ();
+
+    private:
+        bool specifier;
+};
+
+class ScalarVariableGen : public Generator {
+    public:
+        ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy) :
+                          Generator (_gen_policy), type_id (Type::TypeID::MAX_TYPE_ID), modifier (Data::Mod::MAX_MOD),
+                          static_spec (false), variable (NULL), rand_init (true) {}
+        ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id, Data::Mod _modifier, bool _static_spec) :
+                          Generator (_gen_policy), type_id (_type_id), modifier (_modifier), static_spec(_static_spec), variable (NULL), rand_init (false) {}
+        std::shared_ptr<Variable> get_variable () { return variable; }
+        void generate ();
+
+    private:
+        static int variable_num;
+        bool rand_init;
+        Type::TypeID type_id;
+        Data::Mod modifier;
+        bool static_spec;
+        std::shared_ptr<Variable> variable;
 };

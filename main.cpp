@@ -237,13 +237,13 @@ int main (int argc, char* argv[]) {
     std::cout << "ScalarTypeGen:" << std::endl;
     ScalarTypeGen scalar_type_gen (std::make_shared<GenPolicy>(gen_policy));
     scalar_type_gen.generate();
-    std::cout << scalar_type_gen.get_type()->get_name() << std::endl;
+    std::cout << scalar_type_gen.get_type() << std::endl;
 
     gen_policy.set_num_of_allowed_types(1);
     gen_policy.rand_init_allowed_types ();
     ScalarTypeGen scalar_type_gen2 (std::make_shared<GenPolicy>(gen_policy));
     scalar_type_gen2.generate();
-    std::cout << scalar_type_gen2.get_type()->get_name() << std::endl;
+    std::cout << scalar_type_gen2.get_type() << std::endl;
 
     std::cout << "ModifierGen:" << std::endl;
     ModifierGen mod_gen (std::make_shared<GenPolicy>(gen_policy));
@@ -260,5 +260,25 @@ int main (int argc, char* argv[]) {
     mod_gen3.generate();
     std::cout << mod_gen3.get_modifier() << std::endl;
 
-    return 0;
+    std::cout << "StaticSpecifierGen:" << std::endl;
+    StaticSpecifierGen static_gen (std::make_shared<GenPolicy>(gen_policy));
+    static_gen.generate();
+    std::cout << static_gen.get_specifier () << std::endl;
+
+    gen_policy.set_allow_static_var(true);
+    StaticSpecifierGen static_gen2 (std::make_shared<GenPolicy>(gen_policy));
+    static_gen2.generate();
+    std::cout << static_gen2.get_specifier () << std::endl;
+
+    std::cout << "ScalarVariableGen:" << std::endl;
+    ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
+    scalar_var_gen.generate();
+    scalar_var_gen.get_variable()->dbg_dump();
+
+    ScalarVariableGen scalar_var_gen2 (std::make_shared<GenPolicy>(gen_policy), Type::TypeID::UINT, Data::Mod::CONST_VOLAT, false);
+    scalar_var_gen2.generate();
+    scalar_var_gen2.get_variable()->dbg_dump();
+
+
+   return 0;
 }
