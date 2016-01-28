@@ -20,9 +20,9 @@ CXX=clang++
 CXXFLAGS=-std=c++11
 OPT=-O3
 LDFLAGS=
-SOURCES=master.cpp variable.cpp node.cpp type.cpp main.cpp
+SOURCES=variable.cpp node.cpp type.cpp main.cpp gen_policy.cpp generator.cpp
 OBJS=$(addprefix objs/, $(SOURCES:.cpp=.o))
-HEADERS=master.h node.h type.h variable.h
+HEADERS=node.h type.h variable.h gen_policy.h generator.h
 EXECUTABLE=yarpgen
 
 default: $(EXECUTABLE)

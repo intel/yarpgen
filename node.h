@@ -27,6 +27,7 @@ class Node {
     public:
         enum NodeID {
             // Expr types
+            MIN_EXPR_ID,
             ASSIGN,
             BINARY,
             CONST,
@@ -38,6 +39,7 @@ class Node {
             VAR_USE,
             MAX_EXPR_ID,
             // Stmt type
+            MIN_STMT_ID,
             DECL,
             EXPR,
             CNT_LOOP,

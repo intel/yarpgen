@@ -22,9 +22,12 @@ limitations under the License.
 #include "type.h"
 #include "variable.h"
 #include "node.h"
-#include "master.h"
+#include "gen_policy.h"
+#include "generator.h"
+//#include "master.h"
 
 int main (int argc, char* argv[]) {
+/*
     extern char *optarg;
     extern int optind;
     char *pEnd;
@@ -55,7 +58,7 @@ int main (int argc, char* argv[]) {
             opt_parse_err = true;
             break;
         }
-    if (optind < argc)  /* these are the arguments after the command-line options */ {
+    if (optind < argc) {
         for (; optind < argc; optind++)
             std::cerr << "Unrecognized option: " << argv[optind] << std::endl;
         opt_parse_err = true;
@@ -81,7 +84,7 @@ int main (int argc, char* argv[]) {
     mas.emit_check ();
     mas.emit_main ();
     mas.emit_reduce_log ();
-
+*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test utilities
 /*
@@ -218,5 +221,44 @@ int main (int argc, char* argv[]) {
     std::cout << "Type: " << bin_expr.get_type_id () << std::endl;
     std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
 */
+
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
+
+    GenPolicy gen_policy;
+    std::cout << "GenPolicy:" << std::endl;
+    for (auto i = gen_policy.get_allowed_types().begin(); i != gen_policy.get_allowed_types().end(); ++i)
+        std::cout << (*i) << " ";
+    std::cout << std::endl;
+    gen_policy.set_num_of_allowed_types (10);
+    gen_policy.rand_init_allowed_types ();
+    for (auto i = gen_policy.get_allowed_types().begin(); i != gen_policy.get_allowed_types().end(); ++i)
+        std::cout << (*i) << " ";
+
+    std::cout << "ScalarTypeGen:" << std::endl;
+    ScalarTypeGen scalar_type_gen (std::make_shared<GenPolicy>(gen_policy));
+    scalar_type_gen.generate();
+    std::cout << scalar_type_gen.get_type()->get_name() << std::endl;
+
+    gen_policy.set_num_of_allowed_types(1);
+    gen_policy.rand_init_allowed_types ();
+    ScalarTypeGen scalar_type_gen2 (std::make_shared<GenPolicy>(gen_policy));
+    scalar_type_gen2.generate();
+    std::cout << scalar_type_gen2.get_type()->get_name() << std::endl;
+
+    std::cout << "ModifierGen:" << std::endl;
+    ModifierGen mod_gen (std::make_shared<GenPolicy>(gen_policy));
+    mod_gen.generate();
+    std::cout << mod_gen.get_modifier() << std::endl;
+
+    gen_policy.set_allow_volatile(true);
+    ModifierGen mod_gen2 (std::make_shared<GenPolicy>(gen_policy));
+    mod_gen2.generate();
+    std::cout << mod_gen2.get_modifier() << std::endl;
+
+    gen_policy.set_allow_volatile(false);
+    ModifierGen mod_gen3 (std::make_shared<GenPolicy>(gen_policy));
+    mod_gen3.generate();
+    std::cout << mod_gen3.get_modifier() << std::endl;
+
     return 0;
 }
