@@ -273,12 +273,24 @@ int main (int argc, char* argv[]) {
     std::cout << "ScalarVariableGen:" << std::endl;
     ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
     scalar_var_gen.generate();
-    scalar_var_gen.get_variable()->dbg_dump();
+    scalar_var_gen.get_data()->dbg_dump();
 
     ScalarVariableGen scalar_var_gen2 (std::make_shared<GenPolicy>(gen_policy), Type::TypeID::UINT, Data::Mod::CONST_VOLAT, false);
     scalar_var_gen2.generate();
-    scalar_var_gen2.get_variable()->dbg_dump();
+    scalar_var_gen2.get_data()->dbg_dump();
 
+    std::cout << "ArrayVariableGen" << std::endl;
+    ArrayVariableGen arr_var_gen (std::make_shared<GenPolicy>(gen_policy));
+    arr_var_gen.generate();
+    arr_var_gen.get_data()->dbg_dump();
 
+    ArrayVariableGen arr_var_gen2 (std::make_shared<GenPolicy>(gen_policy), Type::TypeID::UCHAR, Data::Mod::CONST, true, 1237, Array::Ess::STD_VEC);
+    arr_var_gen2.generate();
+    arr_var_gen2.get_data()->dbg_dump();
+
+    std::cout << "DeclStmtGen:" << std::endl;
+    DeclStmtGen decl_stmt_gen (std::make_shared<GenPolicy>(gen_policy));
+    decl_stmt_gen.generate();
+    std::cout << decl_stmt_gen.get_stmt()->emit() << std::endl;
    return 0;
 }

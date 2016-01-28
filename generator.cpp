@@ -34,23 +34,60 @@ void StaticSpecifierGen::generate () {
         specifier = false;
 }
 
+void DataGen::rand_init_param () {
+    if (!rand_init)
+        return;
+
+    ScalarTypeGen scalar_type_gen (gen_policy);
+    scalar_type_gen.generate ();
+    type_id = scalar_type_gen.get_type ();
+
+    ModifierGen modifier_gen (gen_policy);
+    modifier_gen.generate ();
+    modifier = modifier_gen.get_modifier ();
+
+    StaticSpecifierGen static_spec_gen (gen_policy);
+    static_spec_gen.generate ();
+    static_spec = static_spec_gen.get_specifier ();
+}
+
 int ScalarVariableGen::variable_num = 0;
 
 void ScalarVariableGen::generate () {
-    if (rand_init) {
-        ScalarTypeGen scalar_type_gen (gen_policy);
-        scalar_type_gen.generate ();
-        type_id = scalar_type_gen.get_type ();
-
-        ModifierGen modifier_gen (gen_policy);
-        modifier_gen.generate ();
-        modifier = modifier_gen.get_modifier ();
-
-        StaticSpecifierGen static_spec_gen (gen_policy);
-        static_spec_gen.generate ();
-        static_spec = static_spec_gen.get_specifier ();
-    }
+    rand_init_param ();
     Variable tmp_var ("var_" + std::to_string(variable_num), type_id, modifier, static_spec);
-    variable = std::make_shared<Variable>(tmp_var);
+    data = std::make_shared<Variable> (tmp_var);
     variable_num++;
+}
+
+int ArrayVariableGen::array_num = 0;
+
+void ArrayVariableGen::generate () {
+    rand_init_param ();
+    if (rand_init) {
+        size = rand_val_gen->get_rand_value<int>(gen_policy->get_min_array_size(), gen_policy->get_max_array_size());
+        essence = (Array::Ess) (gen_policy->get_essence_differ() ? rand_val_gen->get_rand_value<int>(0, Array::Ess::MAX_ESS - 1) :
+                                                                   gen_policy->get_primary_essence());
+    }
+    Array tmp_arr ("arr_" + std::to_string(array_num), type_id, modifier, static_spec, size, essence);
+    data = std::make_shared<Array> (tmp_arr);
+    array_num++;
+}
+
+void DeclStmtGen::generate () {
+    // TODO: Add non-scalar variables declaration
+    if (rand_init) {
+        // TODO: Enable
+        //if (!gen_policy.set_allow_scalar_variables())
+        // print error
+        ScalarVariableGen scalar_var_gen (gen_policy);
+        scalar_var_gen.generate ();
+        data = scalar_var_gen.get_data();
+        // TODO: Add auto-init generation
+    }
+    DeclStmt decl_stmt;
+    decl_stmt.set_data (data);
+    decl_stmt.set_init (init);
+    decl_stmt.set_is_extern (is_extern);
+    stmt = std::make_shared<DeclStmt> (decl_stmt);
 }

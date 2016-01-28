@@ -65,13 +65,25 @@ class GenPolicy {
         void set_allow_static_var (bool _allow_static_var) { allow_static_var = _allow_static_var; }
         bool get_allow_static_var () { return allow_static_var; }
 
+        void set_min_array_size (int _min_array_size) { min_array_size = _min_array_size; }
+        int get_min_array_size () { return min_array_size; }
+        void set_max_array_size (int _max_array_size) { max_array_size = _max_array_size; }
+        int get_max_array_size () { return max_array_size; }
+
+        void set_essence_differ (bool _essence_differ) { essence_differ = _essence_differ; }
+        bool get_essence_differ () { return essence_differ; }
+        void set_primary_essence (Array::Ess _primary_essence) { primary_essence = _primary_essence; }
+        Array::Ess get_primary_essence () { return primary_essence; }
+
         // TODO: Add check for options compability
         void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
         bool get_allow_local_var () { return allow_local_var; }
+/*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
         void set_allow_scalar_variables (bool _allow_scalar_variables) { allow_scalar_variables = _allow_scalar_variables; }
         bool get_allow_scalar_variables () { return allow_scalar_variables; }
+*/
 
     private:
         // Number of allowed types
@@ -85,10 +97,19 @@ class GenPolicy {
 
         bool allow_static_var;
 
+        int min_array_size;
+        int max_array_size;
+
+        // TODO: Add vector of allowed essence
+        bool essence_differ;
+        Array::Ess primary_essence;
+
         // Indicates whether the local variables are allowed
         bool allow_local_var;
+/*
         // Indicates whether the arrays  are allowed
         bool allow_arrays;
         // Indicates whether the scalar (non-array) variables are allowed
         bool allow_scalar_variables;
+*/
 };

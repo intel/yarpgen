@@ -20,6 +20,8 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 
 int MAX_ALLOWED_TYPES = 3;
+int MIN_ARRAY_SIZE = 1000;
+int MAX_ARRAY_SIZE = 10000;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -46,8 +48,15 @@ GenPolicy::GenPolicy () {
     allowed_modifiers.push_back (Data::Mod::NTHNG);
 
     allow_static_var = false;
-/*
+
+    min_array_size = MIN_ARRAY_SIZE;
+    max_array_size = MAX_ARRAY_SIZE;
+
+    essence_differ = false;
+    primary_essence = (Array::Ess) rand_val_gen->get_rand_value<int>(Array::Ess::C_ARR, Array::Ess::MAX_ESS - 1);
+
     allow_local_var = true;
+/*
     allow_arrays = true;
     allow_scalar_variables = true;
 */
