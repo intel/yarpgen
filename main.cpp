@@ -244,6 +244,8 @@ int main (int argc, char* argv[]) {
     ScalarTypeGen scalar_type_gen2 (std::make_shared<GenPolicy>(gen_policy));
     scalar_type_gen2.generate();
     std::cout << scalar_type_gen2.get_type() << std::endl;
+    gen_policy.set_num_of_allowed_types(4);
+    gen_policy.rand_init_allowed_types ();
 
     std::cout << "ModifierGen:" << std::endl;
     ModifierGen mod_gen (std::make_shared<GenPolicy>(gen_policy));
@@ -289,8 +291,13 @@ int main (int argc, char* argv[]) {
     arr_var_gen2.get_data()->dbg_dump();
 
     std::cout << "DeclStmtGen:" << std::endl;
-    DeclStmtGen decl_stmt_gen (std::make_shared<GenPolicy>(gen_policy));
+    DeclStmtGen decl_stmt_gen (std::make_shared<GenPolicy>(gen_policy), Data::VarClassID::VAR);
     decl_stmt_gen.generate();
     std::cout << decl_stmt_gen.get_stmt()->emit() << std::endl;
+
+    DeclStmtGen decl_stmt_gen2 (std::make_shared<GenPolicy>(gen_policy), Data::VarClassID::ARR);
+    decl_stmt_gen2.generate();
+    std::cout << decl_stmt_gen2.get_stmt()->emit() << std::endl;
+
    return 0;
 }

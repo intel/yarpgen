@@ -98,9 +98,9 @@ void Variable::dbg_dump () {
     type->dbg_dump();
     std::cout << "name: " << name << std::endl;
     std::cout << "modifier: " << modifier << std::endl;
-    std::cout << "value: " << value.uint_val << std::endl;
-    std::cout << "min: " << min.uint_val << std::endl;
-    std::cout << "max: " << max.uint_val << std::endl;
+    std::cout << "value: " << value.ullint_val << std::endl;
+    std::cout << "min: " << min.ullint_val << std::endl;
+    std::cout << "max: " << max.ullint_val << std::endl;
 }
 
 void Variable::set_value (uint64_t _val) {
@@ -336,59 +336,59 @@ Array::Array (std::string _name, Type::TypeID _base_type_id, Mod _modifier, bool
     essence = _essence;
     switch (base_type->get_id ()) {
         case Type::TypeID::BOOL:
-            value.bool_val = type->get_min ();
-            min.bool_val = type->get_min ();
-            max.bool_val = type->get_max ();
+            value.bool_val = base_type->get_min ();
+            min.bool_val = base_type->get_min ();
+            max.bool_val = base_type->get_max ();
             break;
         case Type::TypeID::CHAR:
-            value.char_val = type->get_min ();
-            min.char_val = type->get_min ();
-            max.char_val = type->get_max ();
+            value.char_val = base_type->get_min ();
+            min.char_val = base_type->get_min ();
+            max.char_val = base_type->get_max ();
             break;
         case Type::TypeID::UCHAR:
-            value.uchar_val = type->get_min ();
-            min.uchar_val = type->get_min ();
-            max.uchar_val = type->get_max ();
+            value.uchar_val = base_type->get_min ();
+            min.uchar_val = base_type->get_min ();
+            max.uchar_val = base_type->get_max ();
             break;
         case Type::TypeID::SHRT:
-            value.shrt_val = type->get_min ();
-            min.shrt_val = type->get_min ();
-            max.shrt_val = type->get_max ();
+            value.shrt_val = base_type->get_min ();
+            min.shrt_val = base_type->get_min ();
+            max.shrt_val = base_type->get_max ();
             break;
         case Type::TypeID::USHRT:
-            value.ushrt_val = type->get_min ();
-            min.ushrt_val = type->get_min ();
-            max.ushrt_val = type->get_max ();
+            value.ushrt_val = base_type->get_min ();
+            min.ushrt_val = base_type->get_min ();
+            max.ushrt_val = base_type->get_max ();
             break;
         case Type::TypeID::INT:
-            value.int_val = type->get_min ();
-            min.int_val = type->get_min ();
-            max.int_val = type->get_max ();
+            value.int_val = base_type->get_min ();
+            min.int_val = base_type->get_min ();
+            max.int_val = base_type->get_max ();
             break;
         case Type::TypeID::UINT:
-            value.uint_val = type->get_min ();
-            min.uint_val = type->get_min ();
-            max.uint_val = type->get_max ();
+            value.uint_val = base_type->get_min ();
+            min.uint_val = base_type->get_min ();
+            max.uint_val = base_type->get_max ();
             break;
         case Type::TypeID::LINT:
-            value.lint_val = type->get_min ();
-            min.lint_val = type->get_min ();
-            max.lint_val = type->get_max ();
+            value.lint_val = base_type->get_min ();
+            min.lint_val = base_type->get_min ();
+            max.lint_val = base_type->get_max ();
             break;
         case Type::TypeID::ULINT:
-            value.ulint_val = type->get_min ();
-            min.ulint_val = type->get_min ();
-            max.ulint_val = type->get_max ();
+            value.ulint_val = base_type->get_min ();
+            min.ulint_val = base_type->get_min ();
+            max.ulint_val = base_type->get_max ();
             break;
         case Type::TypeID::LLINT:
-            value.llint_val = type->get_min ();
-            min.llint_val = type->get_min ();
-            max.llint_val = type->get_max ();
+            value.llint_val = base_type->get_min ();
+            min.llint_val = base_type->get_min ();
+            max.llint_val = base_type->get_max ();
             break;
         case Type::TypeID::ULLINT:
-            value.ullint_val = type->get_min ();
-            min.ullint_val = type->get_min ();
-            max.ullint_val = type->get_max ();
+            value.ullint_val = base_type->get_min ();
+            min.ullint_val = base_type->get_min ();
+            max.ullint_val = base_type->get_max ();
             break;
         case Type::TypeID::PTR:
         case Type::TypeID::MAX_INT_ID:
@@ -632,7 +632,7 @@ void Array::dbg_dump () {
     std::cout << "size: " << size << std::endl;
     std::cout << "essence: " << essence << std::endl;
     std::cout << "modifier: " << modifier << std::endl;
-    std::cout << "value: " << value.uint_val << std::endl;
-    std::cout << "min: " << min.uint_val << std::endl;
-    std::cout << "max: " << max.uint_val << std::endl;
+    std::cout << "value: " << value.ullint_val << std::endl;
+    std::cout << "min: " << min.ullint_val << std::endl;
+    std::cout << "max: " << max.ullint_val << std::endl;
 }

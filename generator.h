@@ -17,6 +17,8 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <cassert>
+
 #include "type.h"
 #include "gen_policy.h"
 #include "variable.h"
@@ -63,6 +65,23 @@ class StaticSpecifierGen : public Generator {
         bool specifier;
 };
 
+class VariableValueGen : public Generator {
+    public:
+        VariableValueGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id) :
+                          Generator (_gen_policy), type_id (_type_id), value (0), max_value (0), min_value (0), rand_init (true) {}
+        VariableValueGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id, uint64_t _min_value, uint64_t _max_value) :
+                          Generator (_gen_policy), type_id (_type_id), value (0), max_value (_max_value), min_value (_min_value), rand_init (false) {}
+        uint64_t get_value () { return value; }
+        void generate ();
+
+    private:
+        bool rand_init;
+        Type::TypeID type_id;
+        uint64_t value;
+        uint64_t min_value;
+        uint64_t max_value;
+};
+
 class DataGen : public Generator {
     public:
         DataGen (std::shared_ptr<GenPolicy> _gen_policy) :
@@ -75,6 +94,7 @@ class DataGen : public Generator {
 
     protected:
         void rand_init_param ();
+        void rand_init_value ();
         bool rand_init;
         Type::TypeID type_id;
         Data::Mod modifier;
@@ -119,13 +139,15 @@ class StmtGen : public Generator {
 
 class DeclStmtGen : public StmtGen {
     public:
-        DeclStmtGen (std::shared_ptr<GenPolicy> _gen_policy) : StmtGen (_gen_policy) {
+        DeclStmtGen (std::shared_ptr<GenPolicy> _gen_policy, Data::VarClassID _var_class_id) : StmtGen (_gen_policy) {
+            var_class_id = _var_class_id;
             data = NULL;
             init = NULL;
             is_extern = false;
             rand_init = true;
         }
         DeclStmtGen (std::shared_ptr<GenPolicy> _gen_policy, std::shared_ptr<Data> _data,  std::shared_ptr<Expr> _init) : StmtGen (_gen_policy) {
+            var_class_id = _data->get_class_id ();
             data = _data;
             init = _init;
             is_extern = false;
@@ -133,10 +155,11 @@ class DeclStmtGen : public StmtGen {
         }
         std::shared_ptr<Data> get_data () { return data; }
         std::shared_ptr<Expr> get_init () { return init; }
-        void set_is_extert (bool _is_extern) { is_extern = _is_extern; }
+        void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         void generate ();
 
     private:
+        Data::VarClassID var_class_id;
         std::shared_ptr<Data> data;
         std::shared_ptr<Expr> init;
         bool is_extern;
