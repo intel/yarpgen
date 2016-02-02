@@ -35,12 +35,13 @@ void Master::generate () {
     scalar_var_gen.generate ();
     extern_out_sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen.get_data()));
 
-    Context ctx (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, NULL, NULL, 0);
+    Context ctx (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, NULL, NULL);
     ctx.set_extern_inp_sym_table (std::make_shared<SymbolTable>(extern_inp_sym_table));
     ctx.set_extern_out_sym_table (std::make_shared<SymbolTable>(extern_out_sym_table));
 
     ScopeGen scope_gen (std::make_shared<Context> (ctx));
     scope_gen.generate();
+    program = scope_gen.get_scope ();
 }
 
 void Master::write_file (std::string of_name, std::string data) {
@@ -58,6 +59,8 @@ std::string Master::emit_init () {
     ret += extern_out_sym_table.emit_variable_def();
 
     ret += "void init () {\n";
+    for (auto i = program.begin(); i != program.end(); ++i)
+        ret += (*i)->emit() + ";\n";
     ret += "}";
 
     write_file("init.cpp", ret);

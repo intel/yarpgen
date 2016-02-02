@@ -1117,7 +1117,7 @@ std::string ConstExpr::emit () {
 
 std::string TypeCastExpr::emit () {
     std::string ret = "(" + value.get_type()->get_name() + ")";
-    ret += expr->emit();
+    ret += "(" + expr->emit() + ")";
     return ret;
 }
 

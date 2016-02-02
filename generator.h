@@ -129,7 +129,7 @@ class ArrayVariableGen : public DataGen {
 
 class StmtGen : public Generator {
     public:
-        StmtGen (std::shared_ptr<Context> _global_ctx) : Generator (_global_ctx->get_self_gen_policy()), stmt (NULL) {}
+        StmtGen (std::shared_ptr<Context> _global_ctx) : Generator (_global_ctx->get_self_gen_policy()), ctx (_global_ctx), stmt (NULL) {}
         std::shared_ptr<Stmt> get_stmt () { return stmt; }
         virtual void generate () = 0;
 
@@ -166,6 +166,26 @@ class DeclStmtGen : public StmtGen {
         std::shared_ptr<Data> data;
         std::shared_ptr<Expr> init;
         bool is_extern;
+};
+
+class ArithStmtGen  : public StmtGen {
+    public:
+        enum LeafID {
+            Data, Unary, Binary, TypeCast, MAX_LEAF_ID
+        };
+        ArithStmtGen (std::shared_ptr<Context> _global_ctx, std::vector<std::shared_ptr<Expr>> _inp, std::shared_ptr<Expr> _out) :
+                      StmtGen (_global_ctx), inp(_inp), out(_out) {}
+        std::shared_ptr<Expr> get_expr () { return res_expr; };
+        void generate();
+
+    private:
+        std::shared_ptr<Expr> rebuild_unary(Expr::UB ub, std::shared_ptr<Expr> expr);
+        std::shared_ptr<Expr> rebuild_binary(Expr::UB ub, std::shared_ptr<Expr> expr);
+        std::shared_ptr<Expr> gen_level (int depth);
+
+        std::vector<std::shared_ptr<Expr>> inp;
+        std::shared_ptr<Expr> out;
+        std::shared_ptr<Expr> res_expr;
 };
 
 class ScopeGen : public StmtGen {

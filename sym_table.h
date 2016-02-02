@@ -30,6 +30,8 @@ class SymbolTable {
         SymbolTable () {}
         void add_variable (std::shared_ptr<Variable> _var) { variable.push_back (_var); }
         void add_array (std::shared_ptr<Array> _arr) { array.push_back (_arr); }
+        std::vector<std::shared_ptr<Variable>>& get_variables () { return variable; }
+        std::vector<std::shared_ptr<Array>>& get_arrays () { return array; }
         // TODO: Add symbol probability
         std::shared_ptr<Variable> get_rand_variable ();
         std::shared_ptr<Array> get_rand_array ();
@@ -44,9 +46,10 @@ class SymbolTable {
 class Context {
     public:
         Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node::NodeID _glob_stmt_id, 
-                 std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx, int depth);
+                 std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx);
 
         std::shared_ptr<GenPolicy> get_self_gen_policy () { return std::make_shared<GenPolicy> (self_gen_policy); }
+        int get_depth () { return depth; }
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
         void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }

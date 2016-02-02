@@ -19,7 +19,7 @@ limitations under the License.
 #include "generator.h"
 
 void ScalarTypeGen::generate () {
-    type_id = gen_policy->get_allowed_types().at(rand_val_gen->get_rand_value<int>(0, gen_policy->get_allowed_types().size() - 1));
+    type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
 }
 
 void ModifierGen::generate () {
@@ -191,7 +191,238 @@ void DeclStmtGen::generate () {
     stmt = std::make_shared<DeclStmt> (decl_stmt);
 }
 
+void ArithStmtGen::generate () {
+    res_expr = gen_level(0);
+    if (out != NULL) {
+        AssignExpr assign;
+        assign.set_to(out);
+        assign.set_from(res_expr);
+        res_expr = std::make_shared<AssignExpr> (assign);
+    }
+    ExprStmt res_stmt;
+    res_stmt.set_expr(res_expr);
+    stmt = std::make_shared<ExprStmt> (res_stmt);
+}
+
+std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
+    int node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
+    if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth()) {
+        int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
+        inp.at(inp_use)->propagate_type();
+        inp.at(inp_use)->propagate_value();
+        return inp.at(inp_use);
+    }
+    else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
+        UnaryExpr unary;
+        UnaryExpr::Op op_type = (UnaryExpr::Op) rand_val_gen->get_rand_id(gen_policy->get_allowed_unary_op());
+        unary.set_op(op_type);
+        unary.set_arg(gen_level(depth + 1));
+        unary.propagate_type();
+        Expr::UB ub = unary.propagate_value();
+        std::shared_ptr<Expr> ret = std::make_shared<UnaryExpr> (unary);
+        if (ub)
+            ret = rebuild_unary(ub, ret);
+        return ret;
+    }
+    else if (node_type == GenPolicy::ArithLeafID::Binary) {// Binary expr
+        BinaryExpr binary;
+        BinaryExpr::Op op_type = (BinaryExpr::Op) rand_val_gen->get_rand_id(gen_policy->get_allowed_binary_op());
+        binary.set_op(op_type);
+        binary.set_lhs(gen_level(depth + 1));
+        binary.set_rhs(gen_level(depth + 1));
+        binary.propagate_type();
+        Expr::UB ub = binary.propagate_value();
+        std::shared_ptr<Expr> ret = std::make_shared<BinaryExpr> (binary);
+        if (ub)
+            ret = rebuild_binary(ub, ret);
+        return ret;
+    }
+    else if (node_type == GenPolicy::ArithLeafID::TypeCast) {// TypeCast expr
+        TypeCastExpr type_cast;
+        Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
+        type_cast.set_type(Type::init(type_id));
+        type_cast.set_expr(gen_level(depth + 1));
+        type_cast.propagate_type();
+        type_cast.propagate_value();
+        return std::make_shared<TypeCastExpr> (type_cast);
+    }
+    else {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate node type." << std::endl;
+        exit (-1);
+    }
+    return NULL;
+}
+
+std::shared_ptr<Expr> ArithStmtGen::rebuild_unary (Expr::UB ub, std::shared_ptr<Expr> expr) {
+    if (expr->get_id() != Node::NodeID::UNARY) {
+        std::cerr << "ERROR: ArithExprGen::rebuild_unary : not UnaryExpr" << std::endl;
+        return NULL;
+    }
+    std::shared_ptr<UnaryExpr> ret = std::static_pointer_cast<UnaryExpr>(expr);
+    switch (ret->get_op()) {
+        case UnaryExpr::PreInc:
+            ret->set_op(UnaryExpr::Op::PreDec);
+            break;
+        case UnaryExpr::PostInc:
+            ret->set_op(UnaryExpr::Op::PostDec);
+            break;
+        case UnaryExpr::PreDec:
+            ret->set_op(UnaryExpr::Op::PreInc);
+            break;
+        case UnaryExpr::PostDec:
+            ret->set_op(UnaryExpr::Op::PostInc);
+            break;
+        case UnaryExpr::Negate:
+            ret->set_op(UnaryExpr::Op::Plus);
+            break;
+        case UnaryExpr::Plus:
+        case UnaryExpr::LogNot:
+        case UnaryExpr::BitNot:
+            break;
+        case UnaryExpr::MaxOp:
+            std::cerr << "ERROR: ArithExprGen::rebuild_unary : MaxOp" << std::endl;
+            break;
+    }
+    ret->propagate_type();
+    Expr::UB ret_ub = ret->propagate_value();
+    if (ret_ub) {
+        std::cerr << "ERROR: ArithExprGen::rebuild_unary : illegal strategy" << std::endl;
+        return NULL;
+    }
+    return ret;
+}
+
+static uint64_t msb(uint64_t x) {
+    uint64_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
+}
+
+std::shared_ptr<Expr> ArithStmtGen::rebuild_binary (Expr::UB ub, std::shared_ptr<Expr> expr) {
+    if (expr->get_id() != Node::NodeID::BINARY) {
+        std::cerr << "ERROR: ArithExprGen::rebuild_binary : not BinaryExpr" << std::endl;
+        return NULL;
+    }
+    std::shared_ptr<BinaryExpr> ret = std::static_pointer_cast<BinaryExpr>(expr);
+    switch (ret->get_op()) {
+        case BinaryExpr::Add:
+            ret->set_op(BinaryExpr::Op::Sub);
+            break;
+        case BinaryExpr::Sub:
+            ret->set_op(BinaryExpr::Op::Add);
+            break;
+        case BinaryExpr::Mul:
+            if (ub == Expr::SignOvfMin)
+                ret->set_op(BinaryExpr::Op::Sub);
+            else
+                ret->set_op(BinaryExpr::Op::Div);
+            break;
+        case BinaryExpr::Div:
+        case BinaryExpr::Mod:
+            if (ub == Expr::ZeroDiv)
+                ret->set_op(BinaryExpr::Op::Mul);
+            else
+               ret->set_op(BinaryExpr::Op::Sub);
+            break;
+        case BinaryExpr::Shr:
+        case BinaryExpr::Shl:
+            if ((ub == Expr::ShiftRhsNeg) || (ub == Expr::ShiftRhsLarge)) {
+                std::shared_ptr<Expr> rhs = ret->get_rhs();
+                ConstExpr const_expr;
+                const_expr.set_type(rhs->get_type_id());
+
+                std::shared_ptr<Expr> lhs = ret->get_lhs();
+                uint64_t max_sht_val = lhs->get_type_bit_size();
+                if ((ret->get_op() == BinaryExpr::Shl) && (lhs->get_type_is_signed()) && (ub == Expr::ShiftRhsLarge))
+                    max_sht_val = max_sht_val - msb((uint64_t)lhs->get_value());
+                uint64_t const_val = rand_val_gen->get_rand_value<int>(0, max_sht_val);
+                if (ub == Expr::ShiftRhsNeg) {
+                    std::shared_ptr<Type> tmp_type = Type::init (rhs->get_type_id());
+                    const_val += std::abs((long long int) rhs->get_value());
+                    const_val = std::min(const_val, tmp_type->get_max()); // TODO: it won't work with INT_MIN
+                }
+                else
+                    const_val = rhs->get_value() - const_val;
+                const_expr.set_data(const_val);
+                const_expr.propagate_type();
+                const_expr.propagate_value();
+
+                BinaryExpr ins;
+                if (ub == Expr::ShiftRhsNeg)
+                    ins.set_op(BinaryExpr::Op::Add);
+                else
+                    ins.set_op(BinaryExpr::Op::Sub);
+                ins.set_lhs(rhs);
+                ins.set_rhs(std::make_shared<ConstExpr> (const_expr));
+                ins.propagate_type();
+                Expr::UB ins_ub = ins.propagate_value();
+                ret->set_rhs(std::make_shared<BinaryExpr> (ins));
+                if (ins_ub) {
+                    std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild (type 1)" << std::endl;
+                    ret = std::static_pointer_cast<BinaryExpr> (rebuild_binary(ins_ub, ret));
+                }
+            }
+            else {
+                std::shared_ptr<Expr> lhs = ret->get_lhs();
+                ConstExpr const_expr;
+                const_expr.set_type(lhs->get_type_id());
+                uint64_t const_val = Type::init(lhs->get_type_id())->get_max();
+                const_expr.set_data(const_val);
+                const_expr.propagate_type();
+                const_expr.propagate_value();
+
+                BinaryExpr ins;
+                ins.set_op(BinaryExpr::Op::Add);
+                ins.set_lhs(lhs);
+                ins.set_rhs(std::make_shared<ConstExpr> (const_expr));
+                ins.propagate_type();
+                Expr::UB ins_ub = ins.propagate_value();
+                ret->set_lhs(std::make_shared<BinaryExpr> (ins));
+                if (ins_ub) {
+                    std::cerr << "ArithExprGen::rebuild_binary : invalid shift rebuild (type 2)" << std::endl;
+                    ret = std::static_pointer_cast<BinaryExpr> (rebuild_binary(ins_ub, ret));
+                }
+            }
+            break;
+        case BinaryExpr::Lt:
+        case BinaryExpr::Gt:
+        case BinaryExpr::Le:
+        case BinaryExpr::Ge:
+        case BinaryExpr::Eq:
+        case BinaryExpr::Ne:
+        case BinaryExpr::BitAnd:
+        case BinaryExpr::BitOr:
+        case BinaryExpr::BitXor:
+        case BinaryExpr::LogAnd:
+        case BinaryExpr::LogOr:
+            break;
+        case BinaryExpr::MaxOp:
+            std::cerr << "ArithExprGen::rebuild_binary : invalid Op" << std::endl;
+            break;
+    }
+    ret->propagate_type();
+    Expr::UB ret_ub = ret->propagate_value();
+    if (ret_ub) {
+        return rebuild_binary(ret_ub, ret);
+    }
+    return ret;
+}
+
 void ScopeGen::generate () {
     Node::NodeID stmt_id = Node::NodeID::EXPR;
-    
+    std::vector<std::shared_ptr<Expr>> inp;
+    for (auto i = ctx->get_extern_inp_sym_table()->get_variables().begin(); i != ctx->get_extern_inp_sym_table()->get_variables().end(); ++i) {
+        VarUseExpr var_use;
+        var_use.set_variable (*i);
+        inp.push_back(std::make_shared<VarUseExpr> (var_use));
+    }
+    VarUseExpr var_use;
+    var_use.set_variable (ctx->get_extern_out_sym_table()->get_variables().at(0));
+    Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+    ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
+    arith_stmt_gen.generate();
+    scope.push_back(arith_stmt_gen.get_stmt());
 }

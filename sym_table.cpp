@@ -56,17 +56,18 @@ std::string ret = "";
 }
 
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node::NodeID _glob_stmt_id,
-                  std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx, int _depth) {
+                  std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx) {
     self_gen_policy = _gen_policy;
     self_glob_stmt = _glob_stmt;
     self_glob_stmt_id = _glob_stmt_id;
     global_sym_table = _global_sym_table;
     parent_ctx = _parent_ctx;
-    depth = _depth;
+    depth = 0;
 
     if (parent_ctx != NULL) {
         extern_inp_sym_table = parent_ctx->get_extern_inp_sym_table ();
         extern_out_sym_table = parent_ctx->get_extern_out_sym_table ();
+        depth = parent_ctx->get_depth();
     }
 }
 

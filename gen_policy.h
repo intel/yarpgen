@@ -22,8 +22,20 @@ limitations under the License.
 
 #include "type.h"
 #include "variable.h"
+#include "node.h"
 
 ///////////////////////////////////////////////////////////////////////////////
+
+class Probability {
+    public:
+        Probability (int _id, int _prob) : id(_id), prob (_prob) {}
+        int get_id () { return id; }
+        uint64_t get_prob () { return prob; }
+
+    private:
+        int id;
+        uint64_t prob;
+};
 
 class RandValGen {
     public:
@@ -33,6 +45,7 @@ class RandValGen {
             std::uniform_int_distribution<T> dis(from, to);
             return dis(rand_gen);
         }
+        int get_rand_id (std::vector<Probability> vec);
 
     private:
         uint64_t seed;
@@ -47,11 +60,15 @@ class GenPolicy {
     public:
         GenPolicy ();
 
+        enum ArithLeafID {
+            Data, Unary, Binary, TypeCast, MAX_LEAF_ID
+        };
+
         void set_num_of_allowed_types (int _num_of_allowed_types) { num_of_allowed_types = _num_of_allowed_types; }
         int get_num_of_allowed_types () { return num_of_allowed_types; }
         void rand_init_allowed_types ();
-        std::vector<Type::TypeID>& get_allowed_types () { return allowed_types; }
-        void set_allowed_types (std::vector<Type::TypeID> _allowed_types) { allowed_types = _allowed_types; }
+        std::vector<Probability>& get_allowed_types () { return allowed_types; }
+        void add_allowed_type (Probability allowed_type) { allowed_types.push_back(allowed_type); }
 
         // TODO: Add check for options compability? Should allow_volatile + allow_const be equal to allow_const_volatile?
         void set_allow_volatile (bool _allow_volatile) { set_modifier (_allow_volatile, Data::Mod::VOLAT); }
@@ -75,6 +92,14 @@ class GenPolicy {
         void set_primary_essence (Array::Ess _primary_essence) { primary_essence = _primary_essence; }
         Array::Ess get_primary_essence () { return primary_essence; }
 
+        void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
+        int get_max_arith_depth () { return max_arith_depth; }
+
+        void add_unary_op (Probability prob) { allowed_unary_op.push_back(prob); }
+        std::vector<Probability>& get_allowed_unary_op () { return allowed_unary_op; }
+        std::vector<Probability>& get_allowed_binary_op () { return allowed_binary_op; }
+        std::vector<Probability>& get_arith_leaves () { return arith_leaves; }
+
         // TODO: Add check for options compability
         void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
         bool get_allow_local_var () { return allow_local_var; }
@@ -89,7 +114,7 @@ class GenPolicy {
         // Number of allowed types
         int num_of_allowed_types;
         // Allowed types of variables and basic types of arrays
-        std::vector<Type::TypeID> allowed_types;
+        std::vector<Probability> allowed_types;
 
         void set_modifier (bool value, Data::Mod modifier);
         bool get_modifier (Data::Mod modifier);
@@ -103,6 +128,12 @@ class GenPolicy {
         // TODO: Add vector of allowed essence
         bool essence_differ;
         Array::Ess primary_essence;
+
+        int max_arith_depth;
+
+        std::vector<Probability> allowed_unary_op;
+        std::vector<Probability> allowed_binary_op;
+        std::vector<Probability> arith_leaves;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;

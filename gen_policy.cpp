@@ -20,8 +20,11 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 
 int MAX_ALLOWED_TYPES = 3;
+
 int MIN_ARRAY_SIZE = 1000;
 int MAX_ARRAY_SIZE = 10000;
+
+int MAX_ARITH_DEPTH = 5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -37,6 +40,22 @@ RandValGen::RandValGen (uint64_t _seed) {
     }
     std::cout << "/*SEED " << seed << "*/\n";
     rand_gen = std::mt19937_64(seed);
+}
+
+int RandValGen::get_rand_id (std::vector<Probability> vec) {
+    uint64_t max_prob = 0;
+    for (auto i = vec.begin(); i != vec.end(); ++i)
+        max_prob += (*i).get_prob();
+    uint64_t rand_num = get_rand_value<uint64_t> (0, max_prob);
+    int k = 0;
+    for (auto i = vec.begin(); i != vec.end(); ++i) {
+        max_prob -= (*i).get_prob();
+        if (rand_num >= max_prob)
+            return (*i).get_id();
+    }
+    std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unable to select any id." << std::endl;
+    exit (-1);
+    return -1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,6 +74,27 @@ GenPolicy::GenPolicy () {
     essence_differ = false;
     primary_essence = (Array::Ess) rand_val_gen->get_rand_value<int>(Array::Ess::C_ARR, Array::Ess::MAX_ESS - 1);
 
+    max_arith_depth = MAX_ARITH_DEPTH;
+
+    for (int i = UnaryExpr::Op::Plus; i < UnaryExpr::Op::MaxOp; ++i) {
+        Probability prob (i, 1);
+        allowed_unary_op.push_back (prob);
+    }
+
+    for (int i = 0; i < BinaryExpr::Op::MaxOp; ++i) {
+        Probability prob (i, 1);
+        allowed_binary_op.push_back (prob);
+    }
+
+    Probability data_leaf (ArithLeafID::Data, 10);
+    arith_leaves.push_back (data_leaf);
+    Probability unary_leaf (ArithLeafID::Unary, 30);
+    arith_leaves.push_back (unary_leaf);
+    Probability binary_leaf (ArithLeafID::Binary, 60);
+    arith_leaves.push_back (binary_leaf);
+    Probability type_cast_leaf (ArithLeafID::TypeCast, 60);
+    arith_leaves.push_back (type_cast_leaf);
+
     allow_local_var = true;
 /*
     allow_arrays = true;
@@ -64,13 +104,18 @@ GenPolicy::GenPolicy () {
 
 void GenPolicy::rand_init_allowed_types () {
     allowed_types.clear ();
+    std::vector<Type::TypeID> tmp_allowed_types;
     int gen_types = 0;
     while (gen_types < num_of_allowed_types) {
-        Type::TypeID type = (Type::TypeID) rand_val_gen->get_rand_value<int>(Type::TypeID::CHAR, Type::TypeID::MAX_INT_ID - 1);
-        if (std::find(allowed_types.begin(), allowed_types.end(), type) == allowed_types.end()) {
-            allowed_types.push_back (type);
+        Type::TypeID type = (Type::TypeID) rand_val_gen->get_rand_value<int>(0, Type::TypeID::MAX_INT_ID - 1);
+        if (std::find(tmp_allowed_types.begin(), tmp_allowed_types.end(), type) == tmp_allowed_types.end()) {
+            tmp_allowed_types.push_back (type);
             gen_types++;
         }
+    }
+    for (auto i : tmp_allowed_types) {
+        Probability prob (i, 1);
+        allowed_types.push_back (prob);
     }
 }
 
