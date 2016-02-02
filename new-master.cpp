@@ -25,16 +25,18 @@ Master::Master (std::string _out_folder) {
 }
 
 void Master::generate () {
-    int var_num = rand_val_gen->get_rand_value<int>(5, 10);
-    for (int i = 0; i < var_num; ++i) {
+    int inp_var_num = rand_val_gen->get_rand_value<int>(5, 10);
+    for (int i = 0; i < inp_var_num; ++i) {
         ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
         scalar_var_gen.generate ();
         extern_inp_sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen.get_data()));
     }
-    ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
-    scalar_var_gen.generate ();
-    extern_out_sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen.get_data()));
-
+    int out_var_num = rand_val_gen->get_rand_value<int>(5, 10);
+    for (int i = 0; i < out_var_num; ++i) {
+        ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
+        scalar_var_gen.generate ();
+        extern_out_sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen.get_data()));
+    }
     Context ctx (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, NULL, NULL);
     ctx.set_extern_inp_sym_table (std::make_shared<SymbolTable>(extern_inp_sym_table));
     ctx.set_extern_out_sym_table (std::make_shared<SymbolTable>(extern_out_sym_table));

@@ -100,11 +100,38 @@ GenPolicy::GenPolicy () {
     Probability const_data (ArithDataID::Const, 30);
     arith_data_distr.push_back (const_data);
 
+    Probability const_branch (ArithSinglePattern::ConstBranch, 10);
+    allowed_arith_single_patterns.push_back(const_branch);
+    Probability half_const (ArithSinglePattern::HalfConst, 10);
+    allowed_arith_single_patterns.push_back(half_const);
+    Probability no_pattern (ArithSinglePattern::MAX_ARITH_SINGLE_PATTERN, 80);
+    allowed_arith_single_patterns.push_back(no_pattern);
+
+    chosen_arith_single_pattern = ArithSinglePattern::MAX_ARITH_SINGLE_PATTERN;
+
     allow_local_var = true;
 /*
     allow_arrays = true;
     allow_scalar_variables = true;
 */
+}
+
+std::shared_ptr<GenPolicy> GenPolicy::apply_arith_single_pattern (ArithSinglePattern pattern_id) {
+    chosen_arith_single_pattern = pattern_id;
+    GenPolicy new_policy = *this;
+    if (pattern_id == ArithSinglePattern::ConstBranch) {
+        new_policy.arith_data_distr.clear();
+        Probability const_data (ArithDataID::Const, 100);
+        new_policy.arith_data_distr.push_back (const_data);
+    }
+    else if (pattern_id == ArithSinglePattern::HalfConst) {
+        new_policy.arith_data_distr.clear();
+        Probability inp_data (ArithDataID::Inp, 50);
+        new_policy.arith_data_distr.push_back (inp_data);
+        Probability const_data (ArithDataID::Const, 50);
+        new_policy.arith_data_distr.push_back (const_data);
+    }
+    return std::make_shared<GenPolicy> (new_policy);
 }
 
 void GenPolicy::rand_init_allowed_types () {

@@ -108,6 +108,16 @@ class GenPolicy {
         // TODO: Add check for options compability
         void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
         bool get_allow_local_var () { return allow_local_var; }
+
+        // Pattern
+        // ArithStmt patterns for single stmt
+        enum ArithSinglePattern {
+            ConstBranch, HalfConst, MAX_ARITH_SINGLE_PATTERN
+        };
+        std::vector<Probability>& get_allowed_arith_single_patterns () { return allowed_arith_single_patterns; }
+        ArithSinglePattern get_chosen_arith_single_pattern () { return chosen_arith_single_pattern; }
+        std::shared_ptr<GenPolicy> apply_arith_single_pattern (ArithSinglePattern pattern_id);
+
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -140,6 +150,9 @@ class GenPolicy {
         std::vector<Probability> allowed_binary_op;
         std::vector<Probability> arith_leaves;
         std::vector<Probability> arith_data_distr;
+
+        std::vector<Probability> allowed_arith_single_patterns;
+        ArithSinglePattern chosen_arith_single_pattern;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;

@@ -191,6 +191,14 @@ void DeclStmtGen::generate () {
     stmt = std::make_shared<DeclStmt> (decl_stmt);
 }
 
+std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_single_pattern () {
+    if (gen_policy->get_chosen_arith_single_pattern() != GenPolicy::ArithSinglePattern::MAX_ARITH_SINGLE_PATTERN)
+        return gen_policy;
+    int arith_single_pattern_id = rand_val_gen->get_rand_id (gen_policy->get_allowed_arith_single_patterns());
+//    std::cerr << "arith_single_pattern_id: " << arith_single_pattern_id << std::endl;
+    return gen_policy->apply_arith_single_pattern ((GenPolicy::ArithSinglePattern) arith_single_pattern_id);
+}
+
 void ArithStmtGen::generate () {
     res_expr = gen_level(0);
     if (out != NULL) {
@@ -205,14 +213,17 @@ void ArithStmtGen::generate () {
 }
 
 std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
+    std::shared_ptr<GenPolicy> old_gen_policy = gen_policy;
+    gen_policy = choose_and_apply_single_pattern ();
     int node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
+    std::shared_ptr<Expr> ret;
     if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth()) {
         int data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
         if (data_type == GenPolicy::ArithDataID::Inp) {
             int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
             inp.at(inp_use)->propagate_type();
             inp.at(inp_use)->propagate_value();
-            return inp.at(inp_use);
+            ret = inp.at(inp_use);
         }
         else if (data_type == GenPolicy::ArithDataID::Const) {
             Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
@@ -223,7 +234,7 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
             const_expr.set_data (var_val_gen.get_value());
             const_expr.propagate_type();
             const_expr.propagate_value();
-            return std::make_shared<ConstExpr> (const_expr);
+            ret = std::make_shared<ConstExpr> (const_expr);
         }
         else {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate data type." << std::endl;
@@ -237,12 +248,11 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
         unary.set_arg(gen_level(depth + 1));
         unary.propagate_type();
         Expr::UB ub = unary.propagate_value();
-        std::shared_ptr<Expr> ret = std::make_shared<UnaryExpr> (unary);
+        ret = std::make_shared<UnaryExpr> (unary);
         if (ub)
             ret = rebuild_unary(ub, ret);
-        return ret;
     }
-    else if (node_type == GenPolicy::ArithLeafID::Binary) {// Binary expr
+    else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
         BinaryExpr binary;
         BinaryExpr::Op op_type = (BinaryExpr::Op) rand_val_gen->get_rand_id(gen_policy->get_allowed_binary_op());
         binary.set_op(op_type);
@@ -250,25 +260,25 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
         binary.set_rhs(gen_level(depth + 1));
         binary.propagate_type();
         Expr::UB ub = binary.propagate_value();
-        std::shared_ptr<Expr> ret = std::make_shared<BinaryExpr> (binary);
+        ret = std::make_shared<BinaryExpr> (binary);
         if (ub)
             ret = rebuild_binary(ub, ret);
-        return ret;
     }
-    else if (node_type == GenPolicy::ArithLeafID::TypeCast) {// TypeCast expr
+    else if (node_type == GenPolicy::ArithLeafID::TypeCast) { // TypeCast expr
         TypeCastExpr type_cast;
         Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
         type_cast.set_type(Type::init(type_id));
         type_cast.set_expr(gen_level(depth + 1));
         type_cast.propagate_type();
         type_cast.propagate_value();
-        return std::make_shared<TypeCastExpr> (type_cast);
+        ret = std::make_shared<TypeCastExpr> (type_cast);
     }
     else {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate node type." << std::endl;
         exit (-1);
     }
-    return NULL;
+    gen_policy = old_gen_policy;
+    return ret;
 }
 
 std::shared_ptr<Expr> ArithStmtGen::rebuild_unary (Expr::UB ub, std::shared_ptr<Expr> expr) {
@@ -437,10 +447,12 @@ void ScopeGen::generate () {
         var_use.set_variable (*i);
         inp.push_back(std::make_shared<VarUseExpr> (var_use));
     }
-    VarUseExpr var_use;
-    var_use.set_variable (ctx->get_extern_out_sym_table()->get_variables().at(0));
-    Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
-    ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
-    arith_stmt_gen.generate();
-    scope.push_back(arith_stmt_gen.get_stmt());
+    for (auto i = ctx->get_extern_out_sym_table()->get_variables().begin(); i != ctx->get_extern_out_sym_table()->get_variables().end(); ++i) {
+        VarUseExpr var_use;
+        var_use.set_variable (*i);
+        Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+        ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
+        arith_stmt_gen.generate();
+        scope.push_back(arith_stmt_gen.get_stmt());
+    }
 }
