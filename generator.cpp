@@ -190,3 +190,8 @@ void DeclStmtGen::generate () {
     decl_stmt.set_is_extern (is_extern);
     stmt = std::make_shared<DeclStmt> (decl_stmt);
 }
+
+void ScopeGen::generate () {
+    Node::NodeID stmt_id = Node::NodeID::EXPR;
+    
+}

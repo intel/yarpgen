@@ -24,20 +24,20 @@ limitations under the License.
 #include "node.h"
 #include "gen_policy.h"
 #include "generator.h"
-//#include "master.h"
+#include "sym_table.h"
+#include "new-master.h"
 
 int main (int argc, char* argv[]) {
-/*
+
     extern char *optarg;
     extern int optind;
     char *pEnd;
     std::string out_dir = "./";
     int c;
     uint64_t seed = 0;
-    static char usage[] = "usage: [-q -d <out_dir> -s <seed> [-r DON'T USE IT MANUALLY!!!]]\n";
+    static char usage[] = "usage: [-q -d <out_dir> -s <seed>\n";
     bool opt_parse_err = 0;
     bool quiet = false;
-    bool reduce = false;
 
     while ((c = getopt(argc, argv, "qhrd:s:")) != -1)
         switch (c) {
@@ -49,9 +49,6 @@ int main (int argc, char* argv[]) {
             break;
         case 'q':
             quiet = true;
-            break;
-        case 'r':
-            reduce = true;
             break;
         case 'h':
         default:
@@ -75,16 +72,16 @@ int main (int argc, char* argv[]) {
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
 
-    Master mas (out_dir, reduce);
+    Master mas (out_dir);
     mas.generate ();
-    mas.emit_func ();
+//    mas.emit_func ();
     mas.emit_init ();
-    mas.emit_decl ();
-    mas.emit_hash ();
-    mas.emit_check ();
-    mas.emit_main ();
-    mas.emit_reduce_log ();
-*/
+//    mas.emit_decl ();
+//    mas.emit_hash ();
+//    mas.emit_check ();
+//    mas.emit_main ();
+//    mas.emit_reduce_log ();
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test utilities
 /*
@@ -220,7 +217,7 @@ int main (int argc, char* argv[]) {
     std::cout << "BinaryExpr: " << bin_expr.emit () << std::endl;
     std::cout << "Type: " << bin_expr.get_type_id () << std::endl;
     std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
-*/
+
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
 
@@ -299,5 +296,12 @@ int main (int argc, char* argv[]) {
     decl_stmt_gen2.generate();
     std::cout << decl_stmt_gen2.get_stmt()->emit() << std::endl;
 
-   return 0;
+    std::cout << "SymbolTable:" << std::endl;
+    SymbolTable sym_table;
+    sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen.get_data()));
+    sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen2.get_data()));
+    std::cout << sym_table.emit_variable_extern_decl() << std::endl;
+    std::cout << sym_table.emit_variable_def() << std::endl;
+*/
+    return 0;
 }

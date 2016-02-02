@@ -23,6 +23,7 @@ limitations under the License.
 #include "gen_policy.h"
 #include "variable.h"
 #include "node.h"
+#include "sym_table.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -128,25 +129,27 @@ class ArrayVariableGen : public DataGen {
 
 class StmtGen : public Generator {
     public:
-        StmtGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), stmt (NULL) {}
+        StmtGen (std::shared_ptr<Context> _global_ctx) : Generator (_global_ctx->get_self_gen_policy()), stmt (NULL) {}
         std::shared_ptr<Stmt> get_stmt () { return stmt; }
         virtual void generate () = 0;
 
     protected:
         bool rand_init;
+        std::shared_ptr<Context> ctx;
+        SymbolTable local_sym_table;
         std::shared_ptr<Stmt> stmt;
 };
 
 class DeclStmtGen : public StmtGen {
     public:
-        DeclStmtGen (std::shared_ptr<GenPolicy> _gen_policy, Data::VarClassID _var_class_id) : StmtGen (_gen_policy) {
+        DeclStmtGen (std::shared_ptr<Context> _global_ctx, Data::VarClassID _var_class_id) : StmtGen (_global_ctx) {
             var_class_id = _var_class_id;
             data = NULL;
             init = NULL;
             is_extern = false;
             rand_init = true;
         }
-        DeclStmtGen (std::shared_ptr<GenPolicy> _gen_policy, std::shared_ptr<Data> _data,  std::shared_ptr<Expr> _init) : StmtGen (_gen_policy) {
+        DeclStmtGen (std::shared_ptr<Context> _global_ctx, std::shared_ptr<Data> _data,  std::shared_ptr<Expr> _init) : StmtGen (_global_ctx) {
             var_class_id = _data->get_class_id ();
             data = _data;
             init = _init;
@@ -163,4 +166,14 @@ class DeclStmtGen : public StmtGen {
         std::shared_ptr<Data> data;
         std::shared_ptr<Expr> init;
         bool is_extern;
+};
+
+class ScopeGen : public StmtGen {
+    public:
+        ScopeGen (std::shared_ptr<Context> _global_ctx) : StmtGen (_global_ctx) {}
+        std::vector<std::shared_ptr<Stmt>>& get_scope () { return scope; }
+        void generate ();
+
+    private:
+        std::vector<std::shared_ptr<Stmt>> scope;
 };
