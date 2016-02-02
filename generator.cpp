@@ -207,10 +207,28 @@ void ArithStmtGen::generate () {
 std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     int node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
     if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth()) {
-        int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
-        inp.at(inp_use)->propagate_type();
-        inp.at(inp_use)->propagate_value();
-        return inp.at(inp_use);
+        int data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
+        if (data_type == GenPolicy::ArithDataID::Inp) {
+            int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
+            inp.at(inp_use)->propagate_type();
+            inp.at(inp_use)->propagate_value();
+            return inp.at(inp_use);
+        }
+        else if (data_type == GenPolicy::ArithDataID::Const) {
+            Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
+            VariableValueGen var_val_gen (gen_policy, type_id);
+            var_val_gen.generate ();
+            ConstExpr const_expr;
+            const_expr.set_type (type_id);;
+            const_expr.set_data (var_val_gen.get_value());
+            const_expr.propagate_type();
+            const_expr.propagate_value();
+            return std::make_shared<ConstExpr> (const_expr);
+        }
+        else {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate data type." << std::endl;
+            exit (-1);
+        }
     }
     else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
         UnaryExpr unary;

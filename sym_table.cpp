@@ -40,7 +40,7 @@ std::string SymbolTable::emit_variable_extern_decl () {
 }
 
 std::string SymbolTable::emit_variable_def () {
-std::string ret = "";
+    std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
         ConstExpr const_init;
         const_init.set_type ((*i)->get_type()->get_id());
@@ -51,6 +51,14 @@ std::string ret = "";
         decl.set_init (std::make_shared<ConstExpr>(const_init));
         decl.set_is_extern(false);
         ret += decl.emit() + ";\n";
+    }
+    return ret;
+}
+
+std::string SymbolTable::emit_variable_check () {
+    std::string ret = "";
+    for (auto i = variable.begin(); i != variable.end(); ++i) {
+        ret += "hash(seed, " + (*i)->get_name() + ");\n";
     }
     return ret;
 }

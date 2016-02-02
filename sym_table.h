@@ -37,6 +37,8 @@ class SymbolTable {
         std::shared_ptr<Array> get_rand_array ();
         std::string emit_variable_extern_decl ();
         std::string emit_variable_def ();
+        // TODO: rewrite with IR
+        std::string emit_variable_check ();
 
     private:
         std::vector<std::shared_ptr<Variable>> variable;

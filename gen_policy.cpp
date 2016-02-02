@@ -88,12 +88,17 @@ GenPolicy::GenPolicy () {
 
     Probability data_leaf (ArithLeafID::Data, 10);
     arith_leaves.push_back (data_leaf);
-    Probability unary_leaf (ArithLeafID::Unary, 30);
+    Probability unary_leaf (ArithLeafID::Unary, 20);
     arith_leaves.push_back (unary_leaf);
-    Probability binary_leaf (ArithLeafID::Binary, 60);
+    Probability binary_leaf (ArithLeafID::Binary, 50);
     arith_leaves.push_back (binary_leaf);
-    Probability type_cast_leaf (ArithLeafID::TypeCast, 60);
+    Probability type_cast_leaf (ArithLeafID::TypeCast, 10);
     arith_leaves.push_back (type_cast_leaf);
+
+    Probability inp_data (ArithDataID::Inp, 70);
+    arith_data_distr.push_back (inp_data);
+    Probability const_data (ArithDataID::Const, 30);
+    arith_data_distr.push_back (const_data);
 
     allow_local_var = true;
 /*

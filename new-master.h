@@ -29,12 +29,12 @@ class Master {
     public:
         Master (std::string _out_folder);
         void generate ();
-//        std::string emit_func ();
+        std::string emit_func ();
         std::string emit_init ();
-//        std::string emit_decl ();
-//        std::string emit_hash ();
-//        std::string emit_check ();
-//        std::string emit_main ();
+        std::string emit_decl ();
+        std::string emit_hash ();
+        std::string emit_check ();
+        std::string emit_main ();
 
     private:
         void write_file (std::string of_name, std::string data);

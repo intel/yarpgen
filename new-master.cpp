@@ -59,10 +59,91 @@ std::string Master::emit_init () {
     ret += extern_out_sym_table.emit_variable_def();
 
     ret += "void init () {\n";
-    for (auto i = program.begin(); i != program.end(); ++i)
-        ret += (*i)->emit() + ";\n";
     ret += "}";
 
     write_file("init.cpp", ret);
     return ret;
 }
+
+std::string Master::emit_decl () {
+    std::string ret = "";
+    ret += "#include <cstdint>\n";
+    ret += "#include <iostream>\n";
+    ret += "#include <array>\n";
+    ret += "#include <vector>\n";
+    ret += "#include <valarray>\n";
+
+    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n";
+
+    ret += extern_inp_sym_table.emit_variable_extern_decl();
+    ret += extern_out_sym_table.emit_variable_extern_decl();
+
+    write_file("init.h", ret);
+    return ret;
+}
+
+std::string Master::emit_func () {
+    std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+    ret += "void foo () {\n";
+    for (auto i = program.begin(); i != program.end(); ++i) {
+        ret += (*i)->emit() + "\n";
+    }
+    ret += "}";
+    write_file("func.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_hash () {
+    std::string ret = "#include <functional>\n";
+    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v) {\n";
+    ret += "    seed ^= v + 0x9e3779b9 + (seed<<6) + (seed>>2);\n";
+    ret += "}\n";
+    write_file("hash.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_check () { // TODO: rewrite with IR
+    std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+
+    ret += "unsigned long long int checksum () {\n";
+
+    Variable seed = Variable("seed", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false);
+    VarUseExpr seed_use;
+    seed_use.set_variable (std::make_shared<Variable> (seed));
+
+    ConstExpr zero_init;
+    zero_init.set_type (Type::TypeID::ULLINT);
+    zero_init.set_data (0);
+
+    DeclStmt seed_decl;
+    seed_decl.set_data (std::make_shared<Variable> (seed));
+    seed_decl.set_init (std::make_shared<ConstExpr> (zero_init));
+
+    ret += seed_decl.emit() + ";\n";
+
+    ret += extern_out_sym_table.emit_variable_check ();
+
+    ret += "    return seed;\n";
+    ret += "}";
+    write_file("check.cpp", ret);
+    return ret;
+}
+
+std::string Master::emit_main () {
+    std::string ret = "";
+    ret += "#include \"init.h\"\n\n";
+    ret += "extern void init ();\n";
+    ret += "extern void foo ();\n";
+    ret += "extern unsigned long long int checksum ();\n";
+    ret += "int main () {\n";
+    ret += "    init ();\n";
+    ret += "    foo ();\n";
+    ret += "    std::cout << checksum () << std::endl;\n";
+    ret += "    return 0;\n";
+    ret += "}";
+    write_file("driver.cpp", ret);
+    return ret;
+}
+

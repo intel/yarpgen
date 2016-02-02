@@ -1201,7 +1201,7 @@ std::string DeclStmt::emit () {
 }
 
 std::string ExprStmt::emit() {
-    return expr->emit();
+    return expr->emit() + ";";
 }
 
 std::string CntLoopStmt::emit() {

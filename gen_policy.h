@@ -64,6 +64,10 @@ class GenPolicy {
             Data, Unary, Binary, TypeCast, MAX_LEAF_ID
         };
 
+        enum ArithDataID {
+            Inp, Const, Reuse, MAX_DATA_ID
+        };
+
         void set_num_of_allowed_types (int _num_of_allowed_types) { num_of_allowed_types = _num_of_allowed_types; }
         int get_num_of_allowed_types () { return num_of_allowed_types; }
         void rand_init_allowed_types ();
@@ -99,6 +103,7 @@ class GenPolicy {
         std::vector<Probability>& get_allowed_unary_op () { return allowed_unary_op; }
         std::vector<Probability>& get_allowed_binary_op () { return allowed_binary_op; }
         std::vector<Probability>& get_arith_leaves () { return arith_leaves; }
+        std::vector<Probability>& get_arith_data_distr () { return arith_data_distr; }
 
         // TODO: Add check for options compability
         void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
@@ -134,6 +139,7 @@ class GenPolicy {
         std::vector<Probability> allowed_unary_op;
         std::vector<Probability> allowed_binary_op;
         std::vector<Probability> arith_leaves;
+        std::vector<Probability> arith_data_distr;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;
