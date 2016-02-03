@@ -100,14 +100,31 @@ GenPolicy::GenPolicy () {
     Probability const_data (ArithDataID::Const, 30);
     arith_data_distr.push_back (const_data);
 
-    Probability const_branch (ArithSinglePattern::ConstBranch, 10);
-    allowed_arith_single_patterns.push_back(const_branch);
-    Probability half_const (ArithSinglePattern::HalfConst, 10);
-    allowed_arith_single_patterns.push_back(half_const);
-    Probability no_pattern (ArithSinglePattern::MAX_ARITH_SINGLE_PATTERN, 80);
-    allowed_arith_single_patterns.push_back(no_pattern);
+    Probability const_branch (ArithSSP::ConstUse::CONST_BRANCH, 10);
+    allowed_arith_ssp_const_use.push_back(const_branch);
+    Probability half_const (ArithSSP::ConstUse::HALF_CONST, 10);
+    allowed_arith_ssp_const_use.push_back(half_const);
+    Probability no_ssp_const_use (ArithSSP::ConstUse::MAX_CONST_USE, 80);
+    allowed_arith_ssp_const_use.push_back(no_ssp_const_use);
 
-    chosen_arith_single_pattern = ArithSinglePattern::MAX_ARITH_SINGLE_PATTERN;
+    chosen_arith_ssp_const_use = ArithSSP::ConstUse::MAX_CONST_USE;
+
+    Probability additive (ArithSSP::SimilarOp::ADDITIVE, 5);
+    allowed_arith_ssp_similar_op.push_back(additive);
+    Probability bitwise (ArithSSP::SimilarOp::BITWISE, 5);
+    allowed_arith_ssp_similar_op.push_back(bitwise);
+    Probability logic (ArithSSP::SimilarOp::LOGIC, 5);
+    allowed_arith_ssp_similar_op.push_back(logic);
+    Probability mul (ArithSSP::SimilarOp::MUL, 5);
+    allowed_arith_ssp_similar_op.push_back(mul);
+    Probability bit_sh (ArithSSP::SimilarOp::BIT_SH, 5);
+    allowed_arith_ssp_similar_op.push_back(bit_sh);
+    Probability add_mul (ArithSSP::SimilarOp::ADD_MUL, 5);
+    allowed_arith_ssp_similar_op.push_back(add_mul);
+    Probability no_ssp_similar_op (ArithSSP::SimilarOp::MAX_SIMILAR_OP, 70);
+    allowed_arith_ssp_similar_op.push_back(no_ssp_similar_op);
+
+    chosen_arith_ssp_similar_op = ArithSSP::SimilarOp::MAX_SIMILAR_OP;
 
     allow_local_var = true;
 /*
@@ -116,20 +133,83 @@ GenPolicy::GenPolicy () {
 */
 }
 
-std::shared_ptr<GenPolicy> GenPolicy::apply_arith_single_pattern (ArithSinglePattern pattern_id) {
-    chosen_arith_single_pattern = pattern_id;
+std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id) {
+    chosen_arith_ssp_const_use = pattern_id;
     GenPolicy new_policy = *this;
-    if (pattern_id == ArithSinglePattern::ConstBranch) {
+    if (pattern_id == ArithSSP::ConstUse::CONST_BRANCH) {
         new_policy.arith_data_distr.clear();
         Probability const_data (ArithDataID::Const, 100);
         new_policy.arith_data_distr.push_back (const_data);
     }
-    else if (pattern_id == ArithSinglePattern::HalfConst) {
+    else if (pattern_id == ArithSSP::ConstUse::HALF_CONST) {
         new_policy.arith_data_distr.clear();
         Probability inp_data (ArithDataID::Inp, 50);
         new_policy.arith_data_distr.push_back (inp_data);
         Probability const_data (ArithDataID::Const, 50);
         new_policy.arith_data_distr.push_back (const_data);
+    }
+    return std::make_shared<GenPolicy> (new_policy);
+}
+
+std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id) {
+    chosen_arith_ssp_similar_op = pattern_id;
+    GenPolicy new_policy = *this;
+    if (pattern_id == ArithSSP::SimilarOp::ADDITIVE || pattern_id == ArithSSP::SimilarOp::ADD_MUL) {
+        new_policy.allowed_unary_op.clear();
+        // TODO: add default probability to gen_policy;
+        Probability plus (UnaryExpr::Op::Plus, 50);
+        new_policy.allowed_unary_op.push_back (plus);
+        Probability negate (UnaryExpr::Op::Negate, 50);
+        new_policy.allowed_unary_op.push_back (negate);
+
+        new_policy.allowed_binary_op.clear();
+        // TODO: add default probability to gen_policy;
+        Probability add (BinaryExpr::Op::Add, 33);
+        new_policy.allowed_binary_op.push_back (add);
+        Probability sub (BinaryExpr::Op::Sub, 33);
+        new_policy.allowed_binary_op.push_back (sub);
+
+        if (pattern_id == ArithSSP::SimilarOp::ADD_MUL) {
+            Probability mul (BinaryExpr::Op::Mul, 33);
+            new_policy.allowed_binary_op.push_back (mul);
+        }
+    }
+    else if (pattern_id == ArithSSP::SimilarOp::BITWISE || pattern_id == ArithSSP::SimilarOp::BIT_SH) {
+        new_policy.allowed_unary_op.clear();
+        Probability bit_not (UnaryExpr::Op::BitNot, 100);
+        new_policy.allowed_unary_op.push_back (bit_not);
+
+        new_policy.allowed_binary_op.clear();
+        Probability bit_and (BinaryExpr::Op::BitAnd, 20);
+        new_policy.allowed_binary_op.push_back (bit_and);
+        Probability bit_xor (BinaryExpr::Op::BitXor, 20);
+        new_policy.allowed_binary_op.push_back (bit_xor);
+        Probability bit_or (BinaryExpr::Op::BitOr, 20);
+        new_policy.allowed_binary_op.push_back (bit_or);
+
+        if (pattern_id == ArithSSP::SimilarOp::BIT_SH) {
+            Probability shl (BinaryExpr::Op::Shl, 20);
+            new_policy.allowed_binary_op.push_back (shl);
+            Probability shr (BinaryExpr::Op::Shr, 20);
+            new_policy.allowed_binary_op.push_back (shr);
+        }
+    }
+    else if (pattern_id == ArithSSP::SimilarOp::LOGIC) {
+        new_policy.allowed_unary_op.clear();
+        Probability log_not (UnaryExpr::Op::LogNot, 100);
+        new_policy.allowed_unary_op.push_back (log_not);
+
+        new_policy.allowed_binary_op.clear();
+        Probability log_and (BinaryExpr::Op::LogAnd, 50);
+        new_policy.allowed_binary_op.push_back (log_and);
+        Probability log_or (BinaryExpr::Op::LogOr, 50);
+        new_policy.allowed_binary_op.push_back (log_or);
+    }
+    else if (pattern_id == ArithSSP::SimilarOp::MUL) {
+        // TODO: what about unary expr?
+        new_policy.allowed_binary_op.clear();
+        Probability mul (BinaryExpr::Op::Mul, 100);
+        new_policy.allowed_binary_op.push_back (mul);
     }
     return std::make_shared<GenPolicy> (new_policy);
 }

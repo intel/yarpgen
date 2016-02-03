@@ -179,7 +179,9 @@ class ArithStmtGen  : public StmtGen {
         void generate();
 
     private:
-        std::shared_ptr<GenPolicy> choose_and_apply_single_pattern ();
+        std::shared_ptr<GenPolicy> choose_and_apply_ssp_const_use (std::shared_ptr<GenPolicy> old_gen_policy);
+        std::shared_ptr<GenPolicy> choose_and_apply_ssp_similar_op (std::shared_ptr<GenPolicy> old_gen_policy);
+        std::shared_ptr<GenPolicy> choose_and_apply_ssp ();
 
         std::shared_ptr<Expr> rebuild_unary(Expr::UB ub, std::shared_ptr<Expr> expr);
         std::shared_ptr<Expr> rebuild_binary(Expr::UB ub, std::shared_ptr<Expr> expr);

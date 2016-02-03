@@ -56,6 +56,22 @@ extern std::shared_ptr<RandValGen> rand_val_gen;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+struct Pattern {
+
+};
+
+// Patterns ID for single arithmetic statement
+struct ArithSSP : public Pattern {
+    enum ConstUse {
+        CONST_BRANCH, HALF_CONST, MAX_CONST_USE
+    };
+    enum SimilarOp {
+        ADDITIVE, BITWISE, LOGIC, MUL, BIT_SH, ADD_MUL, MAX_SIMILAR_OP
+    };
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 class GenPolicy {
     public:
         GenPolicy ();
@@ -110,14 +126,13 @@ class GenPolicy {
         bool get_allow_local_var () { return allow_local_var; }
 
         // Pattern
-        // ArithStmt patterns for single stmt
-        enum ArithSinglePattern {
-            ConstBranch, HalfConst, MAX_ARITH_SINGLE_PATTERN
-        };
-        std::vector<Probability>& get_allowed_arith_single_patterns () { return allowed_arith_single_patterns; }
-        ArithSinglePattern get_chosen_arith_single_pattern () { return chosen_arith_single_pattern; }
-        std::shared_ptr<GenPolicy> apply_arith_single_pattern (ArithSinglePattern pattern_id);
+        std::vector<Probability>& get_allowed_arith_ssp_const_use () { return allowed_arith_ssp_const_use; }
+        ArithSSP::ConstUse get_chosen_arith_ssp_const_use () { return chosen_arith_ssp_const_use; }
+        std::shared_ptr<GenPolicy> apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id);
 
+        std::vector<Probability>& get_allowed_arith_ssp_similar_op () { return allowed_arith_ssp_similar_op; }
+        ArithSSP::SimilarOp get_chosen_arith_ssp_similar_op () { return chosen_arith_ssp_similar_op; }
+        std::shared_ptr<GenPolicy> apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -151,8 +166,11 @@ class GenPolicy {
         std::vector<Probability> arith_leaves;
         std::vector<Probability> arith_data_distr;
 
-        std::vector<Probability> allowed_arith_single_patterns;
-        ArithSinglePattern chosen_arith_single_pattern;
+        std::vector<Probability> allowed_arith_ssp_const_use;
+        ArithSSP::ConstUse chosen_arith_ssp_const_use;
+
+        std::vector<Probability> allowed_arith_ssp_similar_op;
+        ArithSSP::SimilarOp chosen_arith_ssp_similar_op;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;

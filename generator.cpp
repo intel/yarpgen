@@ -191,12 +191,26 @@ void DeclStmtGen::generate () {
     stmt = std::make_shared<DeclStmt> (decl_stmt);
 }
 
-std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_single_pattern () {
-    if (gen_policy->get_chosen_arith_single_pattern() != GenPolicy::ArithSinglePattern::MAX_ARITH_SINGLE_PATTERN)
-        return gen_policy;
-    int arith_single_pattern_id = rand_val_gen->get_rand_id (gen_policy->get_allowed_arith_single_patterns());
+std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_ssp_const_use (std::shared_ptr<GenPolicy> old_gen_policy) {
+    if (old_gen_policy->get_chosen_arith_ssp_const_use () != ArithSSP::ConstUse::MAX_CONST_USE)
+        return old_gen_policy;
+    int arith_ssp_const_use_id = rand_val_gen->get_rand_id (old_gen_policy->get_allowed_arith_ssp_const_use());
 //    std::cerr << "arith_single_pattern_id: " << arith_single_pattern_id << std::endl;
-    return gen_policy->apply_arith_single_pattern ((GenPolicy::ArithSinglePattern) arith_single_pattern_id);
+    return old_gen_policy->apply_arith_ssp_const_use ((ArithSSP::ConstUse) arith_ssp_const_use_id);
+}
+
+std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_ssp_similar_op (std::shared_ptr<GenPolicy> old_gen_policy) {
+    if (old_gen_policy->get_chosen_arith_ssp_similar_op () != ArithSSP::SimilarOp::MAX_SIMILAR_OP)
+        return old_gen_policy;
+    int arith_ssp_similar_op_id = rand_val_gen->get_rand_id (old_gen_policy->get_allowed_arith_ssp_similar_op());
+//    std::cerr << "arith_single_pattern_id: " << arith_single_pattern_id << std::endl;
+    return old_gen_policy->apply_arith_ssp_similar_op ((ArithSSP::SimilarOp) arith_ssp_similar_op_id);
+}
+
+std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_ssp () {
+    std::shared_ptr<GenPolicy> new_policy = choose_and_apply_ssp_const_use(gen_policy);
+    new_policy = choose_and_apply_ssp_similar_op(new_policy);
+    return new_policy;
 }
 
 void ArithStmtGen::generate () {
@@ -214,7 +228,7 @@ void ArithStmtGen::generate () {
 
 std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     std::shared_ptr<GenPolicy> old_gen_policy = gen_policy;
-    gen_policy = choose_and_apply_single_pattern ();
+    gen_policy = choose_and_apply_ssp ();
     int node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
     std::shared_ptr<Expr> ret;
     if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth()) {
