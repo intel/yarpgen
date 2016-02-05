@@ -131,6 +131,7 @@ class StmtGen : public Generator {
     public:
         StmtGen (std::shared_ptr<Context> _global_ctx) : Generator (_global_ctx->get_self_gen_policy()), ctx (_global_ctx), stmt (NULL) {}
         std::shared_ptr<Stmt> get_stmt () { return stmt; }
+        std::shared_ptr<GenPolicy> get_gen_policy () { return gen_policy; }
         virtual void generate () = 0;
 
     protected:
@@ -145,6 +146,14 @@ class DeclStmtGen : public StmtGen {
         DeclStmtGen (std::shared_ptr<Context> _global_ctx, Data::VarClassID _var_class_id) : StmtGen (_global_ctx) {
             var_class_id = _var_class_id;
             data = NULL;
+            init = NULL;
+            is_extern = false;
+            rand_init = true;
+        }
+        DeclStmtGen (std::shared_ptr<Context> _global_ctx, Data::VarClassID _var_class_id, std::vector<std::shared_ptr<Expr>> _inp) : StmtGen (_global_ctx) {
+            var_class_id = _var_class_id;
+            data = NULL;
+            inp = _inp;
             init = NULL;
             is_extern = false;
             rand_init = true;
@@ -164,6 +173,7 @@ class DeclStmtGen : public StmtGen {
     private:
         Data::VarClassID var_class_id;
         std::shared_ptr<Data> data;
+        std::vector<std::shared_ptr<Expr>> inp;
         std::shared_ptr<Expr> init;
         bool is_extern;
 };

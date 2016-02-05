@@ -76,12 +76,20 @@ class GenPolicy {
     public:
         GenPolicy ();
 
+        enum StmtGenID {
+            Decl, Assign, MAX_STMT_ID
+        };
+
         enum ArithLeafID {
-            Data, Unary, Binary, TypeCast, MAX_LEAF_ID
+            Data, Unary, Binary, TypeCast, CSE, MAX_LEAF_ID
         };
 
         enum ArithDataID {
             Inp, Const, Reuse, MAX_DATA_ID
+        };
+
+        enum ArithCSEGenID {
+            Add, MAX_CSE_GEN_ID
         };
 
         void copy_data (std::shared_ptr<GenPolicy> old);
@@ -117,6 +125,8 @@ class GenPolicy {
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
 
+        std::vector<Probability>& get_stmt_gen_prob () { return stmt_gen_prob; }
+
         void set_min_arith_stmt_num (int _min_arith_stmt_num) { min_arith_stmt_num = _min_arith_stmt_num; }
         int get_min_arith_stmt_num () { return min_arith_stmt_num; }
         void set_max_arith_stmt_num (int _max_arith_stmt_num) { max_arith_stmt_num = _max_arith_stmt_num; }
@@ -144,10 +154,17 @@ class GenPolicy {
         std::vector<std::shared_ptr<Expr>>& get_used_data_expr () { return used_data_expr; }
         void add_used_data_expr (std::shared_ptr<Expr> expr);
 
-        void set_min_tmp_var_num (int _min_tmp_var_num) { min_tmp_var_num = _min_tmp_var_num; }
-        int get_min_tmp_var_num () { return min_tmp_var_num; }
+        void set_max_cse_num (int _max_cse_num) { max_cse_num = _max_cse_num; }
+        int get_max_cse_num () { return max_cse_num; }
+        // TODO: add depth control
+        std::vector<std::shared_ptr<Expr>>& get_cse () { return cse; };
+        void add_cse (std::shared_ptr<Expr> expr) { cse.push_back(expr); }
+        std::vector<Probability>& get_arith_cse_gen () { return arith_cse_gen; }
+
         void set_max_tmp_var_num (int _max_tmp_var_num) { max_tmp_var_num = _max_tmp_var_num; }
         int get_max_tmp_var_num () { return max_tmp_var_num; }
+        int get_used_tmp_var_num () { return used_tmp_var_num; }
+        void add_used_tmp_var_num () { used_tmp_var_num++; }
 
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
@@ -179,6 +196,8 @@ class GenPolicy {
         int min_arith_stmt_num;
         int max_arith_stmt_num;
 
+        std::vector<Probability> stmt_gen_prob;
+
         std::vector<Probability> allowed_unary_op;
         std::vector<Probability> allowed_binary_op;
         std::vector<Probability> arith_leaves;
@@ -192,8 +211,12 @@ class GenPolicy {
 
         std::vector<std::shared_ptr<Expr>> used_data_expr;
 
-        int min_tmp_var_num;
+        int max_cse_num;
+        std::vector<Probability> arith_cse_gen;
+        std::vector<std::shared_ptr<Expr>> cse;
+
         int max_tmp_var_num;
+        int used_tmp_var_num;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;

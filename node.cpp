@@ -1150,9 +1150,9 @@ std::string DeclStmt::emit () {
             break;
         case Variable::Mod::NTHNG:
             break;
-         case Variable::Mod::MAX_MOD:
-                std::cerr << "ERROR in DeclStmt::emit bad modifier" << std::endl;
-                    break;
+        case Variable::Mod::MAX_MOD:
+            std::cerr << "ERROR in DeclStmt::emit bad modifier" << std::endl;
+            break;
     }
     if (data->get_class_id() == Variable::VarClassID::ARR) {
         std::shared_ptr<Array> arr = std::static_pointer_cast<Array>(data);
@@ -1197,6 +1197,7 @@ std::string DeclStmt::emit () {
         }
         ret += " = " + init->emit();
     }
+    ret += ";";
     return ret;
 }
 

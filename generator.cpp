@@ -182,11 +182,16 @@ void DeclStmtGen::generate () {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": only scalar vasriables and arrays are allowed." << std::endl;
             exit (-1);
         }
-        // TODO: Add auto-init generation
+
+        Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+        ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, NULL);
+        arith_stmt_gen.generate();
+        init = arith_stmt_gen.get_expr();
     }
     DeclStmt decl_stmt;
     decl_stmt.set_data (data);
     decl_stmt.set_init (init);
+    data->set_value(init->get_value());
     decl_stmt.set_is_extern (is_extern);
     stmt = std::make_shared<DeclStmt> (decl_stmt);
 }
@@ -231,17 +236,12 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     gen_policy = choose_and_apply_ssp ();
     int node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
     std::shared_ptr<Expr> ret;
-    if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth()) {
+    int add_cse_prob = rand_val_gen->get_rand_id(gen_policy->get_arith_cse_gen());
+
+    if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth() || 
+        (node_type == GenPolicy::ArithLeafID::CSE && gen_policy->get_cse().size() == 0)) {
         int data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
-        if (data_type == GenPolicy::ArithDataID::Inp || 
-            (data_type == GenPolicy::ArithDataID::Reuse && gen_policy->get_used_data_expr().size() == 0)) {
-            int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
-            gen_policy->add_used_data_expr(inp.at(inp_use));
-            inp.at(inp_use)->propagate_type();
-            inp.at(inp_use)->propagate_value();
-            ret = inp.at(inp_use);
-        }
-        else if (data_type == GenPolicy::ArithDataID::Const) {
+        if (data_type == GenPolicy::ArithDataID::Const || inp.size() == 0) {
             Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
             VariableValueGen var_val_gen (gen_policy, type_id);
             var_val_gen.generate ();
@@ -252,12 +252,19 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
             const_expr.propagate_value();
             ret = std::make_shared<ConstExpr> (const_expr);
         }
+        else if (data_type == GenPolicy::ArithDataID::Inp || 
+            (data_type == GenPolicy::ArithDataID::Reuse && gen_policy->get_used_data_expr().size() == 0)) {
+            int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
+            gen_policy->add_used_data_expr(inp.at(inp_use));
+            inp.at(inp_use)->propagate_type();
+            inp.at(inp_use)->propagate_value();
+            ret = inp.at(inp_use);
+        }
         else if (data_type == GenPolicy::ArithDataID::Reuse) {
             int reuse_data_num = rand_val_gen->get_rand_value<int>(0, gen_policy->get_used_data_expr().size() - 1);
             ret = gen_policy->get_used_data_expr().at(reuse_data_num);
         }
         else {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate data type." << std::endl;
             exit (-1);
         }
     }
@@ -293,10 +300,22 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
         type_cast.propagate_value();
         ret = std::make_shared<TypeCastExpr> (type_cast);
     }
+    else if (node_type == GenPolicy::ArithLeafID::CSE) {
+        int cse_num = rand_val_gen->get_rand_value<int>(0, gen_policy->get_cse().size() - 1);
+        ret = gen_policy->get_cse().at(cse_num);
+        add_cse_prob = GenPolicy::ArithCSEGenID::MAX_CSE_GEN_ID;
+    }
     else {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate node type." << std::endl;
         exit (-1);
     }
+
+    if (add_cse_prob == GenPolicy::ArithCSEGenID::Add &&
+       ((gen_policy->get_cse().size() - 1 < gen_policy->get_max_cse_num()) || 
+        (gen_policy->get_cse().size() == 0))) {
+        gen_policy->add_cse(ret);
+    }
+
     old_gen_policy->copy_data (gen_policy);
     gen_policy = old_gen_policy;
     return ret;
@@ -479,12 +498,29 @@ void ScopeGen::generate () {
         var_use.set_variable (*i);
         inp.push_back(std::make_shared<VarUseExpr> (var_use));
     }
-    for (auto i = ctx->get_extern_out_sym_table()->get_variables().begin(); i != ctx->get_extern_out_sym_table()->get_variables().end(); ++i) {
-        VarUseExpr var_use;
-        var_use.set_variable (*i);
-        Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
-        ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
-        arith_stmt_gen.generate();
-        scope.push_back(arith_stmt_gen.get_stmt());
+    for (int i = 0; i < ctx->get_extern_out_sym_table()->get_variables().size();) {
+        int gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
+        if (gen_id == GenPolicy::StmtGenID::Decl && (gen_policy->get_used_tmp_var_num() < gen_policy->get_max_tmp_var_num())) {
+            Context decl_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+            DeclStmtGen tmp_var_decl_gen (std::make_shared<Context>(decl_ctx), Data::VarClassID::VAR);
+            tmp_var_decl_gen.generate();
+            std::shared_ptr<Variable> tmp_var = std::static_pointer_cast<Variable>(tmp_var_decl_gen.get_data());
+            local_sym_table.add_variable(tmp_var);
+            VarUseExpr var_use;
+            var_use.set_variable (tmp_var);
+            inp.push_back(std::make_shared<VarUseExpr> (var_use));
+            scope.push_back(tmp_var_decl_gen.get_stmt());
+            gen_policy->add_used_tmp_var_num();
+        }
+        else if (gen_id == GenPolicy::StmtGenID::Assign) {
+            VarUseExpr var_use;
+            var_use.set_variable (ctx->get_extern_out_sym_table()->get_variables().at(i));
+            Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+            ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
+            arith_stmt_gen.generate();
+            gen_policy->copy_data(arith_stmt_gen.get_gen_policy());
+            scope.push_back(arith_stmt_gen.get_stmt());
+            ++i;
+        }
     }
 }

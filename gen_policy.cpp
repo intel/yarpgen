@@ -29,8 +29,9 @@ int MAX_ARITH_DEPTH = 5;
 int MIN_ARITH_STMT_NUM = 5;
 int MAX_ARITH_STMT_NUM = 10;
 
-int MIN_TMP_VAR_NUM = 0;
 int MAX_TMP_VAR_NUM = 5;
+
+int MAX_CSE_NUM = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -85,8 +86,10 @@ GenPolicy::GenPolicy () {
     min_arith_stmt_num = MIN_ARITH_STMT_NUM;
     max_arith_stmt_num = MAX_ARITH_STMT_NUM;
 
-    min_tmp_var_num = MIN_TMP_VAR_NUM;
     max_tmp_var_num = MAX_TMP_VAR_NUM;
+    used_tmp_var_num = 0;
+
+    max_cse_num = MAX_CSE_NUM;
 
     for (int i = UnaryExpr::Op::Plus; i < UnaryExpr::Op::MaxOp; ++i) {
         Probability prob (i, 1);
@@ -98,14 +101,21 @@ GenPolicy::GenPolicy () {
         allowed_binary_op.push_back (prob);
     }
 
+    Probability decl_gen (StmtGenID::Decl, 10);
+    stmt_gen_prob.push_back (decl_gen);
+    Probability assign_gen (StmtGenID::Assign, 10);
+    stmt_gen_prob.push_back (assign_gen);
+
     Probability data_leaf (ArithLeafID::Data, 10);
     arith_leaves.push_back (data_leaf);
     Probability unary_leaf (ArithLeafID::Unary, 20);
     arith_leaves.push_back (unary_leaf);
-    Probability binary_leaf (ArithLeafID::Binary, 50);
+    Probability binary_leaf (ArithLeafID::Binary, 45);
     arith_leaves.push_back (binary_leaf);
     Probability type_cast_leaf (ArithLeafID::TypeCast, 10);
     arith_leaves.push_back (type_cast_leaf);
+    Probability cse_leaf (ArithLeafID::CSE, 5);
+    arith_leaves.push_back (cse_leaf);
 
     Probability inp_data (ArithDataID::Inp, 80);
     arith_data_distr.push_back (inp_data);
@@ -113,6 +123,11 @@ GenPolicy::GenPolicy () {
     arith_data_distr.push_back (const_data);
     Probability reuse_data (ArithDataID::Reuse, 10);
     arith_data_distr.push_back (reuse_data);
+
+    Probability add_cse (ArithCSEGenID::Add, 10);
+    arith_cse_gen.push_back (add_cse);
+    Probability max_cse_gen (ArithCSEGenID::MAX_CSE_GEN_ID, 10);
+    arith_cse_gen.push_back (max_cse_gen);
 
     Probability const_branch (ArithSSP::ConstUse::CONST_BRANCH, 5);
     allowed_arith_ssp_const_use.push_back(const_branch);
@@ -149,6 +164,7 @@ GenPolicy::GenPolicy () {
 
 void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {
     used_data_expr = old->get_used_data_expr();
+    cse = old->get_cse();
 }
 
 void GenPolicy::add_used_data_expr (std::shared_ptr<Expr> expr) {
