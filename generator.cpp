@@ -233,8 +233,10 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     std::shared_ptr<Expr> ret;
     if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth()) {
         int data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
-        if (data_type == GenPolicy::ArithDataID::Inp) {
+        if (data_type == GenPolicy::ArithDataID::Inp || 
+            (data_type == GenPolicy::ArithDataID::Reuse && gen_policy->get_used_data_expr().size() == 0)) {
             int inp_use = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
+            gen_policy->add_used_data_expr(inp.at(inp_use));
             inp.at(inp_use)->propagate_type();
             inp.at(inp_use)->propagate_value();
             ret = inp.at(inp_use);
@@ -249,6 +251,10 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
             const_expr.propagate_type();
             const_expr.propagate_value();
             ret = std::make_shared<ConstExpr> (const_expr);
+        }
+        else if (data_type == GenPolicy::ArithDataID::Reuse) {
+            int reuse_data_num = rand_val_gen->get_rand_value<int>(0, gen_policy->get_used_data_expr().size() - 1);
+            ret = gen_policy->get_used_data_expr().at(reuse_data_num);
         }
         else {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate data type." << std::endl;
@@ -291,6 +297,7 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": inappropriate node type." << std::endl;
         exit (-1);
     }
+    old_gen_policy->copy_data (gen_policy);
     gen_policy = old_gen_policy;
     return ret;
 }
@@ -455,6 +462,17 @@ std::shared_ptr<Expr> ArithStmtGen::rebuild_binary (Expr::UB ub, std::shared_ptr
 
 void ScopeGen::generate () {
     Node::NodeID stmt_id = Node::NodeID::EXPR;
+    int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
+    for (int i = 0; i < arith_stmt_num; ++i) {
+        ScalarVariableGen inp_var_gen (gen_policy);
+        inp_var_gen.generate ();
+        ctx->get_extern_inp_sym_table()->add_variable (std::static_pointer_cast<Variable>(inp_var_gen.get_data()));
+
+        ScalarVariableGen out_var_gen (gen_policy);
+        out_var_gen.generate ();
+        ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
+    }
+
     std::vector<std::shared_ptr<Expr>> inp;
     for (auto i = ctx->get_extern_inp_sym_table()->get_variables().begin(); i != ctx->get_extern_inp_sym_table()->get_variables().end(); ++i) {
         VarUseExpr var_use;

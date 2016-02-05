@@ -40,10 +40,14 @@ debug: $(EXECUTABLE)
 debug: OPT=-O0 -g
 
 ubsan: $(EXECUTABLE)
-ubsan:  CXXFLAGS+=-fsanitize=undefined
+ubsan: CXXFLAGS+=-fsanitize=undefined
 
 gcc: $(EXECUTABLE)
 gcc: CXX=g++
+
+gcov: $(EXECUTABLE) 
+gcov: CXX=g++
+gcov: OPT+=-fprofile-arcs -ftest-coverage -g
 
 objs/%.o: %.cpp $(HEADERS)
 	$(CXX) $(OPT) $(CXXFLAGS) -o $@ -c $<

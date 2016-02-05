@@ -22,10 +22,15 @@ limitations under the License.
 
 Master::Master (std::string _out_folder) {
     out_folder = _out_folder;
+    SymbolTable extrern_inp;
+    extern_inp_sym_table = std::make_shared<SymbolTable> (extrern_inp);
+    SymbolTable extrern_out;
+    extern_out_sym_table = std::make_shared<SymbolTable> (extrern_out);
 }
 
 void Master::generate () {
     int inp_var_num = rand_val_gen->get_rand_value<int>(5, 10);
+/*
     for (int i = 0; i < inp_var_num; ++i) {
         ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
         scalar_var_gen.generate ();
@@ -37,12 +42,23 @@ void Master::generate () {
         scalar_var_gen.generate ();
         extern_out_sym_table.add_variable (std::static_pointer_cast<Variable>(scalar_var_gen.get_data()));
     }
+*/
     Context ctx (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, NULL, NULL);
-    ctx.set_extern_inp_sym_table (std::make_shared<SymbolTable>(extern_inp_sym_table));
-    ctx.set_extern_out_sym_table (std::make_shared<SymbolTable>(extern_out_sym_table));
+//    std::cerr << "DEBUG OUTSIDE: init " << ((uint64_t) (&(*ctx.get_extern_inp_sym_table()))) << std::endl;
+//    std::shared_ptr<SymbolTable> inp_st_ptr = std::make_shared<SymbolTable>(extern_inp_sym_table);
+//    std::cerr << "DEBUG OUTSIDE: st_ptr " << ((uint64_t) (&(*inp_st_ptr))) << std::endl;
+    ctx.set_extern_inp_sym_table (extern_inp_sym_table);
+    ctx.set_extern_out_sym_table (extern_out_sym_table);
 
+//    std::shared_ptr<Context> ctx_ptr = std::make_shared<Context> (ctx);
+//    std::cerr << "DEBUG OUTSIDE: obj " << ((uint64_t) (&(*ctx.get_extern_inp_sym_table()))) << std::endl;
+//    std::cerr << "DEBUG OUTSIDE: ptr " << ((uint64_t) (&(*ctx_ptr->get_extern_inp_sym_table()))) << std::endl;
     ScopeGen scope_gen (std::make_shared<Context> (ctx));
     scope_gen.generate();
+//    std::cerr << "DEBUG OUTSIDE: ctx size " << ctx.get_extern_inp_sym_table()->get_variables().size() << std::endl;
+//    std::cerr << "DEBUG OUTSIDE: st_ptr size " << inp_st_ptr->get_variables().size() << std::endl;
+//    std::cerr << "DEBUG OUTSIDE: st " << ((uint64_t) (&(extern_inp_sym_table))) << std::endl;
+//    std::cerr << "DEBUG OUTSIDE: st size " << extern_inp_sym_table.get_variables().size() << std::endl;
     program = scope_gen.get_scope ();
 }
 
@@ -57,8 +73,8 @@ std::string Master::emit_init () {
     std::string ret = "";
     ret += "#include \"init.h\"\n\n";
 
-    ret += extern_inp_sym_table.emit_variable_def();
-    ret += extern_out_sym_table.emit_variable_def();
+    ret += extern_inp_sym_table->emit_variable_def();
+    ret += extern_out_sym_table->emit_variable_def();
 
     ret += "void init () {\n";
     ret += "}";
@@ -77,8 +93,8 @@ std::string Master::emit_decl () {
 
     ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n";
 
-    ret += extern_inp_sym_table.emit_variable_extern_decl();
-    ret += extern_out_sym_table.emit_variable_extern_decl();
+    ret += extern_inp_sym_table->emit_variable_extern_decl();
+    ret += extern_out_sym_table->emit_variable_extern_decl();
 
     write_file("init.h", ret);
     return ret;
@@ -125,7 +141,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 
     ret += seed_decl.emit() + ";\n";
 
-    ret += extern_out_sym_table.emit_variable_check ();
+    ret += extern_out_sym_table->emit_variable_check ();
 
     ret += "    return seed;\n";
     ret += "}";

@@ -84,6 +84,8 @@ class GenPolicy {
             Inp, Const, Reuse, MAX_DATA_ID
         };
 
+        void copy_data (std::shared_ptr<GenPolicy> old);
+
         void set_num_of_allowed_types (int _num_of_allowed_types) { num_of_allowed_types = _num_of_allowed_types; }
         int get_num_of_allowed_types () { return num_of_allowed_types; }
         void rand_init_allowed_types ();
@@ -115,6 +117,11 @@ class GenPolicy {
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
 
+        void set_min_arith_stmt_num (int _min_arith_stmt_num) { min_arith_stmt_num = _min_arith_stmt_num; }
+        int get_min_arith_stmt_num () { return min_arith_stmt_num; }
+        void set_max_arith_stmt_num (int _max_arith_stmt_num) { max_arith_stmt_num = _max_arith_stmt_num; }
+        int get_max_arith_stmt_num () { return max_arith_stmt_num; }
+
         void add_unary_op (Probability prob) { allowed_unary_op.push_back(prob); }
         std::vector<Probability>& get_allowed_unary_op () { return allowed_unary_op; }
         std::vector<Probability>& get_allowed_binary_op () { return allowed_binary_op; }
@@ -133,6 +140,15 @@ class GenPolicy {
         std::vector<Probability>& get_allowed_arith_ssp_similar_op () { return allowed_arith_ssp_similar_op; }
         ArithSSP::SimilarOp get_chosen_arith_ssp_similar_op () { return chosen_arith_ssp_similar_op; }
         std::shared_ptr<GenPolicy> apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
+
+        std::vector<std::shared_ptr<Expr>>& get_used_data_expr () { return used_data_expr; }
+        void add_used_data_expr (std::shared_ptr<Expr> expr);
+
+        void set_min_tmp_var_num (int _min_tmp_var_num) { min_tmp_var_num = _min_tmp_var_num; }
+        int get_min_tmp_var_num () { return min_tmp_var_num; }
+        void set_max_tmp_var_num (int _max_tmp_var_num) { max_tmp_var_num = _max_tmp_var_num; }
+        int get_max_tmp_var_num () { return max_tmp_var_num; }
+
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -160,6 +176,8 @@ class GenPolicy {
         Array::Ess primary_essence;
 
         int max_arith_depth;
+        int min_arith_stmt_num;
+        int max_arith_stmt_num;
 
         std::vector<Probability> allowed_unary_op;
         std::vector<Probability> allowed_binary_op;
@@ -171,6 +189,11 @@ class GenPolicy {
 
         std::vector<Probability> allowed_arith_ssp_similar_op;
         ArithSSP::SimilarOp chosen_arith_ssp_similar_op;
+
+        std::vector<std::shared_ptr<Expr>> used_data_expr;
+
+        int min_tmp_var_num;
+        int max_tmp_var_num;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;

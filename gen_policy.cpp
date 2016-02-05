@@ -26,6 +26,12 @@ int MAX_ARRAY_SIZE = 10000;
 
 int MAX_ARITH_DEPTH = 5;
 
+int MIN_ARITH_STMT_NUM = 5;
+int MAX_ARITH_STMT_NUM = 10;
+
+int MIN_TMP_VAR_NUM = 0;
+int MAX_TMP_VAR_NUM = 5;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> rand_val_gen;
@@ -76,6 +82,12 @@ GenPolicy::GenPolicy () {
 
     max_arith_depth = MAX_ARITH_DEPTH;
 
+    min_arith_stmt_num = MIN_ARITH_STMT_NUM;
+    max_arith_stmt_num = MAX_ARITH_STMT_NUM;
+
+    min_tmp_var_num = MIN_TMP_VAR_NUM;
+    max_tmp_var_num = MAX_TMP_VAR_NUM;
+
     for (int i = UnaryExpr::Op::Plus; i < UnaryExpr::Op::MaxOp; ++i) {
         Probability prob (i, 1);
         allowed_unary_op.push_back (prob);
@@ -95,16 +107,18 @@ GenPolicy::GenPolicy () {
     Probability type_cast_leaf (ArithLeafID::TypeCast, 10);
     arith_leaves.push_back (type_cast_leaf);
 
-    Probability inp_data (ArithDataID::Inp, 70);
+    Probability inp_data (ArithDataID::Inp, 80);
     arith_data_distr.push_back (inp_data);
-    Probability const_data (ArithDataID::Const, 30);
+    Probability const_data (ArithDataID::Const, 10);
     arith_data_distr.push_back (const_data);
+    Probability reuse_data (ArithDataID::Reuse, 10);
+    arith_data_distr.push_back (reuse_data);
 
-    Probability const_branch (ArithSSP::ConstUse::CONST_BRANCH, 10);
+    Probability const_branch (ArithSSP::ConstUse::CONST_BRANCH, 5);
     allowed_arith_ssp_const_use.push_back(const_branch);
-    Probability half_const (ArithSSP::ConstUse::HALF_CONST, 10);
+    Probability half_const (ArithSSP::ConstUse::HALF_CONST, 5);
     allowed_arith_ssp_const_use.push_back(half_const);
-    Probability no_ssp_const_use (ArithSSP::ConstUse::MAX_CONST_USE, 80);
+    Probability no_ssp_const_use (ArithSSP::ConstUse::MAX_CONST_USE, 90);
     allowed_arith_ssp_const_use.push_back(no_ssp_const_use);
 
     chosen_arith_ssp_const_use = ArithSSP::ConstUse::MAX_CONST_USE;
@@ -131,6 +145,15 @@ GenPolicy::GenPolicy () {
     allow_arrays = true;
     allow_scalar_variables = true;
 */
+}
+
+void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {
+    used_data_expr = old->get_used_data_expr();
+}
+
+void GenPolicy::add_used_data_expr (std::shared_ptr<Expr> expr) {
+    if (std::find(used_data_expr.begin(), used_data_expr.end(), expr) == used_data_expr.end())
+        used_data_expr.push_back (expr);
 }
 
 std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id) {

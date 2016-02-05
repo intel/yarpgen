@@ -41,8 +41,8 @@ class Master {
 
         GenPolicy gen_policy;
         std::vector<std::shared_ptr<Stmt>> program;
-        SymbolTable extern_inp_sym_table;
-        SymbolTable extern_out_sym_table;
+        std::shared_ptr<SymbolTable> extern_inp_sym_table;
+        std::shared_ptr<SymbolTable> extern_out_sym_table;
         std::string out_folder;
 };
 
