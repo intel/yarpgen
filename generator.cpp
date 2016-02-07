@@ -199,7 +199,7 @@ void DeclStmtGen::generate () {
 std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_ssp_const_use (std::shared_ptr<GenPolicy> old_gen_policy) {
     if (old_gen_policy->get_chosen_arith_ssp_const_use () != ArithSSP::ConstUse::MAX_CONST_USE)
         return old_gen_policy;
-    int arith_ssp_const_use_id = rand_val_gen->get_rand_id (old_gen_policy->get_allowed_arith_ssp_const_use());
+    ArithSSP::ConstUse arith_ssp_const_use_id = rand_val_gen->get_rand_id (old_gen_policy->get_allowed_arith_ssp_const_use());
 //    std::cerr << "arith_single_pattern_id: " << arith_single_pattern_id << std::endl;
     return old_gen_policy->apply_arith_ssp_const_use ((ArithSSP::ConstUse) arith_ssp_const_use_id);
 }
@@ -207,7 +207,7 @@ std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_ssp_const_use (std::sh
 std::shared_ptr<GenPolicy> ArithStmtGen::choose_and_apply_ssp_similar_op (std::shared_ptr<GenPolicy> old_gen_policy) {
     if (old_gen_policy->get_chosen_arith_ssp_similar_op () != ArithSSP::SimilarOp::MAX_SIMILAR_OP)
         return old_gen_policy;
-    int arith_ssp_similar_op_id = rand_val_gen->get_rand_id (old_gen_policy->get_allowed_arith_ssp_similar_op());
+    ArithSSP::SimilarOp arith_ssp_similar_op_id = rand_val_gen->get_rand_id (old_gen_policy->get_allowed_arith_ssp_similar_op());
 //    std::cerr << "arith_single_pattern_id: " << arith_single_pattern_id << std::endl;
     return old_gen_policy->apply_arith_ssp_similar_op ((ArithSSP::SimilarOp) arith_ssp_similar_op_id);
 }
@@ -234,15 +234,15 @@ void ArithStmtGen::generate () {
 std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     std::shared_ptr<GenPolicy> old_gen_policy = gen_policy;
     gen_policy = choose_and_apply_ssp ();
-    int node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
+    GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (gen_policy->get_arith_leaves());
     std::shared_ptr<Expr> ret;
-    int add_cse_prob = rand_val_gen->get_rand_id(gen_policy->get_arith_cse_gen());
+    GenPolicy::ArithCSEGenID add_cse_prob = rand_val_gen->get_rand_id(gen_policy->get_arith_cse_gen());
 
     if (node_type == GenPolicy::ArithLeafID::Data || depth == gen_policy->get_max_arith_depth() || 
         (node_type == GenPolicy::ArithLeafID::CSE && gen_policy->get_cse().size() == 0)) {
-        int data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
+        GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
         if (data_type == GenPolicy::ArithDataID::Const || inp.size() == 0) {
-            Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
+            Type::TypeID type_id = rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
             VariableValueGen var_val_gen (gen_policy, type_id);
             var_val_gen.generate ();
             ConstExpr const_expr;
@@ -270,7 +270,7 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     }
     else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
         UnaryExpr unary;
-        UnaryExpr::Op op_type = (UnaryExpr::Op) rand_val_gen->get_rand_id(gen_policy->get_allowed_unary_op());
+        UnaryExpr::Op op_type = rand_val_gen->get_rand_id(gen_policy->get_allowed_unary_op());
         unary.set_op(op_type);
         unary.set_arg(gen_level(depth + 1));
         unary.propagate_type();
@@ -281,7 +281,7 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     }
     else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
         BinaryExpr binary;
-        BinaryExpr::Op op_type = (BinaryExpr::Op) rand_val_gen->get_rand_id(gen_policy->get_allowed_binary_op());
+        BinaryExpr::Op op_type = rand_val_gen->get_rand_id(gen_policy->get_allowed_binary_op());
         binary.set_op(op_type);
         binary.set_lhs(gen_level(depth + 1));
         binary.set_rhs(gen_level(depth + 1));
@@ -293,7 +293,7 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     }
     else if (node_type == GenPolicy::ArithLeafID::TypeCast) { // TypeCast expr
         TypeCastExpr type_cast;
-        Type::TypeID type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
+        Type::TypeID type_id = rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
         type_cast.set_type(Type::init(type_id));
         type_cast.set_expr(gen_level(depth + 1));
         type_cast.propagate_type();
@@ -499,7 +499,7 @@ void ScopeGen::generate () {
         inp.push_back(std::make_shared<VarUseExpr> (var_use));
     }
     for (int i = 0; i < ctx->get_extern_out_sym_table()->get_variables().size();) {
-        int gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
+        GenPolicy::StmtGenID gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
         if (gen_id == GenPolicy::StmtGenID::Decl && (gen_policy->get_used_tmp_var_num() < gen_policy->get_max_tmp_var_num())) {
             Context decl_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
             DeclStmtGen tmp_var_decl_gen (std::make_shared<Context>(decl_ctx), Data::VarClassID::VAR);

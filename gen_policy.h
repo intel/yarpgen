@@ -26,14 +26,15 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
+template<typename T>
 class Probability {
     public:
-        Probability (int _id, int _prob) : id(_id), prob (_prob) {}
-        int get_id () { return id; }
+        Probability (T _id, int _prob) : id(_id), prob (_prob) {}
+        T get_id () { return id; }
         uint64_t get_prob () { return prob; }
 
     private:
-        int id;
+        T id;
         uint64_t prob;
 };
 
@@ -45,7 +46,22 @@ class RandValGen {
             std::uniform_int_distribution<T> dis(from, to);
             return dis(rand_gen);
         }
-        int get_rand_id (std::vector<Probability> vec);
+
+        template<typename T>
+        T get_rand_id (std::vector<Probability<T>> vec) {
+            uint64_t max_prob = 0;
+            for (auto i = vec.begin(); i != vec.end(); ++i)
+                max_prob += (*i).get_prob();
+            uint64_t rand_num = get_rand_value<uint64_t> (0, max_prob);
+            int k = 0;
+            for (auto i = vec.begin(); i != vec.end(); ++i) {
+                max_prob -= (*i).get_prob();
+                if (rand_num >= max_prob)
+                    return (*i).get_id();
+            }
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unable to select any id." << std::endl;
+            exit (-1);
+        }
 
     private:
         uint64_t seed;
@@ -97,8 +113,8 @@ class GenPolicy {
         void set_num_of_allowed_types (int _num_of_allowed_types) { num_of_allowed_types = _num_of_allowed_types; }
         int get_num_of_allowed_types () { return num_of_allowed_types; }
         void rand_init_allowed_types ();
-        std::vector<Probability>& get_allowed_types () { return allowed_types; }
-        void add_allowed_type (Probability allowed_type) { allowed_types.push_back(allowed_type); }
+        std::vector<Probability<Type::TypeID>>& get_allowed_types () { return allowed_types; }
+        void add_allowed_type (Probability<Type::TypeID> allowed_type) { allowed_types.push_back(allowed_type); }
 
         // TODO: Add check for options compability? Should allow_volatile + allow_const be equal to allow_const_volatile?
         void set_allow_volatile (bool _allow_volatile) { set_modifier (_allow_volatile, Data::Mod::VOLAT); }
@@ -125,29 +141,30 @@ class GenPolicy {
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
 
-        std::vector<Probability>& get_stmt_gen_prob () { return stmt_gen_prob; }
+        std::vector<Probability<StmtGenID>>& get_stmt_gen_prob () { return stmt_gen_prob; }
 
         void set_min_arith_stmt_num (int _min_arith_stmt_num) { min_arith_stmt_num = _min_arith_stmt_num; }
         int get_min_arith_stmt_num () { return min_arith_stmt_num; }
         void set_max_arith_stmt_num (int _max_arith_stmt_num) { max_arith_stmt_num = _max_arith_stmt_num; }
         int get_max_arith_stmt_num () { return max_arith_stmt_num; }
 
-        void add_unary_op (Probability prob) { allowed_unary_op.push_back(prob); }
-        std::vector<Probability>& get_allowed_unary_op () { return allowed_unary_op; }
-        std::vector<Probability>& get_allowed_binary_op () { return allowed_binary_op; }
-        std::vector<Probability>& get_arith_leaves () { return arith_leaves; }
-        std::vector<Probability>& get_arith_data_distr () { return arith_data_distr; }
+        void add_unary_op (Probability<UnaryExpr::Op> prob) { allowed_unary_op.push_back(prob); }
+        std::vector<Probability<UnaryExpr::Op>>& get_allowed_unary_op () { return allowed_unary_op; }
+        void add_binary_op (Probability<BinaryExpr::Op> prob) { allowed_binary_op.push_back(prob); }
+        std::vector<Probability<BinaryExpr::Op>>& get_allowed_binary_op () { return allowed_binary_op; }
+        std::vector<Probability<ArithLeafID>>& get_arith_leaves () { return arith_leaves; }
+        std::vector<Probability<ArithDataID>>& get_arith_data_distr () { return arith_data_distr; }
 
         // TODO: Add check for options compability
         void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
         bool get_allow_local_var () { return allow_local_var; }
 
         // Pattern
-        std::vector<Probability>& get_allowed_arith_ssp_const_use () { return allowed_arith_ssp_const_use; }
+        std::vector<Probability<ArithSSP::ConstUse>>& get_allowed_arith_ssp_const_use () { return allowed_arith_ssp_const_use; }
         ArithSSP::ConstUse get_chosen_arith_ssp_const_use () { return chosen_arith_ssp_const_use; }
         std::shared_ptr<GenPolicy> apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id);
 
-        std::vector<Probability>& get_allowed_arith_ssp_similar_op () { return allowed_arith_ssp_similar_op; }
+        std::vector<Probability<ArithSSP::SimilarOp>>& get_allowed_arith_ssp_similar_op () { return allowed_arith_ssp_similar_op; }
         ArithSSP::SimilarOp get_chosen_arith_ssp_similar_op () { return chosen_arith_ssp_similar_op; }
         std::shared_ptr<GenPolicy> apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
 
@@ -159,7 +176,7 @@ class GenPolicy {
         // TODO: add depth control
         std::vector<std::shared_ptr<Expr>>& get_cse () { return cse; };
         void add_cse (std::shared_ptr<Expr> expr) { cse.push_back(expr); }
-        std::vector<Probability>& get_arith_cse_gen () { return arith_cse_gen; }
+        std::vector<Probability<ArithCSEGenID>>& get_arith_cse_gen () { return arith_cse_gen; }
 
         void set_max_tmp_var_num (int _max_tmp_var_num) { max_tmp_var_num = _max_tmp_var_num; }
         int get_max_tmp_var_num () { return max_tmp_var_num; }
@@ -177,7 +194,7 @@ class GenPolicy {
         // Number of allowed types
         int num_of_allowed_types;
         // Allowed types of variables and basic types of arrays
-        std::vector<Probability> allowed_types;
+        std::vector<Probability<Type::TypeID>> allowed_types;
 
         void set_modifier (bool value, Data::Mod modifier);
         bool get_modifier (Data::Mod modifier);
@@ -196,23 +213,23 @@ class GenPolicy {
         int min_arith_stmt_num;
         int max_arith_stmt_num;
 
-        std::vector<Probability> stmt_gen_prob;
+        std::vector<Probability<StmtGenID>> stmt_gen_prob;
 
-        std::vector<Probability> allowed_unary_op;
-        std::vector<Probability> allowed_binary_op;
-        std::vector<Probability> arith_leaves;
-        std::vector<Probability> arith_data_distr;
+        std::vector<Probability<UnaryExpr::Op>> allowed_unary_op;
+        std::vector<Probability<BinaryExpr::Op>> allowed_binary_op;
+        std::vector<Probability<ArithLeafID>> arith_leaves;
+        std::vector<Probability<ArithDataID>> arith_data_distr;
 
-        std::vector<Probability> allowed_arith_ssp_const_use;
+        std::vector<Probability<ArithSSP::ConstUse>> allowed_arith_ssp_const_use;
         ArithSSP::ConstUse chosen_arith_ssp_const_use;
 
-        std::vector<Probability> allowed_arith_ssp_similar_op;
+        std::vector<Probability<ArithSSP::SimilarOp>> allowed_arith_ssp_similar_op;
         ArithSSP::SimilarOp chosen_arith_ssp_similar_op;
 
         std::vector<std::shared_ptr<Expr>> used_data_expr;
 
         int max_cse_num;
-        std::vector<Probability> arith_cse_gen;
+        std::vector<Probability<ArithCSEGenID>> arith_cse_gen;
         std::vector<std::shared_ptr<Expr>> cse;
 
         int max_tmp_var_num;

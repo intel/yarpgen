@@ -49,22 +49,6 @@ RandValGen::RandValGen (uint64_t _seed) {
     rand_gen = std::mt19937_64(seed);
 }
 
-int RandValGen::get_rand_id (std::vector<Probability> vec) {
-    uint64_t max_prob = 0;
-    for (auto i = vec.begin(); i != vec.end(); ++i)
-        max_prob += (*i).get_prob();
-    uint64_t rand_num = get_rand_value<uint64_t> (0, max_prob);
-    int k = 0;
-    for (auto i = vec.begin(); i != vec.end(); ++i) {
-        max_prob -= (*i).get_prob();
-        if (rand_num >= max_prob)
-            return (*i).get_id();
-    }
-    std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unable to select any id." << std::endl;
-    exit (-1);
-    return -1;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 GenPolicy::GenPolicy () {
@@ -92,65 +76,65 @@ GenPolicy::GenPolicy () {
     max_cse_num = MAX_CSE_NUM;
 
     for (int i = UnaryExpr::Op::Plus; i < UnaryExpr::Op::MaxOp; ++i) {
-        Probability prob (i, 1);
+        Probability<UnaryExpr::Op> prob ((UnaryExpr::Op) i, 1);
         allowed_unary_op.push_back (prob);
     }
 
     for (int i = 0; i < BinaryExpr::Op::MaxOp; ++i) {
-        Probability prob (i, 1);
+        Probability<BinaryExpr::Op> prob ((BinaryExpr::Op) i, 1);
         allowed_binary_op.push_back (prob);
     }
 
-    Probability decl_gen (StmtGenID::Decl, 10);
+    Probability<StmtGenID> decl_gen (StmtGenID::Decl, 10);
     stmt_gen_prob.push_back (decl_gen);
-    Probability assign_gen (StmtGenID::Assign, 10);
+    Probability<StmtGenID> assign_gen (StmtGenID::Assign, 10);
     stmt_gen_prob.push_back (assign_gen);
 
-    Probability data_leaf (ArithLeafID::Data, 10);
+    Probability<ArithLeafID> data_leaf (ArithLeafID::Data, 10);
     arith_leaves.push_back (data_leaf);
-    Probability unary_leaf (ArithLeafID::Unary, 20);
+    Probability<ArithLeafID> unary_leaf (ArithLeafID::Unary, 20);
     arith_leaves.push_back (unary_leaf);
-    Probability binary_leaf (ArithLeafID::Binary, 45);
+    Probability<ArithLeafID> binary_leaf (ArithLeafID::Binary, 45);
     arith_leaves.push_back (binary_leaf);
-    Probability type_cast_leaf (ArithLeafID::TypeCast, 10);
+    Probability<ArithLeafID> type_cast_leaf (ArithLeafID::TypeCast, 10);
     arith_leaves.push_back (type_cast_leaf);
-    Probability cse_leaf (ArithLeafID::CSE, 5);
+    Probability<ArithLeafID> cse_leaf (ArithLeafID::CSE, 5);
     arith_leaves.push_back (cse_leaf);
 
-    Probability inp_data (ArithDataID::Inp, 80);
+    Probability<ArithDataID> inp_data (ArithDataID::Inp, 80);
     arith_data_distr.push_back (inp_data);
-    Probability const_data (ArithDataID::Const, 10);
+    Probability<ArithDataID> const_data (ArithDataID::Const, 10);
     arith_data_distr.push_back (const_data);
-    Probability reuse_data (ArithDataID::Reuse, 10);
+    Probability<ArithDataID> reuse_data (ArithDataID::Reuse, 10);
     arith_data_distr.push_back (reuse_data);
 
-    Probability add_cse (ArithCSEGenID::Add, 10);
+    Probability<ArithCSEGenID> add_cse (ArithCSEGenID::Add, 10);
     arith_cse_gen.push_back (add_cse);
-    Probability max_cse_gen (ArithCSEGenID::MAX_CSE_GEN_ID, 10);
+    Probability<ArithCSEGenID> max_cse_gen (ArithCSEGenID::MAX_CSE_GEN_ID, 10);
     arith_cse_gen.push_back (max_cse_gen);
 
-    Probability const_branch (ArithSSP::ConstUse::CONST_BRANCH, 5);
+    Probability<ArithSSP::ConstUse> const_branch (ArithSSP::ConstUse::CONST_BRANCH, 5);
     allowed_arith_ssp_const_use.push_back(const_branch);
-    Probability half_const (ArithSSP::ConstUse::HALF_CONST, 5);
+    Probability<ArithSSP::ConstUse> half_const (ArithSSP::ConstUse::HALF_CONST, 5);
     allowed_arith_ssp_const_use.push_back(half_const);
-    Probability no_ssp_const_use (ArithSSP::ConstUse::MAX_CONST_USE, 90);
+    Probability<ArithSSP::ConstUse> no_ssp_const_use (ArithSSP::ConstUse::MAX_CONST_USE, 90);
     allowed_arith_ssp_const_use.push_back(no_ssp_const_use);
 
     chosen_arith_ssp_const_use = ArithSSP::ConstUse::MAX_CONST_USE;
 
-    Probability additive (ArithSSP::SimilarOp::ADDITIVE, 5);
+    Probability<ArithSSP::SimilarOp> additive (ArithSSP::SimilarOp::ADDITIVE, 5);
     allowed_arith_ssp_similar_op.push_back(additive);
-    Probability bitwise (ArithSSP::SimilarOp::BITWISE, 5);
+    Probability<ArithSSP::SimilarOp> bitwise (ArithSSP::SimilarOp::BITWISE, 5);
     allowed_arith_ssp_similar_op.push_back(bitwise);
-    Probability logic (ArithSSP::SimilarOp::LOGIC, 5);
+    Probability<ArithSSP::SimilarOp> logic (ArithSSP::SimilarOp::LOGIC, 5);
     allowed_arith_ssp_similar_op.push_back(logic);
-    Probability mul (ArithSSP::SimilarOp::MUL, 5);
+    Probability<ArithSSP::SimilarOp> mul (ArithSSP::SimilarOp::MUL, 5);
     allowed_arith_ssp_similar_op.push_back(mul);
-    Probability bit_sh (ArithSSP::SimilarOp::BIT_SH, 5);
+    Probability<ArithSSP::SimilarOp> bit_sh (ArithSSP::SimilarOp::BIT_SH, 5);
     allowed_arith_ssp_similar_op.push_back(bit_sh);
-    Probability add_mul (ArithSSP::SimilarOp::ADD_MUL, 5);
+    Probability<ArithSSP::SimilarOp> add_mul (ArithSSP::SimilarOp::ADD_MUL, 5);
     allowed_arith_ssp_similar_op.push_back(add_mul);
-    Probability no_ssp_similar_op (ArithSSP::SimilarOp::MAX_SIMILAR_OP, 70);
+    Probability<ArithSSP::SimilarOp> no_ssp_similar_op (ArithSSP::SimilarOp::MAX_SIMILAR_OP, 70);
     allowed_arith_ssp_similar_op.push_back(no_ssp_similar_op);
 
     chosen_arith_ssp_similar_op = ArithSSP::SimilarOp::MAX_SIMILAR_OP;
@@ -177,14 +161,14 @@ std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_const_use (ArithSSP::Const
     GenPolicy new_policy = *this;
     if (pattern_id == ArithSSP::ConstUse::CONST_BRANCH) {
         new_policy.arith_data_distr.clear();
-        Probability const_data (ArithDataID::Const, 100);
+        Probability<ArithDataID> const_data (ArithDataID::Const, 100);
         new_policy.arith_data_distr.push_back (const_data);
     }
     else if (pattern_id == ArithSSP::ConstUse::HALF_CONST) {
         new_policy.arith_data_distr.clear();
-        Probability inp_data (ArithDataID::Inp, 50);
+        Probability<ArithDataID> inp_data (ArithDataID::Inp, 50);
         new_policy.arith_data_distr.push_back (inp_data);
-        Probability const_data (ArithDataID::Const, 50);
+        Probability<ArithDataID> const_data (ArithDataID::Const, 50);
         new_policy.arith_data_distr.push_back (const_data);
     }
     return std::make_shared<GenPolicy> (new_policy);
@@ -196,58 +180,58 @@ std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_similar_op (ArithSSP::Simi
     if (pattern_id == ArithSSP::SimilarOp::ADDITIVE || pattern_id == ArithSSP::SimilarOp::ADD_MUL) {
         new_policy.allowed_unary_op.clear();
         // TODO: add default probability to gen_policy;
-        Probability plus (UnaryExpr::Op::Plus, 50);
+        Probability<UnaryExpr::Op> plus (UnaryExpr::Op::Plus, 50);
         new_policy.allowed_unary_op.push_back (plus);
-        Probability negate (UnaryExpr::Op::Negate, 50);
+        Probability<UnaryExpr::Op> negate (UnaryExpr::Op::Negate, 50);
         new_policy.allowed_unary_op.push_back (negate);
 
         new_policy.allowed_binary_op.clear();
         // TODO: add default probability to gen_policy;
-        Probability add (BinaryExpr::Op::Add, 33);
+        Probability<BinaryExpr::Op> add (BinaryExpr::Op::Add, 33);
         new_policy.allowed_binary_op.push_back (add);
-        Probability sub (BinaryExpr::Op::Sub, 33);
+        Probability<BinaryExpr::Op> sub (BinaryExpr::Op::Sub, 33);
         new_policy.allowed_binary_op.push_back (sub);
 
         if (pattern_id == ArithSSP::SimilarOp::ADD_MUL) {
-            Probability mul (BinaryExpr::Op::Mul, 33);
+            Probability<BinaryExpr::Op> mul (BinaryExpr::Op::Mul, 33);
             new_policy.allowed_binary_op.push_back (mul);
         }
     }
     else if (pattern_id == ArithSSP::SimilarOp::BITWISE || pattern_id == ArithSSP::SimilarOp::BIT_SH) {
         new_policy.allowed_unary_op.clear();
-        Probability bit_not (UnaryExpr::Op::BitNot, 100);
+        Probability<UnaryExpr::Op> bit_not (UnaryExpr::Op::BitNot, 100);
         new_policy.allowed_unary_op.push_back (bit_not);
 
         new_policy.allowed_binary_op.clear();
-        Probability bit_and (BinaryExpr::Op::BitAnd, 20);
+        Probability<BinaryExpr::Op> bit_and (BinaryExpr::Op::BitAnd, 20);
         new_policy.allowed_binary_op.push_back (bit_and);
-        Probability bit_xor (BinaryExpr::Op::BitXor, 20);
+        Probability<BinaryExpr::Op> bit_xor (BinaryExpr::Op::BitXor, 20);
         new_policy.allowed_binary_op.push_back (bit_xor);
-        Probability bit_or (BinaryExpr::Op::BitOr, 20);
+        Probability<BinaryExpr::Op> bit_or (BinaryExpr::Op::BitOr, 20);
         new_policy.allowed_binary_op.push_back (bit_or);
 
         if (pattern_id == ArithSSP::SimilarOp::BIT_SH) {
-            Probability shl (BinaryExpr::Op::Shl, 20);
+            Probability<BinaryExpr::Op> shl (BinaryExpr::Op::Shl, 20);
             new_policy.allowed_binary_op.push_back (shl);
-            Probability shr (BinaryExpr::Op::Shr, 20);
+            Probability<BinaryExpr::Op> shr (BinaryExpr::Op::Shr, 20);
             new_policy.allowed_binary_op.push_back (shr);
         }
     }
     else if (pattern_id == ArithSSP::SimilarOp::LOGIC) {
         new_policy.allowed_unary_op.clear();
-        Probability log_not (UnaryExpr::Op::LogNot, 100);
+        Probability<UnaryExpr::Op> log_not (UnaryExpr::Op::LogNot, 100);
         new_policy.allowed_unary_op.push_back (log_not);
 
         new_policy.allowed_binary_op.clear();
-        Probability log_and (BinaryExpr::Op::LogAnd, 50);
+        Probability<BinaryExpr::Op> log_and (BinaryExpr::Op::LogAnd, 50);
         new_policy.allowed_binary_op.push_back (log_and);
-        Probability log_or (BinaryExpr::Op::LogOr, 50);
+        Probability<BinaryExpr::Op> log_or (BinaryExpr::Op::LogOr, 50);
         new_policy.allowed_binary_op.push_back (log_or);
     }
     else if (pattern_id == ArithSSP::SimilarOp::MUL) {
         // TODO: what about unary expr?
         new_policy.allowed_binary_op.clear();
-        Probability mul (BinaryExpr::Op::Mul, 100);
+        Probability<BinaryExpr::Op> mul (BinaryExpr::Op::Mul, 100);
         new_policy.allowed_binary_op.push_back (mul);
     }
     return std::make_shared<GenPolicy> (new_policy);
@@ -265,7 +249,7 @@ void GenPolicy::rand_init_allowed_types () {
         }
     }
     for (auto i : tmp_allowed_types) {
-        Probability prob (i, 1);
+        Probability<Type::TypeID> prob (i, 1);
         allowed_types.push_back (prob);
     }
 }
