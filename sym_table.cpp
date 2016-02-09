@@ -71,11 +71,15 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
     global_sym_table = _global_sym_table;
     parent_ctx = _parent_ctx;
     depth = 0;
+    if_depth = 0;
 
     if (parent_ctx != NULL) {
         extern_inp_sym_table = parent_ctx->get_extern_inp_sym_table ();
         extern_out_sym_table = parent_ctx->get_extern_out_sym_table ();
         depth = parent_ctx->get_depth();
+        if_depth = parent_ctx->get_if_depth();
     }
+    if (_glob_stmt_id == Node::NodeID::IF)
+        if_depth++;
 }
 

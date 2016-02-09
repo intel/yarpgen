@@ -33,6 +33,8 @@ int MAX_TMP_VAR_NUM = 5;
 
 int MAX_CSE_NUM = 2;
 
+int MAX_INT_DEPTH = 3;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> rand_val_gen;
@@ -85,10 +87,12 @@ GenPolicy::GenPolicy () {
         allowed_binary_op.push_back (prob);
     }
 
-    Probability<StmtGenID> decl_gen (StmtGenID::Decl, 10);
+    Probability<Node::NodeID> decl_gen (Node::NodeID::DECL, 10);
     stmt_gen_prob.push_back (decl_gen);
-    Probability<StmtGenID> assign_gen (StmtGenID::Assign, 10);
+    Probability<Node::NodeID> assign_gen (Node::NodeID::EXPR, 10);
     stmt_gen_prob.push_back (assign_gen);
+    Probability<Node::NodeID> if_gen (Node::NodeID::IF, 10);
+    stmt_gen_prob.push_back (if_gen);
 
     Probability<ArithLeafID> data_leaf (ArithLeafID::Data, 10);
     arith_leaves.push_back (data_leaf);
@@ -140,6 +144,13 @@ GenPolicy::GenPolicy () {
     chosen_arith_ssp_similar_op = ArithSSP::SimilarOp::MAX_SIMILAR_OP;
 
     allow_local_var = true;
+
+    Probability<bool> else_exist (true, 50);
+    else_prob.push_back(else_exist);
+    Probability<bool> no_else (false, 50);
+    else_prob.push_back(no_else);
+
+    max_if_depth = MAX_INT_DEPTH;
 /*
     allow_arrays = true;
     allow_scalar_variables = true;

@@ -92,10 +92,6 @@ class GenPolicy {
     public:
         GenPolicy ();
 
-        enum StmtGenID {
-            Decl, Assign, MAX_STMT_ID
-        };
-
         enum ArithLeafID {
             Data, Unary, Binary, TypeCast, CSE, MAX_LEAF_ID
         };
@@ -141,7 +137,7 @@ class GenPolicy {
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
 
-        std::vector<Probability<StmtGenID>>& get_stmt_gen_prob () { return stmt_gen_prob; }
+        std::vector<Probability<Node::NodeID>>& get_stmt_gen_prob () { return stmt_gen_prob; }
 
         void set_min_arith_stmt_num (int _min_arith_stmt_num) { min_arith_stmt_num = _min_arith_stmt_num; }
         int get_min_arith_stmt_num () { return min_arith_stmt_num; }
@@ -183,6 +179,11 @@ class GenPolicy {
         int get_used_tmp_var_num () { return used_tmp_var_num; }
         void add_used_tmp_var_num () { used_tmp_var_num++; }
 
+
+        std::vector<Probability<bool>>& get_else_prob () { return else_prob; }
+        void set_max_if_depth (int _max_if_depth) { max_if_depth = _max_if_depth; }
+        int get_max_if_depth () { return max_if_depth; }
+
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -213,7 +214,7 @@ class GenPolicy {
         int min_arith_stmt_num;
         int max_arith_stmt_num;
 
-        std::vector<Probability<StmtGenID>> stmt_gen_prob;
+        std::vector<Probability<Node::NodeID>> stmt_gen_prob;
 
         std::vector<Probability<UnaryExpr::Op>> allowed_unary_op;
         std::vector<Probability<BinaryExpr::Op>> allowed_binary_op;
@@ -237,6 +238,9 @@ class GenPolicy {
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;
+
+        std::vector<Probability<bool>> else_prob;
+        int max_if_depth;
 /*
         // Indicates whether the arrays  are allowed
         bool allow_arrays;

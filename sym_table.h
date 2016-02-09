@@ -52,10 +52,12 @@ class Context {
 
         std::shared_ptr<GenPolicy> get_self_gen_policy () { return std::make_shared<GenPolicy> (self_gen_policy); }
         int get_depth () { return depth; }
+        int get_if_depth () { return if_depth; }
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
         void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_out_sym_table () { return extern_out_sym_table; }
+        std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
 
     private:
         GenPolicy self_gen_policy;
@@ -65,5 +67,6 @@ class Context {
         std::shared_ptr<SymbolTable> extern_out_sym_table;
         std::shared_ptr<SymbolTable> global_sym_table;
         std::shared_ptr<Context> parent_ctx;
+        int if_depth;
         int depth;
 };

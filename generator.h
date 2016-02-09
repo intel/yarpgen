@@ -178,11 +178,8 @@ class DeclStmtGen : public StmtGen {
         bool is_extern;
 };
 
-class ArithStmtGen  : public StmtGen {
+class ArithStmtGen : public StmtGen {
     public:
-        enum LeafID {
-            Data, Unary, Binary, TypeCast, MAX_LEAF_ID
-        };
         ArithStmtGen (std::shared_ptr<Context> _global_ctx, std::vector<std::shared_ptr<Expr>> _inp, std::shared_ptr<Expr> _out) :
                       StmtGen (_global_ctx), inp(_inp), out(_out) {}
         std::shared_ptr<Expr> get_expr () { return res_expr; };
@@ -200,6 +197,28 @@ class ArithStmtGen  : public StmtGen {
         std::vector<std::shared_ptr<Expr>> inp;
         std::shared_ptr<Expr> out;
         std::shared_ptr<Expr> res_expr;
+};
+
+class IfStmtGen : public StmtGen {
+    public:
+        IfStmtGen (std::shared_ptr<Context> _global_ctx, std::vector<std::shared_ptr<Expr>> _inp) : StmtGen (_global_ctx) {
+            inp = _inp;
+            else_exist = false;
+            rand_init = true;
+        }
+        IfStmtGen (std::shared_ptr<Context> _global_ctx, std::shared_ptr<Expr> _cond, bool _else_exist) : StmtGen (_global_ctx) {
+            cond = _cond;
+            else_exist = _else_exist;
+            rand_init = false;
+        }
+        void generate();
+
+    private:
+        std::vector<std::shared_ptr<Expr>> inp;
+        std::shared_ptr<Expr> cond;
+        bool else_exist;
+        std::vector<std::shared_ptr<Stmt>> if_br_scope;
+        std::vector<std::shared_ptr<Stmt>> else_br_scope;
 };
 
 class ScopeGen : public StmtGen {

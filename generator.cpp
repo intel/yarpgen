@@ -479,17 +479,54 @@ std::shared_ptr<Expr> ArithStmtGen::rebuild_binary (Expr::UB ub, std::shared_ptr
     return ret;
 }
 
+void IfStmtGen::generate () {
+    if (rand_init) {
+        // TODO: What about stmt and stmtID?
+        Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+        ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, NULL);
+        arith_stmt_gen.generate();
+        cond = arith_stmt_gen.get_expr();
+        else_exist = rand_val_gen->get_rand_id(gen_policy->get_else_prob());
+    }
+
+    IfStmt if_stmt;
+    if_stmt.set_cond(cond);
+
+    Context if_scope_ctx (*(gen_policy), stmt,  Node::NodeID::IF, std::make_shared<SymbolTable>(local_sym_table), ctx);
+    ScopeGen if_scope_gen (std::make_shared<Context> (if_scope_ctx));
+    if_scope_gen.generate();
+    if_br_scope = if_scope_gen.get_scope();
+
+    for (auto i = if_br_scope.begin(); i != if_br_scope.end(); ++i)
+        if_stmt.add_if_stmt(*i);
+
+    if (else_exist) {
+        Context else_scope_ctx (*(gen_policy), stmt,  Node::NodeID::IF, std::make_shared<SymbolTable>(local_sym_table), ctx);
+        ScopeGen else_scope_gen (std::make_shared<Context> (if_scope_ctx));
+        else_scope_gen.generate();
+        else_br_scope = else_scope_gen.get_scope();
+
+        if_stmt.set_else_exist (true);
+        for (auto i = else_br_scope.begin(); i != else_br_scope.end(); ++i)
+            if_stmt.add_else_stmt(*i);
+    }
+
+    stmt = std::make_shared<IfStmt> (if_stmt);
+}
+
 void ScopeGen::generate () {
     Node::NodeID stmt_id = Node::NodeID::EXPR;
-    int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
-    for (int i = 0; i < arith_stmt_num; ++i) {
-        ScalarVariableGen inp_var_gen (gen_policy);
-        inp_var_gen.generate ();
-        ctx->get_extern_inp_sym_table()->add_variable (std::static_pointer_cast<Variable>(inp_var_gen.get_data()));
+    if (ctx->get_parent_ctx() == NULL) {
+        int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
+        for (int i = 0; i < arith_stmt_num; ++i) {
+            ScalarVariableGen inp_var_gen (gen_policy);
+            inp_var_gen.generate ();
+            ctx->get_extern_inp_sym_table()->add_variable (std::static_pointer_cast<Variable>(inp_var_gen.get_data()));
 
-        ScalarVariableGen out_var_gen (gen_policy);
-        out_var_gen.generate ();
-        ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
+            ScalarVariableGen out_var_gen (gen_policy);
+            out_var_gen.generate ();
+            ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
+        }
     }
 
     std::vector<std::shared_ptr<Expr>> inp;
@@ -498,11 +535,13 @@ void ScopeGen::generate () {
         var_use.set_variable (*i);
         inp.push_back(std::make_shared<VarUseExpr> (var_use));
     }
-    for (int i = 0; i < ctx->get_extern_out_sym_table()->get_variables().size();) {
-        GenPolicy::StmtGenID gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
-        if (gen_id == GenPolicy::StmtGenID::Decl && (gen_policy->get_used_tmp_var_num() < gen_policy->get_max_tmp_var_num())) {
+
+    int stmt_num = rand_val_gen->get_rand_value<int>(5, 10);
+    for (int i = 0; i < stmt_num; ++i) {
+        Node::NodeID gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
+        if (gen_id == Node::NodeID::DECL && (gen_policy->get_used_tmp_var_num() < gen_policy->get_max_tmp_var_num())) {
             Context decl_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
-            DeclStmtGen tmp_var_decl_gen (std::make_shared<Context>(decl_ctx), Data::VarClassID::VAR);
+            DeclStmtGen tmp_var_decl_gen (std::make_shared<Context>(decl_ctx), Data::VarClassID::VAR, inp);
             tmp_var_decl_gen.generate();
             std::shared_ptr<Variable> tmp_var = std::static_pointer_cast<Variable>(tmp_var_decl_gen.get_data());
             local_sym_table.add_variable(tmp_var);
@@ -512,15 +551,23 @@ void ScopeGen::generate () {
             scope.push_back(tmp_var_decl_gen.get_stmt());
             gen_policy->add_used_tmp_var_num();
         }
-        else if (gen_id == GenPolicy::StmtGenID::Assign) {
+        else if (gen_id == Node::NodeID::EXPR || (ctx->get_if_depth() == gen_policy->get_max_if_depth())) {
+            ScalarVariableGen out_var_gen (gen_policy);
+            out_var_gen.generate ();
+            ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
             VarUseExpr var_use;
-            var_use.set_variable (ctx->get_extern_out_sym_table()->get_variables().at(i));
+            var_use.set_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
             Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
             ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
             arith_stmt_gen.generate();
             gen_policy->copy_data(arith_stmt_gen.get_gen_policy());
             scope.push_back(arith_stmt_gen.get_stmt());
-            ++i;
+        }
+        else if (gen_id == Node::NodeID::IF) {
+            Context if_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+            IfStmtGen if_stmt_gen (std::make_shared<Context>(if_ctx), inp);
+            if_stmt_gen.generate();
+            scope.push_back(if_stmt_gen.get_stmt());
         }
     }
 }
