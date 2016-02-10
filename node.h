@@ -44,6 +44,8 @@ class Node {
             EXPR,
             CNT_LOOP,
             IF,
+            BREAK,
+            CONTINUE,
             MAX_STMT_ID
         };
         Node () : id (MAX_EXPR_ID), is_expr(false) {}
@@ -332,4 +334,16 @@ class IfStmt : public Stmt {
         std::shared_ptr<Expr> cond;
         std::vector<std::shared_ptr<Stmt>> if_branch;
         std::vector<std::shared_ptr<Stmt>> else_branch;
+};
+
+class BreakStmt : public Stmt {
+    public:
+    BreakStmt () { id = Node::NodeID::BREAK; }
+    std::string emit () { return "break"; }
+};
+
+class ContinueStmt : public Stmt {
+    public:
+    ContinueStmt () { id = Node::NodeID::CONTINUE; }
+    std::string emit () { return "continue"; }
 };

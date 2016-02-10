@@ -31,9 +31,9 @@ int MAX_ARITH_STMT_NUM = 10;
 
 int MAX_TMP_VAR_NUM = 5;
 
-int MAX_CSE_NUM = 2;
+int MAX_CSE_NUM = 5;
 
-int MAX_INT_DEPTH = 3;
+int MAX_IF_DEPTH = 3;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -150,7 +150,7 @@ GenPolicy::GenPolicy () {
     Probability<bool> no_else (false, 50);
     else_prob.push_back(no_else);
 
-    max_if_depth = MAX_INT_DEPTH;
+    max_if_depth = MAX_IF_DEPTH;
 /*
     allow_arrays = true;
     allow_scalar_variables = true;
