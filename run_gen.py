@@ -65,7 +65,13 @@ def fill_task(compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "gcc_no_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("gcc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_opt"])
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_wsm_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_ivb_opt"])
+        wrap_exe.append(out_name)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_bdw_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("gcc" + os.sep + "run-uns")
     if ("clang" in compiler):
@@ -86,6 +92,13 @@ def fill_task(compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "clang_knl_opt"])
         wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
         fail_tag.append("clang" + os.sep + "knl-runfail")
+    if ("gcc" in compiler):
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_knl_opt"])
+        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        fail_tag.append("clang" + os.sep + "knl-runfail")
+        compiler_passes.append(["bash", "-c", make_run_str + "gcc_skx_opt"])
+        wrap_exe.append(["bash", "-c", "sde -skx -- " + "." + os.sep + out_name])
+        fail_tag.append("clang" + os.sep + "skx-runfail")
     return compiler_passes, wrap_exe, fail_tag
 
 def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
