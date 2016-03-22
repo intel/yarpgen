@@ -28,8 +28,9 @@ import sys
 yarpgen_home = os.environ["YARPGEN_HOME"]
 sys.path.insert(0, yarpgen_home)
 import run_gen
+import brutus_blame
 
-def test(num, file_queue, out_passed_queue, out_failed_queue):
+def test(num, file_queue, out_passed_queue, out_failed_queue, lock):
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
@@ -40,7 +41,7 @@ def test(num, file_queue, out_passed_queue, out_failed_queue):
     while not file_queue.empty():
         test_seed_folder = file_queue.get()
         run_gen.print_debug("Job #" + str(num) + " | " + str(args.folder + test_seed_folder), args.verbose)
-        os.chdir(cwd_save + os.sep + args.folder + test_seed_folder)
+        os.chdir(cwd_save + os.sep + args.folder + os.sep + test_seed_folder)
 
         pass_res = set()
         failed_flag = False
@@ -62,6 +63,7 @@ def test(num, file_queue, out_passed_queue, out_failed_queue):
                 break
         if failed_flag:
             out_failed_queue.put(test_seed_folder)
+            brutus_blame.blame(cwd_save + os.sep + args.folder + test_seed_folder, yarpgen_home+os.sep+'found'+os.sep+"sort", args.verbose, lock)
         else:
             out_passed_queue.put(test_seed_folder)
 
@@ -86,12 +88,14 @@ if __name__ == '__main__':
           file_queue.put(i)
           run_gen.print_debug(i, args.verbose)
     
+    lock = multiprocessing.Lock()
+
     out_passed_queue = multiprocessing.Queue()
     out_failed_queue = multiprocessing.Queue()
 
     task_threads = [0] * args.num_jobs
     for num in range(args.num_jobs):
-        task_threads [num] =  multiprocessing.Process(target=test, args=(num, file_queue, out_passed_queue, out_failed_queue))
+        task_threads [num] =  multiprocessing.Process(target=test, args=(num, file_queue, out_passed_queue, out_failed_queue, lock))
         task_threads [num].start()
 
     for num in range(args.num_jobs):

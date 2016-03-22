@@ -45,11 +45,11 @@ def run_cmd (job_num, args, verbose):
         ret_code = e.returncode
     return ret_code, output
 
+out_name = "out"
+
 def fill_task(compiler):
     shutil.copy(yarpgen_home + os.sep + "Test_Makefile", ".")
     make_run_str = "make -f " + os.getcwd() + os.sep + "Test_Makefile "
-
-    out_name = "out"
 
     compiler_passes = []
     wrap_exe = []
@@ -182,14 +182,15 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
     for i in gen_file.split():
         shutil.copy(i, dest)
 
+test_files_env = " init.cpp driver.cpp check.cpp hash.cpp "
+test_files = test_files_env + "func.cpp "
+gen_file = test_files + " init.h"
 
 def gen_and_test(num, lock, end_time):
     print "Job #" + str(num)
     os.chdir(str(num))
     inf = end_time == -1
 
-    test_files = "init.cpp driver.cpp func.cpp check.cpp hash.cpp"
-    gen_file = test_files + " init.h"
     out_name = "out"
 
     compiler_passes = []
