@@ -86,17 +86,17 @@ int main (int argc, char* argv[]) {
 // Test utilities
 /*
     std::shared_ptr<Type> type;
-    type = Type::init (Type::TypeID::UINT);
+    type = IntegerType::init (IntegerType::IntegerTypeID::UINT);
     type->dbg_dump();
 
-    Variable var = Variable("i", Type::TypeID::UINT, Variable::Mod::NTHNG, false);
+    Variable var = Variable("i", IntegerType::IntegerTypeID::ULINT, Variable::Mod::NTHNG, false);
     var.set_modifier (Variable::Mod::CONST);
     var.set_value (10);
     var.set_min (5);
     var.set_max (50);
     var.dbg_dump ();
 
-    Array arr = Array ("a", Type::TypeID::UINT, Variable::Mod::CONST_VOLAT, true, 20,
+    Array arr = Array ("a", IntegerType::IntegerTypeID::UINT, Variable::Mod::CONST_VOLAT, true, 20,
                            Array::Ess::STD_VEC);
     arr.set_align(32);
     arr.dbg_dump();
@@ -135,7 +135,7 @@ int main (int argc, char* argv[]) {
     std::cout << "UnaryExpr: " << unary.emit () << std::endl;
 
     ConstExpr cnst;
-    cnst.set_type (Type::TypeID::ULLINT);
+    cnst.set_type (IntegerType::IntegerTypeID::ULLINT);
     cnst.set_data (123321);
     std::cout << "ConstExpr: " << cnst.emit () << std::endl;
 
@@ -171,7 +171,7 @@ int main (int argc, char* argv[]) {
     std::cout << "CntLoopStmt: " << cnt_loop.emit () << std::endl;
 
     TypeCastExpr tc;
-    tc.set_type(Type::init(Type::TypeID::ULLINT));
+    tc.set_type(IntegerType::init(IntegerType::IntegerTypeID::ULLINT));
     tc.set_expr(std::make_shared<UnaryExpr> (unary));
     std::cout << "TypeCastExpr: " << tc.emit () << std::endl;
 
@@ -194,14 +194,14 @@ int main (int argc, char* argv[]) {
     std::cout << "IfStmt: " << if_stmt.emit () << std::endl;
 
     ConstExpr lhs;
-    lhs.set_type (Type::TypeID::LLINT);
+    lhs.set_type (IntegerType::IntegerTypeID::LLINT);
     lhs.set_data (INT_MAX);
     lhs.propagate_type();
     lhs.propagate_value();
     std::cout << "ConstExpr: " << lhs.emit () << std::endl;
 
     ConstExpr rhs;
-    rhs.set_type (Type::TypeID::LLINT);
+    rhs.set_type (IntegerType::IntegerTypeID::LLINT);
     rhs.set_data(2);
     rhs.propagate_type();
     rhs.propagate_value();
@@ -215,7 +215,7 @@ int main (int argc, char* argv[]) {
     Expr::UB tmp = bin_expr.propagate_value();
     std::cout << "UB: " << tmp << std::endl;
     std::cout << "BinaryExpr: " << bin_expr.emit () << std::endl;
-    std::cout << "Type: " << bin_expr.get_type_id () << std::endl;
+    std::cout << "Type: " << bin_expr.get_int_type_id () << std::endl;
     std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
 
 
@@ -223,13 +223,13 @@ int main (int argc, char* argv[]) {
 
     GenPolicy gen_policy;
     std::cout << "GenPolicy:" << std::endl;
-    for (auto i = gen_policy.get_allowed_types().begin(); i != gen_policy.get_allowed_types().end(); ++i)
-        std::cout << (*i) << " ";
+    for (auto i = gen_policy.get_allowed_int_types().begin(); i != gen_policy.get_allowed_int_types().end(); ++i)
+        std::cout << (*i).get_prob() << " ";
     std::cout << std::endl;
-    gen_policy.set_num_of_allowed_types (10);
-    gen_policy.rand_init_allowed_types ();
-    for (auto i = gen_policy.get_allowed_types().begin(); i != gen_policy.get_allowed_types().end(); ++i)
-        std::cout << (*i) << " ";
+    gen_policy.set_num_of_allowed_int_types (10);
+    gen_policy.rand_init_allowed_int_types ();
+    for (auto i = gen_policy.get_allowed_int_types().begin(); i != gen_policy.get_allowed_int_types().end(); ++i)
+        std::cout << (*i).get_prob() << " ";
 
     std::cout << "ScalarTypeGen:" << std::endl;
     ScalarTypeGen scalar_type_gen (std::make_shared<GenPolicy>(gen_policy));

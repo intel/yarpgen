@@ -17,6 +17,19 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "node.h"
+
+AtomicType::AtomicTypeID Expr::get_atomic_type_id () {
+    if (!value.get_type()->is_atomic_type())
+        return AtomicType::AtomicTypeID::Max_AtomicTypeID;
+    return (std::static_pointer_cast<AtomicType>(value.get_type()))->get_atomic_type_id ();
+}
+
+IntegerType::IntegerTypeID Expr::get_int_type_id () {
+    if (!value.get_type()->is_int_type())
+        return IntegerType::IntegerTypeID::MAX_INT_ID;
+    return (std::static_pointer_cast<IntegerType>(value.get_type()))->get_int_type_id ();
+}
+
 void VarUseExpr::set_variable (std::shared_ptr<Variable> _var) {
     var = _var;
     value.set_type(var->get_type());
@@ -25,7 +38,7 @@ void VarUseExpr::set_variable (std::shared_ptr<Variable> _var) {
 void AssignExpr::set_to (std::shared_ptr<Expr> _to) {
     to = _to;
     // TODO: choose strategy
-    value.set_type(Type::init (to->get_type_id()));
+    value.set_type(IntegerType::init (to->get_int_type_id()));
 }
 
 void AssignExpr::set_from (std::shared_ptr<Expr> _from) {
@@ -34,12 +47,12 @@ void AssignExpr::set_from (std::shared_ptr<Expr> _from) {
 }
 
 void AssignExpr::propagate_type () {
-    value.set_type(Type::init(to->get_type_id()));
+    value.set_type(IntegerType::init(to->get_int_type_id()));
 
-    if (from->get_type_id() != to->get_type_id())
+    if (from->get_int_type_id() != to->get_int_type_id())
         return;
     TypeCastExpr ins;
-    ins.set_type(Type::init(to->get_type_id()));
+    ins.set_type(IntegerType::init(to->get_int_type_id()));
     ins.set_expr(from);
     ins.propagate_value();
     from = std::make_shared<TypeCastExpr>(ins);
@@ -67,20 +80,20 @@ std::string IndexExpr::emit () {
 
 std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
     //[conv.prom]
-    if (arg->get_type_id() >= Type::TypeID::INT) // can't perform integral promotiom
+    if (arg->get_int_type_id() >= IntegerType::IntegerTypeID::INT) // can't perform integral promotiom
         return arg;
     TypeCastExpr ret;
-    ret.set_type(Type::init(Type::TypeID::INT));
+    ret.set_type(IntegerType::init(IntegerType::IntegerTypeID::INT));
     ret.set_expr(arg);
     ret.propagate_value();
     return std::make_shared<TypeCastExpr>(ret);
 }
 
 std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
-    if (arg->get_type_id() == Type::TypeID::BOOL)
+    if (arg->get_int_type_id() == IntegerType::IntegerTypeID::BOOL)
         return arg;
     TypeCastExpr ret;
-    ret.set_type(Type::init(Type::TypeID::BOOL));
+    ret.set_type(IntegerType::init(IntegerType::IntegerTypeID::BOOL));
     ret.set_expr(arg);
     ret.propagate_value();
     return std::make_shared<TypeCastExpr>(ret);
@@ -89,13 +102,13 @@ std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
 void BinaryExpr::perform_arith_conv () {
     // integral promotion should be a part of it, but it was moved to base class
     // 10.5.1
-    if (arg0->get_type_id() == arg1->get_type_id())
+    if (arg0->get_int_type_id() == arg1->get_int_type_id())
         return;
     // 10.5.2
     if (arg0->get_type_sign() == arg1->get_type_sign()) {
         TypeCastExpr ins;
-        ins.set_type(Type::init(std::max(arg0->get_type_id(), arg1->get_type_id())));
-        if (arg0->get_type_id() <  arg1->get_type_id()) {
+        ins.set_type(IntegerType::init(std::max(arg0->get_int_type_id(), arg1->get_int_type_id())));
+        if (arg0->get_int_type_id() <  arg1->get_int_type_id()) {
             ins.set_expr(arg0);
             ins.propagate_value();
             arg0 = std::make_shared<TypeCastExpr>(ins);
@@ -107,19 +120,19 @@ void BinaryExpr::perform_arith_conv () {
         }
         return;
     }
-    if ((!arg0->get_type_sign() && (arg0->get_type_id() >= arg1->get_type_id())) || // 10.5.3
-         (arg0->get_type_sign() && Type::can_repr_value (arg1->get_type_id(), arg0->get_type_id()))) { // 10.5.4
+    if ((!arg0->get_type_sign() && (arg0->get_int_type_id() >= arg1->get_int_type_id())) || // 10.5.3
+         (arg0->get_type_sign() && IntegerType::can_repr_value (arg1->get_int_type_id(), arg0->get_int_type_id()))) { // 10.5.4
         TypeCastExpr ins;
-        ins.set_type(Type::init(arg0->get_type_id()));
+        ins.set_type(IntegerType::init(arg0->get_int_type_id()));
         ins.set_expr(arg1);
         ins.propagate_value();
         arg1 = std::make_shared<TypeCastExpr>(ins);
         return;
     }
-    if ((!arg1->get_type_sign() && (arg1->get_type_id() >= arg0->get_type_id())) || // 10.5.3
-         (arg1->get_type_sign() && Type::can_repr_value (arg0->get_type_id(), arg1->get_type_id()))) { // 10.5.4
+    if ((!arg1->get_type_sign() && (arg1->get_int_type_id() >= arg0->get_int_type_id())) || // 10.5.3
+         (arg1->get_type_sign() && IntegerType::can_repr_value (arg0->get_int_type_id(), arg1->get_int_type_id()))) { // 10.5.4
         TypeCastExpr ins;
-        ins.set_type(Type::init(arg1->get_type_id()));
+        ins.set_type(IntegerType::init(arg1->get_int_type_id()));
         ins.set_expr(arg0);
         ins.propagate_value();
         arg0 = std::make_shared<TypeCastExpr>(ins);
@@ -129,12 +142,12 @@ void BinaryExpr::perform_arith_conv () {
     TypeCastExpr ins0;
     TypeCastExpr ins1;
     if (arg0->get_type_sign()) {
-        ins0.set_type(Type::init(Type::get_corr_unsig(arg0->get_type_id())));
-        ins1.set_type(Type::init(Type::get_corr_unsig(arg0->get_type_id())));
+        ins0.set_type(IntegerType::init(IntegerType::get_corr_unsig(arg0->get_int_type_id())));
+        ins1.set_type(IntegerType::init(IntegerType::get_corr_unsig(arg0->get_int_type_id())));
     }
     if (arg1->get_type_sign()) {
-        ins0.set_type(Type::init(Type::get_corr_unsig(arg1->get_type_id())));
-        ins1.set_type(Type::init(Type::get_corr_unsig(arg1->get_type_id())));
+        ins0.set_type(IntegerType::init(IntegerType::get_corr_unsig(arg1->get_int_type_id())));
+        ins1.set_type(IntegerType::init(IntegerType::get_corr_unsig(arg1->get_int_type_id())));
     }
     ins0.set_expr(arg0);
     ins0.propagate_value();
@@ -147,7 +160,7 @@ void BinaryExpr::perform_arith_conv () {
 void BinaryExpr::propagate_type () {
     if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
         std::cerr << "ERROR: BinaryExpr::propagate_type specify args" << std::endl;
-        value.set_type(Type::init (Type::TypeID::MAX_TYPE_ID));
+        value.set_type(IntegerType::init (IntegerType::IntegerTypeID::MAX_INT_ID));
         return;
     }
     switch (op) {
@@ -185,9 +198,9 @@ void BinaryExpr::propagate_type () {
             break;
     }
     if (op == Lt || op == Gt || op == Le || op == Ge || op == Eq || op == Ne)
-        value.set_type(Type::init (Type::TypeID::INT)); // promote bool to int TODO: it isn't right way to do it for cmp operations
+        value.set_type(IntegerType::init (IntegerType::IntegerTypeID::INT)); // promote bool to int TODO: it isn't right way to do it for cmp operations
     else
-        value.set_type(Type::init (arg0->get_type_id()));
+        value.set_type(IntegerType::init (arg0->get_int_type_id()));
 }
 
 bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
@@ -262,24 +275,24 @@ Expr::UB BinaryExpr::propagate_value () {
 
     switch (op) {
         case Add:
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     s_tmp = (long long int) a + (long long int) b;
                     if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                         return SignOvf;
                     value.set_value((int) s_tmp);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a + (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (!long_eq_long_long) {
                         s_tmp = (long long int) a + (long long int) b;
                         if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
@@ -296,10 +309,10 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) u_tmp);
                     }
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a + (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                 {
                     uint64_t ua = (long long int) a;
                     uint64_t ub = (long long int) b;
@@ -310,35 +323,33 @@ Expr::UB BinaryExpr::propagate_value () {
                     value.set_value((long long int) a + (long long int) b);
                     break;
                 }
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a + (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Sub:
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     s_tmp = (long long int) a - (long long int) b;
                     if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                         return SignOvf;
                     value.set_value((int) s_tmp);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a - (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (!long_eq_long_long) {
                         s_tmp = (long long int) a - (long long int) b;
                         if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
@@ -355,10 +366,10 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) u_tmp);
                     }
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a - (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                 {
                     uint64_t ua = (long long int) a;
                     uint64_t ub = (long long int) b;
@@ -369,26 +380,24 @@ Expr::UB BinaryExpr::propagate_value () {
                     value.set_value((long long int) u_tmp);
                     break;
                 }
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a - (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Mul:
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     s_tmp = (long long int) a * (long long int) b;
                     if ((int) a == INT_MIN && (int) b == -1)
                         return SignOvfMin;
@@ -396,10 +405,10 @@ Expr::UB BinaryExpr::propagate_value () {
                         return SignOvf;
                     value.set_value((int) s_tmp);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a * (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if ((long int) a == LONG_MIN && (long int) b == -1)
                         return SignOvfMin;
                     if (!long_eq_long_long) {
@@ -414,22 +423,20 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) s_tmp);
                     }
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a * (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     if ((long long int) a == LLONG_MIN && (long long int) b == -1)
                         return SignOvfMin;
                     if (!check_int64_mul((long long int) a, (long long int) b, &s_tmp))
                         return SignOvf;
                     value.set_value((long long int) s_tmp);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a * (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
@@ -437,24 +444,24 @@ Expr::UB BinaryExpr::propagate_value () {
         case Div:
             if (b == 0)
                 return ZeroDiv;
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     s_tmp = (long long int) a / (long long int) b;
                     if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                         return SignOvf;
                     value.set_value((int) s_tmp);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a / (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (!long_eq_long_long) {
                         s_tmp = (long long int) a / (long long int) b;
                         if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
@@ -468,21 +475,19 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) a / (long int) b);
                     }
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a / (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     if (((long long int) a == LLONG_MIN && (long long int) b == -1) ||
                         ((long long int) b == LLONG_MIN && (long long int) a == -1))
                         return SignOvf;
                     value.set_value((long long int) a / (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a / (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
@@ -490,24 +495,24 @@ Expr::UB BinaryExpr::propagate_value () {
         case Mod:
             if (b == 0)
                 return ZeroDiv;
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     s_tmp = (long long int) a / (long long int) b;
                     if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                         return SignOvf;
                     value.set_value((int) a % (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a % (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (!long_eq_long_long) {
                         s_tmp = (long long int) a / (long long int) b;
                         if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
@@ -521,225 +526,211 @@ Expr::UB BinaryExpr::propagate_value () {
                         value.set_value((long int) a % (long int) b);
                     }
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a % (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     if (((long long int) a == LLONG_MIN && (long long int) b == -1) ||
                         ((long long int) b == LLONG_MIN && (long long int) a == -1))
                         return SignOvf;
                     value.set_value((long long int) a % (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a % (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Lt:
-            switch(get_rhs()->get_type_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_rhs()->get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     value.set_value((int) a < (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) (unsigned int) a < (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     value.set_value((long int) a < (long int) b);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a < (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     value.set_value((long long int) a < (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a < (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Gt:
-            switch(get_rhs()->get_type_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_rhs()->get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     value.set_value((int) a > (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) (unsigned int) a > (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     value.set_value((long int) a > (long int) b);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a > (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     value.set_value((long long int) a > (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a > (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Le:
-            switch(get_rhs()->get_type_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_rhs()->get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     value.set_value((int) a <= (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) (unsigned int) a <= (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     value.set_value((long int) a <= (long int) b);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a <= (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     value.set_value((long long int) a <= (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a <= (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Ge:
-            switch(get_rhs()->get_type_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_rhs()->get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     value.set_value((int) a >= (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) (unsigned int) a >= (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     value.set_value((long int) a >= (long int) b);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a >= (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     value.set_value((long long int) a >= (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a >= (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Eq:
-            switch(get_rhs()->get_type_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_rhs()->get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     value.set_value((int) a == (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) (unsigned int) a == (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     value.set_value((long int) a == (long int) b);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a == (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     value.set_value((long long int) a == (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a == (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case Ne:
-            switch(get_rhs()->get_type_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_rhs()->get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     value.set_value((int) a != (int) b);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) (unsigned int) a != (unsigned int) b);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     value.set_value((long int) a != (long int) b);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a != (unsigned long int) b);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     value.set_value((long long int) a != (long long int) b);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a != (unsigned long long int) b);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in BinaryExpr::propagate_value" << std::endl;
                     break;
             }
@@ -755,16 +746,16 @@ Expr::UB BinaryExpr::propagate_value () {
             break;
         case Shl:
         case Shr:
-            if (arg0->get_type_id() == Type::TypeID::BOOL ||
-                arg0->get_type_id() == Type::TypeID::CHAR ||
-                arg0->get_type_id() == Type::TypeID::UCHAR ||
-                arg0->get_type_id() == Type::TypeID::SHRT ||
-                arg0->get_type_id() == Type::TypeID::USHRT ||
-                arg1->get_type_id() == Type::TypeID::BOOL ||
-                arg1->get_type_id() == Type::TypeID::CHAR ||
-                arg1->get_type_id() == Type::TypeID::UCHAR ||
-                arg1->get_type_id() == Type::TypeID::SHRT ||
-                arg1->get_type_id() == Type::TypeID::USHRT) {
+            if (arg0->get_int_type_id() == IntegerType::IntegerTypeID::BOOL ||
+                arg0->get_int_type_id() == IntegerType::IntegerTypeID::CHAR ||
+                arg0->get_int_type_id() == IntegerType::IntegerTypeID::UCHAR ||
+                arg0->get_int_type_id() == IntegerType::IntegerTypeID::SHRT ||
+                arg0->get_int_type_id() == IntegerType::IntegerTypeID::USHRT ||
+                arg1->get_int_type_id() == IntegerType::IntegerTypeID::BOOL ||
+                arg1->get_int_type_id() == IntegerType::IntegerTypeID::CHAR ||
+                arg1->get_int_type_id() == IntegerType::IntegerTypeID::UCHAR ||
+                arg1->get_int_type_id() == IntegerType::IntegerTypeID::SHRT ||
+                arg1->get_int_type_id() == IntegerType::IntegerTypeID::USHRT) {
                 std::cerr << "BinaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                 break;
             }
@@ -865,7 +856,7 @@ std::string BinaryExpr::emit () {
 void UnaryExpr::propagate_type () {
     if (op == MaxOp || arg == NULL) {
         std::cerr << "ERROR: UnaryExpr::propagate_type specify args" << std::endl;
-        value.set_type(Type::init (Type::TypeID::MAX_TYPE_ID));
+        value.set_type(IntegerType::init (IntegerType::IntegerTypeID::MAX_INT_ID));
         return;
     }
     switch (op) {
@@ -886,7 +877,7 @@ void UnaryExpr::propagate_type () {
             std::cerr << "ERROR: UnaryExpr::propagate_type bad operator" << std::endl;
             break;
     }
-    value.set_type(Type::init (arg->get_type_id()));
+    value.set_type(IntegerType::init (arg->get_int_type_id()));
 }
 
 Expr::UB UnaryExpr::propagate_value () {
@@ -898,82 +889,78 @@ Expr::UB UnaryExpr::propagate_value () {
     switch (op) {
         case PreInc:
         case PostInc:
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "UnaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     if (a == INT_MAX)
                         return SignOvf;
                     value.set_value((int) a + 1);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a + 1);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (a == LONG_MAX)
                         return SignOvf;
                     value.set_value((long int) a + 1);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a + 1);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     if (a == LLONG_MAX)
                         return SignOvf;
                     value.set_value((long long int) a + 1);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a + 1);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in UnaryExpr::propagate_value" << std::endl;
                     break;
             }
             break;
         case PreDec:
         case PostDec:
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "UnaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     if (a == INT_MIN)
                         return SignOvf;
                     value.set_value((int) a - 1);
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value((unsigned int) a - 1);
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (a == LONG_MIN)
                         return SignOvf;
                     value.set_value((long int) a - 1);
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value((unsigned long int) a - 1);
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     if (a == LLONG_MIN)
                         return SignOvf;
                     value.set_value((long long int) a - 1);
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value((unsigned long long int) a - 1);
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in UnaryExpr::propagate_value" << std::endl;
                     break;
             }
@@ -982,41 +969,39 @@ Expr::UB UnaryExpr::propagate_value () {
             value.set_value(a);
             break;
         case Negate:
-            switch(value.get_type()->get_id()) {
-                case Type::TypeID::BOOL:
-                case Type::TypeID::CHAR:
-                case Type::TypeID::UCHAR:
-                case Type::TypeID::SHRT:
-                case Type::TypeID::USHRT:
+            switch(get_int_type_id()) {
+                case IntegerType::IntegerTypeID::BOOL:
+                case IntegerType::IntegerTypeID::CHAR:
+                case IntegerType::IntegerTypeID::UCHAR:
+                case IntegerType::IntegerTypeID::SHRT:
+                case IntegerType::IntegerTypeID::USHRT:
                     std::cerr << "UnaryExpr::propagate_value : perform propagate_type()"  << std::endl;
                     break;
-                case Type::TypeID::INT:
+                case IntegerType::IntegerTypeID::INT:
                     if (a == INT_MIN)
                         return SignOvf;
                     value.set_value(-((int) a));
                     break;
-                case Type::TypeID::UINT:
+                case IntegerType::IntegerTypeID::UINT:
                     value.set_value(-((unsigned int) a));
                     break;
-                case Type::TypeID::LINT:
+                case IntegerType::IntegerTypeID::LINT:
                     if (a == LONG_MIN)
                         return SignOvf;
                     value.set_value(-((long int) a));
                     break;
-                case Type::TypeID::ULINT:
+                case IntegerType::IntegerTypeID::ULINT:
                     value.set_value(-((unsigned long int) a));
                     break;
-                case Type::TypeID::LLINT:
+                case IntegerType::IntegerTypeID::LLINT:
                     if (a == LLONG_MIN)
                         return SignOvf;
                     value.set_value(-((long long int) a));
                     break;
-                case Type::TypeID::ULLINT:
+                case IntegerType::IntegerTypeID::ULLINT:
                     value.set_value(-((unsigned long long int) a));
                     break;
-                case Type::TypeID::PTR:
-                case Type::TypeID::MAX_INT_ID:
-                case Type::TypeID::MAX_TYPE_ID:
+                case IntegerType::IntegerTypeID::MAX_INT_ID:
                     std::cerr << "ERROR in UnaryExpr::propagate_value" << std::endl;
                     break;
             }
@@ -1071,43 +1056,41 @@ std::string UnaryExpr::emit () {
 
 std::string ConstExpr::emit () {
     std::string ret = "";
-    switch (get_type_id ()) {
-        case Type::TypeID::BOOL:
+    switch (get_int_type_id ()) {
+        case IntegerType::IntegerTypeID::BOOL:
             ret += std::to_string((bool) data);
             break;
-        case Type::TypeID::CHAR:
+        case IntegerType::IntegerTypeID::CHAR:
             ret += std::to_string((signed char) data);
             break;
-        case Type::TypeID::UCHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
             ret += std::to_string((unsigned char) data);
             break;
-        case Type::TypeID::SHRT:
+        case IntegerType::IntegerTypeID::SHRT:
             ret += std::to_string((short) data);
             break;
-        case Type::TypeID::USHRT:
+        case IntegerType::IntegerTypeID::USHRT:
             ret += std::to_string((unsigned short) data);
             break;
-        case Type::TypeID::INT:
+        case IntegerType::IntegerTypeID::INT:
             ret += std::to_string((int) data);
             break;
-        case Type::TypeID::UINT:
+        case IntegerType::IntegerTypeID::UINT:
             ret += std::to_string((unsigned int) data);
             break;
-        case Type::TypeID::LINT:
+        case IntegerType::IntegerTypeID::LINT:
             ret += std::to_string((long int) data);
             break;
-        case Type::TypeID::ULINT:
+        case IntegerType::IntegerTypeID::ULINT:
             ret += std::to_string((unsigned long int) data);
             break;
-        case Type::TypeID::LLINT:
+        case IntegerType::IntegerTypeID::LLINT:
             ret += std::to_string((long long int) data);
             break;
-        case Type::TypeID::ULLINT:
+        case IntegerType::IntegerTypeID::ULLINT:
             ret += std::to_string((unsigned long long int) data);
             break;
-        case Type::TypeID::PTR:
-        case Type::TypeID::MAX_INT_ID:
-        case Type::TypeID::MAX_TYPE_ID:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
             std::cerr << "BAD TYPE in ConstExpr::emit ()" << std::endl;
             break;
     }

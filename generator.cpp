@@ -19,7 +19,7 @@ limitations under the License.
 #include "generator.h"
 
 void ScalarTypeGen::generate () {
-    type_id = (Type::TypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
+    type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_int_types());
 }
 
 void ModifierGen::generate () {
@@ -36,79 +36,77 @@ void StaticSpecifierGen::generate () {
 
 void VariableValueGen::generate () {
     if (rand_init) {
-        std::shared_ptr<Type> tmp_type = Type::init (type_id);
-        min_value = tmp_type->get_min ();
-        max_value = tmp_type->get_max ();
+        std::shared_ptr<Type> tmp_type = IntegerType::init (type_id);
+        min_value = std::static_pointer_cast<IntegerType>(tmp_type)->get_min ();
+        max_value = std::static_pointer_cast<IntegerType>(tmp_type)->get_max ();
     }
     switch (type_id) {
-        case Type::TypeID::BOOL:
+        case IntegerType::IntegerTypeID::BOOL:
             {
                 value = (bool) rand_val_gen->get_rand_value<int>((bool) min_value, (bool) max_value);
             }
             break;
-        case Type::TypeID::CHAR:
+        case IntegerType::IntegerTypeID::CHAR:
             {
                 value = (signed char) rand_val_gen->get_rand_value<signed char>((signed char) min_value,
                                                                                 (signed char) max_value);
             }
             break;
-        case Type::TypeID::UCHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
             {
                 value = (unsigned char) rand_val_gen->get_rand_value<unsigned char>((unsigned char) min_value,
                                                                                     (unsigned char) max_value);
             }
             break;
-        case Type::TypeID::SHRT:
+        case IntegerType::IntegerTypeID::SHRT:
             {
                 value = (short) rand_val_gen->get_rand_value<short>((short) min_value,
                                                                   (short) max_value);
             }
             break;
-        case Type::TypeID::USHRT:
+        case IntegerType::IntegerTypeID::USHRT:
             {
                 value = (unsigned short) rand_val_gen->get_rand_value<unsigned short>((unsigned short) min_value,
                                                                                       (unsigned short) max_value);
             }
             break;
-        case Type::TypeID::INT:
+        case IntegerType::IntegerTypeID::INT:
             {
                 value = (int) rand_val_gen->get_rand_value<int>((int) min_value,
                                                               (int) max_value);
             }
             break;
-        case Type::TypeID::UINT:
+        case IntegerType::IntegerTypeID::UINT:
             {
                 value = (unsigned int) rand_val_gen->get_rand_value<unsigned int>((unsigned int) min_value,
                                                                                   (unsigned int) max_value);
             }
             break;
-        case Type::TypeID::LINT:
+        case IntegerType::IntegerTypeID::LINT:
             {
                 value = (long int) rand_val_gen->get_rand_value<long int>((long int) min_value,
                                                                           (long int) max_value);
             }
             break;
-        case Type::TypeID::ULINT:
+        case IntegerType::IntegerTypeID::ULINT:
             {
                 value = (unsigned long int) rand_val_gen->get_rand_value<unsigned long int>((unsigned long int) min_value,
                                                                                             (unsigned long int) max_value);
             }
             break;
-        case Type::TypeID::LLINT:
+        case IntegerType::IntegerTypeID::LLINT:
             {
                 value = (long long int) rand_val_gen->get_rand_value<long long int>((long long int) min_value,
                                                                                     (long long int) max_value);
             }
             break;
-        case Type::TypeID::ULLINT:
+        case IntegerType::IntegerTypeID::ULLINT:
             {
                 value = (unsigned long long int) rand_val_gen->get_rand_value<unsigned long long int>((unsigned long long int) min_value,
                                                                                                       (unsigned long long int) max_value);
             }
             break;
-        case Type::TypeID::PTR:
-        case Type::TypeID::MAX_INT_ID:
-        case Type::TypeID::MAX_TYPE_ID:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad type in VariableValueGen::generate." << std::endl;
             exit (-1);
             break;
@@ -242,7 +240,7 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
         (node_type == GenPolicy::ArithLeafID::CSE && gen_policy->get_cse().size() == 0)) {
         GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (gen_policy->get_arith_data_distr());
         if (data_type == GenPolicy::ArithDataID::Const || inp.size() == 0) {
-            Type::TypeID type_id = rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
+            IntegerType::IntegerTypeID type_id = rand_val_gen->get_rand_id(gen_policy->get_allowed_int_types());
             VariableValueGen var_val_gen (gen_policy, type_id);
             var_val_gen.generate ();
             ConstExpr const_expr;
@@ -293,8 +291,8 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     }
     else if (node_type == GenPolicy::ArithLeafID::TypeCast) { // TypeCast expr
         TypeCastExpr type_cast;
-        Type::TypeID type_id = rand_val_gen->get_rand_id(gen_policy->get_allowed_types());
-        type_cast.set_type(Type::init(type_id));
+        IntegerType::IntegerTypeID type_id = rand_val_gen->get_rand_id(gen_policy->get_allowed_int_types());
+        type_cast.set_type(IntegerType::init(type_id));
         type_cast.set_expr(gen_level(depth + 1));
         type_cast.propagate_type();
         type_cast.propagate_value();
@@ -400,7 +398,7 @@ std::shared_ptr<Expr> ArithStmtGen::rebuild_binary (Expr::UB ub, std::shared_ptr
             if ((ub == Expr::ShiftRhsNeg) || (ub == Expr::ShiftRhsLarge)) {
                 std::shared_ptr<Expr> rhs = ret->get_rhs();
                 ConstExpr const_expr;
-                const_expr.set_type(rhs->get_type_id());
+                const_expr.set_type(rhs->get_int_type_id());
 
                 std::shared_ptr<Expr> lhs = ret->get_lhs();
                 uint64_t max_sht_val = lhs->get_type_bit_size();
@@ -408,9 +406,9 @@ std::shared_ptr<Expr> ArithStmtGen::rebuild_binary (Expr::UB ub, std::shared_ptr
                     max_sht_val = max_sht_val - msb((uint64_t)lhs->get_value());
                 uint64_t const_val = rand_val_gen->get_rand_value<int>(0, max_sht_val);
                 if (ub == Expr::ShiftRhsNeg) {
-                    std::shared_ptr<Type> tmp_type = Type::init (rhs->get_type_id());
+                    std::shared_ptr<Type> tmp_type = IntegerType::init (rhs->get_int_type_id());
                     const_val += std::abs((long long int) rhs->get_value());
-                    const_val = std::min(const_val, tmp_type->get_max()); // TODO: it won't work with INT_MIN
+                    const_val = std::min(const_val, std::static_pointer_cast<IntegerType>(tmp_type)->get_max()); // TODO: it won't work with INT_MIN
                 }
                 else
                     const_val = rhs->get_value() - const_val;
@@ -436,8 +434,8 @@ std::shared_ptr<Expr> ArithStmtGen::rebuild_binary (Expr::UB ub, std::shared_ptr
             else {
                 std::shared_ptr<Expr> lhs = ret->get_lhs();
                 ConstExpr const_expr;
-                const_expr.set_type(lhs->get_type_id());
-                uint64_t const_val = Type::init(lhs->get_type_id())->get_max();
+                const_expr.set_type(lhs->get_int_type_id());
+                uint64_t const_val = std::static_pointer_cast<IntegerType>(IntegerType::init(lhs->get_int_type_id()))->get_max();
                 const_expr.set_data(const_val);
                 const_expr.propagate_type();
                 const_expr.propagate_value();

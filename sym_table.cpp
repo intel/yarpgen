@@ -43,7 +43,7 @@ std::string SymbolTable::emit_variable_def () {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
         ConstExpr const_init;
-        const_init.set_type ((*i)->get_type()->get_id());
+        const_init.set_type (std::static_pointer_cast<IntegerType>((*i)->get_type())->get_int_type_id());
         const_init.set_data ((*i)->get_value());
 
         DeclStmt decl;

@@ -38,12 +38,12 @@ class Generator {
 
 class ScalarTypeGen : public Generator {
     public:
-        ScalarTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), type_id (Type::TypeID::MAX_TYPE_ID) {};
-        Type::TypeID get_type() { return type_id; }
+        ScalarTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), type_id (IntegerType::IntegerTypeID::MAX_INT_ID) {};
+        IntegerType::IntegerTypeID get_type() { return type_id; }
         void generate ();
 
     private:
-        Type::TypeID type_id;
+        IntegerType::IntegerTypeID type_id;
 };
 
 class ModifierGen : public Generator {
@@ -68,16 +68,16 @@ class StaticSpecifierGen : public Generator {
 
 class VariableValueGen : public Generator {
     public:
-        VariableValueGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id) :
+        VariableValueGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id) :
                           Generator (_gen_policy), type_id (_type_id), value (0), max_value (0), min_value (0), rand_init (true) {}
-        VariableValueGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id, uint64_t _min_value, uint64_t _max_value) :
+        VariableValueGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, uint64_t _min_value, uint64_t _max_value) :
                           Generator (_gen_policy), type_id (_type_id), value (0), max_value (_max_value), min_value (_min_value), rand_init (false) {}
         uint64_t get_value () { return value; }
         void generate ();
 
     private:
         bool rand_init;
-        Type::TypeID type_id;
+        IntegerType::IntegerTypeID type_id;
         uint64_t value;
         uint64_t min_value;
         uint64_t max_value;
@@ -86,9 +86,9 @@ class VariableValueGen : public Generator {
 class DataGen : public Generator {
     public:
         DataGen (std::shared_ptr<GenPolicy> _gen_policy) :
-                 Generator (_gen_policy), type_id (Type::TypeID::MAX_TYPE_ID), modifier (Data::Mod::MAX_MOD),
+                 Generator (_gen_policy), type_id (IntegerType::IntegerTypeID::MAX_INT_ID), modifier (Data::Mod::MAX_MOD),
                  static_spec (false), rand_init (true), data (NULL) {}
-        DataGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id, Data::Mod _modifier, bool _static_spec) :
+        DataGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Data::Mod _modifier, bool _static_spec) :
                  Generator (_gen_policy), type_id (_type_id), modifier (_modifier), static_spec(_static_spec), rand_init (false), data (NULL) {}
         std::shared_ptr<Data> get_data () { return data; }
         virtual void generate () = 0;
@@ -97,7 +97,7 @@ class DataGen : public Generator {
         void rand_init_param ();
         void rand_init_value ();
         bool rand_init;
-        Type::TypeID type_id;
+        IntegerType::IntegerTypeID type_id;
         Data::Mod modifier;
         bool static_spec;
         std::shared_ptr<Data> data;
@@ -106,7 +106,7 @@ class DataGen : public Generator {
 class ScalarVariableGen : public DataGen {
     public:
         ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy) {}
-        ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id, Data::Mod _modifier, bool _static_spec) :
+        ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Data::Mod _modifier, bool _static_spec) :
                           DataGen (_gen_policy, _type_id, _modifier, _static_spec) {}
         void generate ();
 
@@ -117,7 +117,7 @@ class ScalarVariableGen : public DataGen {
 class ArrayVariableGen : public DataGen {
     public:
         ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy), essence (Array::Ess::MAX_ESS), size (0) {}
-        ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy, Type::TypeID _type_id, Data::Mod _modifier, bool _static_spec, int _size, Array::Ess _essence) :
+        ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Data::Mod _modifier, bool _static_spec, int _size, Array::Ess _essence) :
                           DataGen (_gen_policy, _type_id, _modifier, _static_spec), size (_size), essence (_essence) {}
         void generate ();
 

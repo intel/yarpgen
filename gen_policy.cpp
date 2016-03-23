@@ -19,7 +19,7 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int MAX_ALLOWED_TYPES = 3;
+int MAX_ALLOWED_INT_TYPES = 3;
 
 int MIN_ARRAY_SIZE = 1000;
 int MAX_ARRAY_SIZE = 10000;
@@ -54,8 +54,8 @@ RandValGen::RandValGen (uint64_t _seed) {
 ///////////////////////////////////////////////////////////////////////////////
 
 GenPolicy::GenPolicy () {
-    num_of_allowed_types = MAX_ALLOWED_TYPES;
-    rand_init_allowed_types();
+    num_of_allowed_int_types = MAX_ALLOWED_INT_TYPES;
+    rand_init_allowed_int_types();
 
     allowed_modifiers.push_back (Data::Mod::NTHNG);
 
@@ -248,20 +248,20 @@ std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_similar_op (ArithSSP::Simi
     return std::make_shared<GenPolicy> (new_policy);
 }
 
-void GenPolicy::rand_init_allowed_types () {
-    allowed_types.clear ();
-    std::vector<Type::TypeID> tmp_allowed_types;
+void GenPolicy::rand_init_allowed_int_types () {
+    allowed_int_types.clear ();
+    std::vector<IntegerType::IntegerTypeID> tmp_allowed_int_types;
     int gen_types = 0;
-    while (gen_types < num_of_allowed_types) {
-        Type::TypeID type = (Type::TypeID) rand_val_gen->get_rand_value<int>(0, Type::TypeID::MAX_INT_ID - 1);
-        if (std::find(tmp_allowed_types.begin(), tmp_allowed_types.end(), type) == tmp_allowed_types.end()) {
-            tmp_allowed_types.push_back (type);
+    while (gen_types < num_of_allowed_int_types) {
+        IntegerType::IntegerTypeID type = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_value<int>(0, IntegerType::IntegerTypeID::MAX_INT_ID - 1);
+        if (std::find(tmp_allowed_int_types.begin(), tmp_allowed_int_types.end(), type) == tmp_allowed_int_types.end()) {
+            tmp_allowed_int_types.push_back (type);
             gen_types++;
         }
     }
-    for (auto i : tmp_allowed_types) {
-        Probability<Type::TypeID> prob (i, 1);
-        allowed_types.push_back (prob);
+    for (auto i : tmp_allowed_int_types) {
+        Probability<IntegerType::IntegerTypeID> prob (i, 1);
+        allowed_int_types.push_back (prob);
     }
 }
 

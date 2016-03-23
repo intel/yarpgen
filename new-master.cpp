@@ -127,12 +127,12 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 
     ret += "unsigned long long int checksum () {\n";
 
-    Variable seed = Variable("seed", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false);
+    Variable seed = Variable("seed", IntegerType::IntegerTypeID::ULLINT, Variable::Mod::NTHNG, false);
     VarUseExpr seed_use;
     seed_use.set_variable (std::make_shared<Variable> (seed));
 
     ConstExpr zero_init;
-    zero_init.set_type (Type::TypeID::ULLINT);
+    zero_init.set_type (IntegerType::IntegerTypeID::ULLINT);
     zero_init.set_data (0);
 
     DeclStmt seed_decl;

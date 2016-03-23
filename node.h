@@ -70,12 +70,15 @@ class Expr : public Node {
             ShiftRhsLarge, // // Shift by large value
             NegShift, // Shift of negative value
         };
-        Expr () : value("", Type::TypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = true;}
-        Type::TypeID get_type_id () { return value.get_type()->get_id (); }
-        bool get_type_is_signed () { return value.get_type()->get_is_signed(); }
-        uint64_t get_type_bit_size () { return value.get_type()->get_bit_size(); }
+        Expr () : value("", IntegerType::IntegerTypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = true;}
+//TODO: tmp protection
+//        Type::TypeID get_type_id () { return value.get_type()->get_type_id (); }
+        AtomicType::AtomicTypeID get_atomic_type_id ();
+        IntegerType::IntegerTypeID get_int_type_id ();
+        bool get_type_is_signed () { return value.get_type()->is_int_type() ? (std::static_pointer_cast<IntegerType>(value.get_type()))->get_is_signed() : false; }
+        uint64_t get_type_bit_size () { return value.get_type()->is_atomic_type() ? (std::static_pointer_cast<AtomicType>(value.get_type()))->get_bit_size() : 0; }
         uint64_t get_value () { return value.get_value(); }
-        bool get_type_sign () { return value.get_type()->get_is_signed(); }
+        bool get_type_sign () { return value.get_type()->is_int_type() ? (std::static_pointer_cast<IntegerType>(value.get_type())->get_is_signed()) : false; }
         virtual void propagate_type () = 0;
         virtual UB propagate_value () = 0;
 
@@ -208,7 +211,7 @@ class UnaryExpr : public ArithExpr {
 class ConstExpr : public Expr {
     public:
         ConstExpr () : data (0) { id = Node::NodeID::CONST; }
-        void set_type (Type::TypeID type_id) { value.set_type(Type::init (type_id)); }
+        void set_type (IntegerType::IntegerTypeID type_id) { value.set_type(IntegerType::init (type_id)); }
         void set_data (uint64_t _data) { data = _data; }
         void propagate_type () {};
         UB propagate_value () { value.set_value(data); return NoUB; }
@@ -265,7 +268,7 @@ class Stmt : public Node {
 
 class DeclStmt : public Stmt {
     public:
-        DeclStmt () : data (NULL), init (NULL), is_extern(false) { id = Node::NodeID::DECL; }
+        DeclStmt () : is_extern(false), data (NULL), init (NULL) { id = Node::NodeID::DECL; }
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         void set_data (std::shared_ptr<Data> _data) { data = _data; }
         void set_init (std::shared_ptr<Expr> _init) { init = _init; }

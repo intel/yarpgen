@@ -106,11 +106,11 @@ class GenPolicy {
 
         void copy_data (std::shared_ptr<GenPolicy> old);
 
-        void set_num_of_allowed_types (int _num_of_allowed_types) { num_of_allowed_types = _num_of_allowed_types; }
-        int get_num_of_allowed_types () { return num_of_allowed_types; }
-        void rand_init_allowed_types ();
-        std::vector<Probability<Type::TypeID>>& get_allowed_types () { return allowed_types; }
-        void add_allowed_type (Probability<Type::TypeID> allowed_type) { allowed_types.push_back(allowed_type); }
+        void set_num_of_allowed_int_types (int _num_of_allowed_int_types) { num_of_allowed_int_types = _num_of_allowed_int_types; }
+        int get_num_of_allowed_int_types () { return num_of_allowed_int_types; }
+        void rand_init_allowed_int_types ();
+        std::vector<Probability<IntegerType::IntegerTypeID>>& get_allowed_int_types () { return allowed_int_types; }
+        void add_allowed_int_type (Probability<IntegerType::IntegerTypeID> allowed_int_type) { allowed_int_types.push_back(allowed_int_type); }
 
         // TODO: Add check for options compability? Should allow_volatile + allow_const be equal to allow_const_volatile?
         void set_allow_volatile (bool _allow_volatile) { set_modifier (_allow_volatile, Data::Mod::VOLAT); }
@@ -192,10 +192,10 @@ class GenPolicy {
 */
 
     private:
-        // Number of allowed types
-        int num_of_allowed_types;
+        // Number of allowed integer types
+        int num_of_allowed_int_types;
         // Allowed types of variables and basic types of arrays
-        std::vector<Probability<Type::TypeID>> allowed_types;
+        std::vector<Probability<IntegerType::IntegerTypeID>> allowed_int_types;
 
         void set_modifier (bool value, Data::Mod modifier);
         bool get_modifier (Data::Mod modifier);

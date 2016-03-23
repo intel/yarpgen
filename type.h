@@ -25,6 +25,62 @@ limitations under the License.
 class Type {
     public:
         enum TypeID {
+            ATOMIC_TYPE,
+            PTR_TYPE,
+            MAX_TYPE_ID
+        };
+
+        explicit Type () {};
+        Type (TypeID _id) : name (""), suffix (""), id (_id) {}
+        Type::TypeID get_type_id () { return id; }
+        std::string get_name () { return name; }
+        std::string get_suffix() { return suffix; }
+        virtual bool is_atomic_type() { return false; }
+        virtual bool is_ptr_type() { return false; }
+        virtual bool is_int_type() { return false; }
+        virtual bool is_fp_type() { return false; }
+        virtual void dbg_dump() = 0;
+
+    protected:
+        std::string name;
+        std::string suffix;
+
+    private:
+        TypeID id;
+};
+
+class PtrType : public Type {
+    public:
+        PtrType () : Type (Type::PTR_TYPE), pointee_t (NULL) {}
+        static std::shared_ptr<Type> init (std::shared_ptr<Type> _pointee_t);
+        bool is_ptr_type() { return true; }
+        void dbg_dump() {};
+
+    private:
+        std::shared_ptr<Type> pointee_t;
+        //TODO: it is a stub
+};
+
+class AtomicType : public Type {
+    public:
+        enum AtomicTypeID {
+            Integer, FP, Max_AtomicTypeID
+        };
+        AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE),  bit_size (0), atomic_id (at_id) {};
+        AtomicTypeID get_atomic_type_id () { return atomic_id; }
+        uint64_t get_bit_size () { return bit_size; }
+        bool is_atomic_type() { return true; }
+
+    protected:
+        unsigned int bit_size;
+
+    private:
+        AtomicTypeID atomic_id;
+};
+
+class IntegerType : public AtomicType {
+    public:
+        enum IntegerTypeID {
             BOOL,
             CHAR,
             UCHAR,
@@ -37,116 +93,165 @@ class Type {
             LLINT,
             ULLINT,
             MAX_INT_ID,
-            PTR,
-            MAX_TYPE_ID
         };
-
-        explicit Type () {};
-        static std::shared_ptr<Type> init (Type::TypeID _type_id);
-        static bool can_repr_value (Type::TypeID a, Type::TypeID b); // if type a can represent all of the values of the type b
-        static Type::TypeID get_corr_unsig (Type::TypeID _type_id);
-        Type::TypeID get_id () { return id; }
-        std::string get_name () { return name; }
-        std::string get_suffix() { return suffix; }
+        IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), min (0), max (0), int_type_id (it_id) {}
+        static std::shared_ptr<Type> init (IntegerType::IntegerTypeID _type_id);
+        IntegerTypeID get_int_type_id () { return int_type_id; }
+        static bool can_repr_value (IntegerType::IntegerTypeID A, IntegerType::IntegerTypeID B); // if type a can represent all of the values of the type b
+        static IntegerType::IntegerTypeID get_corr_unsig (IntegerType::IntegerTypeID _type_id);
         bool get_is_signed () { return is_signed; }
-        uint64_t get_bit_size () { return bit_size; }
         uint64_t get_min () { return min; }
         uint64_t get_max () { return max; }
-        void dbg_dump();
-        virtual std::string get_max_str () = 0;
-        virtual std::string get_min_str () = 0;
+        bool is_int_type() { return true; }
 
     protected:
-        TypeID id;
-        std::string name;
-        std::string suffix;
+        bool is_signed;
         uint64_t min;
         uint64_t max;
-        unsigned int bit_size;
-        bool is_fp;
-        bool is_signed;
+
+    private:
+        IntegerTypeID int_type_id;
 };
 
-class TypeBOOL : public Type {
+class TypeBOOL : public IntegerType {
     public:
-        TypeBOOL ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeBOOL () : IntegerType(IntegerType::IntegerTypeID::BOOL) {
+            name = "bool";
+            suffix = "";
+            min = false;
+            max = true;
+            bit_size = sizeof (bool) * CHAR_BIT;
+            is_signed = false;
+        }
+        void dbg_dump ();
 };
 
-class TypeCHAR : public Type {
+class TypeCHAR : public IntegerType {
     public:
-        TypeCHAR ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeCHAR () : IntegerType(IntegerType::IntegerTypeID::CHAR) {
+            name = "signed char";
+            suffix = "";
+            min = SCHAR_MIN;
+            max = SCHAR_MAX;
+            bit_size = sizeof (char) * CHAR_BIT;
+            is_signed = true;
+        }
+        void dbg_dump ();
 };
 
-class TypeUCHAR : public Type {
+class TypeUCHAR : public IntegerType {
     public:
-        TypeUCHAR ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeUCHAR () : IntegerType(IntegerType::IntegerTypeID::UCHAR) {
+            name = "unsigned char";
+            suffix = "";
+            min = 0;
+            max = UCHAR_MAX;
+            bit_size = sizeof (unsigned char) * CHAR_BIT;
+            is_signed = false;
+        }
+        void dbg_dump ();
 };
 
-class TypeSHRT : public Type {
+class TypeSHRT : public IntegerType {
     public:
-        TypeSHRT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeSHRT () : IntegerType(IntegerType::IntegerTypeID::SHRT) {
+            name = "short";
+            suffix = "";
+            min = SHRT_MIN;
+            max = SHRT_MAX;
+            bit_size = sizeof (short) * CHAR_BIT;
+            is_signed = true;
+        }
+        void dbg_dump ();
 };
 
-class TypeUSHRT : public Type {
+class TypeUSHRT : public IntegerType {
     public:
-        TypeUSHRT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeUSHRT () : IntegerType(IntegerType::IntegerTypeID::USHRT) {
+            name = "unsigned short";
+            suffix = "";
+            min = 0;
+            max = USHRT_MAX;
+            bit_size = sizeof (unsigned short) * CHAR_BIT;
+            is_signed = false;
+        }
+        void dbg_dump ();
 };
 
-class TypeINT : public Type {
+class TypeINT : public IntegerType {
     public:
-        TypeINT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeINT () : IntegerType(IntegerType::IntegerTypeID::INT) {
+            name = "int";
+            suffix = "";
+            min = INT_MIN;
+            max = INT_MAX;
+            bit_size = sizeof (int) * CHAR_BIT;
+            is_signed = true;
+        }
+        void dbg_dump ();
 };
 
-class TypeUINT : public Type {
+class TypeUINT : public IntegerType {
     public:
-        TypeUINT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeUINT () : IntegerType(IntegerType::IntegerTypeID::UINT) {
+            name = "unsigned int";
+            suffix = "U";
+            min = 0;
+            max = UINT_MAX;
+            bit_size = sizeof (unsigned int) * CHAR_BIT;
+            is_signed = false;
+        }
+        void dbg_dump ();
 };
 
-class TypeLINT : public Type {
+class TypeLINT : public IntegerType {
     public:
-        TypeLINT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeLINT () : IntegerType(IntegerType::IntegerTypeID::LINT) {
+            name = "long int";
+            suffix = "L";
+            min = LONG_MIN;;
+            max = LONG_MAX;
+            bit_size = sizeof (long int) * CHAR_BIT;
+            is_signed = true;
+        }
+        void dbg_dump ();
 };
 
-class TypeULINT : public Type {
+class TypeULINT : public IntegerType {
     public:
-        TypeULINT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeULINT () : IntegerType(IntegerType::IntegerTypeID::ULINT) {
+            name = "unsigned long int";
+            suffix = "UL";
+            min = 0;
+            max = ULONG_MAX;
+            bit_size = sizeof (unsigned long int) * CHAR_BIT;
+            is_signed = false;
+        }
+        void dbg_dump ();
 };
 
-class TypeLLINT : public Type {
+class TypeLLINT : public IntegerType {
     public:
-        TypeLLINT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeLLINT () : IntegerType(IntegerType::IntegerTypeID::LLINT) {
+            name = "long long int";
+            suffix = "LL";
+            min = LLONG_MIN;
+            max = LLONG_MAX;
+            bit_size = sizeof (long long int) * CHAR_BIT;
+            is_signed = true;
+        }
+        void dbg_dump ();
 };
 
-class TypeULLINT : public Type {
+class TypeULLINT : public IntegerType {
     public:
-        TypeULLINT ();
-        std::string get_max_str ();
-        std::string get_min_str ();
-};
-
-class TypePTR : public Type {
-    public:
-        TypePTR ();
-        std::string get_max_str ();
-        std::string get_min_str ();
+        TypeULLINT () : IntegerType(IntegerType::IntegerTypeID::ULLINT) {
+            name = "unsigned long long int";
+            suffix = "ULL";
+            min = 0;
+            max = ULLONG_MAX;
+            bit_size = sizeof (unsigned long long int) * CHAR_BIT;
+            is_signed = false;
+        }
+        void dbg_dump ();
 };

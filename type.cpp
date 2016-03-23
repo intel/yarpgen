@@ -18,74 +18,76 @@ limitations under the License.
 
 #include "type.h"
 
-std::shared_ptr<Type> Type::init (Type::TypeID _type_id) {
+std::shared_ptr<Type> PtrType::init (std::shared_ptr<Type> _pointee_t) {
+    PtrType ptr_type;
+    ptr_type.pointee_t = _pointee_t;
+    return std::make_shared<PtrType>(ptr_type);;
+}
+
+std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id) {
     std::shared_ptr<Type> ret (NULL);
     switch (_type_id) {
-        case Type::TypeID::BOOL:
+        case IntegerType::IntegerTypeID::BOOL:
             ret = std::make_shared<TypeBOOL> (TypeBOOL());
             break;
-        case Type::TypeID::CHAR:
+        case IntegerType::IntegerTypeID::CHAR:
             ret = std::make_shared<TypeCHAR> (TypeCHAR());
             break;
-        case Type::TypeID::UCHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
             ret = std::make_shared<TypeUCHAR> (TypeUCHAR());
             break;
-        case Type::TypeID::SHRT:
+        case IntegerType::IntegerTypeID::SHRT:
             ret = std::make_shared<TypeSHRT> (TypeSHRT());
             break;
-        case Type::TypeID::USHRT:
+        case IntegerType::IntegerTypeID::USHRT:
             ret = std::make_shared<TypeUSHRT> (TypeUSHRT());
             break;
-        case Type::TypeID::INT:
+        case IntegerType::IntegerTypeID::INT:
             ret = std::make_shared<TypeINT> (TypeINT());
             break;
-        case Type::TypeID::UINT:
+        case IntegerType::IntegerTypeID::UINT:
             ret = std::make_shared<TypeUINT> (TypeUINT());
             break;
-        case Type::TypeID::LINT:
+        case IntegerType::IntegerTypeID::LINT:
             ret = std::make_shared<TypeLINT> (TypeLINT());
             break;
-        case Type::TypeID::ULINT:
+        case IntegerType::IntegerTypeID::ULINT:
             ret = std::make_shared<TypeULINT> (TypeULINT());
             break;
-         case Type::TypeID::LLINT:
+         case IntegerType::IntegerTypeID::LLINT:
             ret = std::make_shared<TypeLLINT> (TypeLLINT());
             break;
-         case Type::TypeID::ULLINT:
+         case IntegerType::IntegerTypeID::ULLINT:
             ret = std::make_shared<TypeULLINT> (TypeULLINT());
             break;
-        case Type::TypeID::PTR:
-            ret = std::make_shared<TypePTR> (TypePTR());
-            break;
         case MAX_INT_ID:
-        case Type::TypeID::MAX_TYPE_ID:
             break;
     }
     return ret;
 }
 
-bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
+bool IntegerType::can_repr_value (IntegerType::IntegerTypeID a, IntegerType::IntegerTypeID b) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
-    std::shared_ptr<Type> B = init(b);
+    std::shared_ptr<IntegerType> B = std::static_pointer_cast<IntegerType>(init(b));
     bool int_eq_long = sizeof(int) == sizeof(long int);
     bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
     switch (a) {
         case INT:
             return B->get_is_signed();
         case UINT:
-            if (B->get_id() == INT)
+            if (B->get_int_type_id() == INT)
                 return false;
-            if (B->get_id() == LINT)
+            if (B->get_int_type_id() == LINT)
                 return !int_eq_long;
             return true;
         case LINT:
             if (!B->get_is_signed())
                 return false;
-            if (B->get_id() == INT)
+            if (B->get_int_type_id() == INT)
                 return int_eq_long;
             return true;
         case ULINT:
-            switch (B->get_id()) {
+            switch (B->get_int_type_id()) {
                 case INT:
                     return false;
                 case UINT:
@@ -102,7 +104,7 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
                     std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
             }
         case LLINT:
-            switch (B->get_id()) {
+            switch (B->get_int_type_id()) {
                 case INT:
                 case UINT:
                    return false;
@@ -118,7 +120,7 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
                     std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
             }
         case ULLINT:
-            switch (B->get_id()) {
+            switch (B->get_int_type_id()) {
                 case INT:
                 case UINT:
                 case LINT:
@@ -138,7 +140,7 @@ bool Type::can_repr_value (Type::TypeID a, Type::TypeID b) {
     }
 }
 
-Type::TypeID Type::get_corr_unsig (Type::TypeID _type_id) {
+IntegerType::IntegerTypeID IntegerType::get_corr_unsig (IntegerType::IntegerTypeID _type_id) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     switch (_type_id) {
         case INT:
@@ -156,240 +158,58 @@ Type::TypeID Type::get_corr_unsig (Type::TypeID _type_id) {
     }
 }
 
-void Type::dbg_dump () {
-    std::cout << "name: " << name << std::endl;
-    std::cout << "id: " << id << std::endl;
-    std::cout << "min: " << min <<  suffix << std::endl;
-    std::cout << "max: " << max <<  suffix << std::endl;
-    std::cout << "bit_size: " << bit_size << std::endl;
-    std::cout << "is_fp: " << is_fp << std::endl;
-    std::cout << "is_signed: " << is_signed << std::endl;
+template <class T>
+static std::string dbg_dump_helper (std::string name, int id, uint64_t min, uint64_t max, uint32_t bit_size, bool is_signed) {
+    std::string ret = "";
+    ret += "name: " + name + "\n";
+    ret += "int_type_id: " + std::to_string(id) + "\n";
+    ret += "min: " + std::to_string((T)min) + "\n";
+    ret += "max: " + std::to_string((T)max) + "\n";
+    ret += "bit_size: " + std::to_string(bit_size) + "\n";
+    ret += "is_signed: " + std::to_string(is_signed) + "\n";
+    return ret;
 }
 
-TypeBOOL::TypeBOOL () {
-    id = Type::TypeID::BOOL;
-    name = "bool";
-    suffix = "";
-    min = false;
-    max = true;
-    bit_size = sizeof (bool) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
+void TypeBOOL::dbg_dump () {
+    std::cout << dbg_dump_helper<bool>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeBOOL::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
+void TypeCHAR::dbg_dump () {
+    std::cout << dbg_dump_helper<char>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeBOOL::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
+void TypeUCHAR::dbg_dump () {
+    std::cout << dbg_dump_helper<unsigned char>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-TypeCHAR::TypeCHAR () {
-    id = Type::TypeID::CHAR;
-    name = "signed char";
-    suffix = "";
-    min = SCHAR_MIN;
-    max = SCHAR_MAX;
-    bit_size = sizeof (char) * CHAR_BIT;
-    is_fp = false;
-    is_signed = true;
+void TypeSHRT::dbg_dump () {
+    std::cout << dbg_dump_helper<short>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeCHAR::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
+void TypeUSHRT::dbg_dump () {
+    std::cout << dbg_dump_helper<unsigned short>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeCHAR::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
+void TypeINT::dbg_dump () {
+    std::cout << dbg_dump_helper<int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-TypeUCHAR::TypeUCHAR () {
-    id = Type::TypeID::UCHAR;
-    name = "unsigned char";
-    suffix = "";
-    min = 0;
-    max = UCHAR_MAX;
-    bit_size = sizeof (unsigned char) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
+void TypeUINT::dbg_dump () {
+    std::cout << dbg_dump_helper<unsigned int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeUCHAR::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
+void TypeLINT::dbg_dump () {
+    std::cout << dbg_dump_helper<long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeUCHAR::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
+void TypeULINT::dbg_dump () {
+    std::cout << dbg_dump_helper<unsigned long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-TypeSHRT::TypeSHRT () {
-    id = Type::TypeID::SHRT;
-    name = "short";
-    suffix = "";
-    min = SHRT_MIN;
-    max = SHRT_MAX;
-    bit_size = sizeof (short) * CHAR_BIT;
-    is_fp = false;
-    is_signed = true;
+void TypeLLINT::dbg_dump () {
+    std::cout << dbg_dump_helper<long long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
-std::string TypeSHRT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeSHRT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeUSHRT::TypeUSHRT () {
-    id = Type::TypeID::USHRT;
-    name = "unsigned short";
-    suffix = "";
-    min = 0;
-    max = USHRT_MAX;
-    bit_size = sizeof (unsigned short) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
-}
-
-std::string TypeUSHRT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeUSHRT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeINT::TypeINT () {
-    id = Type::TypeID::INT;
-    name = "int";
-    suffix = "";
-    min = INT_MIN;
-    max = INT_MAX;
-    bit_size = sizeof (int) * CHAR_BIT;
-    is_fp = false;
-    is_signed = true;
-}
-
-std::string TypeINT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeINT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeUINT::TypeUINT () {
-    id = Type::TypeID::UINT;
-    name = "unsigned int";
-    suffix = "U";
-    min = 0;
-    max = UINT_MAX;
-    bit_size = sizeof (unsigned int) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
-}
-
-std::string TypeUINT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeUINT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeLINT::TypeLINT () {
-    id = Type::TypeID::LINT;
-    name = "long int";
-    suffix = "L";
-    min = LONG_MIN;;
-    max = LONG_MAX;
-    bit_size = sizeof (long int) * CHAR_BIT;
-    is_fp = false;
-    is_signed = true;
-}
-
-std::string TypeLINT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeLINT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeULINT::TypeULINT () {
-    id = Type::TypeID::ULINT;
-    name = "unsigned long int";
-    suffix = "UL";
-    min = 0;
-    max = ULONG_MAX;
-    bit_size = sizeof (unsigned long int) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
-}
-
-std::string TypeULINT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeULINT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeLLINT::TypeLLINT () {
-    id = Type::TypeID::LLINT;
-    name = "long long int";
-    suffix = "LL";
-    min = LLONG_MIN;
-    max = LLONG_MAX;
-    bit_size = sizeof (long long int) * CHAR_BIT;
-    is_fp = false;
-    is_signed = true;
-}
-
-std::string TypeLLINT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeLLINT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypeULLINT::TypeULLINT () {
-    id = Type::TypeID::ULLINT;
-    name = "unsigned long long int";
-    suffix = "ULL";
-    min = 0;
-    max = ULLONG_MAX;
-    bit_size = sizeof (unsigned long long int) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
-}
-
-std::string TypeULLINT::get_max_str () {
-    return std::to_string (get_max ()) + get_suffix ();
-}
-
-std::string TypeULLINT::get_min_str () {
-    return std::to_string (get_min ()) + get_suffix ();
-}
-
-TypePTR::TypePTR () {
-    id = Type::TypeID::PTR;
-    name = "*";
-    suffix = "";
-    min = 0;
-    max = 0;
-    bit_size = sizeof (unsigned int*) * CHAR_BIT;
-    is_fp = false;
-    is_signed = false;
-}
-
-std::string TypePTR::get_max_str () {
-    return "";
-}
-
-std::string TypePTR::get_min_str () {
-    return "";
+void TypeULLINT::dbg_dump () {
+    std::cout << dbg_dump_helper<unsigned long long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
