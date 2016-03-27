@@ -71,7 +71,7 @@ int main (int argc, char* argv[]) {
 
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
-
+/*
     Master mas (out_dir);
     mas.generate ();
     mas.emit_func ();
@@ -81,13 +81,22 @@ int main (int argc, char* argv[]) {
     mas.emit_check ();
     mas.emit_main ();
 //    mas.emit_reduce_log ();
-
+*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test utilities
-/*
+
     std::shared_ptr<Type> type;
     type = IntegerType::init (IntegerType::IntegerTypeID::UINT);
     type->dbg_dump();
+
+    std::shared_ptr<StructType> struct_type;
+    struct_type = std::static_pointer_cast<StructType> (StructType::init ("struct_1"));
+    struct_type->add_member(type, "a");
+    struct_type->add_member(IntegerType::init (IntegerType::IntegerTypeID::BOOL), "b");
+    struct_type->dbg_dump();
+
+    Struct struct_var = Struct ("struct_var", struct_type);
+    struct_var.dbg_dump();
 
     Variable var = Variable("i", IntegerType::IntegerTypeID::ULINT, Type::Mod::NTHG, false);
     var.set_modifier (Type::Mod::CONST);
@@ -217,8 +226,8 @@ int main (int argc, char* argv[]) {
     std::cout << "BinaryExpr: " << bin_expr.emit () << std::endl;
     std::cout << "Type: " << bin_expr.get_int_type_id () << std::endl;
     std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
-/*
 
+/*
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
 
     GenPolicy gen_policy;

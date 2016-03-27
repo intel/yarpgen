@@ -23,7 +23,7 @@ limitations under the License.
 class Data {
     public:
         enum VarClassID {
-            VAR, ARR, MAX_CLASS_ID
+            VAR, ARR, STRUCT, MAX_CLASS_ID
         };
 
         union TypeVal {
@@ -52,7 +52,7 @@ class Data {
         void set_type(std::shared_ptr<Type> _type) { type = _type; }
         std::shared_ptr<Type> get_type () { return type; }
         virtual void set_value (uint64_t _val) = 0;
-        virtual void set_max (uint64_t _max)= 0;
+        virtual void set_max (uint64_t _max) = 0;
         virtual void set_min (uint64_t _min) = 0;
         virtual uint64_t get_value () = 0;
         virtual uint64_t get_max () = 0;
@@ -66,6 +66,22 @@ class Data {
         TypeVal min;
         TypeVal max;
         VarClassID class_id;
+};
+
+class Struct : public Data {
+    public:
+        explicit Struct (std::string _name, std::shared_ptr<StructType> _type);
+        void set_value (uint64_t _val) {}
+        void set_max (uint64_t _max) {}
+        void set_min (uint64_t _min) {}
+        uint64_t get_value () { return 0; }
+        uint64_t get_max () { return 0; }
+        uint64_t get_min () { return 0; }
+        void dbg_dump ();
+
+    private:
+        void allocate_members();
+        std::vector<std::shared_ptr<Data>> members;
 };
 
 class Variable : public Data {

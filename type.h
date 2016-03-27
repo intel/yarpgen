@@ -85,16 +85,31 @@ class PtrType : public Type {
 
 class StructType : public Type {
     public:
+        struct StructMember {
+            public:
+                StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name) {}
+                std::string get_name () { return name; }
+                std::shared_ptr<Type> get_type() { return type; }
+                std::string get_definition () { return type->get_name() + " " + name; }
+
+            private:
+                std::shared_ptr<Type> type;
+                std::string name;
+        };
+
         StructType () : Type (Type::STRUCT_TYPE) {}
         static std::shared_ptr<Type> init (std::string _name);
-        //void add_member (std::shared_ptr<Variable> new_mem) { members.push_back(new_mem); }
-        //std::shared_ptr<Variable> get_member (unsigned int num);
-        //std::string get_definition ();
+        void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); }
+        void add_member (std::shared_ptr<Type> _type, std::string _name);
+        uint64_t get_num_of_members () { return members.size(); }
+        std::shared_ptr<StructMember> get_member (unsigned int num);
+        std::string get_definition ();
         bool is_struct_type() { return true; }
         void dbg_dump();
 
     private:
-       //std::vector<std::shared_ptr<Variable>> members;
+        std::vector<std::shared_ptr<StructMember>> members;
+        std::string name;
 };
 
 class AtomicType : public Type {

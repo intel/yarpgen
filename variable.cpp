@@ -24,6 +24,39 @@ Data::Data (std::string _name) {
     class_id = MAX_CLASS_ID;
 }
 
+Struct::Struct (std::string _name, std::shared_ptr<StructType> _type) : Data (_name) {
+    class_id = STRUCT;
+    type = _type;
+    value.ullint_val = 0;
+    min.ullint_val = 0;
+    max.ullint_val = 0;
+    allocate_members();
+}
+
+void Struct::allocate_members() {
+    std::shared_ptr<StructType> struct_type = std::static_pointer_cast<StructType>(type);
+    // TODO: struct member can be not only integer
+    for (int i = 0; i < struct_type->get_num_of_members(); ++i) {
+        std::shared_ptr<IntegerType> int_type_member = std::static_pointer_cast<IntegerType>(struct_type->get_member(i)->get_type());
+        Variable new_mem (struct_type->get_member(i)->get_name(), int_type_member->get_int_type_id(), int_type_member->get_modifier(), int_type_member->get_is_static());
+        members.push_back(std::make_shared<Variable>(new_mem));
+    }
+}
+
+void Struct::dbg_dump () {
+    std::cout << "type ";
+    type->dbg_dump();
+    std::cout << "name: " << name << std::endl;
+    std::cout << "modifier: " << type->get_modifier() << std::endl;
+    std::cout << "value: " << value.ullint_val << std::endl;
+    std::cout << "min: " << min.ullint_val << std::endl;
+    std::cout << "max: " << max.ullint_val << std::endl;
+    std::cout << "members ";
+    for (auto i : members) {
+        i->dbg_dump();
+    }
+}
+
 Variable::Variable (std::string _name, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static) : Data (_name) {
     class_id = Data::VarClassID::VAR;
     type = IntegerType::init (_type_id);

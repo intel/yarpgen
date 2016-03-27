@@ -55,8 +55,13 @@ std::shared_ptr<Type> StructType::init (std::string _name) {
     struct_type.name = _name;
     return std::make_shared<StructType>(struct_type);
 }
-/*
-std::shared_ptr<Variable> StructType::get_member (unsigned int num) {
+
+void StructType::add_member (std::shared_ptr<Type> _type, std::string _name) {
+    StructType::StructMember new_mem (_type, _name);
+    members.push_back(std::make_shared<StructMember>(new_mem));
+}
+
+std::shared_ptr<StructType::StructMember> StructType::get_member (unsigned int num) {
     if (num >= members.size())
         return NULL;
     else
@@ -67,14 +72,14 @@ std::string StructType::get_definition () {
     std::string ret = "";
     ret+= "struct " + name +" {\n";
     for (auto i : members) {
-        DeclStmt member_decl;
-        member_decl.set_data(*i);
-        ret += member_decl.emit() + "\n";
+        ret += i->get_definition() + ";\n";
     }
     ret += "};\n";
+    return ret;
 }
-*/
+
 void StructType::dbg_dump() {
+    std::cout << get_definition () << std::endl;
 }
 
 std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id) {
