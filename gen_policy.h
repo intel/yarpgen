@@ -113,13 +113,13 @@ class GenPolicy {
         void add_allowed_int_type (Probability<IntegerType::IntegerTypeID> allowed_int_type) { allowed_int_types.push_back(allowed_int_type); }
 
         // TODO: Add check for options compability? Should allow_volatile + allow_const be equal to allow_const_volatile?
-        void set_allow_volatile (bool _allow_volatile) { set_modifier (_allow_volatile, Data::Mod::VOLAT); }
-        bool get_allow_volatile () { return get_modifier (Data::Mod::VOLAT); }
-        void set_allow_const (bool _allow_const) { set_modifier (_allow_const, Data::Mod::CONST); }
-        bool get_allow_const () { return get_modifier (Data::Mod::CONST); }
-        void set_allow_const_volatile (bool _allow_const_volatile) { set_modifier (_allow_const_volatile, Data::Mod::CONST_VOLAT); }
-        bool get_allow_const_volatile () { return get_modifier (Data::Mod::CONST_VOLAT); }
-        std::vector<Data::Mod>& get_allowed_modifiers () { return allowed_modifiers; }
+        void set_allow_volatile (bool _allow_volatile) { set_modifier (_allow_volatile, Type::Mod::VOLAT); }
+        bool get_allow_volatile () { return get_modifier (Type::Mod::VOLAT); }
+        void set_allow_const (bool _allow_const) { set_modifier (_allow_const, Type::Mod::CONST); }
+        bool get_allow_const () { return get_modifier (Type::Mod::CONST); }
+        void set_allow_const_volatile (bool _allow_const_volatile) { set_modifier (_allow_const_volatile, Type::Mod::CONST_VOLAT); }
+        bool get_allow_const_volatile () { return get_modifier (Type::Mod::CONST_VOLAT); }
+        std::vector<Type::Mod>& get_allowed_modifiers () { return allowed_modifiers; }
 
         void set_allow_static_var (bool _allow_static_var) { allow_static_var = _allow_static_var; }
         bool get_allow_static_var () { return allow_static_var; }
@@ -197,9 +197,9 @@ class GenPolicy {
         // Allowed types of variables and basic types of arrays
         std::vector<Probability<IntegerType::IntegerTypeID>> allowed_int_types;
 
-        void set_modifier (bool value, Data::Mod modifier);
-        bool get_modifier (Data::Mod modifier);
-        std::vector<Data::Mod> allowed_modifiers;
+        void set_modifier (bool value, Type::Mod modifier);
+        bool get_modifier (Type::Mod modifier);
+        std::vector<Type::Mod> allowed_modifiers;
 
         bool allow_static_var;
 

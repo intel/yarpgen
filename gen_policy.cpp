@@ -57,7 +57,7 @@ GenPolicy::GenPolicy () {
     num_of_allowed_int_types = MAX_ALLOWED_INT_TYPES;
     rand_init_allowed_int_types();
 
-    allowed_modifiers.push_back (Data::Mod::NTHNG);
+    allowed_modifiers.push_back (Type::Mod::NTHG);
 
     allow_static_var = false;
 
@@ -265,13 +265,13 @@ void GenPolicy::rand_init_allowed_int_types () {
     }
 }
 
-void GenPolicy::set_modifier (bool value, Data::Mod modifier) {
+void GenPolicy::set_modifier (bool value, Type::Mod modifier) {
     if (value)
         allowed_modifiers.push_back (modifier);
     else
         allowed_modifiers.erase (std::remove (allowed_modifiers.begin(), allowed_modifiers.end(), modifier), allowed_modifiers.end());
 }
 
-bool GenPolicy::get_modifier (Data::Mod modifier) {
+bool GenPolicy::get_modifier (Type::Mod modifier) {
     return (std::find(allowed_modifiers.begin(), allowed_modifiers.end(), modifier) != allowed_modifiers.end());
 }

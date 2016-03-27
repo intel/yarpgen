@@ -1122,18 +1122,18 @@ std::string DeclStmt::emit () {
     ret += data->get_is_static() && !is_extern ? "static " : "";
     ret += is_extern ? "extern " : "";
     switch (data->get_modifier()) {
-        case Variable::Mod::VOLAT:
+        case Type::Mod::VOLAT:
             ret += "volatile ";
             break;
-        case Variable::Mod::CONST:
+        case Type::Mod::CONST:
             ret += "const ";
             break;
-        case Variable::Mod::CONST_VOLAT:
+        case Type::Mod::CONST_VOLAT:
             ret += "const volatile ";
             break;
-        case Variable::Mod::NTHNG:
+        case Type::Mod::NTHG:
             break;
-        case Variable::Mod::MAX_MOD:
+        case Type::Mod::MAX_MOD:
             std::cerr << "ERROR in DeclStmt::emit bad modifier" << std::endl;
             break;
     }

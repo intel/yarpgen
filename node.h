@@ -70,9 +70,8 @@ class Expr : public Node {
             ShiftRhsLarge, // // Shift by large value
             NegShift, // Shift of negative value
         };
-        Expr () : value("", IntegerType::IntegerTypeID::ULLINT, Variable::Mod::NTHNG, false) {is_expr = true;}
-//TODO: tmp protection
-//        Type::TypeID get_type_id () { return value.get_type()->get_type_id (); }
+        Expr () : value("", IntegerType::IntegerTypeID::ULLINT, Type::Mod::NTHG, false) {is_expr = true;}
+        Type::TypeID get_type_id () { return value.get_type()->get_type_id (); }
         AtomicType::AtomicTypeID get_atomic_type_id ();
         IntegerType::IntegerTypeID get_int_type_id ();
         bool get_type_is_signed () { return value.get_type()->is_int_type() ? (std::static_pointer_cast<IntegerType>(value.get_type()))->get_is_signed() : false; }

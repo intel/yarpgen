@@ -48,12 +48,12 @@ class ScalarTypeGen : public Generator {
 
 class ModifierGen : public Generator {
     public:
-        ModifierGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), modifier (Data::Mod::MAX_MOD) {}
-        Data::Mod get_modifier () { return modifier; }
+        ModifierGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), modifier (Type::Mod::MAX_MOD) {}
+        Type::Mod get_modifier () { return modifier; }
         void generate ();
 
     private:
-        Data::Mod modifier;
+        Type::Mod modifier;
 };
 
 class StaticSpecifierGen : public Generator {
@@ -86,9 +86,9 @@ class VariableValueGen : public Generator {
 class DataGen : public Generator {
     public:
         DataGen (std::shared_ptr<GenPolicy> _gen_policy) :
-                 Generator (_gen_policy), type_id (IntegerType::IntegerTypeID::MAX_INT_ID), modifier (Data::Mod::MAX_MOD),
+                 Generator (_gen_policy), type_id (IntegerType::IntegerTypeID::MAX_INT_ID), modifier (Type::Mod::MAX_MOD),
                  static_spec (false), rand_init (true), data (NULL) {}
-        DataGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Data::Mod _modifier, bool _static_spec) :
+        DataGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _static_spec) :
                  Generator (_gen_policy), type_id (_type_id), modifier (_modifier), static_spec(_static_spec), rand_init (false), data (NULL) {}
         std::shared_ptr<Data> get_data () { return data; }
         virtual void generate () = 0;
@@ -98,7 +98,7 @@ class DataGen : public Generator {
         void rand_init_value ();
         bool rand_init;
         IntegerType::IntegerTypeID type_id;
-        Data::Mod modifier;
+        Type::Mod modifier;
         bool static_spec;
         std::shared_ptr<Data> data;
 };
@@ -106,7 +106,7 @@ class DataGen : public Generator {
 class ScalarVariableGen : public DataGen {
     public:
         ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy) {}
-        ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Data::Mod _modifier, bool _static_spec) :
+        ScalarVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _static_spec) :
                           DataGen (_gen_policy, _type_id, _modifier, _static_spec) {}
         void generate ();
 
@@ -117,7 +117,7 @@ class ScalarVariableGen : public DataGen {
 class ArrayVariableGen : public DataGen {
     public:
         ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy), essence (Array::Ess::MAX_ESS), size (0) {}
-        ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Data::Mod _modifier, bool _static_spec, int _size, Array::Ess _essence) :
+        ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _static_spec, int _size, Array::Ess _essence) :
                           DataGen (_gen_policy, _type_id, _modifier, _static_spec), size (_size), essence (_essence) {}
         void generate ();
 

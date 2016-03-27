@@ -89,14 +89,14 @@ int main (int argc, char* argv[]) {
     type = IntegerType::init (IntegerType::IntegerTypeID::UINT);
     type->dbg_dump();
 
-    Variable var = Variable("i", IntegerType::IntegerTypeID::ULINT, Variable::Mod::NTHNG, false);
-    var.set_modifier (Variable::Mod::CONST);
+    Variable var = Variable("i", IntegerType::IntegerTypeID::ULINT, Type::Mod::NTHG, false);
+    var.set_modifier (Type::Mod::CONST);
     var.set_value (10);
     var.set_min (5);
     var.set_max (50);
     var.dbg_dump ();
 
-    Array arr = Array ("a", IntegerType::IntegerTypeID::UINT, Variable::Mod::CONST_VOLAT, true, 20,
+    Array arr = Array ("a", IntegerType::IntegerTypeID::UINT, Type::Mod::CONST_VOLAT, true, 20,
                            Array::Ess::STD_VEC);
     arr.set_align(32);
     arr.dbg_dump();
@@ -217,7 +217,7 @@ int main (int argc, char* argv[]) {
     std::cout << "BinaryExpr: " << bin_expr.emit () << std::endl;
     std::cout << "Type: " << bin_expr.get_int_type_id () << std::endl;
     std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
-
+/*
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
 
@@ -236,13 +236,13 @@ int main (int argc, char* argv[]) {
     scalar_type_gen.generate();
     std::cout << scalar_type_gen.get_type() << std::endl;
 
-    gen_policy.set_num_of_allowed_types(1);
-    gen_policy.rand_init_allowed_types ();
+    gen_policy.set_num_of_allowed_int_types(1);
+    gen_policy.rand_init_allowed_int_types ();
     ScalarTypeGen scalar_type_gen2 (std::make_shared<GenPolicy>(gen_policy));
     scalar_type_gen2.generate();
     std::cout << scalar_type_gen2.get_type() << std::endl;
-    gen_policy.set_num_of_allowed_types(4);
-    gen_policy.rand_init_allowed_types ();
+    gen_policy.set_num_of_allowed_int_types(4);
+    gen_policy.rand_init_allowed_int_types ();
 
     std::cout << "ModifierGen:" << std::endl;
     ModifierGen mod_gen (std::make_shared<GenPolicy>(gen_policy));
@@ -274,7 +274,7 @@ int main (int argc, char* argv[]) {
     scalar_var_gen.generate();
     scalar_var_gen.get_data()->dbg_dump();
 
-    ScalarVariableGen scalar_var_gen2 (std::make_shared<GenPolicy>(gen_policy), Type::TypeID::UINT, Data::Mod::CONST_VOLAT, false);
+    ScalarVariableGen scalar_var_gen2 (std::make_shared<GenPolicy>(gen_policy), IntegerType::IntegerTypeID::UINT, Type::Mod::CONST_VOLAT, false);
     scalar_var_gen2.generate();
     scalar_var_gen2.get_data()->dbg_dump();
 
@@ -283,7 +283,7 @@ int main (int argc, char* argv[]) {
     arr_var_gen.generate();
     arr_var_gen.get_data()->dbg_dump();
 
-    ArrayVariableGen arr_var_gen2 (std::make_shared<GenPolicy>(gen_policy), Type::TypeID::UCHAR, Data::Mod::CONST, true, 1237, Array::Ess::STD_VEC);
+    ArrayVariableGen arr_var_gen2 (std::make_shared<GenPolicy>(gen_policy), IntegerType::IntegerTypeID::UCHAR, Type::Mod::CONST, true, 1237, Array::Ess::STD_VEC);
     arr_var_gen2.generate();
     arr_var_gen2.get_data()->dbg_dump();
 

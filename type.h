@@ -21,29 +21,51 @@ limitations under the License.
 #include <iostream>
 #include <climits>
 #include <memory>
+#include <vector>
+
+class Variable;
 
 class Type {
     public:
         enum TypeID {
             ATOMIC_TYPE,
+            STRUCT_TYPE,
             PTR_TYPE,
             MAX_TYPE_ID
         };
 
+        enum Mod {
+            NTHG,
+            VOLAT,
+            CONST,
+            CONST_VOLAT,
+            MAX_MOD
+        };
+
         explicit Type () {};
-        Type (TypeID _id) : name (""), suffix (""), id (_id) {}
+        Type (TypeID _id) : name (""), suffix (""), modifier(Mod::NTHG), is_static(false), align(0), id (_id) {}
         Type::TypeID get_type_id () { return id; }
-        std::string get_name () { return name; }
+        std::string get_name ();
         std::string get_suffix() { return suffix; }
+        void set_modifier (Mod _modifier) { modifier = _modifier; }
+        Mod get_modifier () { return modifier; }
+        void set_is_static (bool _is_static) { is_static = _is_static; }
+        bool get_is_static () { return is_static; }
+        void set_align (uint64_t _align) { align = _align; }
+        uint64_t get_align () { return align; }
         virtual bool is_atomic_type() { return false; }
         virtual bool is_ptr_type() { return false; }
         virtual bool is_int_type() { return false; }
         virtual bool is_fp_type() { return false; }
+        virtual bool is_struct_type() { return false; }
         virtual void dbg_dump() = 0;
 
     protected:
         std::string name;
         std::string suffix;
+        Mod modifier;
+        bool is_static;
+        uint64_t align;
 
     private:
         TypeID id;
@@ -59,6 +81,20 @@ class PtrType : public Type {
     private:
         std::shared_ptr<Type> pointee_t;
         //TODO: it is a stub
+};
+
+class StructType : public Type {
+    public:
+        StructType () : Type (Type::STRUCT_TYPE) {}
+        static std::shared_ptr<Type> init (std::string _name);
+        //void add_member (std::shared_ptr<Variable> new_mem) { members.push_back(new_mem); }
+        //std::shared_ptr<Variable> get_member (unsigned int num);
+        //std::string get_definition ();
+        bool is_struct_type() { return true; }
+        void dbg_dump();
+
+    private:
+       //std::vector<std::shared_ptr<Variable>> members;
 };
 
 class AtomicType : public Type {

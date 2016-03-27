@@ -18,18 +18,18 @@ limitations under the License.
 
 #include "variable.h"
 
-Data::Data (std::string _name, Mod _modifier, bool _is_static) {
+Data::Data (std::string _name) {
     type = NULL;
     name = _name;
-    modifier = _modifier;
-    is_static = _is_static;
     class_id = MAX_CLASS_ID;
-    align = 0;
 }
 
-Variable::Variable (std::string _name, IntegerType::IntegerTypeID _type_id, Mod _modifier, bool _is_static) : Data (_name, _modifier, _is_static) {
+Variable::Variable (std::string _name, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static) : Data (_name) {
     class_id = Data::VarClassID::VAR;
     type = IntegerType::init (_type_id);
+    type->set_modifier(_modifier);
+    type->set_is_static(_is_static);
+    type->set_align(0);
     std::shared_ptr<IntegerType> int_type = std::static_pointer_cast<IntegerType>(type);
     switch (int_type->get_int_type_id ()) {
         case IntegerType::IntegerTypeID::BOOL:
@@ -97,7 +97,7 @@ void Variable::dbg_dump () {
     std::cout << "type ";
     type->dbg_dump();
     std::cout << "name: " << name << std::endl;
-    std::cout << "modifier: " << modifier << std::endl;
+    std::cout << "modifier: " << type->get_modifier() << std::endl;
     std::cout << "value: " << value.ullint_val << std::endl;
     std::cout << "min: " << min.ullint_val << std::endl;
     std::cout << "max: " << max.ullint_val << std::endl;
@@ -316,12 +316,14 @@ uint64_t Variable::get_min () {
     }
 }
 
-Array::Array (std::string _name, IntegerType::IntegerTypeID _base_type_id, Mod _modifier, bool _is_static,
-              uint64_t _size, Ess _essence) : Data (_name, _modifier, _is_static) {
+Array::Array (std::string _name, IntegerType::IntegerTypeID _base_type_id, Type::Mod _modifier, bool _is_static,
+              uint64_t _size, Ess _essence) : Data (_name) {
     class_id = Data::VarClassID::ARR;
-//    type = std::make_shared<PtrType>(
     base_type = IntegerType::init (_base_type_id);
     type = PtrType::init (base_type);
+    type->set_modifier(_modifier);
+    type->set_is_static(_is_static);
+    type->set_align(0);
     size = _size;
     essence = _essence;
     std::shared_ptr<IntegerType> base_int_type = std::static_pointer_cast<IntegerType> (base_type);
@@ -608,7 +610,7 @@ void Array::dbg_dump () {
     std::cout << "name: " << name << std::endl;
     std::cout << "size: " << size << std::endl;
     std::cout << "essence: " << essence << std::endl;
-    std::cout << "modifier: " << modifier << std::endl;
+    std::cout << "modifier: " << type->get_modifier() << std::endl;
     std::cout << "value: " << value.ullint_val << std::endl;
     std::cout << "min: " << min.ullint_val << std::endl;
     std::cout << "max: " << max.ullint_val << std::endl;

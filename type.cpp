@@ -18,10 +18,63 @@ limitations under the License.
 
 #include "type.h"
 
+std::string Type::get_name () {
+    std::string ret = "";
+    ret += is_static ? "static " : "";
+    switch (modifier) {
+        case Mod::VOLAT:
+            ret += "volatile ";
+            break;
+        case Mod::CONST:
+            ret += "const ";
+            break;
+        case Mod::CONST_VOLAT:
+            ret += "const volatile ";
+            break;
+        case Mod::NTHG:
+            break;
+        case Mod::MAX_MOD:
+            std::cerr << "ERROR in Type::get_name: bad modifier" << std::endl;
+            exit(-1);
+            break;
+    }
+    ret += name;
+    if (align != 0)
+        ret += " __attribute__((aligned(" + std::to_string(align) + ")))";
+    return ret;
+}
+
 std::shared_ptr<Type> PtrType::init (std::shared_ptr<Type> _pointee_t) {
     PtrType ptr_type;
     ptr_type.pointee_t = _pointee_t;
-    return std::make_shared<PtrType>(ptr_type);;
+    return std::make_shared<PtrType>(ptr_type);
+}
+
+std::shared_ptr<Type> StructType::init (std::string _name) {
+    StructType struct_type;
+    struct_type.name = _name;
+    return std::make_shared<StructType>(struct_type);
+}
+/*
+std::shared_ptr<Variable> StructType::get_member (unsigned int num) {
+    if (num >= members.size())
+        return NULL;
+    else
+        return members.at(num);
+}
+
+std::string StructType::get_definition () {
+    std::string ret = "";
+    ret+= "struct " + name +" {\n";
+    for (auto i : members) {
+        DeclStmt member_decl;
+        member_decl.set_data(*i);
+        ret += member_decl.emit() + "\n";
+    }
+    ret += "};\n";
+}
+*/
+void StructType::dbg_dump() {
 }
 
 std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id) {
@@ -171,45 +224,45 @@ static std::string dbg_dump_helper (std::string name, int id, uint64_t min, uint
 }
 
 void TypeBOOL::dbg_dump () {
-    std::cout << dbg_dump_helper<bool>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<bool>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeCHAR::dbg_dump () {
-    std::cout << dbg_dump_helper<char>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<char>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeUCHAR::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned char>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned char>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeSHRT::dbg_dump () {
-    std::cout << dbg_dump_helper<short>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<short>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeUSHRT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned short>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned short>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeINT::dbg_dump () {
-    std::cout << dbg_dump_helper<int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<int>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeUINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned int>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<long int>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeULINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned long int>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeLLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<long long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<long long int>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
 
 void TypeULLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned long long int>(name, get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned long long int>(get_name(), get_int_type_id(), min, max, bit_size, is_signed) << std::endl;
 }
