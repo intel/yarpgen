@@ -127,6 +127,13 @@ int main (int argc, char* argv[]) {
     index.set_is_subscr(false);
     std::cout << "IndexExpr: " << index.emit () << std::endl;
 
+    MemberExpr member_expr;
+    member_expr.set_struct(std::make_shared<Struct>(struct_var));
+    member_expr.set_identifier(1);
+    member_expr.propagate_type();
+    member_expr.propagate_value();
+    std::cout << "MemberExpr: " << member_expr.emit () << std::endl;
+
     BinaryExpr bin_add;
     bin_add.set_op (BinaryExpr::Op::Add);
     bin_add.set_lhs (std::make_shared<VarUseExpr> (var_use));

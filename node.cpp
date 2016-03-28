@@ -78,6 +78,40 @@ std::string IndexExpr::emit () {
     return ret;
 }
 
+void MemberExpr::propagate_type () {
+    if (struct_var->get_num_of_members() <= identifier) {
+        value.set_type(IntegerType::init(IntegerType::IntegerTypeID::MAX_INT_ID));
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_type" << std::endl;
+        exit (-1);
+    }
+    else
+        value.set_type(struct_var->get_member(identifier)->get_type());
+}
+
+Expr::UB MemberExpr::propagate_value () {
+    if (struct_var->get_num_of_members() <= identifier) {
+        //TODO: catch this error latere
+        value.set_value(0);
+        return NoMemeber;
+    }
+    else
+        value.set_value(struct_var->get_member(identifier)->get_value());
+    return NoUB;
+}
+
+std::string MemberExpr::emit () {
+    std::string ret = "";
+    ret += struct_var->get_name();
+    ret += ".";
+    if (struct_var->get_num_of_members() <= identifier) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::emit" << std::endl;
+        exit (-1);
+    }
+    else
+        ret += struct_var->get_member(identifier)->get_name();
+    return ret;
+}
+
 std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
     //[conv.prom]
     if (arg->get_int_type_id() >= IntegerType::IntegerTypeID::INT) // can't perform integral promotiom

@@ -37,6 +37,7 @@ class Node {
             TYPE_CAST,
             UNARY,
             VAR_USE,
+            MEMBER,
             MAX_EXPR_ID,
             // Stmt type
             MIN_STMT_ID,
@@ -69,6 +70,8 @@ class Expr : public Node {
             ShiftRhsNeg, // Shift by negative value
             ShiftRhsLarge, // // Shift by large value
             NegShift, // Shift of negative value
+            NoMemeber, // Can't find member of structure
+            MaxUB
         };
         Expr () : value("", IntegerType::IntegerTypeID::ULLINT, Type::Mod::NTHG, false) {is_expr = true;}
         Type::TypeID get_type_id () { return value.get_type()->get_type_id (); }
@@ -125,6 +128,20 @@ class IndexExpr : public Expr {
         std::shared_ptr<Array> base;
         std::shared_ptr<Expr> index;
         bool is_subscr; // We can access std::array and std::vector elements through [i] and at(i)
+};
+
+class MemberExpr : public Expr {
+    public:
+        MemberExpr () : struct_var(NULL), identifier(ULLONG_MAX) { id = Node::NodeID::MEMBER; }
+        void set_struct (std::shared_ptr<Struct> _struct) { struct_var = _struct; }
+        void set_identifier (uint64_t _identifier) { identifier = _identifier; }
+        void propagate_type ();
+        UB propagate_value ();
+        std::string emit ();
+
+    private:
+        std::shared_ptr<Struct> struct_var;
+        uint64_t identifier;
 };
 
 class ArithExpr :  public Expr {

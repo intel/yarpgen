@@ -71,6 +71,8 @@ class Data {
 class Struct : public Data {
     public:
         explicit Struct (std::string _name, std::shared_ptr<StructType> _type);
+        uint64_t get_num_of_members () { return members.size(); }
+        std::shared_ptr<Data> get_member (unsigned int num);
         void set_value (uint64_t _val) {}
         void set_max (uint64_t _max) {}
         void set_min (uint64_t _min) {}

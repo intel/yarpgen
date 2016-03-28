@@ -43,6 +43,13 @@ void Struct::allocate_members() {
     }
 }
 
+std::shared_ptr<Data> Struct::get_member (unsigned int num) {
+    if (num >= members.size())
+        return NULL;
+    else
+        return members.at(num);
+}
+
 void Struct::dbg_dump () {
     std::cout << "type ";
     type->dbg_dump();
