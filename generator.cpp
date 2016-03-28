@@ -19,7 +19,16 @@ limitations under the License.
 #include "generator.h"
 
 void ScalarTypeGen::generate () {
-    type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_int_types());
+    type = std::static_pointer_cast<IntegerType> (IntegerType::init(int_type_id));
+
+    ModifierGen modifier_gen (gen_policy);
+    modifier_gen.generate ();
+    type->set_modifier(modifier_gen.get_modifier ());
+
+    StaticSpecifierGen static_spec_gen (gen_policy);
+    static_spec_gen.generate ();
+    type->set_is_static(static_spec_gen.get_specifier ());
 }
 
 void ModifierGen::generate () {
@@ -32,6 +41,42 @@ void StaticSpecifierGen::generate () {
         specifier = rand_val_gen->get_rand_value<int>(0, 1);
     else
         specifier = false;
+}
+int StructTypeGen::struct_num = 0;
+
+void StructTypeGen::generate () {
+    ModifierGen modifier_gen (gen_policy);
+    modifier_gen.generate ();
+    Type::Mod primary_mod = modifier_gen.get_modifier ();
+
+    // TODO: allow static members in struct
+//    StaticSpecifierGen static_spec_gen (gen_policy);
+//    static_spec_gen.generate ();
+//    bool primary_static_spec = static_spec_gen.get_specifier ();
+    bool primary_static_spec = false;
+
+    ScalarTypeGen scalar_type_gen (gen_policy);
+    scalar_type_gen.generate();
+    std::shared_ptr<Type> primary_type = scalar_type_gen.get_type();
+
+    struct_type = std::static_pointer_cast<StructType> (StructType::init("struct_" + std::to_string(struct_num)));
+    int struct_member_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_struct_members_num(), gen_policy->get_max_struct_members_num());
+    for (int i = 0; i < struct_member_num; ++i) {
+        if (gen_policy->get_allow_mix_types_in_struct()) {
+            scalar_type_gen.generate();
+            primary_type = scalar_type_gen.get_type();
+        }
+        if (gen_policy->get_allow_mix_mod_in_struct()) {
+            modifier_gen.generate ();
+            primary_mod = modifier_gen.get_modifier ();
+//            static_spec_gen.generate ();
+//            primary_static_spec = static_spec_gen.get_specifier ();
+        }
+        primary_type->set_modifier(primary_mod);
+        primary_type->set_is_static(primary_static_spec);
+        struct_type->add_member(primary_type, "member_" + std::to_string(struct_num) + "_" + std::to_string(member_num++));
+    }
+    struct_num++;
 }
 
 void VariableValueGen::generate () {
@@ -119,7 +164,7 @@ void DataGen::rand_init_param () {
 
     ScalarTypeGen scalar_type_gen (gen_policy);
     scalar_type_gen.generate ();
-    type_id = scalar_type_gen.get_type ();
+    type_id = scalar_type_gen.get_int_type_id ();
 
     ModifierGen modifier_gen (gen_policy);
     modifier_gen.generate ();
@@ -160,6 +205,23 @@ void ArrayVariableGen::generate () {
     data = std::make_shared<Array> (tmp_arr);
     rand_init_value();
     array_num++;
+}
+
+int StructVariableGen::srtuct_num = 0;
+
+void StructVariableGen::generate () {
+    if (rand_init) {
+        StructTypeGen struct_type_gen (gen_policy);
+        struct_type_gen.generate();
+        struct_type = struct_type_gen.get_type();
+    }
+    Struct struct_var ("struct_obj" + std::to_string(srtuct_num++), struct_type);
+    for (int i = 0; i < struct_var.get_num_of_members(); ++i) {
+        VariableValueGen var_val_gen (gen_policy, std::static_pointer_cast<IntegerType>(struct_var.get_member(i)->get_type())->get_int_type_id());
+        var_val_gen.generate();
+        struct_var.get_member(i)->set_value(var_val_gen.get_value());
+    }
+    data = std::make_shared<Struct> (struct_var);
 }
 
 void DeclStmtGen::generate () {

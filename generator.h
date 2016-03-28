@@ -38,12 +38,25 @@ class Generator {
 
 class ScalarTypeGen : public Generator {
     public:
-        ScalarTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), type_id (IntegerType::IntegerTypeID::MAX_INT_ID) {};
-        IntegerType::IntegerTypeID get_type() { return type_id; }
+        ScalarTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), type(NULL) {};
+        std::shared_ptr<IntegerType> get_type () { return type; }
+        IntegerType::IntegerTypeID get_int_type_id () { return type->get_int_type_id(); }
         void generate ();
 
     private:
-        IntegerType::IntegerTypeID type_id;
+        std::shared_ptr<IntegerType> type;
+};
+
+class StructTypeGen : public Generator {
+    public:
+        StructTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), struct_type (NULL), member_num (0) {}
+        std::shared_ptr<StructType> get_type () { return struct_type; }
+        void generate ();
+
+    private:
+        std::shared_ptr<StructType> struct_type;
+        static int struct_num;
+        int member_num;
 };
 
 class ModifierGen : public Generator {
@@ -125,6 +138,17 @@ class ArrayVariableGen : public DataGen {
         Array::Ess essence;
         int size;
         static int array_num;
+};
+
+class StructVariableGen : public DataGen {
+    public:
+        StructVariableGen(std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy), struct_type (NULL) { rand_init = true; }
+        StructVariableGen(std::shared_ptr<GenPolicy> _gen_policy, std::shared_ptr<StructType> _struct_type) : DataGen (_gen_policy), struct_type(_struct_type)  { rand_init = false; }
+        void generate ();
+
+    private:
+        static int srtuct_num;
+        std::shared_ptr<StructType> struct_type;
 };
 
 class StmtGen : public Generator {

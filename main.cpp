@@ -234,7 +234,7 @@ int main (int argc, char* argv[]) {
     std::cout << "Type: " << bin_expr.get_int_type_id () << std::endl;
     std::cout << "Value: " << (long long int) bin_expr.get_value () << std::endl;
 
-/*
+
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
 
     GenPolicy gen_policy;
@@ -285,6 +285,10 @@ int main (int argc, char* argv[]) {
     static_gen2.generate();
     std::cout << static_gen2.get_specifier () << std::endl;
 
+    std::cout << "StructTypeGen:" << std::endl;
+    StructTypeGen struct_type_gen (std::make_shared<GenPolicy>(gen_policy));
+    struct_type_gen.generate();
+    std::cout << struct_type_gen.get_type()->get_definition() << std::endl;
     std::cout << "ScalarVariableGen:" << std::endl;
     ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
     scalar_var_gen.generate();
@@ -294,6 +298,11 @@ int main (int argc, char* argv[]) {
     scalar_var_gen2.generate();
     scalar_var_gen2.get_data()->dbg_dump();
 
+    std::cout << "StructVariableGen" << std::endl;
+    StructVariableGen struct_var_gen (std::make_shared<GenPolicy>(gen_policy));
+    struct_var_gen.generate();
+    struct_var_gen.get_data()->dbg_dump();
+
     std::cout << "ArrayVariableGen" << std::endl;
     ArrayVariableGen arr_var_gen (std::make_shared<GenPolicy>(gen_policy));
     arr_var_gen.generate();
@@ -302,7 +311,7 @@ int main (int argc, char* argv[]) {
     ArrayVariableGen arr_var_gen2 (std::make_shared<GenPolicy>(gen_policy), IntegerType::IntegerTypeID::UCHAR, Type::Mod::CONST, true, 1237, Array::Ess::STD_VEC);
     arr_var_gen2.generate();
     arr_var_gen2.get_data()->dbg_dump();
-
+/*
     std::cout << "DeclStmtGen:" << std::endl;
     DeclStmtGen decl_stmt_gen (std::make_shared<GenPolicy>(gen_policy), Data::VarClassID::VAR);
     decl_stmt_gen.generate();

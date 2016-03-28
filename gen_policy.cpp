@@ -35,6 +35,12 @@ int MAX_CSE_NUM = 5;
 
 int MAX_IF_DEPTH = 3;
 
+int MIN_STRUCT_NUM = 3;
+int MAX_STRUCT_NUM = 6;
+int MIN_STRUCT_MEMBERS_NUM = 5;
+int MAX_STRUCT_MEMBERS_NUM = 10;
+
+
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> rand_val_gen;
@@ -60,6 +66,14 @@ GenPolicy::GenPolicy () {
     allowed_modifiers.push_back (Type::Mod::NTHG);
 
     allow_static_var = false;
+
+    allow_struct = true;
+    min_struct_num = MIN_STRUCT_NUM;
+    max_struct_num = MAX_STRUCT_NUM;
+    min_struct_members_num = MIN_STRUCT_MEMBERS_NUM;
+    max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
+    allow_mix_mod_in_struct = false;
+    allow_mix_types_in_struct = true;
 
     min_array_size = MIN_ARRAY_SIZE;
     max_array_size = MAX_ARRAY_SIZE;

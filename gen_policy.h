@@ -179,10 +179,24 @@ class GenPolicy {
         int get_used_tmp_var_num () { return used_tmp_var_num; }
         void add_used_tmp_var_num () { used_tmp_var_num++; }
 
-
         std::vector<Probability<bool>>& get_else_prob () { return else_prob; }
         void set_max_if_depth (int _max_if_depth) { max_if_depth = _max_if_depth; }
         int get_max_if_depth () { return max_if_depth; }
+
+        void set_allow_struct (bool _allow_struct) { allow_struct = _allow_struct; }
+        bool get_allow_struct () { return allow_struct; }
+        void set_min_struct_num (uint64_t _min_struct_num) { min_struct_num = _min_struct_num; }
+        uint64_t get_min_struct_num () { return min_struct_num; }
+        void set_max_struct_num (uint64_t _max_struct_num) { max_struct_num = _max_struct_num; }
+        uint64_t get_max_struct_num () { return max_struct_num; }
+        void set_min_struct_members_num (uint64_t _min_struct_members_num) { min_struct_members_num = _min_struct_members_num; }
+        uint64_t get_min_struct_members_num () { return min_struct_members_num; }
+        void set_max_struct_members_num (uint64_t _max_struct_members_num) { max_struct_members_num = _max_struct_members_num; }
+        uint64_t get_max_struct_members_num () { return max_struct_members_num; }
+        void set_allow_mix_mod_in_struct (bool mix) { allow_mix_mod_in_struct = mix; }
+        bool get_allow_mix_mod_in_struct () { return allow_mix_mod_in_struct; }
+        void set_allow_mix_types_in_struct (bool mix) { allow_mix_types_in_struct = mix; }
+        bool get_allow_mix_types_in_struct () { return allow_mix_types_in_struct; }
 
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
@@ -196,6 +210,14 @@ class GenPolicy {
         int num_of_allowed_int_types;
         // Allowed types of variables and basic types of arrays
         std::vector<Probability<IntegerType::IntegerTypeID>> allowed_int_types;
+
+        bool allow_struct;
+        uint64_t min_struct_num;
+        uint64_t max_struct_num;
+        uint64_t min_struct_members_num;
+        uint64_t max_struct_members_num;
+        bool allow_mix_mod_in_struct;
+        bool allow_mix_types_in_struct;
 
         void set_modifier (bool value, Type::Mod modifier);
         bool get_modifier (Type::Mod modifier);
