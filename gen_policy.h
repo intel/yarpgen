@@ -144,6 +144,11 @@ class GenPolicy {
         void set_max_arith_stmt_num (int _max_arith_stmt_num) { max_arith_stmt_num = _max_arith_stmt_num; }
         int get_max_arith_stmt_num () { return max_arith_stmt_num; }
 
+        void set_min_inp_var_num (int _min_inp_var_num) { min_inp_var_num = _min_inp_var_num; }
+        int get_min_inp_var_num () { return min_inp_var_num; }
+        void set_max_inp_var_num (int _max_inp_var_num) { max_inp_var_num = _max_inp_var_num; }
+        int get_max_inp_var_num () { return max_inp_var_num; }
+
         void add_unary_op (Probability<UnaryExpr::Op> prob) { allowed_unary_op.push_back(prob); }
         std::vector<Probability<UnaryExpr::Op>>& get_allowed_unary_op () { return allowed_unary_op; }
         void add_binary_op (Probability<BinaryExpr::Op> prob) { allowed_binary_op.push_back(prob); }
@@ -185,6 +190,10 @@ class GenPolicy {
 
         void set_allow_struct (bool _allow_struct) { allow_struct = _allow_struct; }
         bool get_allow_struct () { return allow_struct; }
+        void set_min_struct_types_num (uint64_t _min_struct_types_num) { min_struct_types_num = _min_struct_types_num; }
+        uint64_t get_min_struct_types_num () { return min_struct_types_num; }
+        void set_max_struct_types_num (uint64_t _max_struct_types_num) { max_struct_types_num = _max_struct_types_num; }
+        uint64_t get_max_struct_types_num () { return max_struct_types_num; }
         void set_min_struct_num (uint64_t _min_struct_num) { min_struct_num = _min_struct_num; }
         uint64_t get_min_struct_num () { return min_struct_num; }
         void set_max_struct_num (uint64_t _max_struct_num) { max_struct_num = _max_struct_num; }
@@ -197,7 +206,7 @@ class GenPolicy {
         bool get_allow_mix_mod_in_struct () { return allow_mix_mod_in_struct; }
         void set_allow_mix_types_in_struct (bool mix) { allow_mix_types_in_struct = mix; }
         bool get_allow_mix_types_in_struct () { return allow_mix_types_in_struct; }
-
+        std::vector<Probability<bool>> get_member_use_prob () { return member_use_prob; }
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -212,12 +221,15 @@ class GenPolicy {
         std::vector<Probability<IntegerType::IntegerTypeID>> allowed_int_types;
 
         bool allow_struct;
+        uint64_t min_struct_types_num;
+        uint64_t max_struct_types_num;
         uint64_t min_struct_num;
         uint64_t max_struct_num;
         uint64_t min_struct_members_num;
         uint64_t max_struct_members_num;
         bool allow_mix_mod_in_struct;
         bool allow_mix_types_in_struct;
+        std::vector<Probability<bool>> member_use_prob;
 
         void set_modifier (bool value, Type::Mod modifier);
         bool get_modifier (Type::Mod modifier);
@@ -257,6 +269,9 @@ class GenPolicy {
 
         int max_tmp_var_num;
         int used_tmp_var_num;
+
+        int min_inp_var_num;
+        int max_inp_var_num;
 
         // Indicates whether the local variables are allowed
         bool allow_local_var;

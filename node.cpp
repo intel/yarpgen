@@ -1204,8 +1204,9 @@ std::string DeclStmt::emit () {
     if (data->get_align() != 0 && is_extern) // TODO: Should we set __attribute__ to non-extern variable?
         ret += " __attribute__((aligned(" + std::to_string(data->get_align()) + ")))";
     if (init != NULL) {
-        if (data->get_class_id() == Variable::VarClassID::ARR) {
-            std::cerr << "ERROR in DeclStmt::emit init of array" << std::endl;
+        if (data->get_class_id() == Variable::VarClassID::ARR ||
+            data->get_class_id() == Variable::VarClassID::STRUCT) {
+            std::cerr << "ERROR in DeclStmt::emit init of array or struct" << std::endl;
             return ret;
         }
         if (is_extern) {

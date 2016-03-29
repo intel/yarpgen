@@ -31,12 +31,18 @@ int MAX_ARITH_STMT_NUM = 10;
 
 int MAX_TMP_VAR_NUM = 5;
 
+int MIN_INP_VAR_NUM = 20;
+int MAX_INP_VAR_NUM = 60;
+
 int MAX_CSE_NUM = 5;
 
 int MAX_IF_DEPTH = 3;
 
-int MIN_STRUCT_NUM = 3;
-int MAX_STRUCT_NUM = 6;
+
+int MIN_STRUCT_TYPES_NUM = 3;
+int MAX_STRUCT_TYPES_NUM = 6;
+int MIN_STRUCT_NUM = 4;
+int MAX_STRUCT_NUM = 8;
 int MIN_STRUCT_MEMBERS_NUM = 5;
 int MAX_STRUCT_MEMBERS_NUM = 10;
 
@@ -68,12 +74,16 @@ GenPolicy::GenPolicy () {
     allow_static_var = false;
 
     allow_struct = true;
+    min_struct_types_num = MIN_STRUCT_TYPES_NUM;
+    max_struct_types_num = MAX_STRUCT_TYPES_NUM;
     min_struct_num = MIN_STRUCT_NUM;
     max_struct_num = MAX_STRUCT_NUM;
     min_struct_members_num = MIN_STRUCT_MEMBERS_NUM;
     max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
     allow_mix_mod_in_struct = false;
     allow_mix_types_in_struct = true;
+    member_use_prob.push_back(Probability<bool>(true, 70));
+    member_use_prob.push_back(Probability<bool>(false, 30));
 
     min_array_size = MIN_ARRAY_SIZE;
     max_array_size = MAX_ARRAY_SIZE;
@@ -85,6 +95,9 @@ GenPolicy::GenPolicy () {
 
     min_arith_stmt_num = MIN_ARITH_STMT_NUM;
     max_arith_stmt_num = MAX_ARITH_STMT_NUM;
+
+    min_inp_var_num = MIN_INP_VAR_NUM;
+    max_inp_var_num = MAX_INP_VAR_NUM;
 
     max_tmp_var_num = MAX_TMP_VAR_NUM;
     used_tmp_var_num = 0;

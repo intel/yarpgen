@@ -52,7 +52,7 @@ std::shared_ptr<Type> PtrType::init (std::shared_ptr<Type> _pointee_t) {
 
 std::shared_ptr<Type> StructType::init (std::string _name) {
     StructType struct_type;
-    struct_type.name = _name;
+    struct_type.name = "struct " + _name;
     return std::make_shared<StructType>(struct_type);
 }
 
@@ -70,7 +70,7 @@ std::shared_ptr<StructType::StructMember> StructType::get_member (unsigned int n
 
 std::string StructType::get_definition () {
     std::string ret = "";
-    ret+= "struct " + name +" {\n";
+    ret+= name + " {\n";
     for (auto i : members) {
         ret += i->get_definition() + ";\n";
     }

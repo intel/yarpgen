@@ -147,7 +147,7 @@ class StructVariableGen : public DataGen {
         void generate ();
 
     private:
-        static int srtuct_num;
+        static int struct_num;
         std::shared_ptr<StructType> struct_type;
 };
 

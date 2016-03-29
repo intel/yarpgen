@@ -30,8 +30,12 @@ class SymbolTable {
         SymbolTable () {}
         void add_variable (std::shared_ptr<Variable> _var) { variable.push_back (_var); }
         void add_array (std::shared_ptr<Array> _arr) { array.push_back (_arr); }
+        void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
+        void add_struct (std::shared_ptr<Struct> _struct) { structs.push_back (_struct); }
         std::vector<std::shared_ptr<Variable>>& get_variables () { return variable; }
         std::vector<std::shared_ptr<Array>>& get_arrays () { return array; }
+        std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
+        std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
         // TODO: Add symbol probability
         std::shared_ptr<Variable> get_rand_variable ();
         std::shared_ptr<Array> get_rand_array ();
@@ -39,8 +43,14 @@ class SymbolTable {
         std::string emit_variable_def ();
         // TODO: rewrite with IR
         std::string emit_variable_check ();
+        std::string emit_struct_type_def ();
+        std::string emit_struct_def ();
+        std::string emit_struct_extern_decl ();
+        std::string emit_struct_init ();
 
     private:
+        std::vector<std::shared_ptr<StructType>> struct_type;
+        std::vector<std::shared_ptr<Struct>> structs;
         std::vector<std::shared_ptr<Variable>> variable;
         std::vector<std::shared_ptr<Array>> array;
 };

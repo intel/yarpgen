@@ -71,7 +71,7 @@ int main (int argc, char* argv[]) {
 
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
-/*
+
     Master mas (out_dir);
     mas.generate ();
     mas.emit_func ();
@@ -81,10 +81,10 @@ int main (int argc, char* argv[]) {
     mas.emit_check ();
     mas.emit_main ();
 //    mas.emit_reduce_log ();
-*/
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test utilities
-
+/*
     std::shared_ptr<Type> type;
     type = IntegerType::init (IntegerType::IntegerTypeID::UINT);
     type->dbg_dump();
@@ -311,6 +311,7 @@ int main (int argc, char* argv[]) {
     ArrayVariableGen arr_var_gen2 (std::make_shared<GenPolicy>(gen_policy), IntegerType::IntegerTypeID::UCHAR, Type::Mod::CONST, true, 1237, Array::Ess::STD_VEC);
     arr_var_gen2.generate();
     arr_var_gen2.get_data()->dbg_dump();
+*/
 /*
     std::cout << "DeclStmtGen:" << std::endl;
     DeclStmtGen decl_stmt_gen (std::make_shared<GenPolicy>(gen_policy), Data::VarClassID::VAR);

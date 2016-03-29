@@ -55,6 +55,58 @@ std::string SymbolTable::emit_variable_def () {
     return ret;
 }
 
+std::string SymbolTable::emit_struct_type_def () {
+    std::string ret = "";
+    for (auto i : struct_type) {
+        ret += i->get_definition();
+    }
+    return ret;
+}
+
+std::string SymbolTable::emit_struct_def () {
+    std::string ret = "";
+    for (auto i : structs) {
+        DeclStmt decl;
+        decl.set_data(i);
+        decl.set_is_extern(false);
+        ret += decl.emit() + ";\n";
+    }
+    return ret;
+}
+
+std::string SymbolTable::emit_struct_extern_decl () {
+    std::string ret = "";
+    for (auto i : structs) {
+        DeclStmt decl;
+        decl.set_data(i);
+        decl.set_is_extern(true);
+        ret += decl.emit() + ";\n";
+    }
+    return ret;
+}
+
+std::string SymbolTable::emit_struct_init () {
+    std::string ret = "";
+    for (auto i : structs) {
+        for (int j = 0; j < i->get_num_of_members(); ++j) {
+            MemberExpr member_expr;
+            member_expr.set_struct(i);
+            member_expr.set_identifier(j);
+
+            ConstExpr const_init;
+            const_init.set_type (std::static_pointer_cast<IntegerType>(i->get_member(j)->get_type())->get_int_type_id());
+            const_init.set_data (i->get_member(j)->get_value());
+
+            AssignExpr assign;
+            assign.set_to (std::make_shared<MemberExpr> (member_expr));
+            assign.set_from (std::make_shared<ConstExpr> (const_init));
+
+            ret += assign.emit() + ";\n";
+        }
+    }
+    return ret;
+}
+
 std::string SymbolTable::emit_variable_check () {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {

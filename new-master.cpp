@@ -75,8 +75,10 @@ std::string Master::emit_init () {
 
     ret += extern_inp_sym_table->emit_variable_def();
     ret += extern_out_sym_table->emit_variable_def();
+    ret += extern_inp_sym_table->emit_struct_def();
 
     ret += "void init () {\n";
+    ret += extern_inp_sym_table->emit_struct_init ();
     ret += "}";
 
     write_file("init.cpp", ret);
@@ -95,6 +97,8 @@ std::string Master::emit_decl () {
 
     ret += extern_inp_sym_table->emit_variable_extern_decl();
     ret += extern_out_sym_table->emit_variable_extern_decl();
+    ret += extern_inp_sym_table->emit_struct_type_def();
+    ret += extern_inp_sym_table->emit_struct_extern_decl();
 
     write_file("init.h", ret);
     return ret;

@@ -207,7 +207,7 @@ void ArrayVariableGen::generate () {
     array_num++;
 }
 
-int StructVariableGen::srtuct_num = 0;
+int StructVariableGen::struct_num = 0;
 
 void StructVariableGen::generate () {
     if (rand_init) {
@@ -215,7 +215,7 @@ void StructVariableGen::generate () {
         struct_type_gen.generate();
         struct_type = struct_type_gen.get_type();
     }
-    Struct struct_var ("struct_obj" + std::to_string(srtuct_num++), struct_type);
+    Struct struct_var ("struct_obj_" + std::to_string(struct_num++), struct_type);
     for (int i = 0; i < struct_var.get_num_of_members(); ++i) {
         VariableValueGen var_val_gen (gen_policy, std::static_pointer_cast<IntegerType>(struct_var.get_member(i)->get_type())->get_int_type_id());
         var_val_gen.generate();
@@ -577,27 +577,50 @@ void IfStmtGen::generate () {
 void ScopeGen::generate () {
     Node::NodeID stmt_id = Node::NodeID::EXPR;
     if (ctx->get_parent_ctx() == NULL) {
-        int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
-        for (int i = 0; i < arith_stmt_num; ++i) {
+        int inp_var_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_inp_var_num(), gen_policy->get_max_inp_var_num());
+        for (int i = 0; i < inp_var_num; ++i) {
             ScalarVariableGen inp_var_gen (gen_policy);
             inp_var_gen.generate ();
             ctx->get_extern_inp_sym_table()->add_variable (std::static_pointer_cast<Variable>(inp_var_gen.get_data()));
+        }
 
-            ScalarVariableGen out_var_gen (gen_policy);
-            out_var_gen.generate ();
-            ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
+        int struct_types_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_struct_types_num(), gen_policy->get_max_struct_types_num());
+        for (int i = 0; i < struct_types_num; ++i) {
+            StructTypeGen struct_type_gen (gen_policy);
+            struct_type_gen.generate();
+            ctx->get_extern_inp_sym_table()->add_struct_type(struct_type_gen.get_type());
+        }
+        //TODO: add it to output variables
+        int struct_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_struct_num(), gen_policy->get_max_struct_num());
+        for (int i = 0; i < struct_num; ++i) {
+            int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+            StructVariableGen struct_var_gen (gen_policy, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx));
+            struct_var_gen.generate();
+            ctx->get_extern_inp_sym_table()->add_struct(std::static_pointer_cast<Struct>(struct_var_gen.get_data()));
         }
     }
 
     std::vector<std::shared_ptr<Expr>> inp;
-    for (auto i = ctx->get_extern_inp_sym_table()->get_variables().begin(); i != ctx->get_extern_inp_sym_table()->get_variables().end(); ++i) {
+    for (auto i : ctx->get_extern_inp_sym_table()->get_variables()) {
         VarUseExpr var_use;
-        var_use.set_variable (*i);
+        var_use.set_variable (i);
         inp.push_back(std::make_shared<VarUseExpr> (var_use));
     }
 
-    int stmt_num = rand_val_gen->get_rand_value<int>(5, 10);
-    for (int i = 0; i < stmt_num; ++i) {
+    for (auto i : ctx->get_extern_inp_sym_table()->get_structs()) {
+        for (int j = 0; j < i->get_num_of_members(); ++j) {
+            if (rand_val_gen->get_rand_id(gen_policy->get_member_use_prob())) {
+                MemberExpr member_expr;
+                member_expr.set_struct(i);
+                member_expr.set_identifier(j);
+                inp.push_back(std::make_shared<MemberExpr> (member_expr));
+            }
+        }
+    }
+
+    //TODO: add to gen_policy stmt number
+    int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
+    for (int i = 0; i < arith_stmt_num; ++i) {
         Node::NodeID gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
         if (gen_id == Node::NodeID::DECL && (gen_policy->get_used_tmp_var_num() < gen_policy->get_max_tmp_var_num())) {
             Context decl_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);

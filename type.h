@@ -109,7 +109,6 @@ class StructType : public Type {
 
     private:
         std::vector<std::shared_ptr<StructMember>> members;
-        std::string name;
 };
 
 class AtomicType : public Type {
