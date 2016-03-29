@@ -92,7 +92,7 @@ class StructType : public Type {
                 StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name) {}
                 std::string get_name () { return name; }
                 std::shared_ptr<Type> get_type() { return type; }
-                std::string get_definition () { return type->get_name() + " " + name; }
+                std::string get_definition (std::string offset = "") { return offset + type->get_name() + " " + name; }
 
             private:
                 std::shared_ptr<Type> type;
@@ -106,7 +106,7 @@ class StructType : public Type {
         uint64_t get_num_of_members () { return members.size(); }
         uint64_t get_nest_depth () { return nest_depth; }
         std::shared_ptr<StructMember> get_member (unsigned int num);
-        std::string get_definition ();
+        std::string get_definition (std::string offset = "");
         bool is_struct_type() { return true; }
         void dbg_dump();
 

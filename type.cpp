@@ -73,11 +73,11 @@ std::shared_ptr<StructType::StructMember> StructType::get_member (unsigned int n
         return members.at(num);
 }
 
-std::string StructType::get_definition () {
+std::string StructType::get_definition (std::string offset) {
     std::string ret = "";
     ret+= name + " {\n";
     for (auto i : members) {
-        ret += i->get_definition() + ";\n";
+        ret += i->get_definition(offset + "    ") + ";\n";
     }
     ret += "};\n";
     return ret;

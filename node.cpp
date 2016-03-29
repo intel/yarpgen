@@ -60,8 +60,9 @@ void AssignExpr::propagate_type () {
     from = std::make_shared<TypeCastExpr>(ins);
 }
 
-std::string AssignExpr::emit () {
-    std::string ret = to->emit();
+std::string AssignExpr::emit (std::string offset) {
+    std::string ret = offset;
+    ret += to->emit();
     ret += " = ";
     ret += from->emit();
     return ret;
@@ -72,8 +73,9 @@ void IndexExpr::set_base (std::shared_ptr<Array> _base) {
     value.set_type(base->get_type());
 }
 
-std::string IndexExpr::emit () {
-    std::string ret = base->get_name();
+std::string IndexExpr::emit (std::string offset) {
+    std::string ret = offset;
+    ret += base->get_name();
     ret += is_subscr ? " [" : ".at(";
     ret += index->emit();
     ret += is_subscr ? "]" : ")";
@@ -103,8 +105,8 @@ Expr::UB MemberExpr::propagate_value () {
     return NoUB;
 }
 
-std::string MemberExpr::emit () {
-    std::string ret = "";
+std::string MemberExpr::emit (std::string offset) {
+    std::string ret = offset;
     if (member_expr != NULL) {
         ret += member_expr->emit();
     }
@@ -831,8 +833,9 @@ Expr::UB BinaryExpr::propagate_value () {
     return NoUB;
 }
 
-std::string BinaryExpr::emit () {
-    std::string ret = "((" + arg0->emit() + ")";
+std::string BinaryExpr::emit (std::string offset) {
+    std::string ret = offset;
+    ret += "((" + arg0->emit() + ")";
     switch (op) {
         case Add:
             ret += " + ";
@@ -1062,8 +1065,8 @@ Expr::UB UnaryExpr::propagate_value () {
     return NoUB;
 }
 
-std::string UnaryExpr::emit () {
-    std::string op_str = "";
+std::string UnaryExpr::emit (std::string offset) {
+    std::string op_str = offset;
     switch (op) {
         case PreInc:
         case PostInc:
@@ -1097,8 +1100,8 @@ std::string UnaryExpr::emit () {
     return ret;
 }
 
-std::string ConstExpr::emit () {
-    std::string ret = "";
+std::string ConstExpr::emit (std::string offset) {
+    std::string ret = offset;
     switch (get_int_type_id ()) {
         case IntegerType::IntegerTypeID::BOOL:
             ret += std::to_string((bool) data);
@@ -1134,21 +1137,22 @@ std::string ConstExpr::emit () {
             ret += std::to_string((unsigned long long int) data);
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "BAD TYPE in ConstExpr::emit ()" << std::endl;
+            std::cerr << "BAD TYPE in ConstExpr::emit (std::string offset)" << std::endl;
             break;
     }
     ret += value.get_type()->get_suffix ();
     return ret;
 }
 
-std::string TypeCastExpr::emit () {
-    std::string ret = "(" + value.get_type()->get_name() + ")";
+std::string TypeCastExpr::emit (std::string offset) {
+    std::string ret = offset;
+    ret += "(" + value.get_type()->get_name() + ")";
     ret += "(" + expr->emit() + ")";
     return ret;
 }
 
-std::string ExprListExpr::emit () {
-    std::string ret = "(";
+std::string ExprListExpr::emit (std::string offset) {
+    std::string ret = offset + "(";
     for (auto i = expr_list.begin(); i != expr_list.end(); ++i)
         ret += (*i)->emit() + ", ";
     ret = ret.substr(0, ret.size() - 2); // Remove last comma
@@ -1156,12 +1160,12 @@ std::string ExprListExpr::emit () {
     return ret;
 }
 
-std::string FuncCallExpr::emit () {
-    return name.c_str() + args->emit();
+std::string FuncCallExpr::emit (std::string offset) {
+    return offset + name.c_str() + args->emit();
 }
 
-std::string DeclStmt::emit () {
-    std::string ret = "";
+std::string DeclStmt::emit (std::string offset) {
+    std::string ret = offset;
     ret += data->get_is_static() && !is_extern ? "static " : "";
     ret += is_extern ? "extern " : "";
     switch (data->get_modifier()) {
@@ -1228,12 +1232,12 @@ std::string DeclStmt::emit () {
     return ret;
 }
 
-std::string ExprStmt::emit() {
-    return expr->emit() + ";";
+std::string ExprStmt::emit (std::string offset) {
+    return offset + expr->emit() + ";";
 }
 
-std::string CntLoopStmt::emit() {
-    std::string ret;
+std::string CntLoopStmt::emit (std::string offset) {
+    std::string ret = offset;
     switch (loop_id) {
         case LoopStmt::LoopID::FOR:
             ret += "for (";
@@ -1243,11 +1247,11 @@ std::string CntLoopStmt::emit() {
             break;
         case LoopStmt::LoopID::WHILE:
             ret += iter_decl->emit() + ";\n";
-            ret += "while (" + cond->emit() + ") {\n";
+            ret += offset + "while (" + cond->emit() + ") {\n";
             break;
         case LoopStmt::LoopID::DO_WHILE:
             ret += iter_decl->emit() + ";\n";
-            ret += "do {\n";
+            ret += offset + "do {\n";
             break;
         case LoopStmt::LoopID::MAX_LOOP_ID:
             std::cerr << "ERROR in CntLoopStmt::emit invalid loop id" << std::endl;
@@ -1256,37 +1260,37 @@ std::string CntLoopStmt::emit() {
 
     for (auto i = this->body.begin(); i != this->body.end(); ++i) {
         if ((*i)->get_id() == NodeID::IF)
-            ret += (*i)->emit() + "\n";
+            ret += (*i)->emit(offset + "    ") + "\n";
         else
-            ret += (*i)->emit() + ";\n";
+            ret += (*i)->emit(offset + "    ") + ";\n";
     }
     if (loop_id == LoopStmt::LoopID::WHILE ||
         loop_id == LoopStmt::LoopID::DO_WHILE) {
-        ret += step_expr->emit() + ";\n";
+        ret += step_expr->emit(offset + "    ") + ";\n";
     }
 
-    ret += "}\n";
+    ret += offset + "}\n";
 
     if (loop_id == LoopStmt::LoopID::DO_WHILE) {
-        ret += "while (" + cond->emit() + ");";
+        ret += offset + "while (" + cond->emit() + ");";
     }
 
     return ret;
 }
 
-std::string IfStmt::emit () {
-    std::string ret;
+std::string IfStmt::emit (std::string offset) {
+    std::string ret = offset;
     ret += "if (" + cond->emit() + ") {\n";
     for (auto i = if_branch.begin(); i != if_branch.end(); ++i) {
-        ret += (*i)->emit() + ";\n";
+        ret += (*i)->emit(offset + "    ") + "\n";
     }
     if (else_exist) {
-        ret += "}\n";
-        ret += "else {\n";
+        ret += offset + "}\n";
+        ret += offset + "else {\n";
         for (auto i = else_branch.begin(); i != else_branch.end(); ++i) {
-            ret += (*i)->emit() + ";\n";
+            ret += (*i)->emit(offset + "    ") + "\n";
         }
     }
-    ret += "}";
+    ret += offset + "}";
     return ret;
 }

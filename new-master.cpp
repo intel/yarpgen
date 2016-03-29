@@ -76,12 +76,12 @@ std::string Master::emit_init () {
     std::string ret = "";
     ret += "#include \"init.h\"\n\n";
 
-    ret += extern_inp_sym_table->emit_variable_def();
-    ret += extern_out_sym_table->emit_variable_def();
-    ret += extern_inp_sym_table->emit_struct_def();
+    ret += extern_inp_sym_table->emit_variable_def() + "\n\n";
+    ret += extern_out_sym_table->emit_variable_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
 
     ret += "void init () {\n";
-    ret += extern_inp_sym_table->emit_struct_init ();
+    ret += extern_inp_sym_table->emit_struct_init ("    ");
     ret += "}";
 
     write_file("init.cpp", ret);
@@ -94,14 +94,14 @@ std::string Master::emit_decl () {
     ret += "#include <iostream>\n";
     ret += "#include <array>\n";
     ret += "#include <vector>\n";
-    ret += "#include <valarray>\n";
+    ret += "#include <valarray>\n\n";
 
-    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n";
+    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n\n";
 
-    ret += extern_inp_sym_table->emit_variable_extern_decl();
-    ret += extern_out_sym_table->emit_variable_extern_decl();
-    ret += extern_inp_sym_table->emit_struct_type_def();
-    ret += extern_inp_sym_table->emit_struct_extern_decl();
+    ret += extern_inp_sym_table->emit_variable_extern_decl() + "\n\n";
+    ret += extern_out_sym_table->emit_variable_extern_decl() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_type_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_extern_decl() + "\n\n";
 
     write_file("init.h", ret);
     return ret;
@@ -112,7 +112,7 @@ std::string Master::emit_func () {
     ret += "#include \"init.h\"\n\n";
     ret += "void foo () {\n";
     for (auto i = program.begin(); i != program.end(); ++i) {
-        ret += (*i)->emit() + "\n";
+        ret += (*i)->emit("    ") + "\n";
     }
     ret += "}";
     write_file("func.cpp", ret);
@@ -146,9 +146,9 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     seed_decl.set_data (std::make_shared<Variable> (seed));
     seed_decl.set_init (std::make_shared<ConstExpr> (zero_init));
 
-    ret += seed_decl.emit() + ";\n";
+    ret += seed_decl.emit("    ") + "\n";
 
-    ret += extern_out_sym_table->emit_variable_check ();
+    ret += extern_out_sym_table->emit_variable_check ("    ");
 
     ret += "    return seed;\n";
     ret += "}";
@@ -161,7 +161,7 @@ std::string Master::emit_main () {
     ret += "#include \"init.h\"\n\n";
     ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
-    ret += "extern unsigned long long int checksum ();\n";
+    ret += "extern unsigned long long int checksum ();\n\n";
     ret += "int main () {\n";
     ret += "    init ();\n";
     ret += "    foo ();\n";

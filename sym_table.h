@@ -41,17 +41,17 @@ class SymbolTable {
         // TODO: Add symbol probability
         std::shared_ptr<Variable> get_rand_variable ();
         std::shared_ptr<Array> get_rand_array ();
-        std::string emit_variable_extern_decl ();
-        std::string emit_variable_def ();
+        std::string emit_variable_extern_decl (std::string offset = "");
+        std::string emit_variable_def (std::string offset = "");
         // TODO: rewrite with IR
-        std::string emit_variable_check ();
-        std::string emit_struct_type_def ();
-        std::string emit_struct_def ();
-        std::string emit_struct_extern_decl ();
-        std::string emit_struct_init ();
+        std::string emit_variable_check (std::string offset = "");
+        std::string emit_struct_type_def (std::string offset = "");
+        std::string emit_struct_def (std::string offset = "");
+        std::string emit_struct_extern_decl (std::string offset = "");
+        std::string emit_struct_init (std::string offset = "");
 
     private:
-        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var);
+        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
 
         std::string emit_single_struct_init ();
         std::vector<std::shared_ptr<StructType>> struct_type;

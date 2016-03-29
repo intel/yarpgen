@@ -54,7 +54,7 @@ class Node {
         Node () : id (MAX_EXPR_ID), is_expr(false) {}
         bool get_is_expr () { return is_expr; }
         NodeID get_id () { return id; }
-        virtual std::string emit () = 0;
+        virtual std::string emit (std::string offset = "") = 0;
 
     protected:
         NodeID id;
@@ -96,7 +96,7 @@ class VarUseExpr : public Expr {
         void set_variable (std::shared_ptr<Variable> _var);
         void propagate_type () { value.set_type(var->get_type()); }
         UB propagate_value () { value.set_value(var->get_value()); return NoUB; }
-        std::string emit () { return var->get_name (); }
+        std::string emit (std::string offset = "") { return var->get_name (); }
 
     private:
         std::shared_ptr<Variable> var;
@@ -109,7 +109,7 @@ class AssignExpr : public Expr {
         void set_from (std::shared_ptr<Expr> _from);
         void propagate_type ();
         UB propagate_value () { value.set_value(from->get_value()); return NoUB; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::shared_ptr<Expr> to;
@@ -124,7 +124,7 @@ class IndexExpr : public Expr {
         void set_is_subscr (bool _is_subscr) { is_subscr = _is_subscr || base->get_essence() == Array::Ess::C_ARR || base->get_essence() == Array::Ess::VAL_ARR; }
         void propagate_type () { value.set_type(base->get_base_type()); }
         UB propagate_value () { value.set_value(base->get_value()); return NoUB; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::shared_ptr<Array> base;
@@ -140,7 +140,7 @@ class MemberExpr : public Expr {
         void set_member_expr (std::shared_ptr<MemberExpr> _member_expr) { member_expr = _member_expr; }
         void propagate_type ();
         UB propagate_value ();
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::shared_ptr<MemberExpr> member_expr;
@@ -192,7 +192,7 @@ class BinaryExpr : public ArithExpr {
         std::shared_ptr<Expr> get_rhs() { return arg1; }
         void propagate_type ();
         UB propagate_value ();
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         void perform_arith_conv ();
@@ -221,7 +221,7 @@ class UnaryExpr : public ArithExpr {
         void set_arg (std::shared_ptr<Expr> _arg) { arg = _arg; }
         void propagate_type ();
         UB propagate_value ();
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         Op op;
@@ -235,7 +235,7 @@ class ConstExpr : public Expr {
         void set_data (uint64_t _data) { data = _data; }
         void propagate_type () {};
         UB propagate_value () { value.set_value(data); return NoUB; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         uint64_t data;
@@ -248,7 +248,7 @@ class TypeCastExpr : public Expr {
         void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
         void propagate_type () {};
         UB propagate_value () { value.set_value(expr->get_value()); return NoUB; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::shared_ptr<Expr> expr;
@@ -260,7 +260,7 @@ class ExprListExpr : public Expr {
         void add_to_list(std::shared_ptr<Expr> expr) { expr_list.push_back(expr); }
         void propagate_type () {};
         UB propagate_value () { return NoUB; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::vector<std::shared_ptr<Expr>> expr_list;
@@ -274,7 +274,7 @@ class FuncCallExpr : public Expr {
         void add_to_args (std::shared_ptr<Expr> _arg) { std::static_pointer_cast<ExprListExpr>(args)->add_to_list(_arg); }
         void propagate_type () {};
         UB propagate_value () { return NoUB; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::string name; // TODO: rewrite with IR representation
@@ -292,7 +292,7 @@ class DeclStmt : public Stmt {
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         void set_data (std::shared_ptr<Data> _data) { data = _data; }
         void set_init (std::shared_ptr<Expr> _init) { init = _init; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         bool is_extern;
@@ -304,7 +304,7 @@ class ExprStmt : public Stmt {
     public:
         ExprStmt () : expr (NULL) { id = Node::NodeID::EXPR; }
         void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::shared_ptr<Expr> expr;
@@ -320,7 +320,7 @@ class LoopStmt : public Stmt {
         void add_to_body (std::shared_ptr<Stmt> stmt) { body.push_back(stmt); }
         void set_cond (std::shared_ptr<Expr> _cond) { cond = _cond; }
         void set_loop_type (LoopID _loop_id) { loop_id = _loop_id; }
-        virtual std::string emit () = 0;
+        virtual std::string emit (std::string offset = "") = 0;
 
     protected:
         LoopID loop_id;
@@ -334,7 +334,7 @@ class CntLoopStmt : public LoopStmt {
         void set_iter (std::shared_ptr<Variable> _iter) { iter = _iter; }
         void set_iter_decl (std::shared_ptr<DeclStmt> _iter_decl) { iter_decl = _iter_decl; }
         void set_step_expr (std::shared_ptr<Expr> _step_expr) { step_expr = _step_expr; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         std::shared_ptr<Variable> iter;
@@ -350,7 +350,7 @@ class IfStmt : public Stmt {
         void add_else_stmt (std::shared_ptr<Stmt> else_stmt) { else_branch.push_back(else_stmt); }
         void set_else_exist (bool _else_exist) { else_exist = _else_exist; }
         bool get_else_exist () { return else_exist; }
-        std::string emit ();
+        std::string emit (std::string offset = "");
 
     private:
         bool else_exist;
@@ -362,12 +362,12 @@ class IfStmt : public Stmt {
 class BreakStmt : public Stmt {
     public:
     BreakStmt () { id = Node::NodeID::BREAK; }
-    std::string emit () { return "break"; }
+    std::string emit (std::string offset = "") { return "break"; }
 };
 
 class ContinueStmt : public Stmt {
     public:
     ContinueStmt () { id = Node::NodeID::CONTINUE; }
-    std::string emit () { return "continue"; }
+    std::string emit (std::string offset = "") { return "continue"; }
 };
 }
