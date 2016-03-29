@@ -60,6 +60,9 @@ std::shared_ptr<Type> StructType::init (std::string _name) {
 
 void StructType::add_member (std::shared_ptr<Type> _type, std::string _name) {
     StructType::StructMember new_mem (_type, _name);
+    if (_type->is_struct_type()) {
+        nest_depth = std::max(std::static_pointer_cast<StructType>(_type)->get_nest_depth(), nest_depth) + 1;
+    }
     members.push_back(std::make_shared<StructMember>(new_mem));
 }
 
@@ -82,6 +85,7 @@ std::string StructType::get_definition () {
 
 void StructType::dbg_dump() {
     std::cout << get_definition () << std::endl;
+    std::cout << "depth: " << nest_depth << std::endl;
 }
 
 std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id) {

@@ -137,11 +137,13 @@ class MemberExpr : public Expr {
         MemberExpr () : struct_var(NULL), identifier(ULLONG_MAX) { id = Node::NodeID::MEMBER; }
         void set_struct (std::shared_ptr<Struct> _struct) { struct_var = _struct; }
         void set_identifier (uint64_t _identifier) { identifier = _identifier; }
+        void set_member_expr (std::shared_ptr<MemberExpr> _member_expr) { member_expr = _member_expr; }
         void propagate_type ();
         UB propagate_value ();
         std::string emit ();
 
     private:
+        std::shared_ptr<MemberExpr> member_expr;
         std::shared_ptr<Struct> struct_var;
         uint64_t identifier;
 };

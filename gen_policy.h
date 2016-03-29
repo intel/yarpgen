@@ -209,6 +209,10 @@ class GenPolicy {
         void set_allow_mix_types_in_struct (bool mix) { allow_mix_types_in_struct = mix; }
         bool get_allow_mix_types_in_struct () { return allow_mix_types_in_struct; }
         std::vector<Probability<bool>> get_member_use_prob () { return member_use_prob; }
+        void set_max_struct_depth (uint64_t _max_struct_depth) { max_struct_depth = _max_struct_depth; }
+        uint64_t get_max_struct_depth () { return max_struct_depth; }
+        std::vector<Probability<Data::VarClassID>>& get_member_class_prob () { return member_class_prob; }
+
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -232,6 +236,9 @@ class GenPolicy {
         bool allow_mix_mod_in_struct;
         bool allow_mix_types_in_struct;
         std::vector<Probability<bool>> member_use_prob;
+        std::vector<Probability<Data::VarClassID>> member_class_prob;
+        uint64_t max_struct_depth;
+
 
         void set_modifier (bool value, Type::Mod modifier);
         bool get_modifier (Type::Mod modifier);

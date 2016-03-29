@@ -47,7 +47,7 @@ int MIN_STRUCT_NUM = 4;
 int MAX_STRUCT_NUM = 8;
 int MIN_STRUCT_MEMBERS_NUM = 5;
 int MAX_STRUCT_MEMBERS_NUM = 10;
-
+int MAX_STRUCT_DEPTH = 5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -86,6 +86,9 @@ GenPolicy::GenPolicy () {
     allow_mix_types_in_struct = true;
     member_use_prob.push_back(Probability<bool>(true, 70));
     member_use_prob.push_back(Probability<bool>(false, 30));
+    max_struct_depth = MAX_STRUCT_DEPTH;
+    member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::VAR, 70));
+    member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::STRUCT, 30));
 
     min_array_size = MIN_ARRAY_SIZE;
     max_array_size = MAX_ARRAY_SIZE;

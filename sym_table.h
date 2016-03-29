@@ -51,6 +51,9 @@ class SymbolTable {
         std::string emit_struct_init ();
 
     private:
+        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var);
+
+        std::string emit_single_struct_init ();
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;
         std::vector<std::shared_ptr<Variable>> variable;

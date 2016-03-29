@@ -87,12 +87,14 @@ void MemberExpr::propagate_type () {
         exit (-1);
     }
     else
+        //TODO: Will it work with nested structs?
         value.set_type(struct_var->get_member(identifier)->get_type());
 }
 
 Expr::UB MemberExpr::propagate_value () {
     if (struct_var->get_num_of_members() <= identifier) {
-        //TODO: catch this error latere
+        //TODO: catch this error later
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_value" << std::endl;
         value.set_value(0);
         return NoMemeber;
     }
@@ -103,7 +105,12 @@ Expr::UB MemberExpr::propagate_value () {
 
 std::string MemberExpr::emit () {
     std::string ret = "";
-    ret += struct_var->get_name();
+    if (member_expr != NULL) {
+        ret += member_expr->emit();
+    }
+    else {
+        ret += struct_var->get_name();
+    }
     ret += ".";
     if (struct_var->get_num_of_members() <= identifier) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::emit" << std::endl;

@@ -97,8 +97,18 @@ int main (int argc, char* argv[]) {
     struct_type->add_member(IntegerType::init (IntegerType::IntegerTypeID::BOOL), "b");
     struct_type->dbg_dump();
 
+    std::shared_ptr<StructType> struct_type2;
+    struct_type2 = std::static_pointer_cast<StructType> (StructType::init ("struct_2"));
+    struct_type2->add_member(IntegerType::init (IntegerType::IntegerTypeID::ULLINT), "c");
+    struct_type2->add_member(struct_type, "d");
+    struct_type2->add_member(IntegerType::init (IntegerType::IntegerTypeID::CHAR), "e");
+    struct_type2->dbg_dump();
+
     Struct struct_var = Struct ("struct_var", struct_type);
     struct_var.dbg_dump();
+
+    Struct struct_var2 = Struct ("struct_var2", struct_type2);
+    struct_var2.dbg_dump();
 
     Variable var = Variable("i", IntegerType::IntegerTypeID::ULINT, Type::Mod::NTHG, false);
     var.set_modifier (Type::Mod::CONST);
@@ -135,6 +145,14 @@ int main (int argc, char* argv[]) {
     member_expr.propagate_type();
     member_expr.propagate_value();
     std::cout << "MemberExpr: " << member_expr.emit () << std::endl;
+
+    MemberExpr member_expr2;
+    member_expr2.set_struct(std::make_shared<Struct>(struct_var2));
+    member_expr2.set_identifier(1);
+    member_expr2.propagate_type();
+    member_expr2.propagate_value();
+    std::cout << "MemberExpr: " << member_expr2.emit () << std::endl;
+    std::cout << "MemberExpr value: " << member_expr2.get_int_type_id() << std::endl;
 
     BinaryExpr bin_add;
     bin_add.set_op (BinaryExpr::Op::Add);
@@ -252,13 +270,13 @@ int main (int argc, char* argv[]) {
     std::cout << "ScalarTypeGen:" << std::endl;
     ScalarTypeGen scalar_type_gen (std::make_shared<GenPolicy>(gen_policy));
     scalar_type_gen.generate();
-    std::cout << scalar_type_gen.get_type() << std::endl;
+    scalar_type_gen.get_type()->dbg_dump();
 
     gen_policy.set_num_of_allowed_int_types(1);
     gen_policy.rand_init_allowed_int_types ();
     ScalarTypeGen scalar_type_gen2 (std::make_shared<GenPolicy>(gen_policy));
     scalar_type_gen2.generate();
-    std::cout << scalar_type_gen2.get_type() << std::endl;
+    scalar_type_gen2.get_type()->dbg_dump();
     gen_policy.set_num_of_allowed_int_types(4);
     gen_policy.rand_init_allowed_int_types ();
 
@@ -291,6 +309,14 @@ int main (int argc, char* argv[]) {
     StructTypeGen struct_type_gen (std::make_shared<GenPolicy>(gen_policy));
     struct_type_gen.generate();
     std::cout << struct_type_gen.get_type()->get_definition() << std::endl;
+
+    std::cout << "StructTypeGen:" << std::endl;
+    std::vector<std::shared_ptr<StructType>> nested_type;
+    nested_type.push_back(struct_type_gen.get_type());
+    StructTypeGen struct_type_gen2 (std::make_shared<GenPolicy>(gen_policy), nested_type);
+    struct_type_gen2.generate();
+    std::cout << struct_type_gen2.get_type()->get_definition() << std::endl;
+
     std::cout << "ScalarVariableGen:" << std::endl;
     ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
     scalar_var_gen.generate();
@@ -304,6 +330,11 @@ int main (int argc, char* argv[]) {
     StructVariableGen struct_var_gen (std::make_shared<GenPolicy>(gen_policy));
     struct_var_gen.generate();
     struct_var_gen.get_data()->dbg_dump();
+
+    std::cout << "StructVariableGen" << std::endl;
+    StructVariableGen struct_var_gen2 (std::make_shared<GenPolicy>(gen_policy), std::static_pointer_cast<StructType>(struct_type_gen2.get_type()));
+    struct_var_gen2.generate();
+    struct_var_gen2.get_data()->dbg_dump();
 
     std::cout << "ArrayVariableGen" << std::endl;
     ArrayVariableGen arr_var_gen (std::make_shared<GenPolicy>(gen_policy));

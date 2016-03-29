@@ -90,14 +90,25 @@ std::string SymbolTable::emit_struct_extern_decl () {
 std::string SymbolTable::emit_struct_init () {
     std::string ret = "";
     for (auto i : structs) {
-        for (int j = 0; j < i->get_num_of_members(); ++j) {
-            MemberExpr member_expr;
-            member_expr.set_struct(i);
-            member_expr.set_identifier(j);
+        ret += emit_single_struct_init(NULL, i);
+    }
+    return ret;
+}
 
+std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var) {
+    std::string ret = "";
+    for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
+        MemberExpr member_expr;
+        member_expr.set_struct(struct_var);
+        member_expr.set_identifier(j);
+        member_expr.set_member_expr(parent_memb_expr);
+
+        if (struct_var->get_member(j)->get_type()->is_struct_type())
+            ret += emit_single_struct_init(std::make_shared<MemberExpr> (member_expr), std::static_pointer_cast<Struct>(struct_var->get_member(j)));
+        else {
             ConstExpr const_init;
-            const_init.set_type (std::static_pointer_cast<IntegerType>(i->get_member(j)->get_type())->get_int_type_id());
-            const_init.set_data (i->get_member(j)->get_value());
+            const_init.set_type (std::static_pointer_cast<IntegerType>(struct_var->get_member(j)->get_type())->get_int_type_id());
+            const_init.set_data (struct_var->get_member(j)->get_value());
 
             AssignExpr assign;
             assign.set_to (std::make_shared<MemberExpr> (member_expr));

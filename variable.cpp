@@ -39,9 +39,20 @@ void Struct::allocate_members() {
     std::shared_ptr<StructType> struct_type = std::static_pointer_cast<StructType>(type);
     // TODO: struct member can be not only integer
     for (int i = 0; i < struct_type->get_num_of_members(); ++i) {
-        std::shared_ptr<IntegerType> int_type_member = std::static_pointer_cast<IntegerType>(struct_type->get_member(i)->get_type());
-        Variable new_mem (struct_type->get_member(i)->get_name(), int_type_member->get_int_type_id(), int_type_member->get_modifier(), int_type_member->get_is_static());
-        members.push_back(std::make_shared<Variable>(new_mem));
+        std::shared_ptr<StructType::StructMember> cur_member = struct_type->get_member(i);
+        if (cur_member->get_type()->is_int_type()) {
+            std::shared_ptr<IntegerType> int_type_member = std::static_pointer_cast<IntegerType>(struct_type->get_member(i)->get_type());
+            Variable new_mem (struct_type->get_member(i)->get_name(), int_type_member->get_int_type_id(), int_type_member->get_modifier(), int_type_member->get_is_static());
+            members.push_back(std::make_shared<Variable>(new_mem));
+        }
+        else if (cur_member->get_type()->is_struct_type()) {
+            Struct new_struct (cur_member->get_name(), std::static_pointer_cast<StructType>(cur_member->get_type()));
+            members.push_back(std::make_shared<Struct>(new_struct));
+        }
+        else {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::allocate_members" << std::endl;
+            exit(-1);
+        }
     }
 }
 

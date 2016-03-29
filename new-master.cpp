@@ -31,8 +31,9 @@ Master::Master (std::string _out_folder) {
 }
 
 void Master::generate () {
-    int inp_var_num = rand_val_gen->get_rand_value<int>(5, 10);
 /*
+    int inp_var_num = rand_val_gen->get_rand_value<int>(5, 10);
+
     for (int i = 0; i < inp_var_num; ++i) {
         ScalarVariableGen scalar_var_gen (std::make_shared<GenPolicy>(gen_policy));
         scalar_var_gen.generate ();

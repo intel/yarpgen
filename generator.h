@@ -51,11 +51,14 @@ class ScalarTypeGen : public Generator {
 class StructTypeGen : public Generator {
     public:
         StructTypeGen (std::shared_ptr<GenPolicy> _gen_policy) : Generator (_gen_policy), struct_type (NULL), member_num (0) {}
+        StructTypeGen (std::shared_ptr<GenPolicy> _gen_policy, std::vector<std::shared_ptr<StructType>> _nested_struct_types) :
+                      Generator (_gen_policy), struct_type (NULL), nested_struct_types(_nested_struct_types), member_num (0) {}
         std::shared_ptr<StructType> get_type () { return struct_type; }
         void generate ();
 
     private:
         std::shared_ptr<StructType> struct_type;
+        std::vector<std::shared_ptr<StructType>> nested_struct_types;
         static int struct_num;
         int member_num;
 };
@@ -95,6 +98,16 @@ class VariableValueGen : public Generator {
         uint64_t value;
         uint64_t min_value;
         uint64_t max_value;
+};
+
+class StructValueGen : public Generator {
+    public:
+        StructValueGen (std::shared_ptr<GenPolicy> _gen_policy, std::shared_ptr<Struct> _struct_var) : Generator (_gen_policy), struct_var (_struct_var) {}
+        std::shared_ptr<Struct> get_value() { return struct_var; }
+        void generate ();
+
+    private:
+        std::shared_ptr<Struct> struct_var;
 };
 
 class DataGen : public Generator {
@@ -143,6 +156,7 @@ class ArrayVariableGen : public DataGen {
 
 class StructVariableGen : public DataGen {
     public:
+        //TODO: Add random init with nested structs
         StructVariableGen(std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy), struct_type (NULL) { rand_init = true; }
         StructVariableGen(std::shared_ptr<GenPolicy> _gen_policy, std::shared_ptr<StructType> _struct_type) : DataGen (_gen_policy), struct_type(_struct_type)  { rand_init = false; }
         void generate ();
@@ -251,6 +265,7 @@ class ScopeGen : public StmtGen {
         ScopeGen (std::shared_ptr<Context> _global_ctx) : StmtGen (_global_ctx) {}
         std::vector<std::shared_ptr<Stmt>>& get_scope () { return scope; }
         void generate ();
+        void form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::vector<std::shared_ptr<Expr>>& inp);
 
     private:
         std::vector<std::shared_ptr<Stmt>> scope;

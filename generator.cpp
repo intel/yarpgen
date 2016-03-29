@@ -61,12 +61,33 @@ void StructTypeGen::generate () {
     scalar_type_gen.generate();
     std::shared_ptr<Type> primary_type = scalar_type_gen.get_type();
 
+    uint64_t struct_deptj = rand_val_gen->get_rand_value<int>(0, gen_policy->get_max_struct_depth());
+
     struct_type = std::static_pointer_cast<StructType> (StructType::init("struct_" + std::to_string(struct_num)));
     int struct_member_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_struct_members_num(), gen_policy->get_max_struct_members_num());
     for (int i = 0; i < struct_member_num; ++i) {
         if (gen_policy->get_allow_mix_types_in_struct()) {
-            scalar_type_gen.generate();
-            primary_type = scalar_type_gen.get_type();
+            Data::VarClassID member_class = rand_val_gen->get_rand_id(gen_policy->get_member_class_prob());
+            bool add_substruct = false;
+            int substruct_type_idx = 0;
+            std::shared_ptr<StructType> substruct_type = NULL;
+            if (member_class == Data::VarClassID::STRUCT && gen_policy->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
+                substruct_type_idx = rand_val_gen->get_rand_value<int>(0, nested_struct_types.size() - 1);
+                substruct_type = nested_struct_types.at(substruct_type_idx);
+                if (substruct_type->get_nest_depth() + 1 == gen_policy->get_max_struct_depth()) {
+                    add_substruct = false;
+                }
+                else {
+                    add_substruct = true;
+                }
+            }
+            if (add_substruct) {
+               primary_type = substruct_type;
+            }
+            else {
+                scalar_type_gen.generate();
+                primary_type = scalar_type_gen.get_type();
+            }
         }
         if (gen_policy->get_allow_mix_mod_in_struct()) {
             modifier_gen.generate ();
@@ -209,6 +230,24 @@ void ArrayVariableGen::generate () {
     array_num++;
 }
 
+void StructValueGen::generate () {
+    for (int i = 0; i < struct_var->get_num_of_members(); ++i) {
+        if (struct_var->get_member(i)->get_type()->is_struct_type()) {
+            StructValueGen struct_val_gen (gen_policy, std::static_pointer_cast<Struct>(struct_var->get_member(i)));
+            struct_val_gen.generate();
+        }
+        else if (struct_var->get_member(i)->get_type()->is_int_type()) {
+            VariableValueGen var_val_gen (gen_policy, std::static_pointer_cast<IntegerType>(struct_var->get_member(i)->get_type())->get_int_type_id());
+            var_val_gen.generate();
+            struct_var->get_member(i)->set_value(var_val_gen.get_value());
+        }
+        else {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in StructVariableGen::generate" << std::endl;
+            exit(-1);
+        }
+    }
+}
+
 int StructVariableGen::struct_num = 0;
 
 void StructVariableGen::generate () {
@@ -218,12 +257,9 @@ void StructVariableGen::generate () {
         struct_type = struct_type_gen.get_type();
     }
     Struct struct_var ("struct_obj_" + std::to_string(struct_num++), struct_type);
-    for (int i = 0; i < struct_var.get_num_of_members(); ++i) {
-        VariableValueGen var_val_gen (gen_policy, std::static_pointer_cast<IntegerType>(struct_var.get_member(i)->get_type())->get_int_type_id());
-        var_val_gen.generate();
-        struct_var.get_member(i)->set_value(var_val_gen.get_value());
-    }
     data = std::make_shared<Struct> (struct_var);
+    StructValueGen struct_val_gen (gen_policy, std::static_pointer_cast<Struct>(data));
+    struct_val_gen.generate();
 }
 
 void DeclStmtGen::generate () {
@@ -576,8 +612,23 @@ void IfStmtGen::generate () {
     stmt = std::make_shared<IfStmt> (if_stmt);
 }
 
+void ScopeGen::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::vector<std::shared_ptr<Expr>>& inp) {
+    for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
+        if (rand_val_gen->get_rand_id(gen_policy->get_member_use_prob())) {
+            MemberExpr member_expr;
+            member_expr.set_struct(struct_var);
+            member_expr.set_identifier(j);
+            member_expr.set_member_expr(parent_memb_expr);
+
+            if (struct_var->get_member(j)->get_type()->is_struct_type())
+                form_struct_member_expr(std::make_shared<MemberExpr> (member_expr), std::static_pointer_cast<Struct>(struct_var->get_member(j)), inp);
+            else
+                inp.push_back(std::make_shared<MemberExpr> (member_expr));
+        }
+    }
+}
+
 void ScopeGen::generate () {
-    Node::NodeID stmt_id = Node::NodeID::EXPR;
     if (ctx->get_parent_ctx() == NULL) {
         int inp_var_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_inp_var_num(), gen_policy->get_max_inp_var_num());
         for (int i = 0; i < inp_var_num; ++i) {
@@ -588,7 +639,7 @@ void ScopeGen::generate () {
 
         int struct_types_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_struct_types_num(), gen_policy->get_max_struct_types_num());
         for (int i = 0; i < struct_types_num; ++i) {
-            StructTypeGen struct_type_gen (gen_policy);
+            StructTypeGen struct_type_gen (gen_policy, ctx->get_extern_inp_sym_table()->get_struct_types());
             struct_type_gen.generate();
             ctx->get_extern_inp_sym_table()->add_struct_type(struct_type_gen.get_type());
         }
@@ -610,14 +661,7 @@ void ScopeGen::generate () {
     }
 
     for (auto i : ctx->get_extern_inp_sym_table()->get_structs()) {
-        for (int j = 0; j < i->get_num_of_members(); ++j) {
-            if (rand_val_gen->get_rand_id(gen_policy->get_member_use_prob())) {
-                MemberExpr member_expr;
-                member_expr.set_struct(i);
-                member_expr.set_identifier(j);
-                inp.push_back(std::make_shared<MemberExpr> (member_expr));
-            }
-        }
+        form_struct_member_expr(NULL, i, inp);
     }
 
     //TODO: add to gen_policy stmt number
