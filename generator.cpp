@@ -664,12 +664,24 @@ void ScopeGen::generate () {
         form_struct_member_expr(NULL, i, inp);
     }
 
+    if (ctx->get_global_sym_table() != NULL) {
+        for (auto i : ctx->get_global_sym_table()->get_variables()) {
+            VarUseExpr var_use;
+            var_use.set_variable (i);
+            inp.push_back(std::make_shared<VarUseExpr> (var_use));
+        }
+
+        for (auto i : ctx->get_global_sym_table()->get_structs()) {
+            form_struct_member_expr(NULL, i, inp);
+        }
+    }
+
     //TODO: add to gen_policy stmt number
     int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
     for (int i = 0; i < arith_stmt_num; ++i) {
         Node::NodeID gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
         if (gen_id == Node::NodeID::DECL && (gen_policy->get_used_tmp_var_num() < gen_policy->get_max_tmp_var_num())) {
-            Context decl_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+            Context decl_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, local_sym_table.merge(ctx->get_global_sym_table()), ctx);
             DeclStmtGen tmp_var_decl_gen (std::make_shared<Context>(decl_ctx), Data::VarClassID::VAR, inp);
             tmp_var_decl_gen.generate();
             std::shared_ptr<Variable> tmp_var = std::static_pointer_cast<Variable>(tmp_var_decl_gen.get_data());
@@ -686,14 +698,14 @@ void ScopeGen::generate () {
             ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
             VarUseExpr var_use;
             var_use.set_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
-            Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+            Context arith_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, local_sym_table.merge(ctx->get_global_sym_table()), ctx);
             ArithStmtGen arith_stmt_gen (std::make_shared<Context>(arith_ctx), inp, std::make_shared<VarUseExpr> (var_use));
             arith_stmt_gen.generate();
             gen_policy->copy_data(arith_stmt_gen.get_gen_policy());
             scope.push_back(arith_stmt_gen.get_stmt());
         }
         else if (gen_id == Node::NodeID::IF) {
-            Context if_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, std::make_shared<SymbolTable>(local_sym_table), ctx);
+            Context if_ctx (*(gen_policy), NULL, Node::NodeID::MAX_STMT_ID, local_sym_table.merge(ctx->get_global_sym_table()), ctx);
             IfStmtGen if_stmt_gen (std::make_shared<Context>(if_ctx), inp);
             if_stmt_gen.generate();
             scope.push_back(if_stmt_gen.get_stmt());

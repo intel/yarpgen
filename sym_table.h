@@ -30,17 +30,27 @@ namespace rl {
 class SymbolTable {
     public:
         SymbolTable () {}
+        std::shared_ptr<SymbolTable> merge (std::shared_ptr<SymbolTable> inp_st);
+
         void add_variable (std::shared_ptr<Variable> _var) { variable.push_back (_var); }
         void add_array (std::shared_ptr<Array> _arr) { array.push_back (_arr); }
         void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
         void add_struct (std::shared_ptr<Struct> _struct) { structs.push_back (_struct); }
+
+        void set_variables (std::vector<std::shared_ptr<Variable>> _variable) { variable = _variable; }
+        void set_arrays (std::vector<std::shared_ptr<Array>> _array) { array = _array; }
+        void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
+        void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
+
         std::vector<std::shared_ptr<Variable>>& get_variables () { return variable; }
         std::vector<std::shared_ptr<Array>>& get_arrays () { return array; }
         std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
         std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
+
         // TODO: Add symbol probability
         std::shared_ptr<Variable> get_rand_variable ();
         std::shared_ptr<Array> get_rand_array ();
+
         std::string emit_variable_extern_decl (std::string offset = "");
         std::string emit_variable_def (std::string offset = "");
         // TODO: rewrite with IR
@@ -72,6 +82,7 @@ class Context {
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
         void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_out_sym_table () { return extern_out_sym_table; }
+        std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
 
     private:

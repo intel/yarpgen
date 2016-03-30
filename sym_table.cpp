@@ -16,9 +16,33 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include <cassert>
+
 #include "sym_table.h"
 
 using namespace rl;
+
+std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> inp_st) {
+    SymbolTable new_st;
+
+    assert (this != NULL && "SymbolTable::merge failed");
+    new_st.set_variables(this->get_variables());
+    new_st.set_arrays(this->get_arrays());
+    new_st.set_struct_types(this->get_struct_types());
+    new_st.set_structs(this->get_structs());
+
+    if (inp_st != NULL) {
+        for (auto i : inp_st->get_variables())
+            new_st.add_variable(i);
+        for (auto i : inp_st->get_arrays())
+            new_st.add_array(i);
+        for (auto i : inp_st->get_struct_types())
+            new_st.add_struct_type(i);
+        for (auto i : inp_st->get_structs())
+            new_st.add_struct(i);
+    }
+    return std::make_shared<SymbolTable> (new_st);
+}
 
 std::shared_ptr<Variable> SymbolTable::get_rand_variable () {
     int indx = rand_val_gen->get_rand_value<int>(0, variable.size() - 1);
