@@ -45,8 +45,10 @@ class Node {
             MIN_STMT_ID,
             DECL,
             EXPR,
+            LBB,
             CNT_LOOP,
             IF,
+            LHDR,
             BREAK,
             CONTINUE,
             MAX_STMT_ID
@@ -289,13 +291,15 @@ class Stmt : public Node {
 class DeclStmt : public Stmt {
     public:
         DeclStmt () : is_extern(false), data (NULL), init (NULL) { id = Node::NodeID::DECL; }
-        void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
-        void set_data (std::shared_ptr<Data> _data) { data = _data; }
-        void set_init (std::shared_ptr<Expr> _init) { init = _init; }
-        std::string emit (std::string offset = "");
+        virtual void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
+        virtual void set_data (std::shared_ptr<Data> _data) { data = _data; }
+        virtual void set_init (std::shared_ptr<Expr> _init) { init = _init; }
+        virtual std::string emit (std::string offset = "");
+
+    protected:
+        bool is_extern;
 
     private:
-        bool is_extern;
         std::shared_ptr<Data> data;
         std::shared_ptr<Expr> init;
 };
