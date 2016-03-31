@@ -20,6 +20,8 @@ limitations under the License.
 
 #include "type.h"
 
+namespace rl {
+
 class Data {
     public:
         enum VarClassID {
@@ -126,3 +128,4 @@ class Array : public Data {
         uint64_t size;
         Ess essence;
 };
+}

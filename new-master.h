@@ -25,6 +25,8 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace rl {
+
 class Master {
     public:
         Master (std::string _out_folder);
@@ -45,4 +47,5 @@ class Master {
         std::shared_ptr<SymbolTable> extern_out_sym_table;
         std::string out_folder;
 };
+}
 

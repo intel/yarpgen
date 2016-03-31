@@ -27,6 +27,8 @@ limitations under the License.
 #include "sym_table.h"
 #include "new-master.h"
 
+using namespace rl;
+
 int main (int argc, char* argv[]) {
 
     extern char *optarg;

@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "node.h"
 
+using namespace rl;
+
 AtomicType::AtomicTypeID Expr::get_atomic_type_id () {
     if (!value.get_type()->is_atomic_type())
         return AtomicType::AtomicTypeID::Max_AtomicTypeID;

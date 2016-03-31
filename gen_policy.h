@@ -26,6 +26,8 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace rl {
+
 template<typename T>
 class Probability {
     public:
@@ -285,3 +287,4 @@ class GenPolicy {
         bool allow_scalar_variables;
 */
 };
+}

@@ -20,6 +20,8 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
+using namespace rl;
+
 Master::Master (std::string _out_folder) {
     out_folder = _out_folder;
     SymbolTable extrern_inp;

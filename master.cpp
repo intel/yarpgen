@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "master.h"
 
+using namespace rl;
+
 const int MIN_LOOP_NUM = 3;
 const int MAX_LOOP_NUM = 10;
 

@@ -23,6 +23,8 @@ limitations under the License.
 #include "type.h"
 #include "variable.h"
 
+namespace rl {
+
 class Node {
     public:
         enum NodeID {
@@ -366,3 +368,4 @@ class ContinueStmt : public Stmt {
     ContinueStmt () { id = Node::NodeID::CONTINUE; }
     std::string emit () { return "continue"; }
 };
+}

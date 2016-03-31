@@ -25,6 +25,8 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace rl {
+
 class SymbolTable {
     public:
         SymbolTable () {}
@@ -80,3 +82,4 @@ class Context {
         int if_depth;
         int depth;
 };
+}

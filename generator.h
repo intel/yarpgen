@@ -26,6 +26,7 @@ limitations under the License.
 #include "sym_table.h"
 
 ///////////////////////////////////////////////////////////////////////////////
+namespace rl{
 
 class Generator {
     public:
@@ -254,3 +255,4 @@ class ScopeGen : public StmtGen {
     private:
         std::vector<std::shared_ptr<Stmt>> scope;
 };
+}

@@ -20,7 +20,9 @@ CXX=clang++
 CXXFLAGS=-std=c++11
 OPT=-O3
 LDFLAGS=
-SOURCES=variable.cpp node.cpp type.cpp main.cpp gen_policy.cpp generator.cpp sym_table.cpp new-master.cpp
+LIBSOURCES=variable.cpp node.cpp type.cpp gen_policy.cpp generator.cpp sym_table.cpp new-master.cpp
+SOURCES=main.cpp $(LIBSOURCES)
+LIBOBJS=$(addprefix objs/, $(LIBSOURCES:.cpp=.o))
 OBJS=$(addprefix objs/, $(SOURCES:.cpp=.o))
 HEADERS=node.h type.h variable.h gen_policy.h generator.h sym_table.h new-master.h
 EXECUTABLE=yarpgen
@@ -30,11 +32,14 @@ default: $(EXECUTABLE)
 $(EXECUTABLE): dir $(SOURCES) $(HEADERS) $(OBJS)
 	$(CXX) $(OPT) $(LDFLAGS) -o $@ $(OBJS)
 
+libyarpgen: dir $(LIBSOURCES) $(HEADERS) $(LIBOBJS)
+	ar rcs $@.a $(LIBOBJS)
+
 dir:
 	/bin/mkdir -p objs
 
 clean:
-	/bin/rm -rf objs $(EXECUTABLE)
+	/bin/rm -rf objs $(EXECUTABLE) libyarpgen.a
 
 debug: $(EXECUTABLE)
 debug: OPT=-O0 -g

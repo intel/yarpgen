@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "type.h"
 
+using namespace rl;
+
 std::string Type::get_name () {
     std::string ret = "";
     ret += is_static ? "static " : "";

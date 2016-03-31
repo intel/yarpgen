@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "generator.h"
 
+using namespace rl;
+
 void ScalarTypeGen::generate () {
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(gen_policy->get_allowed_int_types());
     type = std::static_pointer_cast<IntegerType> (IntegerType::init(int_type_id));

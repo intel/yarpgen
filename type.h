@@ -23,6 +23,8 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
+namespace rl {
+
 class Variable;
 
 class Type {
@@ -305,3 +307,4 @@ class TypeULLINT : public IntegerType {
         }
         void dbg_dump ();
 };
+}

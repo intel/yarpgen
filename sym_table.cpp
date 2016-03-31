@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "sym_table.h"
 
+using namespace rl;
+
 std::shared_ptr<Variable> SymbolTable::get_rand_variable () {
     int indx = rand_val_gen->get_rand_value<int>(0, variable.size() - 1);
     return variable.at(indx);

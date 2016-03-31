@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "variable.h"
 
+using namespace rl;
+
 Data::Data (std::string _name) {
     type = NULL;
     name = _name;

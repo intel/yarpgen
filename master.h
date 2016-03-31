@@ -28,6 +28,8 @@ limitations under the License.
 #include "type.h"
 #include "node.h"
 
+namespace rl {
+
 struct GenerationPolicy {
     std::string ext_num;
 
@@ -240,3 +242,4 @@ class TmpVariableGen : public Gen {
         std::shared_ptr<VarUseExpr> var_use_ptr;
         std::shared_ptr<DeclStmt> var_decl_ptr;
 };
+}

@@ -19,6 +19,8 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
+using namespace rl;
+
 int MAX_ALLOWED_INT_TYPES = 3;
 
 int MIN_ARRAY_SIZE = 1000;
@@ -49,7 +51,7 @@ int MAX_STRUCT_MEMBERS_NUM = 10;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<RandValGen> rand_val_gen;
+std::shared_ptr<RandValGen> rl::rand_val_gen;
 
 RandValGen::RandValGen (uint64_t _seed) {
     if (_seed != 0) {
