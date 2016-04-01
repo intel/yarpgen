@@ -25,14 +25,11 @@ limitations under the License.
 
 namespace rl {
 
-class Variable;
-
 class Type {
     public:
         enum TypeID {
             ATOMIC_TYPE,
             STRUCT_TYPE,
-            PTR_TYPE,
             MAX_TYPE_ID
         };
 
@@ -44,27 +41,28 @@ class Type {
             MAX_MOD
         };
 
-        explicit Type () {};
-        Type (TypeID _id) : name (""), suffix (""), modifier(Mod::NTHG), is_static(false), align(0), id (_id) {}
+        Type (TypeID _id) : modifier(Mod::NTHG), is_static(false), align(0), id (_id) {}
+        Type (TypeID _id, Mod _modifier, bool _is_static, uint64_t _align) :
+              modifier (_modifier), is_static (_is_static), align (_align), id (_id) {}
         Type::TypeID get_type_id () { return id; }
         std::string get_name ();
-        std::string get_suffix() { return suffix; }
         void set_modifier (Mod _modifier) { modifier = _modifier; }
         Mod get_modifier () { return modifier; }
         void set_is_static (bool _is_static) { is_static = _is_static; }
         bool get_is_static () { return is_static; }
         void set_align (uint64_t _align) { align = _align; }
         uint64_t get_align () { return align; }
+
         virtual bool is_atomic_type() { return false; }
         virtual bool is_ptr_type() { return false; }
         virtual bool is_int_type() { return false; }
         virtual bool is_fp_type() { return false; }
         virtual bool is_struct_type() { return false; }
+
         virtual void dbg_dump() = 0;
 
     protected:
         std::string name;
-        std::string suffix;
         Mod modifier;
         bool is_static;
         uint64_t align;
@@ -73,20 +71,9 @@ class Type {
         TypeID id;
 };
 
-class PtrType : public Type {
-    public:
-        PtrType () : Type (Type::PTR_TYPE), pointee_t (NULL) {}
-        static std::shared_ptr<Type> init (std::shared_ptr<Type> _pointee_t);
-        bool is_ptr_type() { return true; }
-        void dbg_dump() {};
-
-    private:
-        std::shared_ptr<Type> pointee_t;
-        //TODO: it is a stub
-};
-
 class StructType : public Type {
     public:
+        //TODO: add generator?
         struct StructMember {
             public:
                 StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name) {}
@@ -99,8 +86,9 @@ class StructType : public Type {
                 std::string name;
         };
 
-        StructType () : Type (Type::STRUCT_TYPE), nest_depth(0) {}
-        static std::shared_ptr<Type> init (std::string _name);
+        StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = "struct " + _name; }
+        StructType (std::string _name, Mod _modifier, bool _is_static, uint64_t _align) :
+                    Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = "struct " + _name; }
         void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
         uint64_t get_num_of_members () { return members.size(); }
@@ -120,13 +108,31 @@ class AtomicType : public Type {
         enum AtomicTypeID {
             Integer, FP, Max_AtomicTypeID
         };
-        AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE),  bit_size (0), atomic_id (at_id) {};
+
+        union TypedVal {
+            bool bool_val;
+            signed char char_val;
+            unsigned char uchar_val;
+            short shrt_val;
+            unsigned short ushrt_val;
+            int int_val;
+            unsigned int uint_val;
+            long int lint_val;
+            unsigned long int ulint_val;
+            long long int llint_val;
+            unsigned long long int ullint_val;
+        };
+
+        AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE), bit_size (0), suffix(""), atomic_id (at_id) {}
+        AtomicType (AtomicTypeID at_id, Mod _modifier, bool _is_static, uint64_t _align) :
+                    Type (Type::ATOMIC_TYPE, _modifier, _is_static, _align), bit_size (0), suffix(""), atomic_id (at_id) {}
         AtomicTypeID get_atomic_type_id () { return atomic_id; }
         uint64_t get_bit_size () { return bit_size; }
         bool is_atomic_type() { return true; }
 
     protected:
         unsigned int bit_size;
+        std::string suffix;
 
     private:
         AtomicTypeID atomic_id;
@@ -148,20 +154,25 @@ class IntegerType : public AtomicType {
             ULLINT,
             MAX_INT_ID,
         };
-        IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), min (0), max (0), int_type_id (it_id) {}
+
+        IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), int_type_id (it_id) {}
+        IntegerType (IntegerTypeID it_id, Mod _modifier, bool _is_static, uint64_t _align) :
+                     AtomicType (AtomicTypeID::Integer, _modifier, _is_static, _align),
+                     is_signed (false), int_type_id (it_id) {}
         static std::shared_ptr<Type> init (IntegerType::IntegerTypeID _type_id);
+        static std::shared_ptr<Type> init (IntegerType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
         IntegerTypeID get_int_type_id () { return int_type_id; }
         static bool can_repr_value (IntegerType::IntegerTypeID A, IntegerType::IntegerTypeID B); // if type a can represent all of the values of the type b
         static IntegerType::IntegerTypeID get_corr_unsig (IntegerType::IntegerTypeID _type_id);
         bool get_is_signed () { return is_signed; }
-        uint64_t get_min () { return min; }
-        uint64_t get_max () { return max; }
+        AtomicType::TypedVal get_min () { return min; }
+        AtomicType::TypedVal get_max () { return max; }
         bool is_int_type() { return true; }
 
     protected:
         bool is_signed;
-        uint64_t min;
-        uint64_t max;
+        AtomicType::TypedVal min;
+        AtomicType::TypedVal max;
 
     private:
         IntegerTypeID int_type_id;
@@ -169,11 +180,14 @@ class IntegerType : public AtomicType {
 
 class TypeBOOL : public IntegerType {
     public:
-        TypeBOOL () : IntegerType(IntegerType::IntegerTypeID::BOOL) {
+        TypeBOOL () : IntegerType(IntegerType::IntegerTypeID::BOOL) { init_type (); }
+        TypeBOOL (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::BOOL, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "bool";
             suffix = "";
-            min = false;
-            max = true;
+            min.bool_val = false;
+            max.bool_val = true;
             bit_size = sizeof (bool) * CHAR_BIT;
             is_signed = false;
         }
@@ -182,11 +196,14 @@ class TypeBOOL : public IntegerType {
 
 class TypeCHAR : public IntegerType {
     public:
-        TypeCHAR () : IntegerType(IntegerType::IntegerTypeID::CHAR) {
+        TypeCHAR () : IntegerType(IntegerType::IntegerTypeID::CHAR) { init_type (); }
+        TypeCHAR (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::CHAR, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "signed char";
             suffix = "";
-            min = SCHAR_MIN;
-            max = SCHAR_MAX;
+            min.char_val = SCHAR_MIN;
+            max.char_val = SCHAR_MAX;
             bit_size = sizeof (char) * CHAR_BIT;
             is_signed = true;
         }
@@ -195,11 +212,14 @@ class TypeCHAR : public IntegerType {
 
 class TypeUCHAR : public IntegerType {
     public:
-        TypeUCHAR () : IntegerType(IntegerType::IntegerTypeID::UCHAR) {
+        TypeUCHAR () : IntegerType(IntegerType::IntegerTypeID::UCHAR) { init_type (); }
+        TypeUCHAR (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::UCHAR, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "unsigned char";
             suffix = "";
-            min = 0;
-            max = UCHAR_MAX;
+            min.uchar_val = 0;
+            max.uchar_val = UCHAR_MAX;
             bit_size = sizeof (unsigned char) * CHAR_BIT;
             is_signed = false;
         }
@@ -208,11 +228,14 @@ class TypeUCHAR : public IntegerType {
 
 class TypeSHRT : public IntegerType {
     public:
-        TypeSHRT () : IntegerType(IntegerType::IntegerTypeID::SHRT) {
+        TypeSHRT () : IntegerType(IntegerType::IntegerTypeID::SHRT) { init_type (); }
+        TypeSHRT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::SHRT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "short";
             suffix = "";
-            min = SHRT_MIN;
-            max = SHRT_MAX;
+            min.shrt_val = SHRT_MIN;
+            max.shrt_val = SHRT_MAX;
             bit_size = sizeof (short) * CHAR_BIT;
             is_signed = true;
         }
@@ -221,11 +244,14 @@ class TypeSHRT : public IntegerType {
 
 class TypeUSHRT : public IntegerType {
     public:
-        TypeUSHRT () : IntegerType(IntegerType::IntegerTypeID::USHRT) {
+        TypeUSHRT () : IntegerType(IntegerType::IntegerTypeID::USHRT) { init_type (); }
+        TypeUSHRT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::USHRT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "unsigned short";
             suffix = "";
-            min = 0;
-            max = USHRT_MAX;
+            min.ushrt_val = 0;
+            max.ushrt_val = USHRT_MAX;
             bit_size = sizeof (unsigned short) * CHAR_BIT;
             is_signed = false;
         }
@@ -234,11 +260,14 @@ class TypeUSHRT : public IntegerType {
 
 class TypeINT : public IntegerType {
     public:
-        TypeINT () : IntegerType(IntegerType::IntegerTypeID::INT) {
+        TypeINT () : IntegerType(IntegerType::IntegerTypeID::INT) { init_type (); }
+        TypeINT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::INT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "int";
             suffix = "";
-            min = INT_MIN;
-            max = INT_MAX;
+            min.int_val = INT_MIN;
+            max.int_val = INT_MAX;
             bit_size = sizeof (int) * CHAR_BIT;
             is_signed = true;
         }
@@ -247,11 +276,14 @@ class TypeINT : public IntegerType {
 
 class TypeUINT : public IntegerType {
     public:
-        TypeUINT () : IntegerType(IntegerType::IntegerTypeID::UINT) {
+        TypeUINT () : IntegerType(IntegerType::IntegerTypeID::UINT) { init_type (); }
+        TypeUINT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::UINT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "unsigned int";
             suffix = "U";
-            min = 0;
-            max = UINT_MAX;
+            min.uint_val = 0;
+            max.uint_val = UINT_MAX;
             bit_size = sizeof (unsigned int) * CHAR_BIT;
             is_signed = false;
         }
@@ -260,11 +292,14 @@ class TypeUINT : public IntegerType {
 
 class TypeLINT : public IntegerType {
     public:
-        TypeLINT () : IntegerType(IntegerType::IntegerTypeID::LINT) {
+        TypeLINT () : IntegerType(IntegerType::IntegerTypeID::LINT) { init_type (); }
+        TypeLINT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::LINT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "long int";
             suffix = "L";
-            min = LONG_MIN;;
-            max = LONG_MAX;
+            min.lint_val = LONG_MIN;;
+            max.lint_val = LONG_MAX;
             bit_size = sizeof (long int) * CHAR_BIT;
             is_signed = true;
         }
@@ -273,11 +308,14 @@ class TypeLINT : public IntegerType {
 
 class TypeULINT : public IntegerType {
     public:
-        TypeULINT () : IntegerType(IntegerType::IntegerTypeID::ULINT) {
+        TypeULINT () : IntegerType(IntegerType::IntegerTypeID::ULINT) { init_type (); }
+        TypeULINT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::ULINT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "unsigned long int";
             suffix = "UL";
-            min = 0;
-            max = ULONG_MAX;
+            min.ulint_val = 0;
+            max.ulint_val = ULONG_MAX;
             bit_size = sizeof (unsigned long int) * CHAR_BIT;
             is_signed = false;
         }
@@ -286,11 +324,14 @@ class TypeULINT : public IntegerType {
 
 class TypeLLINT : public IntegerType {
     public:
-        TypeLLINT () : IntegerType(IntegerType::IntegerTypeID::LLINT) {
+        TypeLLINT () : IntegerType(IntegerType::IntegerTypeID::LLINT) { init_type (); }
+        TypeLLINT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::LLINT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "long long int";
             suffix = "LL";
-            min = LLONG_MIN;
-            max = LLONG_MAX;
+            min.llint_val = LLONG_MIN;
+            max.llint_val = LLONG_MAX;
             bit_size = sizeof (long long int) * CHAR_BIT;
             is_signed = true;
         }
@@ -299,11 +340,14 @@ class TypeLLINT : public IntegerType {
 
 class TypeULLINT : public IntegerType {
     public:
-        TypeULLINT () : IntegerType(IntegerType::IntegerTypeID::ULLINT) {
+        TypeULLINT () : IntegerType(IntegerType::IntegerTypeID::ULLINT) { init_type (); }
+        TypeULLINT (Mod _modifier, bool _is_static, uint64_t _align) :
+                  IntegerType(IntegerType::IntegerTypeID::ULLINT, _modifier, _is_static, _align) { init_type (); }
+        void init_type () {
             name = "unsigned long long int";
             suffix = "ULL";
-            min = 0;
-            max = ULLONG_MAX;
+            min.ullint_val = 0;
+            max.ullint_val = ULLONG_MAX;
             bit_size = sizeof (unsigned long long int) * CHAR_BIT;
             is_signed = false;
         }

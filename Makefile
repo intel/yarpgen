@@ -17,14 +17,14 @@
 ###############################################################################
 
 CXX=clang++
-CXXFLAGS=-std=c++11
+CXXFLAGS=-std=c++11 -Wall -Wpedantic -Werror
 OPT=-O3
 LDFLAGS=-L./
-LIBSOURCES=variable.cpp node.cpp type.cpp gen_policy.cpp generator.cpp sym_table.cpp new-master.cpp
-SOURCES=main.cpp $(LIBSOURCES)
+LIBSOURCES=type.cpp
+SOURCES=main.cpp $(LIBSOURCES) self-test.cpp
 LIBOBJS=$(addprefix objs/, $(LIBSOURCES:.cpp=.o))
 OBJS=$(addprefix objs/, $(SOURCES:.cpp=.o))
-HEADERS=node.h type.h variable.h gen_policy.h generator.h sym_table.h new-master.h
+HEADERS=type.h
 EXECUTABLE=yarpgen
 
 default: $(EXECUTABLE)
