@@ -95,6 +95,10 @@ class Expr : public Node {
 class VarUseExpr : public Expr {
     public:
         VarUseExpr () : var (NULL) { id = Node::NodeID::VAR_USE; }
+        VarUseExpr (std::shared_ptr<Variable> _var) {
+            this->id = Node::NodeID::VAR_USE;
+            this->set_variable(_var);
+        }
         void set_variable (std::shared_ptr<Variable> _var);
         void propagate_type () { value.set_type(var->get_type()); }
         UB propagate_value () { value.set_value(var->get_value()); return NoUB; }
@@ -107,6 +111,11 @@ class VarUseExpr : public Expr {
 class AssignExpr : public Expr {
     public:
         AssignExpr () : to (NULL), from (NULL) { id = Node::NodeID::ASSIGN; }
+        AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from) {
+            this->id = Node::NodeID::ASSIGN;
+            this->set_to(_to);
+            this->set_from(_from);
+        }
         void set_to (std::shared_ptr<Expr> _to);
         void set_from (std::shared_ptr<Expr> _from);
         void propagate_type ();
@@ -186,6 +195,12 @@ class BinaryExpr : public ArithExpr {
         };
 
         BinaryExpr () : op (MaxOp), arg0 (NULL), arg1 (NULL) { id = Node::NodeID::BINARY; }
+        BinaryExpr (Op _op, std::shared_ptr<Expr> _arg0, std::shared_ptr<Expr> _arg1) {
+            this->id = Node::NodeID::BINARY;
+            this->set_op(_op);
+            this->set_lhs(_arg0);
+            this->set_rhs(_arg1);
+        }
         void set_op (Op _op) { op = _op; }
         Op get_op () { return op; }
         void set_lhs (std::shared_ptr<Expr> _arg0) { arg0 = _arg0; }
@@ -233,6 +248,11 @@ class UnaryExpr : public ArithExpr {
 class ConstExpr : public Expr {
     public:
         ConstExpr () : data (0) { id = Node::NodeID::CONST; }
+        ConstExpr (IntegerType::IntegerTypeID type_id, uint64_t _data) {
+            this->id = Node::NodeID::CONST;
+            this->set_type(type_id);
+            this->set_data(_data);
+        }
         void set_type (IntegerType::IntegerTypeID type_id) { value.set_type(IntegerType::init (type_id)); }
         void set_data (uint64_t _data) { data = _data; }
         void propagate_type () {};

@@ -17,7 +17,7 @@
 ###############################################################################
 
 CXX=clang++
-CXXFLAGS=-std=c++11
+CXXFLAGS=-std=c++11 -g
 OPT=-O3
 LDFLAGS=
 LIBSOURCES=variable.cpp node.cpp type.cpp gen_policy.cpp generator.cpp sym_table.cpp new-master.cpp
