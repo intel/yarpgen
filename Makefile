@@ -17,9 +17,9 @@
 ###############################################################################
 
 CXX=clang++
-CXXFLAGS=-std=c++11 -g
+CXXFLAGS=-std=c++11
 OPT=-O3
-LDFLAGS=
+LDFLAGS=-L./
 LIBSOURCES=variable.cpp node.cpp type.cpp gen_policy.cpp generator.cpp sym_table.cpp new-master.cpp
 SOURCES=main.cpp $(LIBSOURCES)
 LIBOBJS=$(addprefix objs/, $(LIBSOURCES:.cpp=.o))
@@ -29,7 +29,7 @@ EXECUTABLE=yarpgen
 
 default: $(EXECUTABLE)
 
-$(EXECUTABLE): dir $(SOURCES) $(HEADERS) $(OBJS)
+$(EXECUTABLE): dir $(SOURCES) $(HEADERS) $(OBJS) libyarpgen
 	$(CXX) $(OPT) $(LDFLAGS) -o $@ $(OBJS)
 
 libyarpgen: dir $(LIBSOURCES) $(HEADERS) $(LIBOBJS)
