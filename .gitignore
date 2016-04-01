@@ -1,5 +1,6 @@
 *.pyc
 *~
+libyarpgen.a
 yarpgen
 objs
 res
