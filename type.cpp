@@ -76,40 +76,40 @@ void StructType::dbg_dump() {
     std::cout << "depth: " << nest_depth << std::endl;
 }
 
-std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id) {
+std::shared_ptr<Type> IntegerType::init (AtomicType::IntegerTypeID _type_id) {
     std::shared_ptr<Type> ret (NULL);
     switch (_type_id) {
-        case IntegerType::IntegerTypeID::BOOL:
+        case AtomicType::IntegerTypeID::BOOL:
             ret = std::make_shared<TypeBOOL> (TypeBOOL());
             break;
-        case IntegerType::IntegerTypeID::CHAR:
+        case AtomicType::IntegerTypeID::CHAR:
             ret = std::make_shared<TypeCHAR> (TypeCHAR());
             break;
-        case IntegerType::IntegerTypeID::UCHAR:
+        case AtomicType::IntegerTypeID::UCHAR:
             ret = std::make_shared<TypeUCHAR> (TypeUCHAR());
             break;
-        case IntegerType::IntegerTypeID::SHRT:
+        case AtomicType::IntegerTypeID::SHRT:
             ret = std::make_shared<TypeSHRT> (TypeSHRT());
             break;
-        case IntegerType::IntegerTypeID::USHRT:
+        case AtomicType::IntegerTypeID::USHRT:
             ret = std::make_shared<TypeUSHRT> (TypeUSHRT());
             break;
-        case IntegerType::IntegerTypeID::INT:
+        case AtomicType::IntegerTypeID::INT:
             ret = std::make_shared<TypeINT> (TypeINT());
             break;
-        case IntegerType::IntegerTypeID::UINT:
+        case AtomicType::IntegerTypeID::UINT:
             ret = std::make_shared<TypeUINT> (TypeUINT());
             break;
-        case IntegerType::IntegerTypeID::LINT:
+        case AtomicType::IntegerTypeID::LINT:
             ret = std::make_shared<TypeLINT> (TypeLINT());
             break;
-        case IntegerType::IntegerTypeID::ULINT:
+        case AtomicType::IntegerTypeID::ULINT:
             ret = std::make_shared<TypeULINT> (TypeULINT());
             break;
-         case IntegerType::IntegerTypeID::LLINT:
+         case AtomicType::IntegerTypeID::LLINT:
             ret = std::make_shared<TypeLLINT> (TypeLLINT());
             break;
-         case IntegerType::IntegerTypeID::ULLINT:
+         case AtomicType::IntegerTypeID::ULLINT:
             ret = std::make_shared<TypeULLINT> (TypeULLINT());
             break;
         case MAX_INT_ID:
@@ -118,7 +118,7 @@ std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id) {
     return ret;
 }
 
-std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static, uint64_t _align) {
+std::shared_ptr<Type> IntegerType::init (AtomicType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static, uint64_t _align) {
     std::shared_ptr<Type> ret = IntegerType::init (_type_id);
     ret->set_modifier(_modifier);
     ret->set_is_static(_is_static);
@@ -126,7 +126,7 @@ std::shared_ptr<Type> IntegerType::init (IntegerType::IntegerTypeID _type_id, Ty
     return ret;
 }
 
-bool IntegerType::can_repr_value (IntegerType::IntegerTypeID a, IntegerType::IntegerTypeID b) {
+bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::IntegerTypeID b) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     std::shared_ptr<IntegerType> B = std::static_pointer_cast<IntegerType>(init(b));
     bool int_eq_long = sizeof(int) == sizeof(long int);
@@ -200,7 +200,7 @@ bool IntegerType::can_repr_value (IntegerType::IntegerTypeID a, IntegerType::Int
     }
 }
 
-IntegerType::IntegerTypeID IntegerType::get_corr_unsig (IntegerType::IntegerTypeID _type_id) {
+AtomicType::IntegerTypeID IntegerType::get_corr_unsig (AtomicType::IntegerTypeID _type_id) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     switch (_type_id) {
         case INT:
@@ -231,45 +231,45 @@ static std::string dbg_dump_helper (std::string name, int id, T min, T max, uint
 }
 
 void TypeBOOL::dbg_dump () {
-    std::cout << dbg_dump_helper<bool>(get_name(), get_int_type_id(), min.bool_val, max.bool_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<bool>(get_name(), get_int_type_id(), min.val.bool_val, max.val.bool_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeCHAR::dbg_dump () {
-    std::cout << dbg_dump_helper<char>(get_name(), get_int_type_id(), min.char_val, max.char_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<char>(get_name(), get_int_type_id(), min.val.char_val, max.val.char_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeUCHAR::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned char>(get_name(), get_int_type_id(), min.uchar_val, max.uchar_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned char>(get_name(), get_int_type_id(), min.val.uchar_val, max.val.uchar_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeSHRT::dbg_dump () {
-    std::cout << dbg_dump_helper<short>(get_name(), get_int_type_id(), min.shrt_val, max.shrt_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<short>(get_name(), get_int_type_id(), min.val.shrt_val, max.val.shrt_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeUSHRT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned short>(get_name(), get_int_type_id(), min.ushrt_val, max.ushrt_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned short>(get_name(), get_int_type_id(), min.val.ushrt_val, max.val.ushrt_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeINT::dbg_dump () {
-    std::cout << dbg_dump_helper<int>(get_name(), get_int_type_id(), min.int_val, max.int_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<int>(get_name(), get_int_type_id(), min.val.int_val, max.val.int_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeUINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned int>(get_name(), get_int_type_id(), min.uint_val, max.uint_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned int>(get_name(), get_int_type_id(), min.val.uint_val, max.val.uint_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<long int>(get_name(), get_int_type_id(), min.lint_val, max.lint_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<long int>(get_name(), get_int_type_id(), min.val.lint_val, max.val.lint_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeULINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned long int>(get_name(), get_int_type_id(), min.ulint_val, max.ulint_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned long int>(get_name(), get_int_type_id(), min.val.ulint_val, max.val.ulint_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeLLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<long long int>(get_name(), get_int_type_id(), min.llint_val, max.llint_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<long long int>(get_name(), get_int_type_id(), min.val.llint_val, max.val.llint_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeULLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned long long int>(get_name(), get_int_type_id(), min.ullint_val, max.ullint_val, bit_size, is_signed) << std::endl;
+    std::cout << dbg_dump_helper<unsigned long long int>(get_name(), get_int_type_id(), min.val.ullint_val, max.val.ullint_val, bit_size, is_signed) << std::endl;
 }
