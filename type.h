@@ -41,10 +41,31 @@ class Type {
             MAX_MOD
         };
 
+        enum AtomicTypeID {
+            Integer, FP, Max_AtomicTypeID
+        };
+
+        enum IntegerTypeID {
+            BOOL,
+            CHAR,
+            UCHAR,
+            SHRT,
+            USHRT,
+            INT,
+            UINT,
+            LINT,
+            ULINT,
+            LLINT,
+            ULLINT,
+            MAX_INT_ID,
+        };
+
         Type (TypeID _id) : modifier(Mod::NTHG), is_static(false), align(0), id (_id) {}
         Type (TypeID _id, Mod _modifier, bool _is_static, uint64_t _align) :
               modifier (_modifier), is_static (_is_static), align (_align), id (_id) {}
         Type::TypeID get_type_id () { return id; }
+        virtual AtomicTypeID get_atomic_type_id () { return Max_AtomicTypeID; }
+        virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
         std::string get_name ();
         void set_modifier (Mod _modifier) { modifier = _modifier; }
         Mod get_modifier () { return modifier; }
@@ -105,25 +126,6 @@ class StructType : public Type {
 
 class AtomicType : public Type {
     public:
-        enum AtomicTypeID {
-            Integer, FP, Max_AtomicTypeID
-        };
-
-        enum IntegerTypeID {
-            BOOL,
-            CHAR,
-            UCHAR,
-            SHRT,
-            USHRT,
-            INT,
-            UINT,
-            LINT,
-            ULINT,
-            LLINT,
-            ULLINT,
-            MAX_INT_ID,
-        };
-
         class ScalarTypedVal {
             public:
                 union Val {
@@ -141,7 +143,7 @@ class AtomicType : public Type {
                 };
 
                 ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id (_int_type_id) { val.ullint_val = 0; }
-
+                AtomicType::IntegerTypeID get_int_type_id () const { return int_type_id; }
                 Val val;
 
             private:
@@ -163,14 +165,16 @@ class AtomicType : public Type {
         AtomicTypeID atomic_id;
 };
 
+std::ostream& operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val);
+
 class IntegerType : public AtomicType {
     public:
         IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
         IntegerType (IntegerTypeID it_id, Mod _modifier, bool _is_static, uint64_t _align) :
                      AtomicType (AtomicTypeID::Integer, _modifier, _is_static, _align),
                      is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
-        static std::shared_ptr<Type> init (AtomicType::IntegerTypeID _type_id);
-        static std::shared_ptr<Type> init (AtomicType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
+        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id);
+        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
         IntegerTypeID get_int_type_id () { return int_type_id; }
         static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type a can represent all of the values of the type b
         static AtomicType::IntegerTypeID get_corr_unsig (AtomicType::IntegerTypeID _type_id);

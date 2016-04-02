@@ -76,8 +76,51 @@ void StructType::dbg_dump() {
     std::cout << "depth: " << nest_depth << std::endl;
 }
 
-std::shared_ptr<Type> IntegerType::init (AtomicType::IntegerTypeID _type_id) {
-    std::shared_ptr<Type> ret (NULL);
+std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {
+    switch(scalar_typed_val.get_int_type_id()) {
+        case AtomicType::BOOL:
+            out << scalar_typed_val.val.bool_val;
+            break;
+        case AtomicType::CHAR:
+            out << scalar_typed_val.val.char_val;
+            break;
+        case AtomicType::UCHAR:
+            out << scalar_typed_val.val.uchar_val;
+            break;
+        case AtomicType::SHRT:
+            out << scalar_typed_val.val.shrt_val;
+            break;
+        case AtomicType::USHRT:
+            out << scalar_typed_val.val.ushrt_val;
+            break;
+        case AtomicType::INT:
+            out << scalar_typed_val.val.int_val;
+            break;
+        case AtomicType::UINT:
+            out << scalar_typed_val.val.uint_val;
+            break;
+        case AtomicType::LINT:
+            out << scalar_typed_val.val.lint_val;
+            break;
+        case AtomicType::ULINT:
+            out << scalar_typed_val.val.ulint_val;
+            break;
+        case AtomicType::LLINT:
+            out << scalar_typed_val.val.llint_val;
+            break;
+        case AtomicType::ULLINT:
+            out << scalar_typed_val.val.ullint_val;
+            break;
+        case AtomicType::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::allocate_members" << std::endl;
+            exit(-1);
+            break;
+    }
+    return out;
+}
+
+std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id) {
+    std::shared_ptr<IntegerType> ret (NULL);
     switch (_type_id) {
         case AtomicType::IntegerTypeID::BOOL:
             ret = std::make_shared<TypeBOOL> (TypeBOOL());
@@ -118,8 +161,8 @@ std::shared_ptr<Type> IntegerType::init (AtomicType::IntegerTypeID _type_id) {
     return ret;
 }
 
-std::shared_ptr<Type> IntegerType::init (AtomicType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static, uint64_t _align) {
-    std::shared_ptr<Type> ret = IntegerType::init (_type_id);
+std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static, uint64_t _align) {
+    std::shared_ptr<IntegerType> ret = IntegerType::init (_type_id);
     ret->set_modifier(_modifier);
     ret->set_is_static(_is_static);
     ret->set_align(_align);

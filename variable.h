@@ -28,59 +28,31 @@ class Data {
             VAR, ARR, STRUCT, MAX_CLASS_ID
         };
 
-        union TypeVal {
-            bool bool_val;
-            signed char char_val;
-            unsigned char uchar_val;
-            short shrt_val;
-            unsigned short ushrt_val;
-            int int_val;
-            unsigned int uint_val;
-            long int lint_val;
-            unsigned long int ulint_val;
-            long long int llint_val;
-            unsigned long long int ullint_val;
-        };
-
         //TODO: Data can be not only integer, but who cares
-        explicit Data (std::string _name);
-        void set_modifier (Type::Mod _modifier) { type->set_modifier(_modifier); }
+        Data (std::string _name, std::shared_ptr<Type> _type, VarClassID _class_id) :
+              type(_type), name(_name), class_id(_class_id) {}
         Type::Mod get_modifier () { return type->get_modifier(); }
         bool get_is_static () { return type->get_is_static(); }
-        void set_align (uint64_t _align) { type->set_align(_align); }
         uint64_t get_align () { return type->get_align(); }
         VarClassID get_class_id () { return class_id; }
         std::string get_name () { return name; }
-        void set_type(std::shared_ptr<Type> _type) { type = _type; }
         std::shared_ptr<Type> get_type () { return type; }
-        virtual void set_value (uint64_t _val) = 0;
-        virtual void set_max (uint64_t _max) = 0;
-        virtual void set_min (uint64_t _min) = 0;
-        virtual uint64_t get_value () = 0;
-        virtual uint64_t get_max () = 0;
-        virtual uint64_t get_min () = 0;
         virtual void dbg_dump () = 0;
 
     protected:
         std::shared_ptr<Type> type;
         std::string name;
-        TypeVal value;
-        TypeVal min;
-        TypeVal max;
+
+    private:
         VarClassID class_id;
 };
 
 class Struct : public Data {
     public:
-        explicit Struct (std::string _name, std::shared_ptr<StructType> _type);
+        Struct (std::string _name, std::shared_ptr<StructType> _type) :
+                Data(_name, _type, Data::VarClassID::STRUCT) { allocate_members(); }
         uint64_t get_num_of_members () { return members.size(); }
         std::shared_ptr<Data> get_member (unsigned int num);
-        void set_value (uint64_t _val) {}
-        void set_max (uint64_t _max) {}
-        void set_min (uint64_t _min) {}
-        uint64_t get_value () { return 0; }
-        uint64_t get_max () { return 0; }
-        uint64_t get_min () { return 0; }
         void dbg_dump ();
 
     private:
@@ -88,18 +60,28 @@ class Struct : public Data {
         std::vector<std::shared_ptr<Data>> members;
 };
 
-class Variable : public Data {
+class ScalarVariable : public Data {
     public:
-        explicit Variable (std::string _name, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static);
-        void set_value (uint64_t _val);
-        void set_max (uint64_t _max);
-        void set_min (uint64_t _min);
-        uint64_t get_value ();
-        uint64_t get_max ();
-        uint64_t get_min ();
+        ScalarVariable (std::string _name, std::shared_ptr<IntegerType> _type);
+        void set_init_value (AtomicType::ScalarTypedVal _init_val) { init_val = _init_val; was_changed = false; }
+        void set_value (AtomicType::ScalarTypedVal _val) { cur_val = _val; was_changed = true; }
+        void set_max (AtomicType::ScalarTypedVal _max) { max= _max; }
+        void set_min (AtomicType::ScalarTypedVal _min) { min = _min; }
+        AtomicType::ScalarTypedVal get_init_value () { return init_val; }
+        AtomicType::ScalarTypedVal get_value () { return cur_val; }
+        AtomicType::ScalarTypedVal get_max () { return max; }
+        AtomicType::ScalarTypedVal get_min () { return min; }
         void dbg_dump ();
+
+    private:
+        AtomicType::ScalarTypedVal min;
+        AtomicType::ScalarTypedVal max;
+        AtomicType::ScalarTypedVal init_val;
+        AtomicType::ScalarTypedVal cur_val;
+        bool was_changed;
 };
 
+/*
 class Array : public Data {
     public:
         enum Ess {
@@ -128,4 +110,5 @@ class Array : public Data {
         uint64_t size;
         Ess essence;
 };
+*/
 }
