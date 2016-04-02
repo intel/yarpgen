@@ -38,7 +38,7 @@ const int MAX_ARITH_DEPTH = 3;
 const int MAX_TMP_VAR_NUM = 3;
 const int MAX_TMP_ARITH_DEPTH = 2;
 
-std::shared_ptr<RandValGen> rand_val_gen;
+std::shared_ptr<RandValGen> rand_val_gen = std::make_shared<RandValGen>(0);
 
 ReductionPolicy::ReductionPolicy () {
     reduction_mode = false;

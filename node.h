@@ -25,6 +25,8 @@ limitations under the License.
 
 namespace rl {
 
+class SymbolTable;
+
 class Node {
     public:
         enum NodeID {
@@ -306,6 +308,7 @@ class FuncCallExpr : public Expr {
 class Stmt : public Node {
     public:
         Stmt () {};
+        std::shared_ptr<SymbolTable> local_sym_table;
 };
 
 class DeclStmt : public Stmt {

@@ -219,6 +219,10 @@ class DeclStmtGen : public StmtGen {
 
 class ArithStmtGen : public StmtGen {
     public:
+        ArithStmtGen (std::shared_ptr<Context> _global_ctx, 
+                      std::vector<std::shared_ptr<Variable>> _vinp, 
+                      std::shared_ptr<Variable> _vout);
+
         ArithStmtGen (std::shared_ptr<Context> _global_ctx, std::vector<std::shared_ptr<Expr>> _inp, std::shared_ptr<Expr> _out) :
                       StmtGen (_global_ctx), inp(_inp), out(_out) {}
         std::shared_ptr<Expr> get_expr () { return res_expr; };

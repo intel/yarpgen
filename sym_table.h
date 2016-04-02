@@ -31,6 +31,7 @@ class SymbolTable {
     public:
         SymbolTable () {}
         std::shared_ptr<SymbolTable> merge (std::shared_ptr<SymbolTable> inp_st);
+        std::shared_ptr<SymbolTable> copy();
 
         void add_variable (std::shared_ptr<Variable> _var) { variable.push_back (_var); }
         void add_array (std::shared_ptr<Array> _arr) { array.push_back (_arr); }
@@ -74,7 +75,7 @@ class Context {
     public:
         Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node::NodeID _glob_stmt_id, 
                  std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx);
-
+        Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::shared_ptr<Context> _parent_ctx);
         std::shared_ptr<GenPolicy> get_self_gen_policy () { return std::make_shared<GenPolicy> (self_gen_policy); }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }
@@ -84,6 +85,7 @@ class Context {
         std::shared_ptr<SymbolTable> get_extern_out_sym_table () { return extern_out_sym_table; }
         std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
+        std::shared_ptr<Context> copy();
 
     private:
         GenPolicy self_gen_policy;

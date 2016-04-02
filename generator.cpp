@@ -419,6 +419,17 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
     return ret;
 }
 
+
+ArithStmtGen::ArithStmtGen (std::shared_ptr<Context> _global_ctx, 
+                            std::vector<std::shared_ptr<Variable>> _vinp, 
+                            std::shared_ptr<Variable> _vout) : StmtGen (_global_ctx) {
+    this->out = std::make_shared<VarUseExpr>(_vout);
+    for (auto var : _vinp) {
+        this->inp.push_back(std::make_shared<VarUseExpr>(var));
+    }
+}
+
+
 std::shared_ptr<Expr> ArithStmtGen::rebuild_unary (Expr::UB ub, std::shared_ptr<Expr> expr) {
     if (expr->get_id() != Node::NodeID::UNARY) {
         std::cerr << "ERROR: ArithExprGen::rebuild_unary : not UnaryExpr" << std::endl;
@@ -686,6 +697,7 @@ void ScopeGen::generate () {
             tmp_var_decl_gen.generate();
             std::shared_ptr<Variable> tmp_var = std::static_pointer_cast<Variable>(tmp_var_decl_gen.get_data());
             local_sym_table.add_variable(tmp_var);
+            this->stmt->local_sym_table->add_variable(tmp_var);
             VarUseExpr var_use;
             var_use.set_variable (tmp_var);
             inp.push_back(std::make_shared<VarUseExpr> (var_use));

@@ -44,6 +44,15 @@ std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> in
     return std::make_shared<SymbolTable> (new_st);
 }
 
+std::shared_ptr<SymbolTable> SymbolTable::copy () {
+    std::shared_ptr<SymbolTable> new_st = std::make_shared<SymbolTable>();
+    new_st->set_variables(this->get_variables());
+    new_st->set_arrays(this->get_arrays());
+    new_st->set_struct_types(this->get_struct_types());
+    new_st->set_structs(this->get_structs());
+    return new_st;
+}
+
 std::shared_ptr<Variable> SymbolTable::get_rand_variable () {
     int indx = rand_val_gen->get_rand_value<int>(0, variable.size() - 1);
     return variable.at(indx);
@@ -152,6 +161,30 @@ std::string SymbolTable::emit_variable_check (std::string offset) {
     return ret;
 }
 
+Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::shared_ptr<Context> _parent_ctx) {
+    this->self_gen_policy = _gen_policy;
+    this->self_glob_stmt = _glob_stmt;
+    this->parent_ctx = _parent_ctx;
+
+    if (this->self_glob_stmt.use_count() != 0) {
+        this->self_glob_stmt_id = this->self_glob_stmt->get_id();
+        this->global_sym_table = this->self_glob_stmt->local_sym_table->merge(_parent_ctx->get_global_sym_table());
+    }
+
+    this->depth = 0;
+    this->if_depth = 0;
+
+    if (this->parent_ctx.use_count() != 0) {
+        this->extern_inp_sym_table = this->parent_ctx->get_extern_inp_sym_table ();
+        this->extern_out_sym_table = this->parent_ctx->get_extern_out_sym_table ();
+        this->depth = this->parent_ctx->get_depth();
+        this->if_depth = this->parent_ctx->get_if_depth();
+    }
+
+    if (this->self_glob_stmt_id == Node::NodeID::IF)
+        this->if_depth++;
+}
+
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node::NodeID _glob_stmt_id,
                   std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx) {
     self_gen_policy = _gen_policy;
@@ -172,3 +205,10 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
         if_depth++;
 }
 
+std::shared_ptr<Context> Context::copy() {
+    std::shared_ptr<SymbolTable> new_st = std::make_shared<SymbolTable>();
+    if (this->global_sym_table.use_count() != 0)
+        new_st = this->global_sym_table->copy();
+    return std::make_shared<Context>(this->self_gen_policy, this->self_glob_stmt, 
+                this->self_glob_stmt_id, new_st, this->parent_ctx);
+}
