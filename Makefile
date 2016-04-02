@@ -20,11 +20,11 @@ CXX=clang++
 CXXFLAGS=-std=c++11 -Wall -Wpedantic -Werror
 OPT=-O3
 LDFLAGS=-L./ -std=c++11
-LIBSOURCES=type.cpp variable.cpp
+LIBSOURCES=type.cpp variable.cpp expr.cpp
 SOURCES=main.cpp $(LIBSOURCES) self-test.cpp
 LIBOBJS=$(addprefix objs/, $(LIBSOURCES:.cpp=.o))
 OBJS=$(addprefix objs/, $(SOURCES:.cpp=.o))
-HEADERS=type.h variable.h
+HEADERS=type.h variable.h ir_node.h expr.h
 EXECUTABLE=yarpgen
 
 default: $(EXECUTABLE)

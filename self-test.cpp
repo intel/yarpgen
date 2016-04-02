@@ -20,6 +20,8 @@ limitations under the License.
 
 #include "type.h"
 #include "variable.h"
+#include "ir_node.h"
+#include "expr.h"
 
 using namespace rl;
 
@@ -45,4 +47,13 @@ void self_test () {
 
     Struct struct_val ("srtuct_0", struct_type);
     struct_val.dbg_dump();
+
+    VarUseExpr bool_use (std::make_shared<ScalarVariable>(bool_val));
+    std::cout << bool_use.emit() << std::endl;
+
+    VarUseExpr int_use (std::make_shared<ScalarVariable>(int_val));
+    std::cout << int_use.emit() << std::endl;
+
+    VarUseExpr struct_use (std::make_shared<Struct>(struct_val));
+    std::cout << struct_use.emit() << std::endl;
 }

@@ -25,7 +25,7 @@ namespace rl {
 class Data {
     public:
         enum VarClassID {
-            VAR, ARR, STRUCT, MAX_CLASS_ID
+            VAR, STRUCT, MAX_CLASS_ID
         };
 
         //TODO: Data can be not only integer, but who cares
