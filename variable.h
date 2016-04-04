@@ -36,6 +36,7 @@ class Data {
         uint64_t get_align () { return type->get_align(); }
         VarClassID get_class_id () { return class_id; }
         std::string get_name () { return name; }
+        void set_name (std::string _name) { name = _name; }
         std::shared_ptr<Type> get_type () { return type; }
         virtual void dbg_dump () = 0;
 
@@ -63,12 +64,12 @@ class Struct : public Data {
 class ScalarVariable : public Data {
     public:
         ScalarVariable (std::string _name, std::shared_ptr<IntegerType> _type);
-        void set_init_value (AtomicType::ScalarTypedVal _init_val) { init_val = _init_val; was_changed = false; }
-        void set_value (AtomicType::ScalarTypedVal _val) { cur_val = _val; was_changed = true; }
-        void set_max (AtomicType::ScalarTypedVal _max) { max= _max; }
+        void set_init_value (AtomicType::ScalarTypedVal _init_val) {init_val = cur_val = _init_val; was_changed = false; }
+        void set_cur_value (AtomicType::ScalarTypedVal _val) { cur_val = _val; was_changed = true; }
+        void set_max (AtomicType::ScalarTypedVal _max) { max = _max; }
         void set_min (AtomicType::ScalarTypedVal _min) { min = _min; }
         AtomicType::ScalarTypedVal get_init_value () { return init_val; }
-        AtomicType::ScalarTypedVal get_value () { return cur_val; }
+        AtomicType::ScalarTypedVal get_cur_value () { return cur_val; }
         AtomicType::ScalarTypedVal get_max () { return max; }
         AtomicType::ScalarTypedVal get_min () { return min; }
         void dbg_dump ();

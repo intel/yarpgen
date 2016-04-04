@@ -42,7 +42,7 @@ std::string Type::get_name () {
     }
     ret += name;
     if (align != 0)
-        ret += " __attribute__((aligned(" + std::to_string(align) + ")))";
+        ret += " __attribute__(aligned(" + std::to_string(align) + "))";
     return ret;
 }
 
@@ -74,6 +74,89 @@ std::string StructType::get_definition (std::string offset) {
 void StructType::dbg_dump() {
     std::cout << get_definition () << std::endl;
     std::cout << "depth: " << nest_depth << std::endl;
+}
+
+#define CAST_CASE(new_val_memb)                                     \
+switch (int_type_id) {                                              \
+    case Type::IntegerTypeID::BOOL:                                 \
+        new_val_memb = val.bool_val;                                \
+        break;                                                      \
+    case Type::IntegerTypeID::CHAR:                                 \
+        new_val_memb = val.char_val;                                \
+        break;                                                      \
+    case Type::IntegerTypeID::UCHAR:                                \
+        new_val_memb = val.uchar_val;                               \
+        break;                                                      \
+    case Type::IntegerTypeID::SHRT:                                 \
+        new_val_memb = val.shrt_val;                                \
+        break;                                                      \
+    case Type::IntegerTypeID::USHRT:                                \
+        new_val_memb = val.ushrt_val;                               \
+        break;                                                      \
+    case Type::IntegerTypeID::INT:                                  \
+        new_val_memb = val.int_val;                                 \
+        break;                                                      \
+    case Type::IntegerTypeID::UINT:                                 \
+        new_val_memb = val.uint_val;                                \
+        break;                                                      \
+    case Type::IntegerTypeID::LINT:                                 \
+        new_val_memb = val.lint_val;                                \
+        break;                                                      \
+    case Type::IntegerTypeID::ULINT:                                \
+        new_val_memb = val.ulint_val;                               \
+        break;                                                      \
+    case Type::IntegerTypeID::LLINT:                                \
+        new_val_memb = val.llint_val;                               \
+        break;                                                      \
+    case Type::IntegerTypeID::ULLINT:                               \
+        new_val_memb = val.ullint_val;                              \
+        break;                                                      \
+    case Type::IntegerTypeID::MAX_INT_ID:                           \
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in AtomicType::ScalarTypedVal::cast_type" << std::endl;\
+        exit(-1);                                                   \
+} 
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerTypeID to_type_id) {
+    ScalarTypedVal new_val = ScalarTypedVal (to_type_id);
+    switch (to_type_id) {
+        case Type::IntegerTypeID::BOOL:
+            CAST_CASE(new_val.val.bool_val)
+            break;
+        case Type::IntegerTypeID::CHAR:
+            CAST_CASE(new_val.val.char_val)
+            break;
+        case Type::IntegerTypeID::UCHAR:
+            CAST_CASE(new_val.val.uchar_val)
+            break;
+        case Type::IntegerTypeID::SHRT:
+            CAST_CASE(new_val.val.shrt_val)
+            break;
+        case Type::IntegerTypeID::USHRT:
+            CAST_CASE(new_val.val.ushrt_val)
+            break;
+        case Type::IntegerTypeID::INT:
+            CAST_CASE(new_val.val.int_val)
+            break;
+        case Type::IntegerTypeID::UINT:
+            CAST_CASE(new_val.val.uint_val)
+            break;
+        case Type::IntegerTypeID::LINT:
+            CAST_CASE(new_val.val.lint_val)
+            break;
+        case Type::IntegerTypeID::ULINT:
+            CAST_CASE(new_val.val.ulint_val)
+            break;
+        case Type::IntegerTypeID::LLINT:
+            CAST_CASE(new_val.val.llint_val)
+            break;
+        case Type::IntegerTypeID::ULLINT:
+            CAST_CASE(new_val.val.ullint_val)
+            break;
+        case Type::IntegerTypeID::MAX_INT_ID:                           \
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in AtomicType::ScalarTypedVal::cast_type" << std::endl;
+            exit(-1);
+    }
+    return new_val;
 }
 
 std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {

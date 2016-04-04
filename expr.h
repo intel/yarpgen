@@ -45,7 +45,7 @@ class Expr : public Node {
         std::shared_ptr<Data> get_value ();
 
     protected:
-        virtual void propagate_type () = 0;
+        virtual bool propagate_type () = 0;
         virtual UB propagate_value () = 0;
         std::shared_ptr<Data> value;
 };
@@ -53,9 +53,41 @@ class Expr : public Node {
 class VarUseExpr : public Expr {
     public:
         VarUseExpr (std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var) {}
-        void propagate_type () {}
-        UB propagate_value () { return NoUB; }
+        void set_value (std::shared_ptr<Data> _new_value);
         std::string emit (std::string offset = "") { return value->get_name (); }
+
+    private:
+        bool propagate_type () { return true; }
+        UB propagate_value () { return NoUB; }
+};
+
+class AssignExpr : public Expr {
+    public:
+        AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from);
+        std::string emit (std::string offset = "");
+
+    private:
+        bool propagate_type ();
+        UB propagate_value ();
+
+        std::shared_ptr<Expr> to;
+        std::shared_ptr<Expr> from;
+};
+
+
+class TypeCastExpr : public Expr {
+    public:
+        TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type);
+        std::string emit (std::string offset = "");
+
+    private:
+        bool propagate_type ();
+        UB propagate_value ();
+
+        std::shared_ptr<Expr> expr;
+        std::shared_ptr<Type> to_type;
+        //TODO: add field
+//        bool is_implicit;
 };
 
 }

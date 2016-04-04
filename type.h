@@ -67,6 +67,7 @@ class Type {
         virtual AtomicTypeID get_atomic_type_id () { return Max_AtomicTypeID; }
         virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
         std::string get_name ();
+        std::string get_simple_name () { return name; }
         void set_modifier (Mod _modifier) { modifier = _modifier; }
         Mod get_modifier () { return modifier; }
         void set_is_static (bool _is_static) { is_static = _is_static; }
@@ -143,7 +144,9 @@ class AtomicType : public Type {
                 };
 
                 ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id (_int_type_id) { val.ullint_val = 0; }
-                AtomicType::IntegerTypeID get_int_type_id () const { return int_type_id; }
+                Type::IntegerTypeID get_int_type_id () const { return int_type_id; }
+                ScalarTypedVal cast_type (Type::IntegerTypeID to_type_id);
+
                 Val val;
 
             private:

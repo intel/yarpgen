@@ -44,10 +44,8 @@ class Node {
             MIN_STMT_ID,
             DECL,
             EXPR,
-            LBB,
             CNT_LOOP,
             IF,
-            LHDR,
             BREAK,
             CONTINUE,
             MAX_STMT_ID

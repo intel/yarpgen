@@ -30,30 +30,48 @@ void self_test () {
 
     std::shared_ptr<IntegerType> bool_type = IntegerType::init(AtomicType::IntegerTypeID::BOOL);
     bool_type->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
     std::shared_ptr<IntegerType> int_type = IntegerType::init(AtomicType::IntegerTypeID::INT, AtomicType::Mod::CONST, true, 32);
     int_type->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
     std::shared_ptr<StructType> struct_type = std::make_shared<StructType>("AA");
     struct_type->add_member(bool_type, "memb_1");
     struct_type->add_member(int_type, "memb_2");
     struct_type->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
-    ScalarVariable bool_val ("a", bool_type);
-    bool_val.dbg_dump();
+    std::shared_ptr<ScalarVariable> bool_val = std::make_shared<ScalarVariable>("b", bool_type);
+    bool_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
-    ScalarVariable int_val ("b", int_type);
-    int_val.dbg_dump();
+    std::shared_ptr<ScalarVariable> int_val = std::make_shared<ScalarVariable>("i", int_type);
+    int_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
-    Struct struct_val ("srtuct_0", struct_type);
-    struct_val.dbg_dump();
+    std::shared_ptr<Struct> struct_val = std::make_shared<Struct>("srtuct_0", struct_type);
+    struct_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
-    VarUseExpr bool_use (std::make_shared<ScalarVariable>(bool_val));
-    std::cout << bool_use.emit() << std::endl;
+    std::shared_ptr<VarUseExpr> bool_use = std::make_shared<VarUseExpr>(bool_val);
+    std::cout << "bool_use " << bool_use->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
 
-    VarUseExpr int_use (std::make_shared<ScalarVariable>(int_val));
-    std::cout << int_use.emit() << std::endl;
+    std::shared_ptr<VarUseExpr> int_use = std::make_shared<VarUseExpr>(int_val);
+    std::cout << "int_use " << int_use->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
 
-    VarUseExpr struct_use (std::make_shared<Struct>(struct_val));
-    std::cout << struct_use.emit() << std::endl;
+    std::shared_ptr<VarUseExpr> struct_use = std::make_shared<VarUseExpr>(struct_val);
+    std::cout << "struct_use " << struct_use->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<AssignExpr> int_bool = std::make_shared<AssignExpr>(int_use, bool_use);
+    std::cout << "int_bool " << int_bool->emit() << std::endl;
+    int_bool->get_value()->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    int_val->dbg_dump();
+    bool_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 }
