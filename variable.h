@@ -31,9 +31,6 @@ class Data {
         //TODO: Data can be not only integer, but who cares
         Data (std::string _name, std::shared_ptr<Type> _type, VarClassID _class_id) :
               type(_type), name(_name), class_id(_class_id) {}
-        Type::Mod get_modifier () { return type->get_modifier(); }
-        bool get_is_static () { return type->get_is_static(); }
-        uint64_t get_align () { return type->get_align(); }
         VarClassID get_class_id () { return class_id; }
         std::string get_name () { return name; }
         void set_name (std::string _name) { name = _name; }

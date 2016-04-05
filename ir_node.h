@@ -33,21 +33,21 @@ class Node {
             ASSIGN,
             BINARY,
             CONST,
-            EXPR_LIST,
-            FUNC_CALL,
+//            EXPR_LIST,
+//            FUNC_CALL,
             TYPE_CAST,
             UNARY,
             VAR_USE,
-            MEMBER,
+//            MEMBER,
             MAX_EXPR_ID,
             // Stmt type
             MIN_STMT_ID,
             DECL,
             EXPR,
-            CNT_LOOP,
+//            CNT_LOOP,
             IF,
-            BREAK,
-            CONTINUE,
+//            BREAK,
+//            CONTINUE,
             MAX_STMT_ID
         };
         Node (NodeID _id) : id(_id) {}

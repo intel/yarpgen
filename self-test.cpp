@@ -22,6 +22,7 @@ limitations under the License.
 #include "variable.h"
 #include "ir_node.h"
 #include "expr.h"
+#include "stmt.h"
 
 using namespace rl;
 
@@ -104,5 +105,13 @@ void self_test () {
     std::cout << "add_assign " << add_assign->emit() << std::endl;
     add_assign->get_value()->dbg_dump();
     lint_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<DeclStmt> int_decl = std::make_shared<DeclStmt>(int_val, char_const, false);
+    std::cout << "int_decl: " << int_decl->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<ExprStmt> assign_expr_stmt= std::make_shared<ExprStmt>(bit_not_assign);
+    std::cout << "assign_expr_stmt: " << assign_expr_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 }

@@ -137,9 +137,9 @@ std::string TypeCastExpr::emit (std::string offset) {
     std::string ret = offset;
     //TODO: add parameter to gen_policy
     if (!is_implicit)
-        ret += "(" + value->get_type()->get_simple_name() + ")";
+        ret += "(" + value->get_type()->get_simple_name() + ") ";
     else
-        ret += "(" + value->get_type()->get_simple_name() + ")";
+        ret += "(" + value->get_type()->get_simple_name() + ") ";
     ret += "(" + expr->emit() + ")";
     return ret;
 }
@@ -334,9 +334,9 @@ std::string UnaryExpr::emit (std::string offset) {
     }
     std::string ret = "";
     if (op == PostInc || op == PostDec)
-        ret = "((" + arg->emit() + ")" + op_str + ")";
+        ret = "(" + arg->emit() + ")" + op_str;
     else
-        ret = "(" + op_str + "(" + arg->emit() + "))";
+        ret = op_str + "(" + arg->emit() + ")";
     return ret;
 }
 
@@ -533,7 +533,7 @@ UB BinaryExpr::propagate_value () {
 
 std::string BinaryExpr::emit (std::string offset) {
     std::string ret = offset;
-    ret += "((" + arg0->emit() + ")";
+    ret += "(" + arg0->emit() + ")";
     switch (op) {
         case Add:
             ret += " + ";
@@ -594,7 +594,7 @@ std::string BinaryExpr::emit (std::string offset) {
             exit(-1);
             break;
         }
-        ret += "(" + arg1->emit() + "))";
+        ret += "(" + arg1->emit() + ")";
         return ret;
 }
 
