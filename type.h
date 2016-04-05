@@ -66,6 +66,7 @@ class Type {
         Type::TypeID get_type_id () { return id; }
         virtual AtomicTypeID get_atomic_type_id () { return Max_AtomicTypeID; }
         virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
+        virtual bool get_is_signed() { return false; }
         std::string get_name ();
         std::string get_simple_name () { return name; }
         void set_modifier (Mod _modifier) { modifier = _modifier; }
@@ -170,6 +171,25 @@ class AtomicType : public Type {
                 ScalarTypedVal operator~ ();
                 ScalarTypedVal operator! ();
 
+                ScalarTypedVal operator+ (ScalarTypedVal rhs);
+                ScalarTypedVal operator- (ScalarTypedVal rhs);
+                ScalarTypedVal operator* (ScalarTypedVal rhs);
+                ScalarTypedVal operator/ (ScalarTypedVal rhs);
+                ScalarTypedVal operator% (ScalarTypedVal rhs);
+                ScalarTypedVal operator< (ScalarTypedVal rhs);
+                ScalarTypedVal operator> (ScalarTypedVal rhs);
+                ScalarTypedVal operator<= (ScalarTypedVal rhs);
+                ScalarTypedVal operator>= (ScalarTypedVal rhs);
+                ScalarTypedVal operator== (ScalarTypedVal rhs);
+                ScalarTypedVal operator!= (ScalarTypedVal rhs);
+                ScalarTypedVal operator&& (ScalarTypedVal rhs);
+                ScalarTypedVal operator|| (ScalarTypedVal rhs);
+                ScalarTypedVal operator& (ScalarTypedVal rhs);
+                ScalarTypedVal operator| (ScalarTypedVal rhs);
+                ScalarTypedVal operator^ (ScalarTypedVal rhs);
+                ScalarTypedVal operator<< (ScalarTypedVal rhs);
+                ScalarTypedVal operator>> (ScalarTypedVal rhs);
+
                 Val val;
 
             private:
@@ -206,7 +226,7 @@ class IntegerType : public AtomicType {
         static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id);
         static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
         IntegerTypeID get_int_type_id () { return int_type_id; }
-        static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type a can represent all of the values of the type b
+        static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type B can represent all of the values of the type A
         static AtomicType::IntegerTypeID get_corr_unsig (AtomicType::IntegerTypeID _type_id);
         bool get_is_signed () { return is_signed; }
         AtomicType::ScalarTypedVal get_min () { return min; }

@@ -98,4 +98,11 @@ void self_test () {
     bit_not_assign->get_value()->dbg_dump();
     lint_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<BinaryExpr> binary_add = std::make_shared<BinaryExpr>(BinaryExpr::Op::Add, unary_bit_not, char_const);
+    std::shared_ptr<AssignExpr> add_assign = std::make_shared<AssignExpr>(lint_use, binary_add);
+    std::cout << "add_assign " << add_assign->emit() << std::endl;
+    add_assign->get_value()->dbg_dump();
+    lint_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 }

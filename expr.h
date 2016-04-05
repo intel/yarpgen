@@ -121,4 +121,46 @@ class UnaryExpr : public ArithExpr {
         std::shared_ptr<Expr> arg;
 };
 
+class BinaryExpr : public ArithExpr {
+    public:
+        enum Op {
+            Add   , ///< Addition
+            Sub   , ///< Subtraction
+            Mul   , ///< Multiplication
+            Div   , ///< Division
+            Mod   , ///< Modulus
+            Shl   , ///< Shift left
+            Shr   , ///< Shift right
+
+            Lt    ,  ///< Less than
+            Gt    ,  ///< Greater than
+            Le    ,  ///< Less than or equal
+            Ge    , ///< Greater than or equal
+            Eq    , ///< Equal
+            Ne    , ///< Not equal
+
+            BitAnd, ///< Bitwise AND
+            BitXor, ///< Bitwise XOR
+            BitOr , ///< Bitwise OR
+
+            LogAnd, ///< Logical AND
+            LogOr , ///< Logical OR
+
+            MaxOp
+        };
+
+        BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
+        Op get_op () { return op; }
+        std::string emit (std::string offset = "");
+
+    private:
+        bool propagate_type ();
+        UB propagate_value ();
+        void perform_arith_conv ();
+
+        Op op;
+        std::shared_ptr<Expr> arg0;
+        std::shared_ptr<Expr> arg1;
+};
+
 }

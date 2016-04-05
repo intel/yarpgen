@@ -339,3 +339,262 @@ std::string UnaryExpr::emit (std::string offset) {
         ret = "(" + op_str + "(" + arg->emit() + "))";
     return ret;
 }
+
+BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
+                        ArithExpr(Node::NodeID::BINARY, NULL), op(_op), arg0(lhs), arg1(rhs) {
+    //TODO: add UB elimination strategy
+    propagate_type();
+    propagate_value();
+}
+
+void BinaryExpr::perform_arith_conv () {
+    // integral promotion should be a part of it, but it was moved to base class
+    // 10.5.1
+    if (arg0->get_value()->get_type()->get_int_type_id() == arg1->get_value()->get_type()->get_int_type_id())
+        return;
+    // 10.5.2
+    if (arg0->get_value()->get_type()->get_is_signed() == arg1->get_value()->get_type()->get_is_signed()) {
+        std::shared_ptr<Type> cast_to_type = IntegerType::init(std::max(arg0->get_value()->get_type()->get_int_type_id(),
+                                                                        arg1->get_value()->get_type()->get_int_type_id()));
+        if (arg0->get_value()->get_type()->get_int_type_id() <  arg1->get_value()->get_type()->get_int_type_id()) {
+            arg0 = std::make_shared<TypeCastExpr>(arg0, cast_to_type, true);
+        }
+        else {
+            arg1 = std::make_shared<TypeCastExpr>(arg1, cast_to_type, true);
+        }
+        return;
+    }
+    if ((!arg0->get_value()->get_type()->get_is_signed() && 
+         (arg0->get_value()->get_type()->get_int_type_id() >= arg1->get_value()->get_type()->get_int_type_id())) || // 10.5.3
+         (arg0->get_value()->get_type()->get_is_signed() && 
+          IntegerType::can_repr_value (arg1->get_value()->get_type()->get_int_type_id(), arg0->get_value()->get_type()->get_int_type_id()))) { // 10.5.4
+        arg1 = std::make_shared<TypeCastExpr>(arg1, IntegerType::init(arg0->get_value()->get_type()->get_int_type_id()), true);
+        return;
+    }
+    if ((!arg1->get_value()->get_type()->get_is_signed() &&
+         (arg1->get_value()->get_type()->get_int_type_id() >= arg0->get_value()->get_type()->get_int_type_id())) || // 10.5.3
+         (arg1->get_value()->get_type()->get_is_signed() &&
+          IntegerType::can_repr_value (arg0->get_value()->get_type()->get_int_type_id(), arg1->get_value()->get_type()->get_int_type_id()))) { // 10.5.4
+        arg0 = std::make_shared<TypeCastExpr>(arg0, IntegerType::init(arg1->get_value()->get_type()->get_int_type_id()), true);
+        return;
+    }
+    // 10.5.5
+    if (arg0->get_value()->get_type()->get_is_signed()) {
+        std::shared_ptr<Type> cast_to_type = IntegerType::init(IntegerType::get_corr_unsig(arg0->get_value()->get_type()->get_int_type_id()));
+        arg0 = std::make_shared<TypeCastExpr>(arg0, cast_to_type, true);
+        arg1 = std::make_shared<TypeCastExpr>(arg1, cast_to_type, true);
+    }
+    if (arg1->get_value()->get_type()->get_is_signed()) {
+        std::shared_ptr<Type> cast_to_type = IntegerType::init(IntegerType::get_corr_unsig(arg1->get_value()->get_type()->get_int_type_id()));
+        arg0 = std::make_shared<TypeCastExpr>(arg0, cast_to_type, true);
+        arg1 = std::make_shared<TypeCastExpr>(arg1, cast_to_type, true);
+    }
+}
+
+bool BinaryExpr::propagate_type () {
+    if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad args in BinaryExpr::propagate_type" << std::endl;
+        exit(-1);
+    }
+
+    //TODO: what about overloaded struct operators?
+    if (arg0->get_value()->get_class_id() != Data::VarClassID::VAR ||
+        arg1->get_value()->get_class_id() != Data::VarClassID::VAR) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_type only on ScalarVariable in BinaryExpr::propagate_type" << std::endl;
+        exit(-1);
+    }
+
+    switch (op) {
+        case Add:
+        case Sub:
+        case Mul:
+        case Div:
+        case Mod:
+        case Lt:
+        case Gt:
+        case Le:
+        case Ge:
+        case Eq:
+        case Ne:
+        case BitAnd:
+        case BitXor:
+        case BitOr:
+            // arithmetic conversions
+            arg0 = integral_prom (arg0);
+            arg1 = integral_prom (arg1);
+            perform_arith_conv();
+            break;
+        case Shl:
+        case Shr:
+            arg0 = integral_prom (arg0);
+            arg1 = integral_prom (arg1);
+            break;
+        case LogAnd:
+        case LogOr:
+            arg0 = conv_to_bool (arg0);
+            arg1 = conv_to_bool (arg1);
+            break;
+        case MaxOp:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in BinaryExpr::propagate_type" << std::endl;
+            exit(-1);
+            break;
+    }
+    value = std::make_shared<ScalarVariable>("", IntegerType::init(arg0->get_value()->get_type()->get_int_type_id()));
+    return true;
+}
+
+UB BinaryExpr::propagate_value () {
+    if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad args in BinaryExpr::propagate_value" << std::endl;
+        exit(-1);
+    }
+
+    //TODO: what about overloaded struct operators?
+    if (arg0->get_value()->get_class_id() != Data::VarClassID::VAR ||
+        arg1->get_value()->get_class_id() != Data::VarClassID::VAR) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_value only on ScalarVariable in BinaryExpr::propagate_value" << std::endl;
+        exit(-1);
+    }
+
+    if (arg0->get_value()->get_type()->get_int_type_id() != arg1->get_value()->get_type()->get_int_type_id()) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type first in BinaryExpr::propagate_value" << std::endl;
+        exit(-1);
+    }
+
+    std::shared_ptr<ScalarVariable> scalar_lhs = std::static_pointer_cast<ScalarVariable>(arg0->get_value());
+    std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
+    AtomicType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
+
+    switch (op) {
+        case Add:
+            new_val = scalar_lhs->get_cur_value() + scalar_rhs->get_cur_value();
+            break;
+        case Sub:
+            new_val = scalar_lhs->get_cur_value() - scalar_rhs->get_cur_value();
+            break;
+        case Mul:
+            new_val = scalar_lhs->get_cur_value() * scalar_rhs->get_cur_value();
+            break;
+        case Div:
+            new_val = scalar_lhs->get_cur_value() / scalar_rhs->get_cur_value();
+            break;
+        case Mod:
+            new_val = scalar_lhs->get_cur_value() % scalar_rhs->get_cur_value();
+            break;
+        case Lt:
+            new_val = scalar_lhs->get_cur_value() < scalar_rhs->get_cur_value();
+            break;
+        case Gt:
+            new_val = scalar_lhs->get_cur_value() > scalar_rhs->get_cur_value();
+            break;
+        case Le:
+            new_val = scalar_lhs->get_cur_value() <= scalar_rhs->get_cur_value();
+            break;
+        case Ge:
+            new_val = scalar_lhs->get_cur_value() >= scalar_rhs->get_cur_value();
+            break;
+        case Eq:
+            new_val = scalar_lhs->get_cur_value() == scalar_rhs->get_cur_value();
+            break;
+        case Ne:
+            new_val = scalar_lhs->get_cur_value() != scalar_rhs->get_cur_value();
+            break;
+        case BitAnd:
+            new_val = scalar_lhs->get_cur_value() & scalar_rhs->get_cur_value();
+            break;
+        case BitOr:
+            new_val = scalar_lhs->get_cur_value() | scalar_rhs->get_cur_value();
+            break;
+        case BitXor:
+            new_val = scalar_lhs->get_cur_value() ^ scalar_rhs->get_cur_value();
+            break;
+        case LogAnd:
+            new_val = scalar_lhs->get_cur_value() && scalar_rhs->get_cur_value();
+            break;
+        case LogOr:
+            new_val = scalar_lhs->get_cur_value() || scalar_rhs->get_cur_value();
+            break;
+        case Shl:
+            new_val = scalar_lhs->get_cur_value() << scalar_rhs->get_cur_value();
+            break;
+        case Shr:
+            new_val = scalar_lhs->get_cur_value() >> scalar_rhs->get_cur_value();
+            break;
+        case MaxOp:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in BinaryExpr::propagate_value" << std::endl;
+            exit(-1);
+            break;
+    }
+
+    if (!new_val.has_ub())
+        std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(new_val);
+    return new_val.get_ub();
+}
+
+std::string BinaryExpr::emit (std::string offset) {
+    std::string ret = offset;
+    ret += "((" + arg0->emit() + ")";
+    switch (op) {
+        case Add:
+            ret += " + ";
+            break;
+        case Sub:
+            ret += " - ";
+            break;
+        case Mul:
+            ret += " * ";
+            break;
+        case Div:
+            ret += " / ";
+            break;
+        case Mod:
+            ret += " % ";
+            break;
+        case Shl:
+            ret += " << ";
+            break;
+        case Shr:
+            ret += " >> ";
+            break;
+        case Lt:
+            ret += " < ";
+            break;
+        case Gt:
+            ret += " > ";
+            break;
+        case Le:
+            ret += " <= ";
+            break;
+        case Ge:
+            ret += " >= ";
+            break;
+        case Eq:
+            ret += " == ";
+            break;
+        case Ne:
+            ret += " != ";
+            break;
+        case BitAnd:
+            ret += " & ";
+            break;
+        case BitXor:
+            ret += " ^ ";
+            break;
+        case BitOr:
+            ret += " | ";
+            break;
+        case LogAnd:
+            ret += " && ";
+            break;
+        case LogOr:
+            ret += " || ";
+            break;
+        case MaxOp:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in BinaryExpr::emit" << std::endl;
+            exit(-1);
+            break;
+        }
+        ret += "(" + arg1->emit() + "))";
+        return ret;
+}
+

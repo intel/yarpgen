@@ -280,7 +280,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
 }
 
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
-    AtomicType::ScalarTypedVal ret = *this;
+    AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -291,22 +291,712 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
             exit(-1);
         case IntegerType::IntegerTypeID::INT:
-            ret.val.int_val = !val.int_val;
+            ret.val.bool_val = !val.int_val;
             break;
         case IntegerType::IntegerTypeID::UINT:
-            ret.val.uint_val = !val.uint_val;
+            ret.val.bool_val = !val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            ret.val.lint_val = !val.lint_val;
+            ret.val.bool_val = !val.lint_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = !val.ulint_val;
+            ret.val.bool_val = !val.ulint_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
-            ret.val.llint_val = !val.llint_val;
+            ret.val.bool_val = !val.llint_val;
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            ret.val.ullint_val = !val.ullint_val;
+            ret.val.bool_val = !val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
+    int64_t s_tmp = 0;
+    uint64_t u_tmp = 0;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator+" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            s_tmp = (long long int) val.int_val + (long long int) rhs.val.int_val;
+            if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.int_val = (int) s_tmp;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = val.uint_val + rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (!long_eq_long_long) {
+                s_tmp = (long long int) val.lint_val + (long long int) rhs.val.lint_val;
+                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) s_tmp;
+            }
+            else {
+                uint64_t ua = val.lint_val;
+                uint64_t ub = rhs.val.lint_val;
+                u_tmp = ua + ub;
+                ua = (ua >> 63) + LONG_MAX;
+                if ((int64_t) ((ua ^ ub) | ~(ub ^ u_tmp)) >= 0)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) u_tmp;
+            }
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = val.ulint_val + rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+        {
+            uint64_t ua = val.llint_val;
+            uint64_t ub = rhs.val.llint_val;
+            u_tmp = ua + ub;
+            ua = (ua >> 63) + LLONG_MAX;
+            if ((int64_t) ((ua ^ ub) | ~(ub ^ u_tmp)) >= 0)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.llint_val =  val.llint_val + rhs.val.llint_val;
+            break;
+        }
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = val.ullint_val + rhs.val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
+    int64_t s_tmp = 0;
+    uint64_t u_tmp = 0;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            s_tmp = (long long int) val.int_val - (long long int) ret.val.int_val;
+            if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.int_val = (int) s_tmp;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = val.uint_val - rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (!long_eq_long_long) {
+                s_tmp = (long long int) val.lint_val - (long long int) rhs.val.lint_val;
+                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) s_tmp;
+            }
+            else {
+                uint64_t ua = val.lint_val;
+                uint64_t ub = rhs.val.lint_val;
+                u_tmp = ua - ub;
+                ua = (ua >> 63) + LONG_MAX;
+                if ((int64_t) ((ua ^ ub) & (ua ^ u_tmp)) < 0)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) u_tmp;
+            }
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = val.ulint_val - rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+        {
+            uint64_t ua = val.llint_val;
+            uint64_t ub = rhs.val.llint_val;
+            u_tmp = ua - ub;
+            ua = (ua >> 63) + LLONG_MAX;
+            if ((int64_t) ((ua ^ ub) & (ua ^ u_tmp)) < 0)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.llint_val = (long long int) u_tmp;
+            break;
+        }
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = val.ullint_val - rhs.val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+static bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
+    uint64_t ret = 0;
+
+    int8_t sign = (((a > 0) && (b > 0)) || ((a < 0) && (b < 0))) ? 1 : -1;
+    uint64_t a_abs = 0;
+    uint64_t b_abs = 0;
+
+    if (a == INT64_MIN)
+        // Operation "-" is undefined for "INT64_MIN", as it causes overflow.
+        // But converting INT64_MIN to unsigned type yields the correct result,
+        // i.e. it will be positive value -INT64_MIN.
+        // See 6.3.1.3 section in C99 standart for more details (ISPC follows
+        // C standard, unless it's specifically different in the language).
+        a_abs = (uint64_t) INT64_MIN;
+    else
+        a_abs = (a > 0) ? a : -a;
+
+    if (b == INT64_MIN)
+        b_abs = (uint64_t) INT64_MIN;
+    else
+        b_abs = (b > 0) ? b : -b;
+
+    uint32_t a0 = a_abs & 0xFFFFFFFF;
+    uint32_t b0 = b_abs & 0xFFFFFFFF;
+    uint32_t a1 = a_abs >> 32;
+    uint32_t b1 = b_abs >> 32;
+
+    if ((a1 != 0) && (b1 != 0))
+        return false;
+
+    uint64_t tmp = (((uint64_t) a1) * b0) + (((uint64_t) b1) * a0);
+    if (tmp > 0xFFFFFFFF)
+        return false;
+
+    ret = (tmp << 32) + (((uint64_t) a0) * b0);
+    if (ret < (tmp << 32))
+        return false;
+
+    if ((sign < 0) && (ret > (uint64_t) INT64_MIN)) {
+        return false;
+    } else if ((sign > 0) && (ret > INT64_MAX)) {
+        return false;
+    } else {
+        *res = ret * sign;
+    }
+    return true;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
+    int64_t s_tmp = 0;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator*" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            s_tmp = (long long int) val.int_val * (long long int) rhs.val.int_val;
+            if ((int) val.int_val == INT_MIN && (int) rhs.val.int_val == -1)
+                ret.set_ub(SignOvfMin);
+            else if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.int_val = (int) s_tmp;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = val.uint_val * rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (val.lint_val == LONG_MIN && (long int) rhs.val.lint_val == -1)
+                ret.set_ub(SignOvfMin);
+            else if (!long_eq_long_long) {
+                s_tmp = (long long int) val.lint_val * (long long int) rhs.val.lint_val;
+                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) s_tmp;
+            }
+            else {
+                if (!check_int64_mul(val.lint_val, rhs.val.lint_val, &s_tmp))
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) s_tmp;
+            }
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = val.ulint_val * rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            if ((long long int) val.llint_val == LLONG_MIN && (long long int) rhs.val.llint_val == -1)
+                ret.set_ub(SignOvfMin);
+            else if (!check_int64_mul(val.llint_val, rhs.val.llint_val, &s_tmp))
+                ret.set_ub(SignOvfMin);
+            else
+                ret.val.llint_val = (long long int) s_tmp;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = val.ullint_val * rhs.val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
+    int64_t s_tmp = 0;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator/" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            if (rhs.val.int_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            s_tmp = (long long int) val.int_val / (long long int) rhs.val.int_val;
+            if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.int_val = (int) s_tmp;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            if (rhs.val.uint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            ret.val.uint_val = val.uint_val / rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (rhs.val.lint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            if (!long_eq_long_long) {
+                s_tmp = (long long int) val.lint_val / (long long int) rhs.val.lint_val;
+                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) s_tmp;
+            }
+            else {
+                if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
+                    (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = val.lint_val / rhs.val.lint_val;
+            }
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            if (rhs.val.ulint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            ret.val.ulint_val = val.ulint_val / rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            if (rhs.val.llint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            if ((val.llint_val == LLONG_MIN && rhs.val.llint_val == -1) ||
+                (rhs.val.llint_val == LLONG_MIN && val.llint_val == -1))
+                ret.set_ub(SignOvf);
+            else
+                ret.val.llint_val = val.llint_val / rhs.val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            if (rhs.val.ullint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            ret.val.ullint_val = val.ullint_val / rhs.val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
+    int64_t s_tmp = 0;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator%" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            if (rhs.val.int_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            s_tmp = (long long int) val.int_val % (long long int) rhs.val.int_val;
+            if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                ret.set_ub(SignOvf);
+            else
+                ret.val.int_val = (int) s_tmp;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            if (rhs.val.uint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            ret.val.uint_val = val.uint_val % rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (rhs.val.lint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            if (!long_eq_long_long) {
+                s_tmp = (long long int) val.lint_val % (long long int) rhs.val.lint_val;
+                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = (long int) s_tmp;
+            }
+            else {
+                if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
+                    (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint_val = val.lint_val % rhs.val.lint_val;
+            }
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            if (rhs.val.ulint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            ret.val.ulint_val = val.ulint_val % rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            if (rhs.val.llint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            if ((val.llint_val == LLONG_MIN && rhs.val.llint_val == -1) ||
+                (rhs.val.llint_val == LLONG_MIN && val.llint_val == -1))
+                ret.set_ub(SignOvf);
+            else
+                ret.val.llint_val = val.llint_val % rhs.val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            if (rhs.val.ullint_val == 0) {
+                ret.set_ub(ZeroDiv);
+                return ret;
+            }
+            ret.val.ullint_val = val.ullint_val % rhs.val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+#define ScalarTypedValLogOp(__op__)                                                                 \
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {       \
+    AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);         \
+                                                                                                    \
+    switch (int_type_id) {                                                                          \
+        case IntegerType::IntegerTypeID::BOOL:                                                      \
+        case IntegerType::IntegerTypeID::CHAR:                                                      \
+        case IntegerType::IntegerTypeID::UCHAR:                                                     \
+        case IntegerType::IntegerTypeID::SHRT:                                                      \
+        case IntegerType::IntegerTypeID::USHRT:                                                     \
+        case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator"#__op__ << std::endl;\
+            exit(-1);                                                                               \
+        case IntegerType::IntegerTypeID::INT:                                                       \
+            ret.val.bool_val = val.int_val __op__ rhs.val.int_val;                                  \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::UINT:                                                      \
+            ret.val.bool_val = val.uint_val __op__ rhs.val.uint_val;                                \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::LINT:                                                      \
+            ret.val.bool_val = val.lint_val __op__ rhs.val.lint_val;                                \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::ULINT:                                                     \
+            ret.val.bool_val = val.ulint_val __op__ rhs.val.ulint_val;                              \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::LLINT:                                                     \
+            ret.val.bool_val = val.llint_val __op__ rhs.val.llint_val;                              \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::ULLINT:                                                    \
+            ret.val.bool_val = val.ullint_val __op__ rhs.val.ullint_val;                            \
+            break;                                                                                  \
+    }                                                                                               \
+    return ret;                                                                                     \
+}
+
+ScalarTypedValLogOp(<)
+ScalarTypedValLogOp(>)
+ScalarTypedValLogOp(<=)
+ScalarTypedValLogOp(>=)
+ScalarTypedValLogOp(==)
+ScalarTypedValLogOp(!=)
+ScalarTypedValLogOp(&&)
+ScalarTypedValLogOp(||)
+
+#define ScalarTypedValBitOp(__op__)                                                                 \
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {       \
+    AtomicType::ScalarTypedVal ret = *this;                                                         \
+                                                                                                    \
+    switch (int_type_id) {                                                                          \
+        case IntegerType::IntegerTypeID::BOOL:                                                      \
+        case IntegerType::IntegerTypeID::CHAR:                                                      \
+        case IntegerType::IntegerTypeID::UCHAR:                                                     \
+        case IntegerType::IntegerTypeID::SHRT:                                                      \
+        case IntegerType::IntegerTypeID::USHRT:                                                     \
+        case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator"#__op__ << std::endl;\
+            exit(-1);                                                                               \
+        case IntegerType::IntegerTypeID::INT:                                                       \
+            ret.val.int_val = val.int_val __op__ rhs.val.int_val;                                   \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::UINT:                                                      \
+            ret.val.uint_val = val.uint_val __op__ rhs.val.uint_val;                                \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::LINT:                                                      \
+            ret.val.lint_val = val.lint_val __op__ rhs.val.lint_val;                                \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::ULINT:                                                     \
+            ret.val.ulint_val = val.ulint_val __op__ rhs.val.ulint_val;                             \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::LLINT:                                                     \
+            ret.val.llint_val = val.llint_val __op__ rhs.val.llint_val;                             \
+            break;                                                                                  \
+        case IntegerType::IntegerTypeID::ULLINT:                                                    \
+            ret.val.ullint_val = val.ullint_val __op__ rhs.val.ullint_val;                          \
+            break;                                                                                  \
+    }                                                                                               \
+    return ret;                                                                                     \
+}
+
+ScalarTypedValBitOp(&)
+ScalarTypedValBitOp(|)
+ScalarTypedValBitOp(^)
+
+static uint64_t msb(uint64_t x) {
+    uint64_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    int64_t s_lhs = 0;
+    int64_t u_lhs = 0;
+    int64_t s_rhs = 0;
+    int64_t u_rhs = 0;
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator<<" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            s_lhs = val.int_val;
+            s_rhs = rhs.val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            u_lhs = val.uint_val;
+            u_rhs = rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            s_lhs = val.lint_val;
+            s_rhs = rhs.val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            u_lhs = val.ulint_val;
+            u_rhs = rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            s_lhs = val.llint_val;
+            s_rhs = rhs.val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            u_lhs = val.ullint_val;
+            u_rhs = rhs.val.ullint_val;
+            break;
+    }
+
+    bool lhs_is_signed = IntegerType::init(int_type_id)->get_is_signed();
+    bool rhs_is_signed = IntegerType::init(rhs.get_int_type_id())->get_is_signed();
+    if (lhs_is_signed && (s_lhs < 0))
+        ret.set_ub(NegShift);
+    if (rhs_is_signed && (s_rhs < 0))
+        ret.set_ub(ShiftRhsNeg);
+
+    uint64_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
+    if (rhs_is_signed) {
+        if (s_rhs >= lhs_bit_size)
+            ret.set_ub(ShiftRhsLarge);
+    }
+    else {
+        if(u_rhs >= lhs_bit_size)
+            ret.set_ub(ShiftRhsLarge);
+    }
+
+    if (lhs_is_signed && 
+       (s_rhs >= (lhs_bit_size - msb(s_lhs))))
+        ret.set_ub(ShiftRhsLarge);
+
+    if (ret.has_ub())
+        return ret;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator<<" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            ret.val.int_val = val.int_val << rhs.val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = val.uint_val << rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            ret.val.lint_val = val.lint_val << rhs.val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = val.ulint_val << rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            ret.val.llint_val = val.llint_val << rhs.val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = val.ullint_val << rhs.val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVal rhs) {
+    AtomicType::ScalarTypedVal ret = *this;
+
+    int64_t s_lhs = 0;
+    int64_t u_lhs = 0;
+    int64_t s_rhs = 0;
+    int64_t u_rhs = 0;
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator>>" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            s_lhs = val.int_val;
+            s_rhs = rhs.val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            u_lhs = val.uint_val;
+            u_rhs = rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            s_lhs = val.lint_val;
+            s_rhs = rhs.val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            u_lhs = val.ulint_val;
+            u_rhs = rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            s_lhs = val.llint_val;
+            s_rhs = rhs.val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            u_lhs = val.ullint_val;
+            u_rhs = rhs.val.ullint_val;
+            break;
+    }
+
+    bool lhs_is_signed = IntegerType::init(int_type_id)->get_is_signed();
+    bool rhs_is_signed = IntegerType::init(rhs.get_int_type_id())->get_is_signed();
+    if (lhs_is_signed && (s_lhs < 0))
+        ret.set_ub(NegShift);
+    if (rhs_is_signed && (s_rhs < 0))
+        ret.set_ub(ShiftRhsNeg);
+
+    uint64_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
+    if (rhs_is_signed) {
+        if (s_rhs >= lhs_bit_size)
+            ret.set_ub(ShiftRhsLarge);
+    }
+    else {
+        if(u_rhs >= lhs_bit_size)
+            ret.set_ub(ShiftRhsLarge);
+    }
+
+    if (ret.has_ub())
+        return ret;
+
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator>>" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            ret.val.int_val = val.int_val >> rhs.val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = val.uint_val >> rhs.val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            ret.val.lint_val = val.lint_val >> rhs.val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = val.ulint_val >> rhs.val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            ret.val.llint_val = val.llint_val >> rhs.val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = val.ullint_val >> rhs.val.ullint_val;
             break;
     }
     return ret;
