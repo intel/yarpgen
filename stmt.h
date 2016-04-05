@@ -54,4 +54,15 @@ class ExprStmt : public Stmt {
         std::shared_ptr<Expr> expr;
 };
 
+class ScopeStmt :  public Stmt {
+    public:
+        ScopeStmt () : Stmt(Node::NodeID::SCOPE) {}
+        void add_stmt (std::shared_ptr<Stmt> stmt) { scope.push_back(stmt); }
+        std::string emit (std::string offset = "");
+
+    private:
+        std::vector<std::shared_ptr<Stmt>> scope;
+};
+
+
 }

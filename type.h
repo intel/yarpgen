@@ -112,6 +112,7 @@ class StructType : public Type {
         StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = "struct " + _name; }
         StructType (std::string _name, Mod _modifier, bool _is_static, uint64_t _align) :
                     Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = "struct " + _name; }
+        //TODO: it should handle nest_depth change
         void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
         uint64_t get_num_of_members () { return members.size(); }

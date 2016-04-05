@@ -58,3 +58,11 @@ std::string DeclStmt::emit (std::string offset) {
     ret += ";";
     return ret;
 }
+
+std::string ScopeStmt::emit (std::string offset) {
+    std::string ret = offset + "{\n";
+    for (auto i : scope)
+        ret += i->emit(offset + "    ") + "\n";
+    ret += offset + "}\n";
+    return ret;
+}

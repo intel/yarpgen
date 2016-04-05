@@ -114,4 +114,25 @@ void self_test () {
     std::shared_ptr<ExprStmt> assign_expr_stmt= std::make_shared<ExprStmt>(bit_not_assign);
     std::cout << "assign_expr_stmt: " << assign_expr_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<ScopeStmt> scope = std::make_shared<ScopeStmt>();
+    scope->add_stmt(assign_expr_stmt);
+    std::cout << "scope: " << scope->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<Type> uint_t = IntegerType::init(Type::IntegerTypeID::UINT);
+    std::shared_ptr<StructType> sub_struct = std::make_shared<StructType>("sub_struct");
+    sub_struct->add_member(uint_t, "uint_mem");
+    std::shared_ptr<StructType> par_struct = std::make_shared<StructType>("par_struct");
+    par_struct->add_member(sub_struct, "sub_struct_mem");
+    std::shared_ptr<Struct> par_struct_val = std::make_shared<Struct>("AAA", par_struct);
+    par_struct_val->dbg_dump();
+    std::shared_ptr<MemberExpr> par_struct_mem = std::make_shared<MemberExpr>(par_struct_val, 0);
+    std::cout << "par_struct_mem: " << par_struct_mem->emit() << std::endl;
+    std::shared_ptr<MemberExpr> sub_struct_mem = std::make_shared<MemberExpr>(par_struct_mem, 0);
+    std::cout << "sub_struct_mem: " << sub_struct_mem->emit() << std::endl;
+    std::shared_ptr<AssignExpr> sub_struct_mem_assign = std::make_shared<AssignExpr>(sub_struct_mem, unary_bit_not);
+    std::cout << "sub_struct_mem_assign: " << sub_struct_mem_assign->emit() << std::endl;
+    par_struct_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 }

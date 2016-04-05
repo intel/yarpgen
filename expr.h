@@ -163,4 +163,22 @@ class BinaryExpr : public ArithExpr {
         std::shared_ptr<Expr> arg1;
 };
 
+class MemberExpr : public Expr {
+    public:
+        MemberExpr (std::shared_ptr<Struct> _struct, uint64_t _identifier) :
+                    Expr(Node::NodeID::MEMBER, _struct), member_expr(NULL), struct_var(_struct), identifier(_identifier) { propagate_type(); propagate_value(); }
+        MemberExpr (std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier) :
+                    Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(NULL), identifier(_identifier) { propagate_type(); propagate_value(); }
+        void set_value (std::shared_ptr<Data> _new_value);
+        std::string emit (std::string offset = "");
+
+    private:
+        bool propagate_type ();
+        UB propagate_value ();
+
+        std::shared_ptr<MemberExpr> member_expr;
+        std::shared_ptr<Struct> struct_var;
+        uint64_t identifier;
+};
+
 }

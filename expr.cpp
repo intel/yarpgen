@@ -64,7 +64,7 @@ void VarUseExpr::set_value (std::shared_ptr<Data> _new_value) {
 
 AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from) :
                         Expr(Node::NodeID::ASSIGN, _to->get_value()), to(_to), from(_from) {
-    if (to->get_id() != Node::NodeID::VAR_USE) {
+    if (to->get_id() != Node::NodeID::VAR_USE && to->get_id() != Node::NodeID::MEMBER) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::AssignExpr" << std::endl;
         exit(-1);
     }
@@ -87,7 +87,10 @@ bool AssignExpr::propagate_type () {
 
 UB AssignExpr::propagate_value () {
     if (to->get_id() == Node::NodeID::VAR_USE) {
-            std::static_pointer_cast<VarUseExpr>(to)->set_value(from->get_value());
+        std::static_pointer_cast<VarUseExpr>(to)->set_value(from->get_value());
+    }
+    else if (to->get_id() == Node::NodeID::MEMBER) {
+        std::static_pointer_cast<MemberExpr>(to)->set_value(from->get_value());
     }
     else {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::propagate_value" << std::endl;
@@ -598,3 +601,117 @@ std::string BinaryExpr::emit (std::string offset) {
         return ret;
 }
 
+bool MemberExpr::propagate_type () {
+    if (struct_var == NULL && member_expr == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad struct_var or member_expr in MemberExpr::propagate_type" << std::endl;
+        exit (-1);
+    }
+
+    if (struct_var != NULL) {
+        if (struct_var->get_num_of_members() <= identifier) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_type" << std::endl;
+            exit (-1);
+        }
+        value = struct_var;
+    }
+    else {
+        std::shared_ptr<Data> member_expr_data = member_expr->get_value();
+        if (member_expr_data->get_class_id() != Data::VarClassID::STRUCT) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can take member only from Struct in MemberExpr::propagate_type" << std::endl;
+            exit (-1);
+        }
+        std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
+        if (member_expr_struct->get_num_of_members() <= identifier) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_type" << std::endl;
+            exit (-1);
+        }
+        value = member_expr_struct;
+    }
+    return true;
+}
+
+UB MemberExpr::propagate_value () {
+    if (struct_var == NULL && member_expr == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad struct_var or member_expr in MemberExpr::propagate_value" << std::endl;
+        exit (-1);
+    }
+
+    if (struct_var != NULL) {
+        if (struct_var->get_num_of_members() <= identifier) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_value" << std::endl;
+            exit (-1);
+        }
+        value = struct_var->get_member(identifier);
+    }
+    else {
+        std::shared_ptr<Data> member_expr_data = member_expr->get_value();
+        if (member_expr_data->get_class_id() != Data::VarClassID::STRUCT) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can take member only from Struct in MemberExpr::propagate_value" << std::endl;
+            exit (-1);
+        }
+        std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
+        if (member_expr_struct->get_num_of_members() <= identifier) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_value" << std::endl;
+            exit (-1);
+        }
+        value = member_expr_struct->get_member(identifier);
+    }
+    return NoUB;
+}
+
+void MemberExpr::set_value (std::shared_ptr<Data> _new_value) {
+    //TODO: what about struct?
+    if (member_expr == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad member_expr in MemberExpr::set_value" << std::endl;
+        exit (-1);
+    }
+
+    if (_new_value->get_class_id() != value->get_class_id()) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": different Data::VarClassID in MemberExpr::set_value" << std::endl;
+        exit(-1);
+    }
+    switch (value->get_class_id()) {
+        case Data::VarClassID::VAR:
+            //TODO: Add integer type id check. We can't assign different types
+            std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(_new_value)->get_cur_value());
+            break;
+        case Data::VarClassID::STRUCT:
+            //TODO: implement for Struct
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": Struct is unsupported in in MemberExpr::set_value" << std::endl;
+            exit(-1);
+            break;
+        case Data::VarClassID::MAX_CLASS_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported Data::VarClassID in MemberExpr::set_value" << std::endl;
+            exit(-1);
+    }
+}
+
+std::string MemberExpr::emit (std::string offset) {
+    std::string ret = offset;
+    if (struct_var == NULL && member_expr == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad struct_var or member_expr in MemberExpr::emit" << std::endl;
+        exit (-1);
+    }
+
+    if (struct_var != NULL) {
+        if (struct_var->get_num_of_members() <= identifier) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::emit" << std::endl;
+            exit (-1);
+        }
+        ret += struct_var->get_name() + "." + struct_var->get_member(identifier)->get_name();
+    }
+    else {
+        std::shared_ptr<Data> member_expr_data = member_expr->get_value();
+        if (member_expr_data->get_class_id() != Data::VarClassID::STRUCT) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can take member only from Struct in MemberExpr::emit" << std::endl;
+            exit (-1);
+        }
+        std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
+        if (member_expr_struct->get_num_of_members() <= identifier) {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::emit" << std::endl;
+            exit (-1);
+        }
+        ret += member_expr->emit() + "." +  member_expr_struct->get_member(identifier)->get_name();
+    }
+    return ret;
+}
