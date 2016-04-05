@@ -125,6 +125,19 @@ class StructType : public Type {
         uint64_t nest_depth;
 };
 
+enum UB {
+    NoUB,
+    NullPtr, // NULL ptr dereferencing
+    SignOvf, // Signed overflow
+    SignOvfMin, // Special case of signed overflow: INT_MIN * (-1)
+    ZeroDiv, // FPE
+    ShiftRhsNeg, // Shift by negative value
+    ShiftRhsLarge, // // Shift by large value
+    NegShift, // Shift of negative value
+    NoMemeber, // Can't find member of structure
+    MaxUB
+};
+
 class AtomicType : public Type {
     public:
         class ScalarTypedVal {
@@ -144,13 +157,26 @@ class AtomicType : public Type {
                 };
 
                 ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id (_int_type_id) { val.ullint_val = 0; }
+                ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id, UB _res_of_ub) : int_type_id (_int_type_id), res_of_ub(_res_of_ub)  { val.ullint_val = 0; }
                 Type::IntegerTypeID get_int_type_id () const { return int_type_id; }
+                UB get_ub () { return res_of_ub; }
+                void set_ub (UB _ub) { res_of_ub = _ub; }
+                bool has_ub () { return res_of_ub != NoUB; }
+
                 ScalarTypedVal cast_type (Type::IntegerTypeID to_type_id);
+                ScalarTypedVal operator++ (int) { return pre_op(true ); } // Postfix, but uzed also as prefix
+                ScalarTypedVal operator-- (int) { return pre_op(false); }// Postfix, but uzed also as prefix
+                ScalarTypedVal operator- ();
+                ScalarTypedVal operator~ ();
+                ScalarTypedVal operator! ();
 
                 Val val;
 
             private:
+                ScalarTypedVal pre_op (bool inc);
+
                 AtomicType::IntegerTypeID int_type_id;
+                UB res_of_ub;
         };
 
         AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE), bit_size (0), suffix(""), atomic_id (at_id) {}
@@ -158,6 +184,7 @@ class AtomicType : public Type {
                     Type (Type::ATOMIC_TYPE, _modifier, _is_static, _align), bit_size (0), suffix(""), atomic_id (at_id) {}
         AtomicTypeID get_atomic_type_id () { return atomic_id; }
         uint64_t get_bit_size () { return bit_size; }
+        std::string get_suffix () { return suffix; }
         bool is_atomic_type() { return true; }
 
     protected:

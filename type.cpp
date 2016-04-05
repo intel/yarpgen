@@ -76,6 +76,7 @@ void StructType::dbg_dump() {
     std::cout << "depth: " << nest_depth << std::endl;
 }
 
+//TODO: maybe we can use template instead of it?
 #define CAST_CASE(new_val_memb)                                     \
 switch (int_type_id) {                                              \
     case Type::IntegerTypeID::BOOL:                                 \
@@ -157,6 +158,158 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerT
             exit(-1);
     }
     return new_val;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Prefix
+    AtomicType::ScalarTypedVal ret = *this;
+    int add = inc ? 1 : -1;
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator+" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            if (val.int_val == INT_MAX)
+                ret.set_ub(UB::SignOvf);
+            else
+                ret.val.int_val = val.int_val + add;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = val.uint_val + add;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (val.lint_val == LONG_MAX)
+                ret.set_ub(UB::SignOvf);
+            else
+                ret.val.lint_val = val.lint_val + add;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = val.ulint_val + add;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            if (val.llint_val == LLONG_MAX)
+                ret.set_ub(UB::SignOvf);
+            else
+                ret.val.llint_val = val.llint_val + add;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = val.ullint_val + add;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
+    AtomicType::ScalarTypedVal ret = *this;
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            if (val.int_val == INT_MIN)
+                ret.set_ub(UB::SignOvf);
+            else
+                ret.val.int_val = -val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = -val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            if (val.lint_val == LONG_MIN)
+                ret.set_ub(UB::SignOvf);
+            else
+                ret.val.lint_val = -val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = -val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            if (val.llint_val == LLONG_MIN)
+                ret.set_ub(UB::SignOvf);
+            else
+                ret.val.llint_val = -val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = -val.ullint_val;
+            break;
+    }
+    return ret;
+
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
+    AtomicType::ScalarTypedVal ret = *this;
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            ret.val.int_val = ~val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = ~val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            ret.val.lint_val = ~val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = ~val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            ret.val.llint_val = ~val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = ~val.ullint_val;
+            break;
+    }
+    return ret;
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
+    AtomicType::ScalarTypedVal ret = *this;
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+        case IntegerType::IntegerTypeID::CHAR:
+        case IntegerType::IntegerTypeID::UCHAR:
+        case IntegerType::IntegerTypeID::SHRT:
+        case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
+            exit(-1);
+        case IntegerType::IntegerTypeID::INT:
+            ret.val.int_val = !val.int_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            ret.val.uint_val = !val.uint_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            ret.val.lint_val = !val.lint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            ret.val.ulint_val = !val.ulint_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            ret.val.llint_val = !val.llint_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            ret.val.ullint_val = !val.ullint_val;
+            break;
+    }
+    return ret;
 }
 
 std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {

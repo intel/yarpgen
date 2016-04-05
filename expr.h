@@ -28,18 +28,6 @@ namespace rl {
 
 class Expr : public Node {
     public:
-        enum UB {
-            NoUB,
-            NullPtr, // NULL ptr dereferencing
-            SignOvf, // Signed overflow
-            SignOvfMin, // Special case of signed overflow: INT_MIN * (-1)
-            ZeroDiv, // FPE
-            ShiftRhsNeg, // Shift by negative value
-            ShiftRhsLarge, // // Shift by large value
-            NegShift, // Shift of negative value
-            NoMemeber, // Can't find member of structure
-            MaxUB
-        };
         Expr (Node::NodeID _id, std::shared_ptr<Data> _value) : Node(_id), value(_value) {}
         Type::TypeID get_type_id () { return value->get_type()->get_type_id (); }
         std::shared_ptr<Data> get_value ();
@@ -77,7 +65,7 @@ class AssignExpr : public Expr {
 
 class TypeCastExpr : public Expr {
     public:
-        TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type);
+        TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit = false);
         std::string emit (std::string offset = "");
 
     private:
@@ -86,8 +74,51 @@ class TypeCastExpr : public Expr {
 
         std::shared_ptr<Expr> expr;
         std::shared_ptr<Type> to_type;
-        //TODO: add field
-//        bool is_implicit;
+        bool is_implicit;
+};
+
+class ConstExpr : public Expr {
+    public:
+        ConstExpr (AtomicType::ScalarTypedVal _val) :
+                   Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {}
+        std::string emit (std::string offset = "");
+
+    private:
+        bool propagate_type () { return true; }
+        UB propagate_value () { return NoUB; }
+};
+
+class ArithExpr :  public Expr {
+    public:
+        ArithExpr(Node::NodeID _node_id, std::shared_ptr<Data> _val) : Expr(_node_id, _val) {}
+    protected:
+        std::shared_ptr<Expr> integral_prom (std::shared_ptr<Expr> arg);
+        std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
+};
+
+class UnaryExpr : public ArithExpr {
+    public:
+        enum Op {
+            PreInc,  ///< Pre-increment //no
+            PreDec,  ///< Pre-decrement //no
+            PostInc, ///< Post-increment //no
+            PostDec, ///< Post-decrement //no
+            Plus,    ///< Plus //ip
+            Negate,  ///< Negation //ip
+            LogNot,  ///< Logical not //bool
+            BitNot,  ///< Bit not //ip
+            MaxOp
+        };
+        UnaryExpr (Op _op, std::shared_ptr<Expr> _arg);
+        Op get_op () { return op; }
+        std::string emit (std::string offset = "");
+
+    private:
+        bool propagate_type ();
+        UB propagate_value ();
+
+        Op op;
+        std::shared_ptr<Expr> arg;
 };
 
 }

@@ -74,4 +74,28 @@ void self_test () {
     int_val->dbg_dump();
     bool_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<IntegerType> lint_type = IntegerType::init(AtomicType::IntegerTypeID::LINT, AtomicType::Mod::VOLAT, false, 0);
+    lint_type->dbg_dump();
+
+    std::shared_ptr<ScalarVariable> lint_val = std::make_shared<ScalarVariable>("li", lint_type);
+    lint_val->dbg_dump();
+
+    std::shared_ptr<VarUseExpr> lint_use = std::make_shared<VarUseExpr>(lint_val);
+    std::cout << "lint_use " << lint_use->emit() << std::endl;
+
+
+    AtomicType::ScalarTypedVal char_const_val (Type::IntegerTypeID::CHAR);
+    std::shared_ptr<ConstExpr> char_const = std::make_shared<ConstExpr>(char_const_val);
+    std::shared_ptr<AssignExpr> lint_char = std::make_shared<AssignExpr>(lint_use, char_const);
+    std::cout << "int_bool " << lint_char->emit() << std::endl;
+    lint_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<UnaryExpr> unary_bit_not = std::make_shared<UnaryExpr>(UnaryExpr::BitNot, char_const);
+    std::shared_ptr<AssignExpr> bit_not_assign = std::make_shared<AssignExpr>(lint_use, unary_bit_not);
+    std::cout << "bit_not_assign " << bit_not_assign->emit() << std::endl;
+    bit_not_assign->get_value()->dbg_dump();
+    lint_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 }
