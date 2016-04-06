@@ -22,6 +22,8 @@ limitations under the License.
 
 namespace rl {
 
+class Context;
+
 class Data {
     public:
         enum VarClassID {
@@ -52,9 +54,11 @@ class Struct : public Data {
         uint64_t get_num_of_members () { return members.size(); }
         std::shared_ptr<Data> get_member (unsigned int num);
         void dbg_dump ();
+        static std::shared_ptr<Struct> generate (Context ctx);
 
     private:
         void allocate_members();
+        void generate_members_init(Context ctx);
         std::vector<std::shared_ptr<Data>> members;
 };
 
@@ -70,6 +74,7 @@ class ScalarVariable : public Data {
         AtomicType::ScalarTypedVal get_max () { return max; }
         AtomicType::ScalarTypedVal get_min () { return min; }
         void dbg_dump ();
+        static std::shared_ptr<ScalarVariable> generate(Context ctx);
 
     private:
         AtomicType::ScalarTypedVal min;

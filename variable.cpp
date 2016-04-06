@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "type.h"
 #include "variable.h"
-
+#include "sym_table.h"
 
 using namespace rl;
 
@@ -61,6 +61,29 @@ void Struct::dbg_dump () {
     }
 }
 
+std::shared_ptr<Struct> Struct::generate (Context ctx) {
+    //TODO: what about nested structs? StructType::generate need it. Should it take it itself from context?
+    std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), StructType::generate(ctx));
+    ret->generate_members_init(ctx);
+    return ret;
+}
+
+void Struct::generate_members_init(Context ctx) {
+    for (int i = 0; i < get_num_of_members(); ++i) {
+        if (get_member(i)->get_type()->is_struct_type()) {
+            std::static_pointer_cast<Struct>(get_member(i))->generate_members_init(ctx);
+        }
+        else if (get_member(i)->get_type()->is_int_type()) {
+            AtomicType::ScalarTypedVal init_val = AtomicType::ScalarTypedVal::generate(ctx, get_member(i)->get_type()->get_int_type_id());
+            std::static_pointer_cast<ScalarVariable>(get_member(i))->set_init_value(init_val);
+        }
+        else {
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::generate_members_init" << std::endl;
+            exit(-1);
+        }
+    }
+}
+
 ScalarVariable::ScalarVariable (std::string _name, std::shared_ptr<IntegerType> _type) : Data (_name, _type, Data::VarClassID::VAR),
                     min(_type->get_int_type_id()), max(_type->get_int_type_id()),
                     init_val(_type->get_int_type_id()), cur_val(_type->get_int_type_id()) {
@@ -81,4 +104,10 @@ void ScalarVariable::dbg_dump () {
     std::cout << "cur_value: " << cur_val << std::endl;
     std::cout << "min: " << min << std::endl;
     std::cout << "max: " << max << std::endl;
+}
+
+std::shared_ptr<ScalarVariable> ScalarVariable::generate(Context ctx) {
+    std::shared_ptr<ScalarVariable> ret = std::make_shared<ScalarVariable> (rand_val_gen->get_scalar_var_name(), IntegerType::generate(ctx));
+    ret->set_init_value(AtomicType::ScalarTypedVal::generate(ctx, ret->get_type()->get_int_type_id()));
+    return ret;
 }

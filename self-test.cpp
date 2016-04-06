@@ -185,4 +185,12 @@ void self_test () {
     AtomicType::ScalarTypedVal rand_val = AtomicType::ScalarTypedVal::generate(ctx, Type::IntegerTypeID::SHRT);
     std::cout << "rand_val: " << rand_val << std::endl;
     std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<ScalarVariable> rand_scalar_var = ScalarVariable::generate(ctx);
+    rand_scalar_var->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<Struct> rand_struct = Struct::generate(ctx);
+    rand_struct->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 }
