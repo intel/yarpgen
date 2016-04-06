@@ -166,7 +166,6 @@ void self_test () {
     else_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
     GenPolicy gen_policy;
     Context ctx (gen_policy, NULL);
 
@@ -193,4 +192,15 @@ void self_test () {
     std::shared_ptr<Struct> rand_struct = Struct::generate(ctx);
     rand_struct->dbg_dump();
     std::cout << "\n====================="<< std::endl;
+
+    std::vector<std::shared_ptr<Expr>> inp;
+    inp.push_back(bool_use);
+    inp.push_back(int_use);
+    inp.push_back(lint_use);
+    inp.push_back(if_val_use);
+    inp.push_back(else_val_use);
+    std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
+    std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
 }

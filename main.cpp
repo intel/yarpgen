@@ -19,14 +19,17 @@ limitations under the License.
 #include <getopt.h>
 #include <cstdint>
 #include <iostream>
+
 #include "type.h"
+#include "variable.h"
+#include "sym_table.h"
 
 using namespace rl;
 
 extern void self_test();
 
 int main (int argc, char* argv[]) {
-/*
+
     extern char *optarg;
     extern int optind;
     char *pEnd;
@@ -66,7 +69,9 @@ int main (int argc, char* argv[]) {
         std::cerr << usage << std::endl;
         exit(-1);
     }
-*/
+
+
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
     self_test();
 
     return 0;

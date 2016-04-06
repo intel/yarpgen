@@ -162,7 +162,7 @@ class AtomicType : public Type {
                     unsigned long long int ullint_val;
                 };
 
-                ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id (_int_type_id) { val.ullint_val = 0; }
+                ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id(_int_type_id), res_of_ub(NoUB) { val.ullint_val = 0; }
                 ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id, UB _res_of_ub) : int_type_id (_int_type_id), res_of_ub(_res_of_ub)  { val.ullint_val = 0; }
                 Type::IntegerTypeID get_int_type_id () const { return int_type_id; }
                 UB get_ub () { return res_of_ub; }

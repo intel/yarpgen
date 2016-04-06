@@ -20,6 +20,7 @@ limitations under the License.
 #include "variable.h"
 #include "ir_node.h"
 #include "expr.h"
+#include "sym_table.h"
 
 using namespace rl;
 
@@ -219,11 +220,92 @@ std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
     return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::BOOL), true);
 }
 
+std::shared_ptr<Expr> ArithExpr::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    return gen_level(ctx, inp, 0);
+}
+
+std::shared_ptr<Expr> ArithExpr::gen_level (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    //TODO: itsi a stub fortesting. Rewrite it later.
+    GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (ctx.get_gen_policy()->get_arith_leaves());
+    std::shared_ptr<Expr> ret = NULL;
+    if (node_type == GenPolicy::ArithLeafID::Data) {
+        ret = inp.at(0);
+    }
+    else //if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
+    {
+        ret = UnaryExpr::generate(ctx, inp, par_depth + 1);
+    }
+/*
+    else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
+
+        BinaryExpr binary;
+        BinaryExpr::Op op_type = rand_val_gen->get_rand_id(gen_policy->get_allowed_binary_op());
+        binary.set_op(op_type);
+        binary.set_lhs(gen_level(depth + 1));
+        binary.set_rhs(gen_level(depth + 1));
+        binary.propagate_type();
+        Expr::UB ub = binary.propagate_value();
+        ret = std::make_shared<BinaryExpr> (binary);
+        if (ub)
+            ret = rebuild_binary(ub, ret);
+
+    }
+    else {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unappropriate node type in ArithExpr::gen_level" << std::endl;
+        exit (-1);
+    }
+*/
+    return ret;
+}
+
+
+std::shared_ptr<UnaryExpr> UnaryExpr::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    UnaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_unary_op());
+    std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth + 1);
+    return std::make_shared<UnaryExpr>(op_type, rhs);
+}
+
+void UnaryExpr::rebuild (UB ub) {
+    switch (op) {
+        case UnaryExpr::PreInc:
+            op = Op::PreDec;
+            break;
+        case UnaryExpr::PostInc:
+            op = Op::PostDec;
+            break;
+        case UnaryExpr::PreDec:
+            op = Op::PreInc;
+            break;
+        case UnaryExpr::PostDec:
+            op = Op::PostInc;
+            break;
+        case UnaryExpr::Negate:
+            op = Op::Plus;
+            break;
+        case UnaryExpr::Plus:
+        case UnaryExpr::LogNot:
+        case UnaryExpr::BitNot:
+            break;
+        case UnaryExpr::MaxOp:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in UnaryExpr::rebuild" << std::endl;
+            exit(-1);
+            break;
+    }
+    propagate_type();
+    UB ret_ub = propagate_value();
+    if (ret_ub) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": illegal strategy in UnaryExpr::rebuild" << std::endl;
+        exit(-1);
+    }
+}
+
 UnaryExpr::UnaryExpr (Op _op, std::shared_ptr<Expr> _arg) :
                        ArithExpr(Node::NodeID::UNARY, _arg->get_value()), op (_op), arg (_arg) {
     //TODO: add UB elimination strategy
     propagate_type();
-    propagate_value();
+    UB ret_ub = propagate_value();
+    if (ret_ub != NoUB)
+        rebuild(ret_ub);
 }
 
 bool UnaryExpr::propagate_type () {

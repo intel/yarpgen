@@ -26,6 +26,8 @@ limitations under the License.
 
 namespace rl {
 
+class Context;
+
 class Expr : public Node {
     public:
         Expr (Node::NodeID _id, std::shared_ptr<Data> _value) : Node(_id), value(_value) {}
@@ -91,7 +93,11 @@ class ConstExpr : public Expr {
 class ArithExpr :  public Expr {
     public:
         ArithExpr(Node::NodeID _node_id, std::shared_ptr<Data> _val) : Expr(_node_id, _val) {}
+        static std::shared_ptr<Expr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp);
+
     protected:
+        static std::shared_ptr<Expr> gen_level (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+
         std::shared_ptr<Expr> integral_prom (std::shared_ptr<Expr> arg);
         std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
 };
@@ -112,10 +118,12 @@ class UnaryExpr : public ArithExpr {
         UnaryExpr (Op _op, std::shared_ptr<Expr> _arg);
         Op get_op () { return op; }
         std::string emit (std::string offset = "");
+        static std::shared_ptr<UnaryExpr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
     private:
         bool propagate_type ();
         UB propagate_value ();
+        void rebuild (UB ub);
 
         Op op;
         std::shared_ptr<Expr> arg;

@@ -343,31 +343,21 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
     AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
+            ret.val.bool_val = !val.bool_val;
+            break;
         case IntegerType::IntegerTypeID::CHAR:
         case IntegerType::IntegerTypeID::UCHAR:
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
+        case IntegerType::IntegerTypeID::INT:
+        case IntegerType::IntegerTypeID::UINT:
+        case IntegerType::IntegerTypeID::LINT:
+        case IntegerType::IntegerTypeID::ULINT:
+        case IntegerType::IntegerTypeID::LLINT:
+        case IntegerType::IntegerTypeID::ULLINT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
             exit(-1);
-        case IntegerType::IntegerTypeID::INT:
-            ret.val.bool_val = !val.int_val;
-            break;
-        case IntegerType::IntegerTypeID::UINT:
-            ret.val.bool_val = !val.uint_val;
-            break;
-        case IntegerType::IntegerTypeID::LINT:
-            ret.val.bool_val = !val.lint_val;
-            break;
-        case IntegerType::IntegerTypeID::ULINT:
-            ret.val.bool_val = !val.ulint_val;
-            break;
-        case IntegerType::IntegerTypeID::LLINT:
-            ret.val.bool_val = !val.llint_val;
-            break;
-        case IntegerType::IntegerTypeID::ULLINT:
-            ret.val.bool_val = !val.ullint_val;
-            break;
     }
     return ret;
 }
