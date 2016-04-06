@@ -20,6 +20,23 @@ limitations under the License.
 
 using namespace rl;
 
+DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
+                  Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
+    if (init == NULL)
+        return;
+    if (data->get_class_id() != Data::VarClassID::VAR || init->get_value()->get_class_id() != Data::VarClassID::VAR) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can init only ScalarVariable in DeclStmt::DeclStmt" << std::endl;
+        exit(-1);
+    }
+    if (is_extern) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": init of extern var in DeclStmt::DeclStmt" << std::endl;
+        exit(-1);
+    }
+    std::shared_ptr<ScalarVariable> data_var = std::static_pointer_cast<ScalarVariable>(data);
+    std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
+    data_var->set_init_value(std::static_pointer_cast<ScalarVariable>(cast_type->get_value())->get_cur_value());
+}
+
 std::string DeclStmt::emit (std::string offset) {
     std::string ret = offset;
     ret += data->get_type()->get_is_static() && !is_extern ? "static " : "";

@@ -109,6 +109,7 @@ void self_test () {
 
     std::shared_ptr<DeclStmt> int_decl = std::make_shared<DeclStmt>(int_val, char_const, false);
     std::cout << "int_decl: " << int_decl->emit() << std::endl;
+    int_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
     std::shared_ptr<ExprStmt> assign_expr_stmt= std::make_shared<ExprStmt>(bit_not_assign);

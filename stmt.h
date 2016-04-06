@@ -34,8 +34,7 @@ class Stmt : public Node {
 
 class DeclStmt : public Stmt {
     public:
-        DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern = false) :
-                  Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {}
+        DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern = false);
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         std::string emit (std::string offset = "");
 
