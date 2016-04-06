@@ -233,6 +233,7 @@ class IntegerType : public AtomicType {
         AtomicType::ScalarTypedVal get_min () { return min; }
         AtomicType::ScalarTypedVal get_max () { return max; }
         bool is_int_type() { return true; }
+//        static std::shared_ptr<IntegerType> generate (Context ctx);
 
     protected:
         bool is_signed;

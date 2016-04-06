@@ -21,7 +21,7 @@ limitations under the License.
 
 #include "gen_policy.h"
 #include "variable.h"
-#include "node.h"
+#include "ir_node.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -32,26 +32,19 @@ class SymbolTable {
         SymbolTable () {}
         std::shared_ptr<SymbolTable> merge (std::shared_ptr<SymbolTable> inp_st);
 
-        void add_variable (std::shared_ptr<Variable> _var) { variable.push_back (_var); }
-        void add_array (std::shared_ptr<Array> _arr) { array.push_back (_arr); }
+        void add_variable (std::shared_ptr<ScalarVariable> _var) { variable.push_back (_var); }
         void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
         void add_struct (std::shared_ptr<Struct> _struct) { structs.push_back (_struct); }
 
-        void set_variables (std::vector<std::shared_ptr<Variable>> _variable) { variable = _variable; }
-        void set_arrays (std::vector<std::shared_ptr<Array>> _array) { array = _array; }
+        void set_variables (std::vector<std::shared_ptr<ScalarVariable>> _variable) { variable = _variable; }
         void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
         void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
 
-        std::vector<std::shared_ptr<Variable>>& get_variables () { return variable; }
-        std::vector<std::shared_ptr<Array>>& get_arrays () { return array; }
+        std::vector<std::shared_ptr<ScalarVariable>>& get_variables () { return variable; }
         std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
         std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
 
-        // TODO: Add symbol probability
-        std::shared_ptr<Variable> get_rand_variable ();
-        std::shared_ptr<Array> get_rand_array ();
-
-        std::string emit_variable_extern_decl (std::string offset = "");
+/*        std::string emit_variable_extern_decl (std::string offset = "");
         std::string emit_variable_def (std::string offset = "");
         // TODO: rewrite with IR
         std::string emit_variable_check (std::string offset = "");
@@ -59,41 +52,48 @@ class SymbolTable {
         std::string emit_struct_def (std::string offset = "");
         std::string emit_struct_extern_decl (std::string offset = "");
         std::string emit_struct_init (std::string offset = "");
-
+*/
     private:
-        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
+//        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
 
-        std::string emit_single_struct_init ();
+//        std::string emit_single_struct_init ();
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;
-        std::vector<std::shared_ptr<Variable>> variable;
-        std::vector<std::shared_ptr<Array>> array;
+        std::vector<std::shared_ptr<ScalarVariable>> variable;
 };
 
 class Context {
     public:
-        Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node::NodeID _glob_stmt_id, 
-                 std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx);
+        Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx);
 
         std::shared_ptr<GenPolicy> get_self_gen_policy () { return std::make_shared<GenPolicy> (self_gen_policy); }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }
+        Node::NodeID get_self_stmt_id () { return self_stmt_id; }
+
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
         void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_out_sym_table () { return extern_out_sym_table; }
-        std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
+        void set_extern_mix_sym_table (std::shared_ptr<SymbolTable> _extern_mix_sym_table) { extern_mix_sym_table = _extern_mix_sym_table; }
+        std::shared_ptr<SymbolTable> get_extern_mix_sym_table () { return extern_mix_sym_table; }
+
+        std::shared_ptr<SymbolTable> get_local_sym_table () { return local_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
 
     private:
         GenPolicy self_gen_policy;
-        std::shared_ptr<Stmt> self_glob_stmt;
-        Node::NodeID self_glob_stmt_id;
+
         std::shared_ptr<SymbolTable> extern_inp_sym_table;
         std::shared_ptr<SymbolTable> extern_out_sym_table;
-        std::shared_ptr<SymbolTable> global_sym_table;
+        std::shared_ptr<SymbolTable> extern_mix_sym_table;
+        //TODO: what about static variables?
+
         std::shared_ptr<Context> parent_ctx;
+        std::shared_ptr<SymbolTable> local_sym_table;
+        Node::NodeID self_stmt_id;
         int if_depth;
         int depth;
+        //TODO: maybe we should add taken member?
 };
 }

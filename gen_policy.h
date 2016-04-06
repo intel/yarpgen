@@ -19,10 +19,13 @@ limitations under the License.
 
 #include <random>
 #include <algorithm>
+#include <iostream>
+#include <memory>
 
 #include "type.h"
 #include "variable.h"
-#include "node.h"
+#include "expr.h"
+#include "stmt.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -55,7 +58,6 @@ class RandValGen {
             for (auto i = vec.begin(); i != vec.end(); ++i)
                 max_prob += (*i).get_prob();
             uint64_t rand_num = get_rand_value<uint64_t> (0, max_prob);
-            int k = 0;
             for (auto i = vec.begin(); i != vec.end(); ++i) {
                 max_prob -= (*i).get_prob();
                 if (rand_num >= max_prob)
@@ -126,16 +128,6 @@ class GenPolicy {
         void set_allow_static_var (bool _allow_static_var) { allow_static_var = _allow_static_var; }
         bool get_allow_static_var () { return allow_static_var; }
 
-        void set_min_array_size (int _min_array_size) { min_array_size = _min_array_size; }
-        int get_min_array_size () { return min_array_size; }
-        void set_max_array_size (int _max_array_size) { max_array_size = _max_array_size; }
-        int get_max_array_size () { return max_array_size; }
-
-        void set_essence_differ (bool _essence_differ) { essence_differ = _essence_differ; }
-        bool get_essence_differ () { return essence_differ; }
-        void set_primary_essence (Array::Ess _primary_essence) { primary_essence = _primary_essence; }
-        Array::Ess get_primary_essence () { return primary_essence; }
-
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
 
@@ -157,10 +149,6 @@ class GenPolicy {
         std::vector<Probability<BinaryExpr::Op>>& get_allowed_binary_op () { return allowed_binary_op; }
         std::vector<Probability<ArithLeafID>>& get_arith_leaves () { return arith_leaves; }
         std::vector<Probability<ArithDataID>>& get_arith_data_distr () { return arith_data_distr; }
-
-        // TODO: Add check for options compability
-        void set_allow_local_var (bool _allow_local_var) { allow_local_var = _allow_local_var; }
-        bool get_allow_local_var () { return allow_local_var; }
 
         // Pattern
         std::vector<Probability<ArithSSP::ConstUse>>& get_allowed_arith_ssp_const_use () { return allowed_arith_ssp_const_use; }
@@ -213,13 +201,6 @@ class GenPolicy {
         uint64_t get_max_struct_depth () { return max_struct_depth; }
         std::vector<Probability<Data::VarClassID>>& get_member_class_prob () { return member_class_prob; }
 
-/*
-        void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
-        bool get_allow_arrays () { return allow_arrays; }
-        void set_allow_scalar_variables (bool _allow_scalar_variables) { allow_scalar_variables = _allow_scalar_variables; }
-        bool get_allow_scalar_variables () { return allow_scalar_variables; }
-*/
-
     private:
         // Number of allowed integer types
         int num_of_allowed_int_types;
@@ -245,13 +226,6 @@ class GenPolicy {
         std::vector<Type::Mod> allowed_modifiers;
 
         bool allow_static_var;
-
-        int min_array_size;
-        int max_array_size;
-
-        // TODO: Add vector of allowed essence
-        bool essence_differ;
-        Array::Ess primary_essence;
 
         int max_arith_depth;
         int min_arith_stmt_num;
@@ -282,16 +256,7 @@ class GenPolicy {
         int min_inp_var_num;
         int max_inp_var_num;
 
-        // Indicates whether the local variables are allowed
-        bool allow_local_var;
-
         std::vector<Probability<bool>> else_prob;
         int max_if_depth;
-/*
-        // Indicates whether the arrays  are allowed
-        bool allow_arrays;
-        // Indicates whether the scalar (non-array) variables are allowed
-        bool allow_scalar_variables;
-*/
 };
 }

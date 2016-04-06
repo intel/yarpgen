@@ -23,9 +23,6 @@ using namespace rl;
 
 int MAX_ALLOWED_INT_TYPES = 3;
 
-int MIN_ARRAY_SIZE = 1000;
-int MAX_ARRAY_SIZE = 10000;
-
 int MAX_ARITH_DEPTH = 5;
 
 int MIN_ARITH_STMT_NUM = 5;
@@ -89,12 +86,6 @@ GenPolicy::GenPolicy () {
     max_struct_depth = MAX_STRUCT_DEPTH;
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::VAR, 70));
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::STRUCT, 30));
-
-    min_array_size = MIN_ARRAY_SIZE;
-    max_array_size = MAX_ARRAY_SIZE;
-
-    essence_differ = false;
-    primary_essence = (Array::Ess) rand_val_gen->get_rand_value<int>(Array::Ess::C_ARR, Array::Ess::MAX_ESS - 1);
 
     max_arith_depth = MAX_ARITH_DEPTH;
 
@@ -175,18 +166,12 @@ GenPolicy::GenPolicy () {
 
     chosen_arith_ssp_similar_op = ArithSSP::SimilarOp::MAX_SIMILAR_OP;
 
-    allow_local_var = true;
-
     Probability<bool> else_exist (true, 50);
     else_prob.push_back(else_exist);
     Probability<bool> no_else (false, 50);
     else_prob.push_back(no_else);
 
     max_if_depth = MAX_IF_DEPTH;
-/*
-    allow_arrays = true;
-    allow_scalar_variables = true;
-*/
 }
 
 void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {

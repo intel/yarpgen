@@ -27,15 +27,12 @@ std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> in
 
     assert (this != NULL && "SymbolTable::merge failed");
     new_st.set_variables(this->get_variables());
-    new_st.set_arrays(this->get_arrays());
     new_st.set_struct_types(this->get_struct_types());
     new_st.set_structs(this->get_structs());
 
     if (inp_st != NULL) {
         for (auto i : inp_st->get_variables())
             new_st.add_variable(i);
-        for (auto i : inp_st->get_arrays())
-            new_st.add_array(i);
         for (auto i : inp_st->get_struct_types())
             new_st.add_struct_type(i);
         for (auto i : inp_st->get_structs())
@@ -44,16 +41,7 @@ std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> in
     return std::make_shared<SymbolTable> (new_st);
 }
 
-std::shared_ptr<Variable> SymbolTable::get_rand_variable () {
-    int indx = rand_val_gen->get_rand_value<int>(0, variable.size() - 1);
-    return variable.at(indx);
-}
-
-std::shared_ptr<Array> SymbolTable::get_rand_array () {
-    int indx = rand_val_gen->get_rand_value<int>(0, array.size() - 1);
-    return array.at(indx);
-}
-
+/*
 std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
@@ -151,13 +139,9 @@ std::string SymbolTable::emit_variable_check (std::string offset) {
     }
     return ret;
 }
-
-Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node::NodeID _glob_stmt_id,
-                  std::shared_ptr<SymbolTable> _global_sym_table, std::shared_ptr<Context> _parent_ctx) {
+*/
+Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx) {
     self_gen_policy = _gen_policy;
-    self_glob_stmt = _glob_stmt;
-    self_glob_stmt_id = _glob_stmt_id;
-    global_sym_table = _global_sym_table;
     parent_ctx = _parent_ctx;
     depth = 0;
     if_depth = 0;
@@ -165,10 +149,12 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
     if (parent_ctx != NULL) {
         extern_inp_sym_table = parent_ctx->get_extern_inp_sym_table ();
         extern_out_sym_table = parent_ctx->get_extern_out_sym_table ();
-        depth = parent_ctx->get_depth();
+        extern_mix_sym_table = parent_ctx->get_extern_mix_sym_table();
+        depth = parent_ctx->get_depth() + 1;
         if_depth = parent_ctx->get_if_depth();
     }
-    if (_glob_stmt_id == Node::NodeID::IF)
+    //TODO: It should be parent of scope statement
+    if (parent_ctx->get_self_stmt_id() == Node::NodeID::IF)
         if_depth++;
 }
 
