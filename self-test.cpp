@@ -23,6 +23,8 @@ limitations under the License.
 #include "ir_node.h"
 #include "expr.h"
 #include "stmt.h"
+#include "gen_policy.h"
+#include "sym_table.h"
 
 using namespace rl;
 
@@ -162,5 +164,25 @@ void self_test () {
     std::cout << "assign_if_stmt: " << assign_if_stmt->emit() << std::endl;
     if_val->dbg_dump();
     else_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen (0));
+    GenPolicy gen_policy;
+    Context ctx (gen_policy, NULL);
+
+    std::shared_ptr<IntegerType> rand_int_type = IntegerType::generate(ctx);
+    rand_int_type->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<StructType> rand_struct_type = StructType::generate(ctx);
+    rand_struct_type->dbg_dump();
+    std::vector<std::shared_ptr<StructType>> substr_types;
+    substr_types.push_back(rand_struct_type);
+    std::shared_ptr<StructType> rand_par_struct_type = StructType::generate(ctx, substr_types);
+    rand_par_struct_type->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    AtomicType::ScalarTypedVal rand_val = AtomicType::ScalarTypedVal::generate(ctx, Type::IntegerTypeID::SHRT);
+    std::cout << "rand_val: " << rand_val << std::endl;
     std::cout << "\n====================="<< std::endl;
 }

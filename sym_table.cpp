@@ -141,7 +141,7 @@ std::string SymbolTable::emit_variable_check (std::string offset) {
 }
 */
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx) {
-    self_gen_policy = _gen_policy;
+    gen_policy = _gen_policy;
     parent_ctx = _parent_ctx;
     depth = 0;
     if_depth = 0;
@@ -152,9 +152,9 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx) {
         extern_mix_sym_table = parent_ctx->get_extern_mix_sym_table();
         depth = parent_ctx->get_depth() + 1;
         if_depth = parent_ctx->get_if_depth();
+        //TODO: It should be parent of scope statement
+        if (parent_ctx->get_self_stmt_id() == Node::NodeID::IF)
+            if_depth++;
     }
-    //TODO: It should be parent of scope statement
-    if (parent_ctx->get_self_stmt_id() == Node::NodeID::IF)
-        if_depth++;
 }
 

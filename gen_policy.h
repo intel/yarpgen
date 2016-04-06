@@ -67,9 +67,13 @@ class RandValGen {
             exit (-1);
         }
 
+        std::string get_struct_type_name() { return "struct_" + std::to_string(++struct_type_num); }
+        uint64_t get_struct_type_num() { return struct_type_num; }
+
     private:
         uint64_t seed;
         std::mt19937_64 rand_gen;
+        static uint64_t struct_type_num;
 };
 
 extern std::shared_ptr<RandValGen> rand_val_gen;

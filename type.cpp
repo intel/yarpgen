@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "type.h"
+#include "sym_table.h"
 
 using namespace rl;
 
@@ -49,7 +50,8 @@ std::string Type::get_name () {
 void StructType::add_member (std::shared_ptr<Type> _type, std::string _name) {
     StructType::StructMember new_mem (_type, _name);
     if (_type->is_struct_type()) {
-        nest_depth = std::max(std::static_pointer_cast<StructType>(_type)->get_nest_depth(), nest_depth) + 1;
+        nest_depth = std::static_pointer_cast<StructType>(_type)->get_nest_depth() >= nest_depth ?
+                     std::static_pointer_cast<StructType>(_type)->get_nest_depth() + 1 : nest_depth;
     }
     members.push_back(std::make_shared<StructMember>(new_mem));
 }
@@ -74,6 +76,64 @@ std::string StructType::get_definition (std::string offset) {
 void StructType::dbg_dump() {
     std::cout << get_definition () << std::endl;
     std::cout << "depth: " << nest_depth << std::endl;
+}
+
+std::shared_ptr<StructType> StructType::generate (Context ctx) {
+    std::vector<std::shared_ptr<StructType>> empty_vec;
+    return generate(ctx, empty_vec);
+}
+
+std::shared_ptr<StructType> StructType::generate (Context ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types) {
+    Type::Mod primary_mod = ctx.get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx.get_gen_policy()->get_allowed_modifiers().size() - 1));
+
+    bool primary_static_spec = false;
+    //TODO: allow static members in struct
+/*
+    if (ctx.get_gen_policy()->get_allow_static_var())
+        primary_static_spec = rand_val_gen->get_rand_value<int>(0, 1);
+    else
+        primary_static_spec = false;
+*/
+    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_int_types());
+    //TODO: what about align?
+    std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_mod, primary_static_spec, 0);
+
+    std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(rand_val_gen->get_struct_type_name());
+    int struct_member_num = rand_val_gen->get_rand_value<int>(ctx.get_gen_policy()->get_min_struct_members_num(), ctx.get_gen_policy()->get_max_struct_members_num());
+    int member_num = 0;
+    for (int i = 0; i < struct_member_num; ++i) {
+        if (ctx.get_gen_policy()->get_allow_mix_types_in_struct()) {
+            Data::VarClassID member_class = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_member_class_prob());
+            bool add_substruct = false;
+            int substruct_type_idx = 0;
+            std::shared_ptr<StructType> substruct_type = NULL;
+            if (member_class == Data::VarClassID::STRUCT && ctx.get_gen_policy()->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
+                substruct_type_idx = rand_val_gen->get_rand_value<int>(0, nested_struct_types.size() - 1);
+                substruct_type = nested_struct_types.at(substruct_type_idx);
+                if (substruct_type->get_nest_depth() + 1 == ctx.get_gen_policy()->get_max_struct_depth()) {
+                    add_substruct = false;
+                }
+                else {
+                    add_substruct = true;
+                }
+            }
+            if (add_substruct) {
+                primary_type = substruct_type;
+            }
+            else {
+                primary_type = IntegerType::generate(ctx);
+            }
+        }
+        if (ctx.get_gen_policy()->get_allow_mix_mod_in_struct()) {
+            primary_mod = ctx.get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx.get_gen_policy()->get_allowed_modifiers().size() - 1));;
+//            static_spec_gen.generate ();
+//            primary_static_spec = static_spec_gen.get_specifier ();
+        }
+        primary_type->set_modifier(primary_mod);
+        primary_type->set_is_static(primary_static_spec);
+        struct_type->add_member(primary_type, "member_" + std::to_string(rand_val_gen->get_struct_type_num()) + "_" + std::to_string(member_num++));
+    }
+    return struct_type;
 }
 
 //TODO: maybe we can use template instead of it?
@@ -1002,6 +1062,58 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
     return ret;
 }
 
+template <typename T>
+static void gen_rand_typed_val (T& ret, T& min, T& max) {
+    ret = (T) rand_val_gen->get_rand_value<int>(min, max);
+}
+
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (Context ctx, AtomicType::IntegerTypeID _int_type_id) {
+    AtomicType::ScalarTypedVal ret(_int_type_id);
+    std::shared_ptr<IntegerType> tmp_type = IntegerType::init (_int_type_id);
+    AtomicType::ScalarTypedVal min = tmp_type->get_min();
+    AtomicType::ScalarTypedVal max = tmp_type->get_max();
+    switch(_int_type_id) {
+        case AtomicType::BOOL:
+            gen_rand_typed_val(ret.val.bool_val, min.val.bool_val, max.val.bool_val);
+            break;
+        case AtomicType::CHAR:
+            gen_rand_typed_val(ret.val.char_val, min.val.char_val, max.val.char_val);
+            break;
+        case AtomicType::UCHAR:
+            gen_rand_typed_val(ret.val.uchar_val, min.val.uchar_val, max.val.uchar_val);
+            break;
+        case AtomicType::SHRT:
+            gen_rand_typed_val(ret.val.shrt_val, min.val.shrt_val, max.val.shrt_val);
+            break;
+        case AtomicType::USHRT:
+            gen_rand_typed_val(ret.val.ushrt_val, min.val.ushrt_val, max.val.ushrt_val);
+            break;
+        case AtomicType::INT:
+            gen_rand_typed_val(ret.val.int_val, min.val.int_val, max.val.int_val);
+            break;
+        case AtomicType::UINT:
+            gen_rand_typed_val(ret.val.uint_val, min.val.uint_val, max.val.uint_val);
+            break;
+        case AtomicType::LINT:
+            gen_rand_typed_val(ret.val.lint_val, min.val.lint_val, max.val.lint_val);
+            break;
+        case AtomicType::ULINT:
+            gen_rand_typed_val(ret.val.ulint_val, min.val.ulint_val, max.val.ulint_val);
+            break;
+        case AtomicType::LLINT:
+            gen_rand_typed_val(ret.val.llint_val, min.val.llint_val, max.val.llint_val);
+            break;
+        case AtomicType::ULLINT:
+            gen_rand_typed_val(ret.val.ullint_val, min.val.ullint_val, max.val.ullint_val);
+            break;
+        case AtomicType::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in AtomicType::ScalarTypedVal::generate" << std::endl;
+            exit(-1);
+            break;
+    }
+    return ret;
+}
+
 std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {
     switch(scalar_typed_val.get_int_type_id()) {
         case AtomicType::BOOL:
@@ -1038,7 +1150,7 @@ std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVa
             out << scalar_typed_val.val.ullint_val;
             break;
         case AtomicType::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::allocate_members" << std::endl;
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in operator<<" << std::endl;
             exit(-1);
             break;
     }
@@ -1094,6 +1206,21 @@ std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_
     ret->set_align(_align);
     return ret;
 }
+
+std::shared_ptr<IntegerType> IntegerType::generate (Context ctx) {
+    Type::Mod modifier = ctx.get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx.get_gen_policy()->get_allowed_modifiers().size() - 1));
+
+    bool specifier = false;
+    if (ctx.get_gen_policy()->get_allow_static_var())
+        specifier = rand_val_gen->get_rand_value<int>(0, 1);
+    else
+        specifier = false;
+    //TODO: what about align?
+
+    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_int_types());
+    return IntegerType::init(int_type_id, modifier, specifier, 0);
+}
+
 
 bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::IntegerTypeID b) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
