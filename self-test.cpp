@@ -135,4 +135,31 @@ void self_test () {
     std::cout << "sub_struct_mem_assign: " << sub_struct_mem_assign->emit() << std::endl;
     par_struct_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<IfStmt> if_stmt = std::make_shared<IfStmt>(unary_bit_not, scope, scope);
+    std::cout << "if_stmt: " << if_stmt->emit() << std::endl;
+    std::cout << "taken: " << IfStmt::count_if_taken(unary_bit_not) << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<IntegerType> llint_type = IntegerType::init(AtomicType::IntegerTypeID::LLINT);
+
+    std::shared_ptr<ScalarVariable> if_val = std::make_shared<ScalarVariable>("if_val", llint_type);
+    std::shared_ptr<VarUseExpr> if_val_use = std::make_shared<VarUseExpr>(if_val);
+    std::shared_ptr<AssignExpr> if_assign = std::make_shared<AssignExpr>(if_val_use, char_const);
+    std::shared_ptr<ExprStmt> if_assign_stmt = std::make_shared<ExprStmt>(if_assign);
+    std::shared_ptr<ScopeStmt> if_scope = std::make_shared<ScopeStmt>();
+    if_scope->add_stmt(if_assign_stmt);
+
+    std::shared_ptr<ScalarVariable> else_val = std::make_shared<ScalarVariable>("else_val", llint_type);
+    std::shared_ptr<VarUseExpr> else_val_use = std::make_shared<VarUseExpr>(else_val);
+    std::shared_ptr<AssignExpr> else_assign = std::make_shared<AssignExpr>(else_val_use, unary_bit_not, false);
+    std::shared_ptr<ExprStmt> else_assign_stmt = std::make_shared<ExprStmt>(else_assign);
+    std::shared_ptr<ScopeStmt> else_scope = std::make_shared<ScopeStmt>();
+    else_scope->add_stmt(else_assign_stmt);
+
+    std::shared_ptr<IfStmt> assign_if_stmt = std::make_shared<IfStmt>(unary_bit_not, if_scope, else_scope);
+    std::cout << "assign_if_stmt: " << assign_if_stmt->emit() << std::endl;
+    if_val->dbg_dump();
+    else_val->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 }

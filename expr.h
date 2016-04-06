@@ -51,7 +51,7 @@ class VarUseExpr : public Expr {
 
 class AssignExpr : public Expr {
     public:
-        AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from);
+        AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken = true);
         std::string emit (std::string offset = "");
 
     private:
@@ -60,8 +60,8 @@ class AssignExpr : public Expr {
 
         std::shared_ptr<Expr> to;
         std::shared_ptr<Expr> from;
+        bool taken;
 };
-
 
 class TypeCastExpr : public Expr {
     public:

@@ -54,7 +54,7 @@ class ExprStmt : public Stmt {
         std::shared_ptr<Expr> expr;
 };
 
-class ScopeStmt :  public Stmt {
+class ScopeStmt : public Stmt {
     public:
         ScopeStmt () : Stmt(Node::NodeID::SCOPE) {}
         void add_stmt (std::shared_ptr<Stmt> stmt) { scope.push_back(stmt); }
@@ -64,5 +64,16 @@ class ScopeStmt :  public Stmt {
         std::vector<std::shared_ptr<Stmt>> scope;
 };
 
+class IfStmt : public Stmt {
+    public:
+        IfStmt (std::shared_ptr<Expr> cond, std::shared_ptr<ScopeStmt> if_branch, std::shared_ptr<ScopeStmt> else_branch);
+        static bool count_if_taken (std::shared_ptr<Expr> cond);
+        std::string emit (std::string offset = "");
 
+    private:
+        bool taken;
+        std::shared_ptr<Expr> cond;
+        std::shared_ptr<ScopeStmt> if_branch;
+        std::shared_ptr<ScopeStmt> else_branch;
+};
 }

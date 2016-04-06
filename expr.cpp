@@ -62,8 +62,8 @@ void VarUseExpr::set_value (std::shared_ptr<Data> _new_value) {
     }
 }
 
-AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from) :
-                        Expr(Node::NodeID::ASSIGN, _to->get_value()), to(_to), from(_from) {
+AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken) :
+                        Expr(Node::NodeID::ASSIGN, _to->get_value()), to(_to), from(_from), taken(_taken) {
     if (to->get_id() != Node::NodeID::VAR_USE && to->get_id() != Node::NodeID::MEMBER) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::AssignExpr" << std::endl;
         exit(-1);
@@ -86,6 +86,10 @@ bool AssignExpr::propagate_type () {
 }
 
 UB AssignExpr::propagate_value () {
+    value = from->get_value();
+    if (!taken)
+        return NoUB;
+
     if (to->get_id() == Node::NodeID::VAR_USE) {
         std::static_pointer_cast<VarUseExpr>(to)->set_value(from->get_value());
     }
@@ -96,7 +100,7 @@ UB AssignExpr::propagate_value () {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::propagate_value" << std::endl;
         exit(-1);
     }
-    value = from->get_value();
+
     return NoUB;
 }
 
