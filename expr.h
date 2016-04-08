@@ -82,7 +82,9 @@ class TypeCastExpr : public Expr {
 class ConstExpr : public Expr {
     public:
         ConstExpr (AtomicType::ScalarTypedVal _val) :
-                   Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {}
+                   Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {
+             std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
+        }
         std::string emit (std::string offset = "");
 
     private:
@@ -166,6 +168,7 @@ class BinaryExpr : public ArithExpr {
         bool propagate_type ();
         UB propagate_value ();
         void perform_arith_conv ();
+        void rebuild (UB ub);
 
         Op op;
         std::shared_ptr<Expr> arg0;

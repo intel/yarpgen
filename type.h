@@ -169,6 +169,10 @@ class AtomicType : public Type {
                 void set_ub (UB _ub) { res_of_ub = _ub; }
                 bool has_ub () { return res_of_ub != NoUB; }
 
+                //TODO: it is a stub for shift rebuild. Can we do it better?
+                uint64_t get_abs_val ();
+                void set_abs_val (uint64_t new_val);
+
                 ScalarTypedVal cast_type (Type::IntegerTypeID to_type_id);
                 ScalarTypedVal operator++ (int) { return pre_op(true ); } // Postfix, but uzed also as prefix
                 ScalarTypedVal operator-- (int) { return pre_op(false); }// Postfix, but uzed also as prefix

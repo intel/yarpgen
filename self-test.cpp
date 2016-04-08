@@ -203,24 +203,24 @@ void self_test () {
     std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 */
-
+/*
    std::vector<std::shared_ptr<Expr>> inp;
     for (int i = 0; i < 10; ++i) {
         std::shared_ptr<ScalarVariable> rand_scalar_var = ScalarVariable::generate(ctx);
         std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(rand_scalar_var);
         inp.push_back(var_use);
     }
-
+*/
 /*
     std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
     std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 */
-
+/*
    std::shared_ptr<Expr> arith_rand = ArithExpr::generate(ctx, inp);
     std::cout << "arith_rand: " << arith_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
-
+*/
 /*
     for (int i = UnaryExpr::Op::PreInc; i < UnaryExpr::Op::MaxOp; ++i) {
         for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
@@ -245,7 +245,7 @@ void self_test () {
         }
     }
 */
-/*
+
     for (int i = BinaryExpr::Op::Add; i < BinaryExpr::Op::MaxOp; ++i) {
         for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
             for (int k = Type::IntegerTypeID::BOOL; k < Type::IntegerTypeID::MAX_INT_ID; ++k) {
@@ -273,5 +273,5 @@ void self_test () {
             }
         }
     }
-*/
+
 }

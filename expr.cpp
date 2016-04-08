@@ -437,6 +437,101 @@ BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr>
     propagate_type();
     UB ret_ub = propagate_value();
     if (ret_ub != NoUB) {
+        std::cout << "Bi UB: " << ret_ub << std::endl;
+        rebuild(ret_ub);
+    }
+}
+
+static uint64_t msb(uint64_t x) {
+    uint64_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
+}
+
+void BinaryExpr::rebuild (UB ub) {
+    switch (op) {
+        case BinaryExpr::Add:
+            op = Sub;
+            break;
+        case BinaryExpr::Sub:
+            op = Add;
+            break;
+        case BinaryExpr::Mul:
+            if (ub == UB::SignOvfMin)
+                op = Sub;
+            else
+                op = Div;
+            break;
+        case BinaryExpr::Div:
+        case BinaryExpr::Mod:
+            if (ub == UB::ZeroDiv)
+               op = Mul;
+            else
+               op = Sub;
+            break;
+        case BinaryExpr::Shr:
+        case BinaryExpr::Shl:
+            //TODO: We should rewrite it later. It is awfull
+            if ((ub == UB::ShiftRhsNeg) || (ub == UB::ShiftRhsLarge)) {
+                std::shared_ptr<Expr> lhs = arg0;
+                std::shared_ptr<Expr> rhs = arg1;
+                std::shared_ptr<IntegerType> lhs_int_type = std::static_pointer_cast<IntegerType>(lhs->get_value()->get_type());
+                uint64_t max_sht_val = lhs_int_type->get_bit_size();
+                if ((op == Shl) && (lhs_int_type->get_is_signed()) && (ub == UB::ShiftRhsLarge))
+                    max_sht_val -= msb((uint64_t)std::static_pointer_cast<ScalarVariable>(lhs->get_value())->get_cur_value().get_abs_val());
+                uint64_t const_val = rand_val_gen->get_rand_value<int>(0, max_sht_val);
+                uint64_t rhs_abs_val = std::static_pointer_cast<ScalarVariable>(rhs->get_value())->get_cur_value().get_abs_val();
+                std::shared_ptr<IntegerType> rhs_int_type = std::static_pointer_cast<IntegerType>(rhs->get_value()->get_type());
+                if (ub == UB::ShiftRhsNeg) {
+                    const_val += rhs_abs_val;
+                    const_val = std::min(const_val, rhs_int_type->get_max().get_abs_val());// TODO: it won't work with INT_MIN
+                }
+                else {
+                    const_val = rhs_abs_val - const_val;
+                }
+
+                AtomicType::ScalarTypedVal const_ins_val (rhs_int_type->get_int_type_id());
+                const_ins_val.set_abs_val (const_val);
+                std::shared_ptr<ConstExpr> const_ins = std::make_shared<ConstExpr>(const_ins_val);
+                if (ub == UB::ShiftRhsNeg)
+                    arg1 = std::make_shared<BinaryExpr>(Add, arg1, const_ins);
+                else
+                    arg1 = std::make_shared<BinaryExpr>(Sub, arg1, const_ins);
+            }
+            else {
+                std::shared_ptr<Expr> lhs = arg0;
+                std::shared_ptr<IntegerType> lhs_int_type = std::static_pointer_cast<IntegerType>(lhs->get_value()->get_type());
+                uint64_t const_val = lhs_int_type->get_max().get_abs_val();
+                AtomicType::ScalarTypedVal const_ins_val(lhs_int_type->get_int_type_id());
+                const_ins_val.set_abs_val (const_val);
+                std::shared_ptr<ConstExpr> const_ins = std::make_shared<ConstExpr>(const_ins_val);
+                arg0 = std::make_shared<BinaryExpr>(Add, arg0, const_ins);
+            }
+            break;
+        case BinaryExpr::Lt:
+        case BinaryExpr::Gt:
+        case BinaryExpr::Le:
+        case BinaryExpr::Ge:
+        case BinaryExpr::Eq:
+        case BinaryExpr::Ne:
+        case BinaryExpr::BitAnd:
+        case BinaryExpr::BitOr:
+        case BinaryExpr::BitXor:
+        case BinaryExpr::LogAnd:
+        case BinaryExpr::LogOr:
+            break;
+        case BinaryExpr::MaxOp:
+            std::cerr << "ArithExprGen::rebuild_binary : invalid Op" << std::endl;
+            break;
+    }
+    propagate_type();
+    UB ret_ub = propagate_value();
+    if (ret_ub != NoUB) {
+        std::cout << "Bi UB in: " << ret_ub << std::endl;
+        rebuild(ret_ub);
     }
 }
 

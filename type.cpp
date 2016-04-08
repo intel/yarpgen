@@ -353,6 +353,77 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
     return ret;
 }
 
+uint64_t AtomicType::ScalarTypedVal::get_abs_val () {
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+            return val.bool_val;
+        case IntegerType::IntegerTypeID::CHAR:
+            return std::abs(val.char_val);
+        case IntegerType::IntegerTypeID::UCHAR:
+            return val.uchar_val;
+        case IntegerType::IntegerTypeID::SHRT:
+            return std::abs(val.shrt_val);
+        case IntegerType::IntegerTypeID::USHRT:
+            return val.ushrt_val;
+        case IntegerType::IntegerTypeID::INT:
+            return std::abs(val.int_val);
+        case IntegerType::IntegerTypeID::UINT:
+            return val.uint_val;
+        case IntegerType::IntegerTypeID::LINT:
+            return std::abs(val.lint_val);
+        case IntegerType::IntegerTypeID::ULINT:
+            return val.ulint_val;
+        case IntegerType::IntegerTypeID::LLINT:
+            return std::abs(val.llint_val);
+        case IntegerType::IntegerTypeID::ULLINT:
+            return val.ullint_val;
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
+            exit(-1);
+    }
+}
+
+void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
+    switch (int_type_id) {
+        case IntegerType::IntegerTypeID::BOOL:
+            val.bool_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::CHAR:
+            val.char_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::UCHAR:
+            val.uchar_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::SHRT:
+            val.shrt_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::USHRT:
+            val.ushrt_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::INT:
+            val.int_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::UINT:
+            val.uint_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::LINT:
+            val.lint_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::ULINT:
+            val.ulint_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::LLINT:
+            val.llint_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::ULLINT:
+            val.ullint_val = new_val;
+            break;
+        case IntegerType::IntegerTypeID::MAX_INT_ID:
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
+            exit(-1);
+    }
+}
+
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
     AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);
     switch (int_type_id) {
@@ -999,24 +1070,34 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
 
     bool lhs_is_signed = IntegerType::init(int_type_id)->get_is_signed();
     bool rhs_is_signed = IntegerType::init(rhs.get_int_type_id())->get_is_signed();
-    if (lhs_is_signed && (s_lhs < 0))
+    if (lhs_is_signed && (s_lhs < 0)) {
         ret.set_ub(NegShift);
-    if (rhs_is_signed && (s_rhs < 0))
+        return ret;
+    }
+    if (rhs_is_signed && (s_rhs < 0)) {
         ret.set_ub(ShiftRhsNeg);
+        return ret;
+    }
 
     uint64_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
     if (rhs_is_signed) {
-        if (s_rhs >= lhs_bit_size)
+        if (s_rhs >= lhs_bit_size) {
             ret.set_ub(ShiftRhsLarge);
+            return ret;
+        }
     }
     else {
-        if(u_rhs >= lhs_bit_size)
+        if (u_rhs >= lhs_bit_size) {
             ret.set_ub(ShiftRhsLarge);
+            return ret;
+        }
     }
 
     if (lhs_is_signed && 
-       (s_rhs >= (lhs_bit_size - msb(s_lhs))))
+       (s_rhs >= (lhs_bit_size - msb(s_lhs)))) {
         ret.set_ub(ShiftRhsLarge);
+        return ret;
+    }
 
     if (ret.has_ub())
         return ret;
@@ -1119,19 +1200,27 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
 
     bool lhs_is_signed = IntegerType::init(int_type_id)->get_is_signed();
     bool rhs_is_signed = IntegerType::init(rhs.get_int_type_id())->get_is_signed();
-    if (lhs_is_signed && (s_lhs < 0))
+    if (lhs_is_signed && (s_lhs < 0)) {
         ret.set_ub(NegShift);
-    if (rhs_is_signed && (s_rhs < 0))
+        return ret;
+    }
+    if (rhs_is_signed && (s_rhs < 0)) {
         ret.set_ub(ShiftRhsNeg);
+        return ret;
+    }
 
     uint64_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
     if (rhs_is_signed) {
-        if (s_rhs >= lhs_bit_size)
+        if (s_rhs >= lhs_bit_size) {
             ret.set_ub(ShiftRhsLarge);
+            return ret;
+        }
     }
     else {
-        if(u_rhs >= lhs_bit_size)
+        if(u_rhs >= lhs_bit_size) {
             ret.set_ub(ShiftRhsLarge);
+            return ret;
+        }
     }
 
     if (ret.has_ub())
