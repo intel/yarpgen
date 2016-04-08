@@ -65,6 +65,7 @@ class Struct : public Data {
 class ScalarVariable : public Data {
     public:
         ScalarVariable (std::string _name, std::shared_ptr<IntegerType> _type);
+        //TODO: add check for type id in Type and Value
         void set_init_value (AtomicType::ScalarTypedVal _init_val) {init_val = cur_val = _init_val; was_changed = false; }
         void set_cur_value (AtomicType::ScalarTypedVal _val) { cur_val = _val; was_changed = true; }
         void set_max (AtomicType::ScalarTypedVal _max) { max = _max; }

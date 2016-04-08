@@ -30,7 +30,7 @@ using namespace rl;
 
 void self_test () {
     std::cout << "SELFTEST" << std::endl;
-
+/*
     std::shared_ptr<IntegerType> bool_type = IntegerType::init(AtomicType::IntegerTypeID::BOOL);
     bool_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
@@ -165,10 +165,10 @@ void self_test () {
     if_val->dbg_dump();
     else_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
-
+*/
     GenPolicy gen_policy;
     Context ctx (gen_policy, NULL);
-
+/*
     std::shared_ptr<IntegerType> rand_int_type = IntegerType::generate(ctx);
     rand_int_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
@@ -202,5 +202,76 @@ void self_test () {
     std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
     std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
+*/
 
+   std::vector<std::shared_ptr<Expr>> inp;
+    for (int i = 0; i < 10; ++i) {
+        std::shared_ptr<ScalarVariable> rand_scalar_var = ScalarVariable::generate(ctx);
+        std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(rand_scalar_var);
+        inp.push_back(var_use);
+    }
+
+/*
+    std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
+    std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+*/
+
+   std::shared_ptr<Expr> arith_rand = ArithExpr::generate(ctx, inp);
+    std::cout << "arith_rand: " << arith_rand->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
+/*
+    for (int i = UnaryExpr::Op::PreInc; i < UnaryExpr::Op::MaxOp; ++i) {
+        for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
+            if (j == Type::IntegerTypeID::BOOL &&
+               (i == UnaryExpr::Op::PreInc ||i == UnaryExpr::Op::PostInc ||
+                i == UnaryExpr::Op::PreDec ||i == UnaryExpr::Op::PostDec))
+                continue;
+            std::shared_ptr<IntegerType> type = IntegerType::init((Type::IntegerTypeID) j);
+            std::shared_ptr<ScalarVariable> var = std::make_shared<ScalarVariable>("a", type);
+            std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(var);
+            std::shared_ptr<UnaryExpr> unary_expr = std::make_shared<UnaryExpr>((UnaryExpr::Op) i, var_use);
+            std::cout << "unary_expr: " << unary_expr->emit() << std::endl;
+            std::cout << "expr_type: " << std::static_pointer_cast<ScalarVariable>(unary_expr->get_value())->get_type()->get_int_type_id() << std::endl;
+            std::cout << "arg_type: " << std::static_pointer_cast<ScalarVariable>(unary_expr->get_value())->get_cur_value().get_int_type_id() << std::endl;
+            std::cout << "arg_val: " << std::static_pointer_cast<ScalarVariable>(unary_expr->get_value())->get_cur_value() << std::endl;
+            if (std::static_pointer_cast<ScalarVariable>(unary_expr->get_value())->get_type()->get_int_type_id() !=
+                std::static_pointer_cast<ScalarVariable>(unary_expr->get_value())->get_cur_value().get_int_type_id()) {
+                std::cerr << "expr_type != arg_type" << std::endl;
+                exit(-1);
+            }
+            std::cout << "\n====================="<< std::endl;
+        }
+    }
+*/
+/*
+    for (int i = BinaryExpr::Op::Add; i < BinaryExpr::Op::MaxOp; ++i) {
+        for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
+            for (int k = Type::IntegerTypeID::BOOL; k < Type::IntegerTypeID::MAX_INT_ID; ++k) {
+                std::shared_ptr<IntegerType> lhs_type = IntegerType::init((Type::IntegerTypeID) j);
+                std::shared_ptr<ScalarVariable> lhs_var = std::make_shared<ScalarVariable>("a", lhs_type);
+                std::shared_ptr<VarUseExpr> lhs_use = std::make_shared<VarUseExpr>(lhs_var);
+
+
+                std::shared_ptr<IntegerType> rhs_type = IntegerType::init((Type::IntegerTypeID) k);
+                std::shared_ptr<ScalarVariable> rhs_var = std::make_shared<ScalarVariable>("b", rhs_type);
+                std::shared_ptr<VarUseExpr> rhs_use = std::make_shared<VarUseExpr>(rhs_var);
+
+                std::shared_ptr<BinaryExpr> binary_expr = std::make_shared<BinaryExpr>((BinaryExpr::Op) i, lhs_use, rhs_use);
+                std::cout << "binary_expr: " << binary_expr->emit() << std::endl;
+                std::cout << "expr_type: " << std::static_pointer_cast<ScalarVariable>(binary_expr->get_value())->get_type()->get_int_type_id() << std::endl;
+                std::cout << "arg_type: " << std::static_pointer_cast<ScalarVariable>(binary_expr->get_value())->get_cur_value().get_int_type_id() << std::endl;
+                std::cout << "arg_val: " << std::static_pointer_cast<ScalarVariable>(binary_expr->get_value())->get_cur_value() << std::endl;
+                if (std::static_pointer_cast<ScalarVariable>(binary_expr->get_value())->get_type()->get_int_type_id() !=
+                    std::static_pointer_cast<ScalarVariable>(binary_expr->get_value())->get_cur_value().get_int_type_id()) {
+                    std::cerr << "expr_type != arg_type" << std::endl;
+                    exit(-1);
+                }
+                std::cout << "\n====================="<< std::endl;
+
+            }
+        }
+    }
+*/
 }

@@ -160,6 +160,7 @@ class BinaryExpr : public ArithExpr {
         BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
         Op get_op () { return op; }
         std::string emit (std::string offset = "");
+        static std::shared_ptr<BinaryExpr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
     private:
         bool propagate_type ();

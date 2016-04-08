@@ -228,28 +228,22 @@ std::shared_ptr<Expr> ArithExpr::gen_level (Context ctx, std::vector<std::shared
     //TODO: itsi a stub fortesting. Rewrite it later.
     GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (ctx.get_gen_policy()->get_arith_leaves());
     std::shared_ptr<Expr> ret = NULL;
-    if (node_type == GenPolicy::ArithLeafID::Data) {
-        ret = inp.at(0);
+    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == 1) {
+        int var_num = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
+        ret = inp.at(var_num);
     }
+/*
     else //if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
     {
         ret = UnaryExpr::generate(ctx, inp, par_depth + 1);
     }
-/*
+
     else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
-
-        BinaryExpr binary;
-        BinaryExpr::Op op_type = rand_val_gen->get_rand_id(gen_policy->get_allowed_binary_op());
-        binary.set_op(op_type);
-        binary.set_lhs(gen_level(depth + 1));
-        binary.set_rhs(gen_level(depth + 1));
-        binary.propagate_type();
-        Expr::UB ub = binary.propagate_value();
-        ret = std::make_shared<BinaryExpr> (binary);
-        if (ub)
-            ret = rebuild_binary(ub, ret);
-
+*/
+    else {
+        ret = BinaryExpr::generate(ctx, inp, par_depth + 1);
     }
+/*
     else {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unappropriate node type in ArithExpr::gen_level" << std::endl;
         exit (-1);
@@ -261,7 +255,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (Context ctx, std::vector<std::shared
 
 std::shared_ptr<UnaryExpr> UnaryExpr::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
     UnaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_unary_op());
-    std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth + 1);
+    std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
     return std::make_shared<UnaryExpr>(op_type, rhs);
 }
 
@@ -304,8 +298,9 @@ UnaryExpr::UnaryExpr (Op _op, std::shared_ptr<Expr> _arg) :
     //TODO: add UB elimination strategy
     propagate_type();
     UB ret_ub = propagate_value();
-    if (ret_ub != NoUB)
+    if (ret_ub != NoUB) {
         rebuild(ret_ub);
+    }
 }
 
 bool UnaryExpr::propagate_type () {
@@ -429,11 +424,20 @@ std::string UnaryExpr::emit (std::string offset) {
     return ret;
 }
 
+std::shared_ptr<BinaryExpr> BinaryExpr::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    BinaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_binary_op());
+    std::shared_ptr<Expr> lhs = ArithExpr::gen_level (ctx, inp, par_depth);
+    std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
+    return std::make_shared<BinaryExpr>(op_type, lhs, rhs);
+}
+
 BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
                         ArithExpr(Node::NodeID::BINARY, NULL), op(_op), arg0(lhs), arg1(rhs) {
     //TODO: add UB elimination strategy
     propagate_type();
-    propagate_value();
+    UB ret_ub = propagate_value();
+    if (ret_ub != NoUB) {
+    }
 }
 
 void BinaryExpr::perform_arith_conv () {
@@ -528,7 +532,6 @@ bool BinaryExpr::propagate_type () {
             exit(-1);
             break;
     }
-    value = std::make_shared<ScalarVariable>("", IntegerType::init(arg0->get_value()->get_type()->get_int_type_id()));
     return true;
 }
 
@@ -542,11 +545,6 @@ UB BinaryExpr::propagate_value () {
     if (arg0->get_value()->get_class_id() != Data::VarClassID::VAR ||
         arg1->get_value()->get_class_id() != Data::VarClassID::VAR) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_value only on ScalarVariable in BinaryExpr::propagate_value" << std::endl;
-        exit(-1);
-    }
-
-    if (arg0->get_value()->get_type()->get_int_type_id() != arg1->get_value()->get_type()->get_int_type_id()) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type first in BinaryExpr::propagate_value" << std::endl;
         exit(-1);
     }
 
@@ -615,8 +613,13 @@ UB BinaryExpr::propagate_value () {
             break;
     }
 
-    if (!new_val.has_ub())
+    if (!new_val.has_ub()) {
+        value = std::make_shared<ScalarVariable>("", IntegerType::init(new_val.get_int_type_id()));
         std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(new_val);
+    }
+    else {
+        value = std::make_shared<ScalarVariable>("", IntegerType::init(arg0->get_value()->get_type()->get_int_type_id()));
+    }
     return new_val.get_ub();
 }
 
