@@ -245,7 +245,7 @@ void self_test () {
         }
     }
 */
-
+/*
     for (int i = BinaryExpr::Op::Add; i < BinaryExpr::Op::MaxOp; ++i) {
         for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
             for (int k = Type::IntegerTypeID::BOOL; k < Type::IntegerTypeID::MAX_INT_ID; ++k) {
@@ -273,5 +273,13 @@ void self_test () {
             }
         }
     }
+*/
+    std::shared_ptr<ConstExpr> const_expr = ConstExpr::generate(ctx);
+    std::cout << "const_expr: " << const_expr->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<TypeCastExpr> type_cast_expr = TypeCastExpr::generate(ctx, const_expr);
+    std::cout << "type_cast_expr: " << type_cast_expr->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
 
 }

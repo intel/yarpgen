@@ -141,6 +141,11 @@ UB TypeCastExpr::propagate_value () {
     return NoUB;
 }
 
+std::shared_ptr<TypeCastExpr> TypeCastExpr::generate (Context ctx, std::shared_ptr<Expr> from) {
+    std::shared_ptr<IntegerType> to_type = IntegerType::generate(ctx);
+    return std::make_shared<TypeCastExpr> (from, to_type, false);
+}
+
 std::string TypeCastExpr::emit (std::string offset) {
     std::string ret = offset;
     //TODO: add parameter to gen_policy
@@ -150,6 +155,11 @@ std::string TypeCastExpr::emit (std::string offset) {
         ret += "(" + value->get_type()->get_simple_name() + ") ";
     ret += "(" + expr->emit() + ")";
     return ret;
+}
+
+std::shared_ptr<ConstExpr> ConstExpr::generate (Context ctx) {
+    std::shared_ptr<IntegerType> int_type = IntegerType::generate (ctx);
+    return std::make_shared<ConstExpr>(AtomicType::ScalarTypedVal::generate(ctx, int_type->get_int_type_id()));
 }
 
 std::string ConstExpr::emit (std::string offset) {
@@ -433,11 +443,9 @@ std::shared_ptr<BinaryExpr> BinaryExpr::generate (Context ctx, std::vector<std::
 
 BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
                         ArithExpr(Node::NodeID::BINARY, NULL), op(_op), arg0(lhs), arg1(rhs) {
-    //TODO: add UB elimination strategy
     propagate_type();
     UB ret_ub = propagate_value();
     if (ret_ub != NoUB) {
-        std::cout << "Bi UB: " << ret_ub << std::endl;
         rebuild(ret_ub);
     }
 }
@@ -530,7 +538,6 @@ void BinaryExpr::rebuild (UB ub) {
     propagate_type();
     UB ret_ub = propagate_value();
     if (ret_ub != NoUB) {
-        std::cout << "Bi UB in: " << ret_ub << std::endl;
         rebuild(ret_ub);
     }
 }

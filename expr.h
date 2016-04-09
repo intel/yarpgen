@@ -69,6 +69,7 @@ class TypeCastExpr : public Expr {
     public:
         TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit = false);
         std::string emit (std::string offset = "");
+        static std::shared_ptr<TypeCastExpr> generate (Context ctx, std::shared_ptr<Expr> from);
 
     private:
         bool propagate_type ();
@@ -86,13 +87,14 @@ class ConstExpr : public Expr {
              std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
         }
         std::string emit (std::string offset = "");
+        static std::shared_ptr<ConstExpr> generate (Context ctx);
 
     private:
         bool propagate_type () { return true; }
         UB propagate_value () { return NoUB; }
 };
 
-class ArithExpr :  public Expr {
+class ArithExpr : public Expr {
     public:
         ArithExpr(Node::NodeID _node_id, std::shared_ptr<Data> _val) : Expr(_node_id, _val) {}
         static std::shared_ptr<Expr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp);
