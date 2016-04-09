@@ -51,6 +51,7 @@ class Data {
         uint64_t get_align () { return type->get_align(); }
         VarClassID get_class_id () { return class_id; }
         std::string get_name () { return name; }
+        void set_name (std::string n_) { this->name = n_; }
         void set_type(std::shared_ptr<Type> _type) { type = _type; }
         std::shared_ptr<Type> get_type () { return type; }
         virtual void set_value (uint64_t _val) = 0;
