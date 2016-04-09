@@ -97,6 +97,14 @@ std::string ScopeStmt::emit (std::string offset) {
     return ret;
 }
 
+std::shared_ptr<ExprStmt> ExprStmt::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out) {
+    //TODO: now it can be only assign. Do we want something more?
+    //TODO: implement taken mechanism
+    std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
+    std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from);
+    return std::make_shared<ExprStmt>(assign_exp);
+}
+
 bool IfStmt::count_if_taken (std::shared_ptr<Expr> cond) {
     std::shared_ptr<TypeCastExpr> cond_to_bool = std::make_shared<TypeCastExpr> (cond, IntegerType::init(Type::IntegerTypeID::BOOL), true);
     if (cond_to_bool->get_value()->get_class_id() != Data::VarClassID::VAR) {

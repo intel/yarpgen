@@ -287,4 +287,8 @@ void self_test () {
     std::shared_ptr<DeclStmt> decl_stmt = DeclStmt::generate(decl_ctx, inp);
     std::cout << "decl_stmt: " << decl_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<ExprStmt> expr_stmt = ExprStmt::generate(ctx, inp, inp.at(0));
+    std::cout << "expr_stmt: " << expr_stmt->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
 }

@@ -51,6 +51,7 @@ class ExprStmt : public Stmt {
     public:
         ExprStmt (std::shared_ptr<Expr> _expr) : Stmt(Node::NodeID::EXPR), expr(_expr) {}
         std::string emit (std::string offset = "") { return offset + expr->emit() + ";"; }
+        static std::shared_ptr<ExprStmt> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out);
 
     private:
         std::shared_ptr<Expr> expr;
