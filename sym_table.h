@@ -86,8 +86,9 @@ class Context {
         std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
         std::shared_ptr<Context> copy();
-        std::shared_ptr<Context> copy(std::shared_ptr<Stmt> stmt);
-        std::shared_ptr<Stmt> getCurrentStmt() {return this->self_glob_stmt;}
+
+        void setScopeId(unsigned long long id_) {this->scope_id = id_;}
+        unsigned long long getScopeId() {return this->scope_id;}
 
     private:
         GenPolicy self_gen_policy;
@@ -97,6 +98,7 @@ class Context {
         std::shared_ptr<SymbolTable> extern_out_sym_table;
         std::shared_ptr<SymbolTable> global_sym_table;
         std::shared_ptr<Context> parent_ctx;
+        unsigned long long scope_id;
         int if_depth;
         int depth;
 };
