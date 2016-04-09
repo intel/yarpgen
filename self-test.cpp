@@ -168,6 +168,7 @@ void self_test () {
 */
     GenPolicy gen_policy;
     Context ctx (gen_policy, NULL);
+    ctx.set_local_sym_table(std::make_shared<SymbolTable>());
 /*
     std::shared_ptr<IntegerType> rand_int_type = IntegerType::generate(ctx);
     rand_int_type->dbg_dump();
@@ -203,14 +204,14 @@ void self_test () {
     std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 */
-/*
+
    std::vector<std::shared_ptr<Expr>> inp;
     for (int i = 0; i < 10; ++i) {
         std::shared_ptr<ScalarVariable> rand_scalar_var = ScalarVariable::generate(ctx);
         std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(rand_scalar_var);
         inp.push_back(var_use);
     }
-*/
+
 /*
     std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
     std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
@@ -282,4 +283,8 @@ void self_test () {
     std::cout << "type_cast_expr: " << type_cast_expr->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 
+    Context decl_ctx (gen_policy, std::make_shared<Context>(ctx));
+    std::shared_ptr<DeclStmt> decl_stmt = DeclStmt::generate(decl_ctx, inp);
+    std::cout << "decl_stmt: " << decl_stmt->emit() << std::endl;
+    std::cout << "\n====================="<< std::endl;
 }

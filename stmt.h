@@ -27,6 +27,8 @@ limitations under the License.
 
 namespace rl {
 
+class Context;
+
 class Stmt : public Node {
     public:
         Stmt (Node::NodeID _id) : Node(_id) {};
@@ -37,6 +39,7 @@ class DeclStmt : public Stmt {
         DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern = false);
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         std::string emit (std::string offset = "");
+        static std::shared_ptr<DeclStmt> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     private:
         std::shared_ptr<Data> data;

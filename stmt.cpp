@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "stmt.h"
+#include "sym_table.h"
 
 using namespace rl;
 
@@ -35,6 +36,18 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
     std::shared_ptr<ScalarVariable> data_var = std::static_pointer_cast<ScalarVariable>(data);
     std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
     data_var->set_init_value(std::static_pointer_cast<ScalarVariable>(cast_type->get_value())->get_cur_value());
+}
+
+std::shared_ptr<DeclStmt> DeclStmt::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
+    std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
+    std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
+    if (ctx.get_parent_ctx() == NULL || ctx.get_parent_ctx()->get_local_sym_table() == NULL) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": no par_ctx or local_sym_table in DeclStmt::generate" << std::endl;
+        exit(-1);
+    }
+    ctx.get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
+    return ret;
 }
 
 std::string DeclStmt::emit (std::string offset) {

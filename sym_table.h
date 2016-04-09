@@ -79,6 +79,7 @@ class Context {
         std::shared_ptr<SymbolTable> get_extern_mix_sym_table () { return extern_mix_sym_table; }
 
         std::shared_ptr<SymbolTable> get_local_sym_table () { return local_sym_table; }
+        void set_local_sym_table (std::shared_ptr<SymbolTable> _lst) { local_sym_table = _lst; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
 
     private:
