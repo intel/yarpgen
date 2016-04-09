@@ -212,3 +212,12 @@ std::shared_ptr<Context> Context::copy() {
     return std::make_shared<Context>(this->self_gen_policy, this->self_glob_stmt, 
                 this->self_glob_stmt_id, new_st, this->parent_ctx);
 }
+
+
+std::shared_ptr<Context> Context::copy(std::shared_ptr<Stmt> stmt) {
+    std::shared_ptr<SymbolTable> new_st = std::make_shared<SymbolTable>();
+    if (this->global_sym_table.use_count() != 0)
+        new_st = this->global_sym_table->copy();
+    return std::make_shared<Context>(this->self_gen_policy, stmt, 
+               stmt->get_id(), new_st, this->parent_ctx);
+}

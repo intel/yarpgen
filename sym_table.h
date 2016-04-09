@@ -86,6 +86,8 @@ class Context {
         std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
         std::shared_ptr<Context> copy();
+        std::shared_ptr<Context> copy(std::shared_ptr<Stmt> stmt);
+        std::shared_ptr<Stmt> getCurrentStmt() {return this->self_glob_stmt;}
 
     private:
         GenPolicy self_gen_policy;
