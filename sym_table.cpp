@@ -27,27 +27,25 @@ std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> in
 
     assert (this != NULL && "SymbolTable::merge failed");
     new_st.set_variables(this->get_variables());
-    new_st.set_struct_types(this->get_struct_types());
-    new_st.set_structs(this->get_structs());
+//    new_st.set_struct_types(this->get_struct_types());
+//    new_st.set_structs(this->get_structs());
 
     if (inp_st != NULL) {
         for (auto i : inp_st->get_variables())
             new_st.add_variable(i);
-        for (auto i : inp_st->get_struct_types())
-            new_st.add_struct_type(i);
-        for (auto i : inp_st->get_structs())
-            new_st.add_struct(i);
+//        for (auto i : inp_st->get_struct_types())
+//            new_st.add_struct_type(i);
+//        for (auto i : inp_st->get_structs())
+//            new_st.add_struct(i);
     }
     return std::make_shared<SymbolTable> (new_st);
 }
 
-/*
+
 std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
     std::string ret = "";
-    for (auto i = variable.begin(); i != variable.end(); ++i) {
-        DeclStmt decl;
-        decl.set_data(*i);
-        decl.set_is_extern(true);
+    for (auto i : variable) {
+        DeclStmt decl (i, NULL, true);
         ret += offset + decl.emit() + "\n";
     }
     return ret;
@@ -55,20 +53,15 @@ std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
 
 std::string SymbolTable::emit_variable_def (std::string offset) {
     std::string ret = "";
-    for (auto i = variable.begin(); i != variable.end(); ++i) {
-        ConstExpr const_init;
-        const_init.set_type (std::static_pointer_cast<IntegerType>((*i)->get_type())->get_int_type_id());
-        const_init.set_data ((*i)->get_value());
+    for (auto i : variable) {
+        std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr>(i->get_init_value());
 
-        DeclStmt decl;
-        decl.set_data(*i);
-        decl.set_init (std::make_shared<ConstExpr>(const_init));
-        decl.set_is_extern(false);
-        ret += offset + decl.emit() + "\n";
+        std::shared_ptr<DeclStmt> decl = std::make_shared<DeclStmt>(i, const_init);
+        ret += offset + decl->emit() + "\n";
     }
     return ret;
 }
-
+/*
 std::string SymbolTable::emit_struct_type_def (std::string offset) {
     std::string ret = "";
     for (auto i : struct_type) {
@@ -131,7 +124,7 @@ std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> pa
     }
     return ret;
 }
-
+*/
 std::string SymbolTable::emit_variable_check (std::string offset) {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
@@ -139,7 +132,7 @@ std::string SymbolTable::emit_variable_check (std::string offset) {
     }
     return ret;
 }
-*/
+
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx) {
     gen_policy = _gen_policy;
     parent_ctx = _parent_ctx;

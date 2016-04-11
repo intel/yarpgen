@@ -62,8 +62,10 @@ class ScopeStmt : public Stmt {
         ScopeStmt () : Stmt(Node::NodeID::SCOPE) {}
         void add_stmt (std::shared_ptr<Stmt> stmt) { scope.push_back(stmt); }
         std::string emit (std::string offset = "");
+        static std::shared_ptr<ScopeStmt> generate (Context ctx);
 
     private:
+        static void form_external_sym_table(Context ctx);
         std::vector<std::shared_ptr<Stmt>> scope;
 };
 

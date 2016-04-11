@@ -23,6 +23,7 @@ limitations under the License.
 #include "type.h"
 #include "variable.h"
 #include "sym_table.h"
+#include "master.h"
 
 using namespace rl;
 
@@ -72,7 +73,17 @@ int main (int argc, char* argv[]) {
 
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
-    self_test();
+
+//    self_test();
+
+    Master mas (out_dir);
+    mas.generate ();
+    mas.emit_func ();
+    mas.emit_init ();
+    mas.emit_decl ();
+    mas.emit_hash ();
+    mas.emit_check ();
+    mas.emit_main ();
 
     return 0;
 }

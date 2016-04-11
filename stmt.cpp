@@ -89,6 +89,33 @@ std::string DeclStmt::emit (std::string offset) {
     return ret;
 }
 
+std::shared_ptr<ScopeStmt> ScopeStmt::generate (Context ctx) {
+    if (ctx.get_parent_ctx() == NULL)
+        form_external_sym_table(ctx);
+
+    std::shared_ptr<ScopeStmt> ret = std::make_shared<ScopeStmt>();
+
+    std::vector<std::shared_ptr<Expr>> inp;
+    for (auto i : ctx.get_extern_inp_sym_table()->get_variables()) {
+        inp.push_back(std::make_shared<VarUseExpr> (i));
+    }
+
+    for (int i = 0; i < 20; ++i) {
+        std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
+        ctx.get_extern_out_sym_table()->add_variable (out_var);
+        std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(out_var);
+        ret->add_stmt(ExprStmt::generate(ctx, inp, var_use));
+    }
+    return ret;
+}
+
+void ScopeStmt::form_external_sym_table(Context ctx) {
+    int inp_var_num = rand_val_gen->get_rand_value<int>(ctx.get_gen_policy()->get_min_inp_var_num(), ctx.get_gen_policy()->get_max_inp_var_num());
+    for (int i = 0; i < inp_var_num; ++i) {
+        ctx.get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(ctx));
+    }
+}
+
 std::string ScopeStmt::emit (std::string offset) {
     std::string ret = offset + "{\n";
     for (auto i : scope)
