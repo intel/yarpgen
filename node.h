@@ -120,6 +120,7 @@ class AssignExpr : public Expr {
         }
         void set_to (std::shared_ptr<Expr> _to);
         void set_from (std::shared_ptr<Expr> _from);
+        std::shared_ptr<Expr> get_rhs () {return this->from;}
         void propagate_type ();
         UB propagate_value () { value.set_value(from->get_value()); return NoUB; }
         std::string emit (std::string offset = "");
@@ -330,6 +331,7 @@ class DeclStmt : public Stmt {
 class ExprStmt : public Stmt {
     public:
         ExprStmt () : expr (NULL) { id = Node::NodeID::EXPR; }
+        ExprStmt (std::shared_ptr<Expr> _expr) : expr (NULL) { id = Node::NodeID::EXPR; this->set_expr(_expr); }
         void set_expr (std::shared_ptr<Expr> _expr) { expr = _expr; }
         std::string emit (std::string offset = "");
 

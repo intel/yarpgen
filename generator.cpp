@@ -423,7 +423,8 @@ std::shared_ptr<Expr> ArithStmtGen::gen_level (int depth) {
 ArithStmtGen::ArithStmtGen (std::shared_ptr<Context> _global_ctx, 
                             std::vector<std::shared_ptr<Variable>> _vinp, 
                             std::shared_ptr<Variable> _vout) : StmtGen (_global_ctx) {
-    this->out = std::make_shared<VarUseExpr>(_vout);
+    if (_vout.use_count() != 0)
+        this->out = std::make_shared<VarUseExpr>(_vout);
     for (auto var : _vinp) {
         this->inp.push_back(std::make_shared<VarUseExpr>(var));
     }
