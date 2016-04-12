@@ -50,6 +50,7 @@ std::string Master::emit_init () {
     ret += "#include \"init.h\"\n\n";
 
     ret += extern_inp_sym_table->emit_variable_def() + "\n\n";
+    ret += extern_mix_sym_table->emit_variable_def() + "\n\n";
     ret += extern_out_sym_table->emit_variable_def() + "\n\n";
 //    ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
 
@@ -72,6 +73,7 @@ std::string Master::emit_decl () {
     ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n\n";
 
     ret += extern_inp_sym_table->emit_variable_extern_decl() + "\n\n";
+    ret += extern_mix_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_out_sym_table->emit_variable_extern_decl() + "\n\n";
 //    ret += extern_inp_sym_table->emit_struct_type_def() + "\n\n";
 //    ret += extern_inp_sym_table->emit_struct_extern_decl() + "\n\n";
@@ -116,6 +118,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 
     ret += seed_decl->emit("    ") + "\n";
 
+    ret += extern_mix_sym_table->emit_variable_check ("    ");
     ret += extern_out_sym_table->emit_variable_check ("    ");
 
     ret += "    return seed;\n";

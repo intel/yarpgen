@@ -531,7 +531,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
             exit(-1);
         case IntegerType::IntegerTypeID::INT:
-            s_tmp = (long long int) val.int_val - (long long int) ret.val.int_val;
+            s_tmp = (long long int) val.int_val - (long long int) rhs.val.int_val;
             if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                 ret.set_ub(SignOvf);
             else
@@ -972,7 +972,7 @@ switch (rhs.get_int_type_id()) {                                                
     case IntegerType::IntegerTypeID::SHRT:                                      \
     case IntegerType::IntegerTypeID::USHRT:                                     \
     case IntegerType::IntegerTypeID::MAX_INT_ID:                                \
-        std::cerr __op__ "ERROR at " __op__ __FILE__ __op__ ":" __op__ __LINE__ __op__ ": perform propagate_type in AtomicType::ScalarTypedVal::operator__op__" __op__ std::endl;\
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator__op__" << std::endl;\
         exit(-1);                                                               \
     case IntegerType::IntegerTypeID::INT:                                       \
         ret_val = lhs_val __op__ rhs.val.int_val;                               \
@@ -1093,10 +1093,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         }
     }
 
-    if (lhs_is_signed && 
-       (s_rhs >= (lhs_bit_size - msb(s_lhs)))) {
-        ret.set_ub(ShiftRhsLarge);
-        return ret;
+    if (lhs_is_signed) {
+        uint64_t max_avail_shft = lhs_bit_size - msb(s_lhs);
+        if (rhs_is_signed && s_rhs >= max_avail_shft) {
+            ret.set_ub(ShiftRhsLarge);
+            return ret;
+        }
+        else if (!rhs_is_signed && u_rhs >= max_avail_shft) {
+            ret.set_ub(ShiftRhsLarge);
+            return ret;
+        }
     }
 
     if (ret.has_ub())
@@ -1236,22 +1242,22 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator>>" << std::endl;
             exit(-1);
         case IntegerType::IntegerTypeID::INT:
-            SHFT_CASE(<<, ret.val.int_val, val.int_val)
+            SHFT_CASE(>>, ret.val.int_val, val.int_val)
             break;
         case IntegerType::IntegerTypeID::UINT:
-            SHFT_CASE(<<, ret.val.uint_val, val.uint_val)
+            SHFT_CASE(>>, ret.val.uint_val, val.uint_val)
             break;
         case IntegerType::IntegerTypeID::LINT:
-            SHFT_CASE(<<, ret.val.lint_val, val.lint_val)
+            SHFT_CASE(>>, ret.val.lint_val, val.lint_val)
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            SHFT_CASE(<<, ret.val.ulint_val, val.ulint_val)
+            SHFT_CASE(>>, ret.val.ulint_val, val.ulint_val)
             break;
         case IntegerType::IntegerTypeID::LLINT:
-            SHFT_CASE(<<, ret.val.llint_val, val.llint_val)
+            SHFT_CASE(>>, ret.val.llint_val, val.llint_val)
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            SHFT_CASE(<<, ret.val.ullint_val, val.ullint_val)
+            SHFT_CASE(>>, ret.val.ullint_val, val.ullint_val)
             break;
     }
     return ret;

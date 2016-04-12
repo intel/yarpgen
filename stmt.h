@@ -38,6 +38,7 @@ class DeclStmt : public Stmt {
     public:
         DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern = false);
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
+        std::shared_ptr<Data> get_data () { return data; }
         std::string emit (std::string offset = "");
         static std::shared_ptr<DeclStmt> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp);
 

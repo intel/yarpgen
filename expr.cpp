@@ -231,6 +231,7 @@ std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
 }
 
 std::shared_ptr<Expr> ArithExpr::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp) {
+//    std::cout << "============" << std::endl;
     return gen_level(ctx, inp, 0);
 }
 
@@ -238,18 +239,15 @@ std::shared_ptr<Expr> ArithExpr::gen_level (Context ctx, std::vector<std::shared
     //TODO: itsi a stub fortesting. Rewrite it later.
     GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (ctx.get_gen_policy()->get_arith_leaves());
     std::shared_ptr<Expr> ret = NULL;
-    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == 1) {
+    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == 5) {
         int var_num = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
         ret = inp.at(var_num);
     }
-/*
-    else //if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
-    {
+    else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
         ret = UnaryExpr::generate(ctx, inp, par_depth + 1);
     }
 
-    else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
-*/
+//    else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
     else {
         ret = BinaryExpr::generate(ctx, inp, par_depth + 1);
     }
@@ -259,6 +257,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (Context ctx, std::vector<std::shared
         exit (-1);
     }
 */
+//    std::cout << ret->emit() << std::endl;
     return ret;
 }
 
@@ -438,7 +437,13 @@ std::shared_ptr<BinaryExpr> BinaryExpr::generate (Context ctx, std::vector<std::
     BinaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_binary_op());
     std::shared_ptr<Expr> lhs = ArithExpr::gen_level (ctx, inp, par_depth);
     std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
-    return std::make_shared<BinaryExpr>(op_type, lhs, rhs);
+    std::shared_ptr<BinaryExpr> ret = std::make_shared<BinaryExpr>(op_type, lhs, rhs);
+/*
+    std::cout << "lhs: " << std::static_pointer_cast<ScalarVariable>(lhs->get_value())->get_cur_value() << std::endl;
+    std::cout << "rhs: " << std::static_pointer_cast<ScalarVariable>(rhs->get_value())->get_cur_value() << std::endl;
+    std::cout << "ret: " << std::static_pointer_cast<ScalarVariable>(ret->get_value())->get_cur_value() << std::endl;
+*/
+    return ret;
 }
 
 BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
@@ -654,6 +659,19 @@ UB BinaryExpr::propagate_value () {
     std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
     AtomicType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
 
+/*
+    std::cout << "Before prop:" << std::endl;
+    std::cout << arg0->emit() << std::endl;
+    std::cout << "lhs: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value() << std::endl;
+    std::cout << "lhs val id: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value().get_int_type_id() << std::endl;
+    std::cout << "lhs id: " << arg0->get_value()->get_type()->get_int_type_id() << std::endl;
+    std::cout << arg1->emit() << std::endl;
+    std::cout << "rhs: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value() << std::endl;
+    std::cout << "rhs val id: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value().get_int_type_id() << std::endl;
+    std::cout << "rhs id: " << arg1->get_value()->get_type()->get_int_type_id() << std::endl;
+*/
+
+
     switch (op) {
         case Add:
             new_val = scalar_lhs->get_cur_value() + scalar_rhs->get_cur_value();
@@ -722,6 +740,17 @@ UB BinaryExpr::propagate_value () {
     else {
         value = std::make_shared<ScalarVariable>("", IntegerType::init(arg0->get_value()->get_type()->get_int_type_id()));
     }
+/*
+    std::cout << "After prop:" << std::endl;
+    std::cout << "lhs: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value() << std::endl;
+    std::cout << "lhs id: " << arg0->get_value()->get_type()->get_int_type_id() << std::endl;
+    std::cout << "rhs: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value() << std::endl;
+    std::cout << "rhs id: " << arg1->get_value()->get_type()->get_int_type_id() << std::endl;
+    std::cout << "new_val: " << new_val << std::endl;
+    std::cout << "new id: " << new_val.get_int_type_id() << std::endl;
+    std::cout << "UB: " << new_val.get_ub() << std::endl;
+    std::cout << "ret: " << std::static_pointer_cast<ScalarVariable>(value)->get_cur_value() << std::endl;
+*/
     return new_val.get_ub();
 }
 

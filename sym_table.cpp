@@ -136,6 +136,7 @@ std::string SymbolTable::emit_variable_check (std::string offset) {
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx) {
     gen_policy = _gen_policy;
     parent_ctx = _parent_ctx;
+    local_sym_table = std::make_shared<SymbolTable>();
     depth = 0;
     if_depth = 0;
 
