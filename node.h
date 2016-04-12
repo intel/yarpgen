@@ -308,7 +308,7 @@ class FuncCallExpr : public Expr {
 
 class Stmt : public Node {
     public:
-        Stmt () {};
+        Stmt () {}
         std::shared_ptr<SymbolTable> local_sym_table;
 };
 

@@ -698,7 +698,6 @@ void ScopeGen::generate () {
             tmp_var_decl_gen.generate();
             std::shared_ptr<Variable> tmp_var = std::static_pointer_cast<Variable>(tmp_var_decl_gen.get_data());
             local_sym_table.add_variable(tmp_var);
-            this->stmt->local_sym_table->add_variable(tmp_var);
             VarUseExpr var_use;
             var_use.set_variable (tmp_var);
             inp.push_back(std::make_shared<VarUseExpr> (var_use));
@@ -724,4 +723,7 @@ void ScopeGen::generate () {
             scope.push_back(if_stmt_gen.get_stmt());
         }
     }
+
+    for (auto st : this->scope)
+        st->local_sym_table = std::make_shared<SymbolTable>(this->local_sym_table);
 }
