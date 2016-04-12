@@ -179,6 +179,8 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::
         this->extern_out_sym_table = this->parent_ctx->get_extern_out_sym_table ();
         this->depth = this->parent_ctx->get_depth();
         this->if_depth = this->parent_ctx->get_if_depth();
+        this->loop_depth = this->parent_ctx->get_loop_depth();
+        this->complexity = this->parent_ctx->get_complexity();
     }
 
     if (this->self_glob_stmt_id == Node::NodeID::IF)
@@ -200,16 +202,16 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
         extern_out_sym_table = parent_ctx->get_extern_out_sym_table ();
         depth = parent_ctx->get_depth();
         if_depth = parent_ctx->get_if_depth();
+        loop_depth = parent_ctx->get_loop_depth();
+        complexity = parent_ctx->get_complexity();
     }
     if (_glob_stmt_id == Node::NodeID::IF)
         if_depth++;
 }
 
-std::shared_ptr<Context> Context::copy() {
-    std::shared_ptr<SymbolTable> new_st = std::make_shared<SymbolTable>();
-    if (this->global_sym_table.use_count() != 0)
-        new_st = this->global_sym_table->copy();
-    return std::make_shared<Context>(this->self_gen_policy, this->self_glob_stmt, 
-                this->self_glob_stmt_id, new_st, this->parent_ctx);
+void Context::add_to_complexity (unsigned long long diff) {
+    this->complexity += diff;
+    if (this->parent_ctx.use_count() != 0) {
+        this->parent_ctx->add_to_complexity(diff);
+    }
 }
-

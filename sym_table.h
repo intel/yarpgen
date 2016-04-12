@@ -79,13 +79,17 @@ class Context {
         std::shared_ptr<GenPolicy> get_self_gen_policy () { return std::make_shared<GenPolicy> (self_gen_policy); }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }
+        int get_loop_depth () { return loop_depth; }
+        void inc_loop_depth () {this->loop_depth += 1;}
+        unsigned long long get_complexity () {return this->complexity;}
+        void add_to_complexity (unsigned long long diff);
+
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
         void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_out_sym_table () { return extern_out_sym_table; }
         std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
-        std::shared_ptr<Context> copy();
 
         void setScopeId(unsigned long long id_) {this->scope_id = id_;}
         unsigned long long getScopeId() {return this->scope_id;}
@@ -99,7 +103,9 @@ class Context {
         std::shared_ptr<SymbolTable> global_sym_table;
         std::shared_ptr<Context> parent_ctx;
         unsigned long long scope_id;
+        unsigned long long complexity;
         int if_depth;
+        int loop_depth;
         int depth;
 };
 }
