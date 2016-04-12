@@ -25,6 +25,7 @@ limitations under the License.
 #include "node.h"
 #include "sym_table.h"
 
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace rl{
 
@@ -141,18 +142,6 @@ class ScalarVariableGen : public DataGen {
         static int variable_num;
 };
 
-class ArrayVariableGen : public DataGen {
-    public:
-        ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy) : DataGen (_gen_policy), essence (Array::Ess::MAX_ESS), size (0) {}
-        ArrayVariableGen (std::shared_ptr<GenPolicy> _gen_policy, IntegerType::IntegerTypeID _type_id, Type::Mod _modifier, bool _static_spec, int _size, Array::Ess _essence) :
-                          DataGen (_gen_policy, _type_id, _modifier, _static_spec), size (_size), essence (_essence) {}
-        void generate ();
-
-    private:
-        Array::Ess essence;
-        int size;
-        static int array_num;
-};
 
 class StructVariableGen : public DataGen {
     public:

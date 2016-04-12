@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "generator.h"
+#include <lbbuilder.h>
 
 using namespace rl;
 
@@ -215,21 +216,6 @@ void ScalarVariableGen::generate () {
     variable_num++;
 }
 
-int ArrayVariableGen::array_num = 0;
-
-void ArrayVariableGen::generate () {
-    rand_init_param ();
-    if (rand_init) {
-        size = rand_val_gen->get_rand_value<int>(gen_policy->get_min_array_size(), gen_policy->get_max_array_size());
-        essence = (Array::Ess) (gen_policy->get_essence_differ() ? rand_val_gen->get_rand_value<int>(0, Array::Ess::MAX_ESS - 1) :
-                                                                   gen_policy->get_primary_essence());
-    }
-    Array tmp_arr ("arr_" + std::to_string(array_num), type_id, modifier, static_spec, size, essence);
-    data = std::make_shared<Array> (tmp_arr);
-    rand_init_value();
-    array_num++;
-}
-
 void StructValueGen::generate () {
     for (int i = 0; i < struct_var->get_num_of_members(); ++i) {
         if (struct_var->get_member(i)->get_type()->is_struct_type()) {
@@ -270,11 +256,6 @@ void DeclStmtGen::generate () {
             ScalarVariableGen scalar_var_gen (gen_policy);
             scalar_var_gen.generate ();
             data = scalar_var_gen.get_data();
-        }
-        else if (var_class_id == Data::VarClassID::ARR) {
-            ArrayVariableGen array_var_gen (gen_policy);
-            array_var_gen.generate ();
-            data = array_var_gen.get_data ();
         }
         else {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": only scalar vasriables and arrays are allowed." << std::endl;
@@ -688,7 +669,15 @@ void ScopeGen::generate () {
         }
     }
 
-    //TODO: add to gen_policy stmt number
+
+
+    std::vector<std::shared_ptr<crosschain::Vector>> input;
+    std::shared_ptr<crosschain::VectorDeclStmt> V_in = std::make_shared<crosschain::VectorDeclStmt>(this->ctx, "v_in", IntegerType::IntegerTypeID::INT, 800);
+    input.push_back(V_in->get_data());
+
+    this->scope.push_back(std::make_shared<crosschain::LBBuilder>(this->ctx, input));
+
+    /*
     int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
     for (int i = 0; i < arith_stmt_num; ++i) {
         Node::NodeID gen_id = rand_val_gen->get_rand_id(gen_policy->get_stmt_gen_prob());
@@ -723,6 +712,7 @@ void ScopeGen::generate () {
             scope.push_back(if_stmt_gen.get_stmt());
         }
     }
+    */
 
     for (auto st : this->scope)
         st->local_sym_table = std::make_shared<SymbolTable>(this->local_sym_table);

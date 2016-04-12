@@ -133,8 +133,6 @@ class GenPolicy {
 
         void set_essence_differ (bool _essence_differ) { essence_differ = _essence_differ; }
         bool get_essence_differ () { return essence_differ; }
-        void set_primary_essence (Array::Ess _primary_essence) { primary_essence = _primary_essence; }
-        Array::Ess get_primary_essence () { return primary_essence; }
 
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
@@ -251,7 +249,6 @@ class GenPolicy {
 
         // TODO: Add vector of allowed essence
         bool essence_differ;
-        Array::Ess primary_essence;
 
         int max_arith_depth;
         int min_arith_stmt_num;

@@ -20,12 +20,16 @@ limitations under the License.
 
 #include "type.h"
 
+namespace crosschain {
+    class Vector;
+}
+
 namespace rl {
 
 class Data {
     public:
         enum VarClassID {
-            VAR, ARR, STRUCT, MAX_CLASS_ID
+            VAR, STRUCT, MAX_CLASS_ID
         };
 
         union TypeVal {
@@ -99,34 +103,5 @@ class Variable : public Data {
         uint64_t get_max ();
         uint64_t get_min ();
         void dbg_dump ();
-};
-
-class Array : public Data {
-    public:
-        enum Ess {
-            C_ARR,
-            STD_ARR,
-            STD_VEC,
-            VAL_ARR,
-            MAX_ESS
-        };
-
-        explicit Array (std::string _name, IntegerType::IntegerTypeID _base_type_id,  Type::Mod _modifier, bool _is_static,
-                        uint64_t _size, Ess _essence);
-        std::shared_ptr<Type> get_base_type () { return base_type; }
-        uint64_t get_size () { return size; }
-        Ess get_essence () { return essence; }
-        void set_value (uint64_t _val);
-        void set_max (uint64_t _max);
-        void set_min (uint64_t _min);
-        uint64_t get_value ();
-        uint64_t get_max ();
-        uint64_t get_min ();
-        void dbg_dump ();
-
-    private:
-        std::shared_ptr<Type> base_type;
-        uint64_t size;
-        Ess essence;
 };
 }

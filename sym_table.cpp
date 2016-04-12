@@ -19,6 +19,7 @@ limitations under the License.
 #include <cassert>
 
 #include "sym_table.h"
+#include <lbbuilder.h>
 
 using namespace rl;
 
@@ -58,7 +59,7 @@ std::shared_ptr<Variable> SymbolTable::get_rand_variable () {
     return variable.at(indx);
 }
 
-std::shared_ptr<Array> SymbolTable::get_rand_array () {
+std::shared_ptr<crosschain::Vector> SymbolTable::get_rand_array () {
     int indx = rand_val_gen->get_rand_value<int>(0, array.size() - 1);
     return array.at(indx);
 }
@@ -173,6 +174,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::
 
     this->depth = 0;
     this->if_depth = 0;
+    this->loop_depth = 0;
 
     if (this->parent_ctx.use_count() != 0) {
         this->extern_inp_sym_table = this->parent_ctx->get_extern_inp_sym_table ();
@@ -196,6 +198,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
     parent_ctx = _parent_ctx;
     depth = 0;
     if_depth = 0;
+    loop_depth = 0;
 
     if (parent_ctx != NULL) {
         extern_inp_sym_table = parent_ctx->get_extern_inp_sym_table ();

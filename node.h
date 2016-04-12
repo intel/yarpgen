@@ -130,22 +130,6 @@ class AssignExpr : public Expr {
         std::shared_ptr<Expr> from;
 };
 
-class IndexExpr : public Expr {
-    public:
-        IndexExpr () : base (NULL), index (NULL), is_subscr (true) { id = Node::NodeID::INDEX; }
-        void set_base (std::shared_ptr<Array> _base);
-        void set_index (std::shared_ptr<Expr> _index) { index = _index; }
-        void set_is_subscr (bool _is_subscr) { is_subscr = _is_subscr || base->get_essence() == Array::Ess::C_ARR || base->get_essence() == Array::Ess::VAL_ARR; }
-        void propagate_type () { value.set_type(base->get_base_type()); }
-        UB propagate_value () { value.set_value(base->get_value()); return NoUB; }
-        std::string emit (std::string offset = "");
-
-    private:
-        std::shared_ptr<Array> base;
-        std::shared_ptr<Expr> index;
-        bool is_subscr; // We can access std::array and std::vector elements through [i] and at(i)
-};
-
 class MemberExpr : public Expr {
     public:
         MemberExpr () : struct_var(NULL), identifier(ULLONG_MAX) { id = Node::NodeID::MEMBER; }

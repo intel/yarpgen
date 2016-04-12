@@ -28,8 +28,8 @@ int MAX_ARRAY_SIZE = 10000;
 
 int MAX_ARITH_DEPTH = 5;
 
-int MIN_ARITH_STMT_NUM = 5;
-int MAX_ARITH_STMT_NUM = 10;
+int MIN_ARITH_STMT_NUM = 1;
+int MAX_ARITH_STMT_NUM = 1;
 
 int MAX_TMP_VAR_NUM = 5;
 
@@ -94,7 +94,6 @@ GenPolicy::GenPolicy () {
     max_array_size = MAX_ARRAY_SIZE;
 
     essence_differ = false;
-    primary_essence = (Array::Ess) rand_val_gen->get_rand_value<int>(Array::Ess::C_ARR, Array::Ess::MAX_ESS - 1);
 
     max_arith_depth = MAX_ARITH_DEPTH;
 
@@ -125,6 +124,8 @@ GenPolicy::GenPolicy () {
     stmt_gen_prob.push_back (assign_gen);
     Probability<Node::NodeID> if_gen (Node::NodeID::IF, 10);
     stmt_gen_prob.push_back (if_gen);
+    Probability<Node::NodeID> loop_gen (Node::NodeID::LBB, 90);
+    stmt_gen_prob.push_back (loop_gen);
 
     Probability<ArithLeafID> data_leaf (ArithLeafID::Data, 10);
     arith_leaves.push_back (data_leaf);

@@ -68,20 +68,6 @@ std::string AssignExpr::emit (std::string offset) {
     return ret;
 }
 
-void IndexExpr::set_base (std::shared_ptr<Array> _base) {
-    base = _base;
-    value.set_type(base->get_type());
-}
-
-std::string IndexExpr::emit (std::string offset) {
-    std::string ret = offset;
-    ret += base->get_name();
-    ret += is_subscr ? " [" : ".at(";
-    ret += index->emit();
-    ret += is_subscr ? "]" : ")";
-    return ret;
-}
-
 void MemberExpr::propagate_type () {
     if (struct_var->get_num_of_members() <= identifier) {
         value.set_type(IntegerType::init(IntegerType::IntegerTypeID::MAX_INT_ID));
@@ -1184,41 +1170,13 @@ std::string DeclStmt::emit (std::string offset) {
             std::cerr << "ERROR in DeclStmt::emit bad modifier" << std::endl;
             break;
     }
-    if (data->get_class_id() == Variable::VarClassID::ARR) {
-        std::shared_ptr<Array> arr = std::static_pointer_cast<Array>(data);
-        switch (arr->get_essence()) {
-            case Array::Ess::STD_ARR:
-                ret += "std::array<" + arr->get_base_type()->get_name() + ", " + std::to_string(arr->get_size()) + ">";
-                ret += " " + arr->get_name();
-                break;
-            case Array::Ess::STD_VEC:
-                ret += "std::vector<" + arr->get_base_type()->get_name() + ">";
-                ret += " " + arr->get_name();
-                ret += is_extern ? "" : " (" + std::to_string(arr->get_size()) + ", 0)";
-                break;
-            case Array::Ess::C_ARR:
-                ret +=  arr->get_base_type()->get_name();
-                ret += " " + arr->get_name();
-                ret += " [" + std::to_string(arr->get_size()) + "]";
-                break;
-            case Array::Ess::VAL_ARR:
-                ret += "std::valarray<" + arr->get_base_type()->get_name() + ">";
-                ret += " " + arr->get_name();
-                ret += is_extern ? "" : " ((" + arr->get_base_type()->get_name() + ") 0, " + std::to_string(arr->get_size()) + ")";
-                break;
-            case Array::Ess::MAX_ESS:
-                std::cerr << "ERROR in DeclStmt::emit bad array essence" << std::endl;
-                break;
-        }
-    }
-    else {
-        ret += data->get_type()->get_name() + " " + data->get_name();
-    }
+
+    ret += data->get_type()->get_name() + " " + data->get_name();
+
     if (data->get_align() != 0 && is_extern) // TODO: Should we set __attribute__ to non-extern variable?
         ret += " __attribute__((aligned(" + std::to_string(data->get_align()) + ")))";
     if (init != NULL) {
-        if (data->get_class_id() == Variable::VarClassID::ARR ||
-            data->get_class_id() == Variable::VarClassID::STRUCT) {
+        if (data->get_class_id() == Variable::VarClassID::STRUCT) {
             std::cerr << "ERROR in DeclStmt::emit init of array or struct" << std::endl;
             return ret;
         }
