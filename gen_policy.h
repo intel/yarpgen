@@ -198,6 +198,10 @@ class GenPolicy {
         uint64_t get_min_struct_num () { return min_struct_num; }
         void set_max_struct_num (uint64_t _max_struct_num) { max_struct_num = _max_struct_num; }
         uint64_t get_max_struct_num () { return max_struct_num; }
+        void set_min_array_num (uint64_t _min_array_num) { min_array_num = _min_array_num; }
+        uint64_t get_min_array_num () { return min_array_num; }
+        void set_max_array_num (uint64_t _max_array_num) { max_array_num = _max_array_num; }
+        uint64_t get_max_array_num () { return max_array_num; }
         void set_min_struct_members_num (uint64_t _min_struct_members_num) { min_struct_members_num = _min_struct_members_num; }
         uint64_t get_min_struct_members_num () { return min_struct_members_num; }
         void set_max_struct_members_num (uint64_t _max_struct_members_num) { max_struct_members_num = _max_struct_members_num; }
@@ -229,6 +233,8 @@ class GenPolicy {
         uint64_t max_struct_types_num;
         uint64_t min_struct_num;
         uint64_t max_struct_num;
+        uint64_t min_array_num;
+        uint64_t max_array_num;
         uint64_t min_struct_members_num;
         uint64_t max_struct_members_num;
         bool allow_mix_mod_in_struct;

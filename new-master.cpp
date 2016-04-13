@@ -78,10 +78,13 @@ std::string Master::emit_init () {
 
     ret += extern_inp_sym_table->emit_variable_def() + "\n\n";
     ret += extern_out_sym_table->emit_variable_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_array_def() + "\n\n";
+    ret += extern_out_sym_table->emit_array_def() + "\n\n";
     ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
 
     ret += "void init () {\n";
     ret += extern_inp_sym_table->emit_struct_init ("    ");
+    ret += extern_inp_sym_table->emit_array_init ("    ");
     ret += "}";
 
     write_file("init.cpp", ret);
@@ -100,6 +103,8 @@ std::string Master::emit_decl () {
 
     ret += extern_inp_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_out_sym_table->emit_variable_extern_decl() + "\n\n";
+    ret += extern_inp_sym_table->emit_array_extern_decl() + "\n\n";
+    ret += extern_out_sym_table->emit_array_extern_decl() + "\n\n";
     ret += extern_inp_sym_table->emit_struct_type_def() + "\n\n";
     ret += extern_inp_sym_table->emit_struct_extern_decl() + "\n\n";
 
@@ -149,6 +154,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     ret += seed_decl.emit("    ") + "\n";
 
     ret += extern_out_sym_table->emit_variable_check ("    ");
+    ret += extern_out_sym_table->emit_array_check ("    ");
 
     ret += "    return seed;\n";
     ret += "}";

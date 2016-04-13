@@ -296,6 +296,15 @@ class Stmt : public Node {
         std::shared_ptr<SymbolTable> local_sym_table;
 };
 
+class StubStmt : public Stmt {
+protected:
+    std::string stub_string;
+
+public:
+    StubStmt(std::string s_) {this->stub_string = s_;}
+    virtual std::string emit (std::string offset = "") {return offset + this->stub_string;}
+};
+
 class DeclStmt : public Stmt {
     public:
         DeclStmt () : is_extern(false), data (NULL), init (NULL) { id = Node::NodeID::DECL; }

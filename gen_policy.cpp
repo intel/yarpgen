@@ -45,6 +45,8 @@ int MIN_STRUCT_TYPES_NUM = 3;
 int MAX_STRUCT_TYPES_NUM = 6;
 int MIN_STRUCT_NUM = 4;
 int MAX_STRUCT_NUM = 8;
+int MIN_ARRAY_NUM = 2;
+int MAX_ARRAY_NUM = 8;
 int MIN_STRUCT_MEMBERS_NUM = 5;
 int MAX_STRUCT_MEMBERS_NUM = 10;
 int MAX_STRUCT_DEPTH = 5;
@@ -80,6 +82,8 @@ GenPolicy::GenPolicy () {
     max_struct_types_num = MAX_STRUCT_TYPES_NUM;
     min_struct_num = MIN_STRUCT_NUM;
     max_struct_num = MAX_STRUCT_NUM;
+    min_array_num = MIN_ARRAY_NUM;
+    max_array_num = MAX_ARRAY_NUM;
     min_struct_members_num = MIN_STRUCT_MEMBERS_NUM;
     max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
     allow_mix_mod_in_struct = false;

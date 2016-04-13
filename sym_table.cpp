@@ -28,15 +28,15 @@ std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> in
 
     assert (this != NULL && "SymbolTable::merge failed");
     new_st.set_variables(this->get_variables());
-    new_st.set_arrays(this->get_arrays());
+    new_st.set_array_decls(this->get_array_decls());
     new_st.set_struct_types(this->get_struct_types());
     new_st.set_structs(this->get_structs());
 
     if (inp_st != NULL) {
         for (auto i : inp_st->get_variables())
             new_st.add_variable(i);
-        for (auto i : inp_st->get_arrays())
-            new_st.add_array(i);
+        for (auto i : inp_st->get_array_decls())
+            new_st.add_array_decl(i);
         for (auto i : inp_st->get_struct_types())
             new_st.add_struct_type(i);
         for (auto i : inp_st->get_structs())
@@ -48,7 +48,7 @@ std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> in
 std::shared_ptr<SymbolTable> SymbolTable::copy () {
     std::shared_ptr<SymbolTable> new_st = std::make_shared<SymbolTable>();
     new_st->set_variables(this->get_variables());
-    new_st->set_arrays(this->get_arrays());
+    new_st->set_array_decls(this->get_array_decls());
     new_st->set_struct_types(this->get_struct_types());
     new_st->set_structs(this->get_structs());
     return new_st;
@@ -61,7 +61,13 @@ std::shared_ptr<Variable> SymbolTable::get_rand_variable () {
 
 std::shared_ptr<crosschain::Vector> SymbolTable::get_rand_array () {
     int indx = rand_val_gen->get_rand_value<int>(0, array.size() - 1);
-    return array.at(indx);
+    return array.at(indx)->get_data();
+}
+
+std::vector<std::shared_ptr<crosschain::Vector>> SymbolTable::get_arrays () {
+    std::vector<std::shared_ptr<crosschain::Vector>> ret;
+    for (auto v : this->array) ret.push_back(v->get_data());
+    return ret;
 }
 
 std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
@@ -160,6 +166,42 @@ std::string SymbolTable::emit_variable_check (std::string offset) {
         ret += offset + "hash(seed, " + (*i)->get_name() + ");\n";
     }
     return ret;
+}
+
+std::string SymbolTable::emit_array_def (std::string offset) {
+    std::stringstream ss;
+    for (auto vdecl : this->array)
+        ss << vdecl->emit(offset) << std::endl;
+    return ss.str();
+}
+
+std::string SymbolTable::emit_array_extern_decl (std::string offset) {
+    std::stringstream ss;
+    for (auto vdecl : this->array) {
+        vdecl->set_is_extern(true);
+        ss << vdecl->emit(offset) << std::endl;
+        vdecl->set_is_extern(false);
+    }
+    return ss.str();
+}
+
+std::string SymbolTable::emit_array_init (std::string offset) {
+    std::stringstream ss;
+    for (auto vdecl : this->array)
+        ss << vdecl->getInitStmt()->emit(offset) << std::endl;
+    return ss.str();
+}
+
+std::string SymbolTable::emit_array_check (std::string offset) {
+    std::stringstream ss;
+    for (auto vdecl : this->array) {
+        crosschain::ForEachStmt simple_loop(vdecl->get_data());
+        simple_loop.add_single_stmt(std::make_shared<StubStmt>
+            ("hash(seed, " + simple_loop.getVar()->get_name() + ");\n"));
+        ss << simple_loop.emit(offset);
+    }
+
+    return ss.str();
 }
 
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::shared_ptr<Context> _parent_ctx) {

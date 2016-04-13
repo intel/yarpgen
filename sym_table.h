@@ -34,17 +34,18 @@ class SymbolTable {
         std::shared_ptr<SymbolTable> copy();
 
         void add_variable (std::shared_ptr<Variable> _var) { variable.push_back (_var); }
-        void add_array (std::shared_ptr<crosschain::Vector> _arr) { array.push_back (_arr); }
+        void add_array_decl (std::shared_ptr<crosschain::VectorDeclStmt> _arr) { array.push_back (_arr); }
         void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
         void add_struct (std::shared_ptr<Struct> _struct) { structs.push_back (_struct); }
 
         void set_variables (std::vector<std::shared_ptr<Variable>> _variable) { variable = _variable; }
-        void set_arrays (std::vector<std::shared_ptr<crosschain::Vector>> _array) { array = _array; }
+        void set_array_decls (std::vector<std::shared_ptr<crosschain::VectorDeclStmt>> _array) { array = _array; }
         void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
         void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
 
         std::vector<std::shared_ptr<Variable>>& get_variables () { return variable; }
-        std::vector<std::shared_ptr<crosschain::Vector>>& get_arrays () { return array; }
+        std::vector<std::shared_ptr<crosschain::Vector>> get_arrays ();
+        std::vector<std::shared_ptr<crosschain::VectorDeclStmt>> get_array_decls () {return this->array; }
         std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
         std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
 
@@ -61,6 +62,12 @@ class SymbolTable {
         std::string emit_struct_extern_decl (std::string offset = "");
         std::string emit_struct_init (std::string offset = "");
 
+        // Arrays
+        std::string emit_array_def (std::string offset = "");
+        std::string emit_array_extern_decl (std::string offset = "");
+        std::string emit_array_init (std::string offset = "");
+        std::string emit_array_check (std::string offset = "");
+
     private:
         std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
 
@@ -68,7 +75,7 @@ class SymbolTable {
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;
         std::vector<std::shared_ptr<Variable>> variable;
-        std::vector<std::shared_ptr<crosschain::Vector>> array;
+        std::vector<std::shared_ptr<crosschain::VectorDeclStmt>> array;
 };
 
 class Context {

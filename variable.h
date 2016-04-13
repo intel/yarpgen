@@ -22,6 +22,7 @@ limitations under the License.
 
 namespace crosschain {
     class Vector;
+    class VectorDeclStmt;
 }
 
 namespace rl {

@@ -636,6 +636,7 @@ void ScopeGen::generate () {
             struct_type_gen.generate();
             ctx->get_extern_inp_sym_table()->add_struct_type(struct_type_gen.get_type());
         }
+
         //TODO: add it to output variables
         int struct_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_struct_num(), gen_policy->get_max_struct_num());
         for (int i = 0; i < struct_num; ++i) {
@@ -643,6 +644,20 @@ void ScopeGen::generate () {
             StructVariableGen struct_var_gen (gen_policy, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx));
             struct_var_gen.generate();
             ctx->get_extern_inp_sym_table()->add_struct(std::static_pointer_cast<Struct>(struct_var_gen.get_data()));
+        }
+
+        int inp_arr_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_array_num(), gen_policy->get_max_array_num());
+        for (int i = 0; i < inp_arr_num; ++i) {
+            std::shared_ptr<crosschain::VectorDeclStmt> new_vec = std::make_shared<crosschain::VectorDeclStmt>(this->ctx);
+            new_vec->setPurpose(crosschain::VecElem::Purpose::RONLY);
+            ctx->get_extern_inp_sym_table()->add_array_decl(new_vec);
+        }
+
+        int out_arr_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_array_num(), gen_policy->get_max_array_num());
+        for (int i = 0; i < out_arr_num; ++i) {
+            std::shared_ptr<crosschain::VectorDeclStmt> new_vec = std::make_shared<crosschain::VectorDeclStmt>(this->ctx);
+            new_vec->setPurpose(crosschain::VecElem::Purpose::WONLY);
+            ctx->get_extern_out_sym_table()->add_array_decl(new_vec);
         }
     }
 
@@ -670,12 +685,14 @@ void ScopeGen::generate () {
     }
 
 
+    std::vector<std::shared_ptr<crosschain::Vector>> vectors;
+    for (auto vec : ctx->get_extern_inp_sym_table()->get_arrays())
+        vectors.push_back(vec);
 
-    std::vector<std::shared_ptr<crosschain::Vector>> input;
-    std::shared_ptr<crosschain::VectorDeclStmt> V_in = std::make_shared<crosschain::VectorDeclStmt>(this->ctx, "v_in", IntegerType::IntegerTypeID::INT, 800);
-    input.push_back(V_in->get_data());
+    for (auto vec : ctx->get_extern_out_sym_table()->get_arrays())
+        vectors.push_back(vec);
 
-    this->scope.push_back(std::make_shared<crosschain::LBBuilder>(this->ctx, input));
+    this->scope.push_back(std::make_shared<crosschain::LBBuilder>(this->ctx, vectors));
 
     /*
     int arith_stmt_num = rand_val_gen->get_rand_value<int>(gen_policy->get_min_arith_stmt_num(), gen_policy->get_max_arith_stmt_num());
@@ -695,7 +712,7 @@ void ScopeGen::generate () {
         }
         else if (gen_id == Node::NodeID::EXPR || (ctx->get_if_depth() == gen_policy->get_max_if_depth())) {
             ScalarVariableGen out_var_gen (gen_policy);
-            out_var_gen.generate ();
+            out_var_gen.generate ()
             ctx->get_extern_out_sym_table()->add_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
             VarUseExpr var_use;
             var_use.set_variable (std::static_pointer_cast<Variable>(out_var_gen.get_data()));
