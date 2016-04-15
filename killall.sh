@@ -30,5 +30,6 @@ echo $PIDS
 
 
 IFS=$' '
+pkill python
 pkill run_gen.py
 pkill out
