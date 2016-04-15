@@ -38,15 +38,15 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
     data_var->set_init_value(std::static_pointer_cast<ScalarVariable>(cast_type->get_value())->get_cur_value());
 }
 
-std::shared_ptr<DeclStmt> DeclStmt::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp) {
+std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
     std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
     std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
     std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
-    if (ctx.get_parent_ctx() == NULL || ctx.get_parent_ctx()->get_local_sym_table() == NULL) {
+    if (ctx->get_parent_ctx() == NULL || ctx->get_parent_ctx()->get_local_sym_table() == NULL) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": no par_ctx or local_sym_table in DeclStmt::generate" << std::endl;
         exit(-1);
     }
-    ctx.get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
+    ctx->get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
     return ret;
 }
 
@@ -89,42 +89,42 @@ std::string DeclStmt::emit (std::string offset) {
     return ret;
 }
 
-std::shared_ptr<ScopeStmt> ScopeStmt::generate (Context ctx) {
-    if (ctx.get_parent_ctx() == NULL)
+std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
+    if (ctx->get_parent_ctx() == NULL)
         form_external_sym_table(ctx);
 
     std::shared_ptr<ScopeStmt> ret = std::make_shared<ScopeStmt>();
 
-    std::vector<std::shared_ptr<Expr>> inp;
-    for (auto i : ctx.get_extern_inp_sym_table()->get_variables()) {
+    std::vector<std::shared_ptr<Expr>> inp = form_inp_from_ctx(ctx);
+    for (auto i : ctx->get_extern_inp_sym_table()->get_variables()) {
         inp.push_back(std::make_shared<VarUseExpr> (i));
     }
 
-    for (auto i : ctx.get_extern_mix_sym_table()->get_variables()) {
+    for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
         inp.push_back(std::make_shared<VarUseExpr> (i));
     }
 
     //TODO: add to gen_policy stmt number
-//    int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx.get_gen_policy()->get_min_arith_stmt_num(), ctx.get_gen_policy()->get_max_arith_stmt_num());
+//    int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_arith_stmt_num(), ctx->get_gen_policy()->get_max_arith_stmt_num());
     for (int i = 0; i < 100; ++i) {
-        Node::NodeID gen_id = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_stmt_gen_prob());
+        Node::NodeID gen_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_stmt_gen_prob());
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
             if (use_mix) {
-                int mix_num = rand_val_gen->get_rand_value<int>(0, ctx.get_extern_mix_sym_table()->get_variables().size() - 1);
-                std::shared_ptr<VarUseExpr> mix_use = std::make_shared<VarUseExpr>(ctx.get_extern_mix_sym_table()->get_variables().at(mix_num));
+                int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
+                std::shared_ptr<VarUseExpr> mix_use = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
                 ret->add_stmt(ExprStmt::generate(ctx, inp, mix_use));
             }
             else {
                 std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
-                ctx.get_extern_out_sym_table()->add_variable (out_var);
+                ctx->get_extern_out_sym_table()->add_variable (out_var);
                 std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(out_var);
                 ret->add_stmt(ExprStmt::generate(ctx, inp, var_use));
             }
         }
         else {//if (gen_id == Node::NodeID::DECL)
-            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(Context(*(ctx.get_gen_policy()), std::make_shared<Context>(ctx)), inp);
+            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx), inp);
             std::shared_ptr<ScalarVariable> tmp_var = std::static_pointer_cast<ScalarVariable>(tmp_decl->get_data());
             inp.push_back(std::make_shared<VarUseExpr>(tmp_var));
             ret->add_stmt(tmp_decl);
@@ -133,15 +133,25 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (Context ctx) {
     return ret;
 }
 
-void ScopeStmt::form_external_sym_table(Context ctx) {
-    int inp_var_num = rand_val_gen->get_rand_value<int>(ctx.get_gen_policy()->get_min_inp_var_num(), ctx.get_gen_policy()->get_max_inp_var_num());
+std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr<Context> ctx) {
+    std::vector<std::shared_ptr<Expr>> ret;
+    if (ctx->get_parent_ctx() != NULL)
+        ret = form_inp_from_ctx(ctx->get_parent_ctx());
+    //TODO: add struct members
+    for (auto i : ctx->get_local_sym_table()->get_variables())
+        ret.push_back(std::make_shared<VarUseExpr> (i));
+    return ret;
+}
+
+void ScopeStmt::form_external_sym_table(std::shared_ptr<Context> ctx) {
+    int inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
     for (int i = 0; i < inp_var_num; ++i) {
-        ctx.get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(ctx));
+        ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
     //TODO: add to gen_policy
-    inp_var_num = rand_val_gen->get_rand_value<int>(ctx.get_gen_policy()->get_min_inp_var_num(), ctx.get_gen_policy()->get_max_inp_var_num());
+    inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
     for (int i = 0; i < inp_var_num; ++i) {
-        ctx.get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
+        ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 }
 
@@ -153,7 +163,7 @@ std::string ScopeStmt::emit (std::string offset) {
     return ret;
 }
 
-std::shared_ptr<ExprStmt> ExprStmt::generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out) {
+std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out) {
     //TODO: now it can be only assign. Do we want something more?
     //TODO: implement taken mechanism
     std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);

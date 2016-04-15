@@ -123,8 +123,8 @@ class StructType : public Type {
         std::string get_definition (std::string offset = "");
         bool is_struct_type() { return true; }
         void dbg_dump();
-        static std::shared_ptr<StructType> generate (Context ctx);
-        static std::shared_ptr<StructType> generate (Context ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types);
+        static std::shared_ptr<StructType> generate (std::shared_ptr<Context> ctx);
+        static std::shared_ptr<StructType> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types);
 
     private:
         std::vector<std::shared_ptr<StructMember>> members;
@@ -199,7 +199,7 @@ class AtomicType : public Type {
                 ScalarTypedVal operator<< (ScalarTypedVal rhs);
                 ScalarTypedVal operator>> (ScalarTypedVal rhs);
 
-                static ScalarTypedVal generate (Context ctx, AtomicType::IntegerTypeID _int_type_id);
+                static ScalarTypedVal generate (std::shared_ptr<Context> ctx, AtomicType::IntegerTypeID _int_type_id);
 
                 Val val;
 
@@ -243,7 +243,7 @@ class IntegerType : public AtomicType {
         AtomicType::ScalarTypedVal get_min () { return min; }
         AtomicType::ScalarTypedVal get_max () { return max; }
         bool is_int_type() { return true; }
-        static std::shared_ptr<IntegerType> generate (Context ctx);
+        static std::shared_ptr<IntegerType> generate (std::shared_ptr<Context> ctx);
 
     protected:
         bool is_signed;

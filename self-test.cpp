@@ -167,8 +167,9 @@ void self_test () {
     std::cout << "\n====================="<< std::endl;
 */
     GenPolicy gen_policy;
-    Context ctx (gen_policy, NULL);
-    ctx.set_local_sym_table(std::make_shared<SymbolTable>());
+    Context ctx_var (gen_policy, NULL);
+    ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
+    std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
 /*
     std::shared_ptr<IntegerType> rand_int_type = IntegerType::generate(ctx);
     rand_int_type->dbg_dump();
@@ -283,8 +284,7 @@ void self_test () {
     std::cout << "type_cast_expr: " << type_cast_expr->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 
-    Context decl_ctx (gen_policy, std::make_shared<Context>(ctx));
-    std::shared_ptr<DeclStmt> decl_stmt = DeclStmt::generate(decl_ctx, inp);
+    std::shared_ptr<DeclStmt> decl_stmt = DeclStmt::generate(std::make_shared<Context>(gen_policy, ctx), inp);
     std::cout << "decl_stmt: " << decl_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 

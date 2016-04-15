@@ -61,14 +61,14 @@ void Struct::dbg_dump () {
     }
 }
 
-std::shared_ptr<Struct> Struct::generate (Context ctx) {
+std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx) {
     //TODO: what about nested structs? StructType::generate need it. Should it take it itself from context?
     std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), StructType::generate(ctx));
     ret->generate_members_init(ctx);
     return ret;
 }
 
-void Struct::generate_members_init(Context ctx) {
+void Struct::generate_members_init(std::shared_ptr<Context> ctx) {
     for (int i = 0; i < get_num_of_members(); ++i) {
         if (get_member(i)->get_type()->is_struct_type()) {
             std::static_pointer_cast<Struct>(get_member(i))->generate_members_init(ctx);
@@ -106,7 +106,7 @@ void ScalarVariable::dbg_dump () {
     std::cout << "max: " << max << std::endl;
 }
 
-std::shared_ptr<ScalarVariable> ScalarVariable::generate(Context ctx) {
+std::shared_ptr<ScalarVariable> ScalarVariable::generate(std::shared_ptr<Context> ctx) {
     std::shared_ptr<ScalarVariable> ret = std::make_shared<ScalarVariable> (rand_val_gen->get_scalar_var_name(), IntegerType::generate(ctx));
     ret->set_init_value(AtomicType::ScalarTypedVal::generate(ctx, ret->get_type()->get_int_type_id()));
     return ret;

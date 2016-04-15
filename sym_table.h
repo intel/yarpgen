@@ -66,6 +66,7 @@ class Context {
     public:
         Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx);
 
+        void set_gen_policy (GenPolicy _gen_policy) { gen_policy = _gen_policy; }
         std::shared_ptr<GenPolicy> get_gen_policy () { return std::make_shared<GenPolicy> (gen_policy); }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }

@@ -40,7 +40,7 @@ class DeclStmt : public Stmt {
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         std::shared_ptr<Data> get_data () { return data; }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<DeclStmt> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp);
+        static std::shared_ptr<DeclStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     private:
         std::shared_ptr<Data> data;
@@ -52,7 +52,7 @@ class ExprStmt : public Stmt {
     public:
         ExprStmt (std::shared_ptr<Expr> _expr) : Stmt(Node::NodeID::EXPR), expr(_expr) {}
         std::string emit (std::string offset = "") { return offset + expr->emit() + ";"; }
-        static std::shared_ptr<ExprStmt> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out);
+        static std::shared_ptr<ExprStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out);
 
     private:
         std::shared_ptr<Expr> expr;
@@ -63,10 +63,11 @@ class ScopeStmt : public Stmt {
         ScopeStmt () : Stmt(Node::NodeID::SCOPE) {}
         void add_stmt (std::shared_ptr<Stmt> stmt) { scope.push_back(stmt); }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<ScopeStmt> generate (Context ctx);
+        static std::shared_ptr<ScopeStmt> generate (std::shared_ptr<Context> ctx);
 
     private:
-        static void form_external_sym_table(Context ctx);
+        static std::vector<std::shared_ptr<Expr>> form_inp_from_ctx (std::shared_ptr<Context> ctx);
+        static void form_external_sym_table(std::shared_ptr<Context> ctx);
         std::vector<std::shared_ptr<Stmt>> scope;
 };
 

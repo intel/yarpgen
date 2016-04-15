@@ -27,6 +27,7 @@ limitations under the License.
 namespace rl {
 
 class Context;
+class GenPolicy;
 
 class Expr : public Node {
     public:
@@ -69,7 +70,7 @@ class TypeCastExpr : public Expr {
     public:
         TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit = false);
         std::string emit (std::string offset = "");
-        static std::shared_ptr<TypeCastExpr> generate (Context ctx, std::shared_ptr<Expr> from);
+        static std::shared_ptr<TypeCastExpr> generate (std::shared_ptr<Context> ctx, std::shared_ptr<Expr> from);
 
     private:
         bool propagate_type ();
@@ -87,7 +88,7 @@ class ConstExpr : public Expr {
              std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
         }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<ConstExpr> generate (Context ctx);
+        static std::shared_ptr<ConstExpr> generate (std::shared_ptr<Context> ctx);
 
     private:
         bool propagate_type () { return true; }
@@ -97,10 +98,13 @@ class ConstExpr : public Expr {
 class ArithExpr : public Expr {
     public:
         ArithExpr(Node::NodeID _node_id, std::shared_ptr<Data> _val) : Expr(_node_id, _val) {}
-        static std::shared_ptr<Expr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp);
+        static std::shared_ptr<Expr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     protected:
-        static std::shared_ptr<Expr> gen_level (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+        static GenPolicy choose_and_apply_ssp_const_use (GenPolicy old_gen_policy);
+        static GenPolicy choose_and_apply_ssp_similar_op (GenPolicy old_gen_policy);
+        static GenPolicy choose_and_apply_ssp (GenPolicy old_gen_policy);
+        static std::shared_ptr<Expr> gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
         std::shared_ptr<Expr> integral_prom (std::shared_ptr<Expr> arg);
         std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
@@ -122,7 +126,7 @@ class UnaryExpr : public ArithExpr {
         UnaryExpr (Op _op, std::shared_ptr<Expr> _arg);
         Op get_op () { return op; }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<UnaryExpr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+        static std::shared_ptr<UnaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
     private:
         bool propagate_type ();
@@ -164,7 +168,7 @@ class BinaryExpr : public ArithExpr {
         BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
         Op get_op () { return op; }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<BinaryExpr> generate (Context ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+        static std::shared_ptr<BinaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
     private:
         bool propagate_type ();

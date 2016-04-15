@@ -35,7 +35,7 @@ void Master::generate () {
     ctx.set_extern_mix_sym_table (extern_mix_sym_table);
     ctx.set_extern_out_sym_table (extern_out_sym_table);
 
-    program = ScopeStmt::generate(ctx);;
+    program = ScopeStmt::generate(std::make_shared<Context>(ctx));
 }
 
 void Master::write_file (std::string of_name, std::string data) {

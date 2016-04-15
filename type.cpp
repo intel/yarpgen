@@ -78,39 +78,39 @@ void StructType::dbg_dump() {
     std::cout << "depth: " << nest_depth << std::endl;
 }
 
-std::shared_ptr<StructType> StructType::generate (Context ctx) {
+std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<StructType>> empty_vec;
     return generate(ctx, empty_vec);
 }
 
-std::shared_ptr<StructType> StructType::generate (Context ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types) {
-    Type::Mod primary_mod = ctx.get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx.get_gen_policy()->get_allowed_modifiers().size() - 1));
+std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types) {
+    Type::Mod primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
 
     bool primary_static_spec = false;
     //TODO: allow static members in struct
 /*
-    if (ctx.get_gen_policy()->get_allow_static_var())
+    if (ctx->get_gen_policy()->get_allow_static_var())
         primary_static_spec = rand_val_gen->get_rand_value<int>(0, 1);
     else
         primary_static_spec = false;
 */
-    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     //TODO: what about align?
     std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_mod, primary_static_spec, 0);
 
     std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(rand_val_gen->get_struct_type_name());
-    int struct_member_num = rand_val_gen->get_rand_value<int>(ctx.get_gen_policy()->get_min_struct_members_num(), ctx.get_gen_policy()->get_max_struct_members_num());
+    int struct_member_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_members_num(), ctx->get_gen_policy()->get_max_struct_members_num());
     int member_num = 0;
     for (int i = 0; i < struct_member_num; ++i) {
-        if (ctx.get_gen_policy()->get_allow_mix_types_in_struct()) {
-            Data::VarClassID member_class = rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_member_class_prob());
+        if (ctx->get_gen_policy()->get_allow_mix_types_in_struct()) {
+            Data::VarClassID member_class = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_member_class_prob());
             bool add_substruct = false;
             int substruct_type_idx = 0;
             std::shared_ptr<StructType> substruct_type = NULL;
-            if (member_class == Data::VarClassID::STRUCT && ctx.get_gen_policy()->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
+            if (member_class == Data::VarClassID::STRUCT && ctx->get_gen_policy()->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
                 substruct_type_idx = rand_val_gen->get_rand_value<int>(0, nested_struct_types.size() - 1);
                 substruct_type = nested_struct_types.at(substruct_type_idx);
-                if (substruct_type->get_nest_depth() + 1 == ctx.get_gen_policy()->get_max_struct_depth()) {
+                if (substruct_type->get_nest_depth() + 1 == ctx->get_gen_policy()->get_max_struct_depth()) {
                     add_substruct = false;
                 }
                 else {
@@ -124,8 +124,8 @@ std::shared_ptr<StructType> StructType::generate (Context ctx, std::vector<std::
                 primary_type = IntegerType::generate(ctx);
             }
         }
-        if (ctx.get_gen_policy()->get_allow_mix_mod_in_struct()) {
-            primary_mod = ctx.get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx.get_gen_policy()->get_allowed_modifiers().size() - 1));;
+        if (ctx->get_gen_policy()->get_allow_mix_mod_in_struct()) {
+            primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));;
 //            static_spec_gen.generate ();
 //            primary_static_spec = static_spec_gen.get_specifier ();
         }
@@ -1268,7 +1268,7 @@ static void gen_rand_typed_val (T& ret, T& min, T& max) {
     ret = (T) rand_val_gen->get_rand_value<int>(min, max);
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (Context ctx, AtomicType::IntegerTypeID _int_type_id) {
+AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, AtomicType::IntegerTypeID _int_type_id) {
     AtomicType::ScalarTypedVal ret(_int_type_id);
     std::shared_ptr<IntegerType> tmp_type = IntegerType::init (_int_type_id);
     AtomicType::ScalarTypedVal min = tmp_type->get_min();
@@ -1408,17 +1408,17 @@ std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_
     return ret;
 }
 
-std::shared_ptr<IntegerType> IntegerType::generate (Context ctx) {
-    Type::Mod modifier = ctx.get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx.get_gen_policy()->get_allowed_modifiers().size() - 1));
+std::shared_ptr<IntegerType> IntegerType::generate (std::shared_ptr<Context> ctx) {
+    Type::Mod modifier = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
 
     bool specifier = false;
-    if (ctx.get_gen_policy()->get_allow_static_var())
+    if (ctx->get_gen_policy()->get_allow_static_var())
         specifier = rand_val_gen->get_rand_value<int>(0, 1);
     else
         specifier = false;
     //TODO: what about align?
 
-    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx.get_gen_policy()->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     return IntegerType::init(int_type_id, modifier, specifier, 0);
 }
 

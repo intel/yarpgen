@@ -187,7 +187,7 @@ void GenPolicy::add_used_data_expr (std::shared_ptr<Expr> expr) {
         used_data_expr.push_back (expr);
 }
 
-std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id) {
+GenPolicy GenPolicy::apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id) {
     chosen_arith_ssp_const_use = pattern_id;
     GenPolicy new_policy = *this;
     if (pattern_id == ArithSSP::ConstUse::CONST_BRANCH) {
@@ -202,10 +202,10 @@ std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_const_use (ArithSSP::Const
         Probability<ArithDataID> const_data (ArithDataID::Const, 50);
         new_policy.arith_data_distr.push_back (const_data);
     }
-    return std::make_shared<GenPolicy> (new_policy);
+    return new_policy;
 }
 
-std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id) {
+GenPolicy GenPolicy::apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id) {
     chosen_arith_ssp_similar_op = pattern_id;
     GenPolicy new_policy = *this;
     if (pattern_id == ArithSSP::SimilarOp::ADDITIVE || pattern_id == ArithSSP::SimilarOp::ADD_MUL) {
@@ -265,7 +265,7 @@ std::shared_ptr<GenPolicy> GenPolicy::apply_arith_ssp_similar_op (ArithSSP::Simi
         Probability<BinaryExpr::Op> mul (BinaryExpr::Op::Mul, 100);
         new_policy.allowed_binary_op.push_back (mul);
     }
-    return std::make_shared<GenPolicy> (new_policy);
+    return new_policy;
 }
 
 void GenPolicy::rand_init_allowed_int_types () {

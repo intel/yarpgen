@@ -161,11 +161,11 @@ class GenPolicy {
         // Pattern
         std::vector<Probability<ArithSSP::ConstUse>>& get_allowed_arith_ssp_const_use () { return allowed_arith_ssp_const_use; }
         ArithSSP::ConstUse get_chosen_arith_ssp_const_use () { return chosen_arith_ssp_const_use; }
-        std::shared_ptr<GenPolicy> apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id);
+        GenPolicy apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id);
 
         std::vector<Probability<ArithSSP::SimilarOp>>& get_allowed_arith_ssp_similar_op () { return allowed_arith_ssp_similar_op; }
         ArithSSP::SimilarOp get_chosen_arith_ssp_similar_op () { return chosen_arith_ssp_similar_op; }
-        std::shared_ptr<GenPolicy> apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
+        GenPolicy apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
 
         std::vector<std::shared_ptr<Expr>>& get_used_data_expr () { return used_data_expr; }
         void add_used_data_expr (std::shared_ptr<Expr> expr);
