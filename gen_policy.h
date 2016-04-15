@@ -109,7 +109,7 @@ class GenPolicy {
         };
 
         enum ArithDataID {
-            Inp, Const, Reuse, MAX_DATA_ID
+            Inp, Const, MAX_DATA_ID
         };
 
         enum ArithCSEGenID {
@@ -166,9 +166,6 @@ class GenPolicy {
         std::vector<Probability<ArithSSP::SimilarOp>>& get_allowed_arith_ssp_similar_op () { return allowed_arith_ssp_similar_op; }
         ArithSSP::SimilarOp get_chosen_arith_ssp_similar_op () { return chosen_arith_ssp_similar_op; }
         GenPolicy apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
-
-        std::vector<std::shared_ptr<Expr>>& get_used_data_expr () { return used_data_expr; }
-        void add_used_data_expr (std::shared_ptr<Expr> expr);
 
         void set_max_cse_num (int _max_cse_num) { max_cse_num = _max_cse_num; }
         int get_max_cse_num () { return max_cse_num; }
@@ -251,8 +248,6 @@ class GenPolicy {
 
         std::vector<Probability<ArithSSP::SimilarOp>> allowed_arith_ssp_similar_op;
         ArithSSP::SimilarOp chosen_arith_ssp_similar_op;
-
-        std::vector<std::shared_ptr<Expr>> used_data_expr;
 
         int max_cse_num;
         std::vector<Probability<ArithCSEGenID>> arith_cse_gen;

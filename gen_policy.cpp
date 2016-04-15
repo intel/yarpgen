@@ -135,12 +135,10 @@ GenPolicy::GenPolicy () {
     arith_data_distr.push_back (inp_data);
     Probability<ArithDataID> const_data (ArithDataID::Const, 10);
     arith_data_distr.push_back (const_data);
-    Probability<ArithDataID> reuse_data (ArithDataID::Reuse, 10);
-    arith_data_distr.push_back (reuse_data);
 
-    Probability<ArithCSEGenID> add_cse (ArithCSEGenID::Add, 10);
+    Probability<ArithCSEGenID> add_cse (ArithCSEGenID::Add, 20);
     arith_cse_gen.push_back (add_cse);
-    Probability<ArithCSEGenID> max_cse_gen (ArithCSEGenID::MAX_CSE_GEN_ID, 10);
+    Probability<ArithCSEGenID> max_cse_gen (ArithCSEGenID::MAX_CSE_GEN_ID, 80);
     arith_cse_gen.push_back (max_cse_gen);
 
     Probability<ArithSSP::ConstUse> const_branch (ArithSSP::ConstUse::CONST_BRANCH, 5);
@@ -178,13 +176,7 @@ GenPolicy::GenPolicy () {
 }
 
 void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {
-    used_data_expr = old->get_used_data_expr();
     cse = old->get_cse();
-}
-
-void GenPolicy::add_used_data_expr (std::shared_ptr<Expr> expr) {
-    if (std::find(used_data_expr.begin(), used_data_expr.end(), expr) == used_data_expr.end())
-        used_data_expr.push_back (expr);
 }
 
 GenPolicy GenPolicy::apply_arith_ssp_const_use (ArithSSP::ConstUse pattern_id) {

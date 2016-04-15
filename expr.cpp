@@ -267,28 +267,19 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (ctx->get_gen_policy()->get_arith_leaves());
     std::shared_ptr<Expr> ret = NULL;
 
-    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == ctx->get_gen_policy()->get_max_arith_depth() ){// ||
-//        (node_type == GenPolicy::ArithLeafID::CSE && gen_policy->get_cse().size() == 0)) {
+    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == ctx->get_gen_policy()->get_max_arith_depth() ||
+       (node_type == GenPolicy::ArithLeafID::CSE && ctx->get_gen_policy()->get_cse().size() == 0)) {
         GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (ctx->get_gen_policy()->get_arith_data_distr());
         if (data_type == GenPolicy::ArithDataID::Const || inp.size() == 0) {
             ret = ConstExpr::generate(new_ctx);
         }
-        else {
-//        else if (data_type == GenPolicy::ArithDataID::Inp) ||
-//                (data_type == GenPolicy::ArithDataID::Reuse && ctx->get_gen_policy()->get_used_data_expr().size() == 0)) {
+        else if (data_type == GenPolicy::ArithDataID::Inp) {
             int inp_num = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
-//            ctx->get_gen_policy()->add_used_data_expr(inp.at(inp_use));
             ret = inp.at(inp_num);
-        }
-/*
-        else if (data_type == GenPolicy::ArithDataID::Reuse) {
-            int reuse_data_num = rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_used_data_expr().size() - 1);
-            ret = ctx->get_gen_policy()->get_used_data_expr().at(reuse_data_num);
         }
         else {
             exit (-1);
         }
-*/
     }
     else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
         ret = UnaryExpr::generate(new_ctx, inp, par_depth + 1);
@@ -296,23 +287,17 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
         ret = BinaryExpr::generate(new_ctx, inp, par_depth + 1);
     }
-    else {
-//    else if (node_type == GenPolicy::ArithLeafID::TypeCast) { // TypeCast expr
+    else if (node_type == GenPolicy::ArithLeafID::TypeCast) { // TypeCast expr
         ret = TypeCastExpr::generate(new_ctx, ArithExpr::gen_level(new_ctx, inp, par_depth + 1));
     }
-/*
     else if (node_type == GenPolicy::ArithLeafID::CSE) {
-        int cse_num = rand_val_gen->get_rand_value<int>(0, gen_policy->get_cse().size() - 1);
-        ret = gen_policy->get_cse().at(cse_num);
-        add_cse_prob = GenPolicy::ArithCSEGenID::MAX_CSE_GEN_ID;
+        int cse_num = rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_cse().size() - 1);
+        ret = ctx->get_gen_policy()->get_cse().at(cse_num);
     }
-*/
-/*
     else {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unappropriate node type in ArithExpr::gen_level" << std::endl;
         exit (-1);
     }
-*/
 //    std::cout << ret->emit() << std::endl;
     return ret;
 }

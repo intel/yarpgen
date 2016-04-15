@@ -66,8 +66,8 @@ class Context {
     public:
         Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx);
 
-        void set_gen_policy (GenPolicy _gen_policy) { gen_policy = _gen_policy; }
-        std::shared_ptr<GenPolicy> get_gen_policy () { return std::make_shared<GenPolicy> (gen_policy); }
+        void set_gen_policy (GenPolicy _gen_policy) { gen_policy = std::make_shared<GenPolicy>(_gen_policy); }
+        std::shared_ptr<GenPolicy> get_gen_policy () { return gen_policy; }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }
         Node::NodeID get_self_stmt_id () { return self_stmt_id; }
@@ -84,7 +84,7 @@ class Context {
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
 
     private:
-        GenPolicy gen_policy;
+        std::shared_ptr<GenPolicy> gen_policy;
 
         std::shared_ptr<SymbolTable> extern_inp_sym_table;
         std::shared_ptr<SymbolTable> extern_out_sym_table;

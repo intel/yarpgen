@@ -96,8 +96,10 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     std::shared_ptr<ScopeStmt> ret = std::make_shared<ScopeStmt>();
 
     std::vector<std::shared_ptr<Expr>> inp = form_inp_from_ctx(ctx);
+    std::vector<std::shared_ptr<Expr>> cse_inp;
     for (auto i : ctx->get_extern_inp_sym_table()->get_variables()) {
         inp.push_back(std::make_shared<VarUseExpr> (i));
+        cse_inp.push_back(std::make_shared<VarUseExpr> (i));
     }
 
     for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
@@ -107,6 +109,13 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     //TODO: add to gen_policy stmt number
 //    int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_arith_stmt_num(), ctx->get_gen_policy()->get_max_arith_stmt_num());
     for (int i = 0; i < 100; ++i) {
+        GenPolicy::ArithCSEGenID add_cse = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_arith_cse_gen());
+        if (add_cse == GenPolicy::ArithCSEGenID::Add &&
+           ((ctx->get_gen_policy()->get_cse().size() - 1 < ctx->get_gen_policy()->get_max_cse_num()) ||
+            (ctx->get_gen_policy()->get_cse().size() == 0))) {
+            ctx->get_gen_policy()->add_cse(ArithExpr::generate(ctx, cse_inp));
+        }
+
         Node::NodeID gen_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_stmt_gen_prob());
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
