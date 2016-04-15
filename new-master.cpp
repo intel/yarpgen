@@ -52,6 +52,7 @@ void Master::generate () {
 //    std::cerr << "DEBUG OUTSIDE: st_ptr " << ((uint64_t) (&(*inp_st_ptr))) << std::endl;
     ctx.set_extern_inp_sym_table (extern_inp_sym_table);
     ctx.set_extern_out_sym_table (extern_out_sym_table);
+    ctx.set_verbose_level(1);
 
 //    std::shared_ptr<Context> ctx_ptr = std::make_shared<Context> (ctx);
 //    std::cerr << "DEBUG OUTSIDE: obj " << ((uint64_t) (&(*ctx.get_extern_inp_sym_table()))) << std::endl;
@@ -164,13 +165,25 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 
 std::string Master::emit_main () {
     std::string ret = "";
-    ret += "#include \"init.h\"\n\n";
+    ret += "#include \"init.h\"\n";
+    ret += "#include <ctime>\n\n";
     ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
     ret += "extern unsigned long long int checksum ();\n\n";
-    ret += "int main () {\n";
+    ret += "int main (int argc, char** argv) {\n";
+    ret += "    bool verbose = false;\n";
+    ret += "    if(argc > 2) {std::cerr << argv[0] << \": invalid 'argc'\"; return -1;}\n";
+    ret += "    if(argc == 2) {\n";
+    ret += "        if (argv[1][0] == 'v') {verbose = true;}\n";
+    ret += "        else {std::cerr << argv[0] << \": invalid 'arg': \" << argv[1]; return -1;}\n";
+    ret += "    }\n";
+    ret += "    clock_t begin = clock();\n\n";
     ret += "    init ();\n";
     ret += "    foo ();\n";
+    ret += "    clock_t end = clock();\n";
+    ret += "    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;\n";
+    ret += "    if (verbose)\n";
+    ret += "        std::cout << argv[0] << \": time \" << elapsed_secs << \" s.; checksum \";\n";
     ret += "    std::cout << checksum () << std::endl;\n";
     ret += "    return 0;\n";
     ret += "}";

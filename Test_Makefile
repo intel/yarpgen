@@ -21,8 +21,60 @@ SOURCES=init.cpp driver.cpp func.cpp check.cpp hash.cpp
 HEADERS=init.h
 EXECUTABLE=out
 
-clean:
-	/bin/rm $(EXECUTABLE)
+all: icc gcc clang clang_san
+
+icc: EXECUTABLE=$@
+icc: icc_no_opt icc_opt icc_knl_no_opt icc_knl_opt
+
+icx: EXECUTABLE=$@
+icx: icx_no_opt icx_opt icx_knl_no_opt icx_knl_opt
+
+gcc: EXECUTABLE=$@
+gcc: gcc_no_opt gcc_wsm_opt gcc_ivb_opt gcc_bdw_opt gcc_knl_no_opt gcc_knl_opt gcc_skx_opt
+
+clang: EXECUTABLE=$@
+clang: clang_no_opt clang_opt clang_knl_no_opt clang_knl_opt
+
+clang_san: EXECUTABLE=$@
+clang_san: ubsan
+
+
+doall: doicc dogcc doclang doclang_san
+
+doicc: EXECUTABLE=$@
+doicc: do_icc_no_opt do_icc_opt do_icc_knl_no_opt do_icc_knl_opt
+
+doicx: EXECUTABLE=$@
+doicx: do_icx_no_opt do_icx_opt do_icx_knl_no_opt do_icx_knl_opt
+
+dogcc: EXECUTABLE=$@
+dogcc: do_gcc_no_opt do_gcc_wsm_opt do_gcc_ivb_opt do_gcc_bdw_opt do_gcc_knl_no_opt do_gcc_knl_opt do_gcc_skx_opt
+
+doclang: EXECUTABLE=$@
+doclang: do_clang_no_opt do_clang_opt do_clang_knl_no_opt do_clang_knl_opt
+
+doclang_san: EXECUTABLE=$@
+doclang_san: do_ubsan
+
+
+clean: clean_icc clean_icx clean_gcc clean_clang clean_clang_san
+	/bin/rm -rf $(EXECUTABLE)
+
+clean_icc:
+	/bin/rm -rf icc_no_opt icc_opt icc_knl_no_opt icc_knl_opt	    
+
+clean_icx:
+	/bin/rm -rf icx_no_opt icx_opt icx_knl_no_opt icx_knl_opt
+
+clean_gcc:
+	/bin/rm -rf gcc_no_opt gcc_wsm_opt gcc_ivb_opt gcc_bdw_opt gcc_knl_no_opt gcc_knl_opt gcc_skx_opt
+
+clean_clang:
+	/bin/rm -rf clang_no_opt clang_opt clang_knl_no_opt clang_knl_opt
+
+clean_clang_san:
+	/bin/rm -rf ubsan
+
 
 icc_no_opt:
 	icc $(CXXFLAGS) -O0 -vec-threshold0 -restrict -o $(EXECUTABLE) $(SOURCES)
@@ -71,3 +123,65 @@ gcc_knl_opt:
 
 gcc_skx_opt:
 	g++ $(CXXFLAGS) -Ofast -march=skylake-avx512 -o $(EXECUTABLE) $(SOURCES)
+
+
+do_icc_no_opt: icc_no_opt
+	./$< v
+
+do_icc_opt: icc_opt
+	./$< v
+
+do_icx_no_opt: icx_no_opt
+	./$< v
+
+do_icx_opt: icx_opt
+	./$< v
+
+do_gcc_no_opt: gcc_no_opt
+	./$< v
+
+do_gcc_wsm_opt: gcc_wsm_opt
+	sde -wsm -- $< v
+
+do_gcc_ivb_opt: gcc_ivb_opt
+	sde -ivb -- $< v
+
+do_gcc_bdw_opt: gcc_bdw_opt
+	sde -bdw -- $< v
+
+do_clang_no_opt: clang_no_opt
+	./$< v
+
+do_clang_opt: clang_opt
+	./$< v
+
+do_ubsan: ubsan
+	./$< v
+
+do_icc_knl_no_opt: icc_knl_no_opt
+	sde -knl -- $< v
+
+do_icc_knl_opt: icc_knl_opt
+	sde -knl -- $< v
+
+do_icx_knl_no_opt: icx_knl_no_opt
+	sde -knl -- $< v
+
+do_icx_knl_opt: icx_knl_opt
+	sde -knl -- $< v
+
+do_clang_knl_no_opt: clang_knl_no_opt
+	sde -knl -- $< v
+
+do_clang_knl_opt: clang_knl_opt
+	sde -knl -- $< v
+
+do_gcc_knl_no_opt: gcc_knl_no_opt
+	sde -knl -- $< v
+
+do_gcc_knl_opt: gcc_knl_opt
+	sde -knl -- $< v
+
+do_gcc_skx_opt: gcc_skx_opt
+	sde -skx -- $< v
+
