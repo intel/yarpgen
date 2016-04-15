@@ -218,6 +218,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::
     this->if_depth = 0;
     this->loop_depth = 0;
     this->complexity = 0;
+    this->verbose_level = 42;
     this->extern_inp_sym_table = std::make_shared<SymbolTable>();
     this->extern_out_sym_table = std::make_shared<SymbolTable>();
     this->global_sym_table = std::make_shared<SymbolTable>();
@@ -232,6 +233,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::
         this->if_depth = this->parent_ctx->get_if_depth();
         this->loop_depth = this->parent_ctx->get_loop_depth();
         this->complexity = this->parent_ctx->get_complexity();
+        this->verbose_level = this->parent_ctx->get_verbose_level();
     }
 
     if (this->self_glob_stmt_id == Node::NodeID::IF)
@@ -249,6 +251,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
     if_depth = 0;
     loop_depth = 0;
     complexity = 0;
+    verbose_level = 42;
     extern_inp_sym_table = std::make_shared<SymbolTable>();
     extern_out_sym_table = std::make_shared<SymbolTable>();
     global_sym_table = std::make_shared<SymbolTable>();
@@ -263,6 +266,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
         if_depth = parent_ctx->get_if_depth();
         loop_depth = parent_ctx->get_loop_depth();
         complexity = parent_ctx->get_complexity();
+        verbose_level = parent_ctx->get_verbose_level();
     }
     if (_glob_stmt_id == Node::NodeID::IF)
         if_depth++;

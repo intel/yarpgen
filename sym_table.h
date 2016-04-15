@@ -90,6 +90,8 @@ class Context {
         void inc_loop_depth () {this->loop_depth += 1;}
         unsigned long long get_complexity () {return this->complexity;}
         void add_to_complexity (unsigned long long diff);
+        void set_verbose_level(unsigned long long level) {this->verbose_level = level;}
+        unsigned long long get_verbose_level() {return this->verbose_level;}
 
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
@@ -111,6 +113,7 @@ class Context {
         std::shared_ptr<Context> parent_ctx;
         unsigned long long scope_id;
         unsigned long long complexity;
+        unsigned long long verbose_level;
         int if_depth;
         int loop_depth;
         int depth;
