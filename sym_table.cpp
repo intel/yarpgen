@@ -245,6 +245,9 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
     if_depth = 0;
     loop_depth = 0;
 
+    if (parent_ctx.use_count() == 0)
+        std::cout << "/*SEED " << rand_val_gen->get_seed() << "*/\n";
+
     extern_inp_sym_table = std::make_shared<SymbolTable>();
     extern_out_sym_table = std::make_shared<SymbolTable>();
     global_sym_table = std::make_shared<SymbolTable>();

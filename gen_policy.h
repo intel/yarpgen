@@ -65,6 +65,8 @@ class RandValGen {
             exit (-1);
         }
 
+        uint64_t get_seed() {return this->seed;}
+
     private:
         uint64_t seed;
         std::mt19937_64 rand_gen;
