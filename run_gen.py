@@ -55,16 +55,16 @@ def fill_task(compiler):
     wrap_exe = []
     fail_tag = []
     if ("icc" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("icc" + os.sep + "run-uns")
+        #compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
+        #wrap_exe.append(out_name)
+        #fail_tag.append("icc" + os.sep + "run-uns")
         compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("icc" + os.sep + "run-uns")
     if ("gcc" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("gcc" + os.sep + "run-uns")
+        #compiler_passes.append(["bash", "-c", make_run_str + "gcc_no_opt"])
+        #wrap_exe.append(out_name)
+        #fail_tag.append("gcc" + os.sep + "run-uns")
         compiler_passes.append(["bash", "-c", make_run_str + "gcc_wsm_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("gcc" + os.sep + "run-uns")
@@ -72,18 +72,18 @@ def fill_task(compiler):
         wrap_exe.append(out_name)
         fail_tag.append("gcc" + os.sep + "run-uns")
         compiler_passes.append(["bash", "-c", make_run_str + "gcc_bdw_opt"])
-        wrap_exe.append(out_name)
+        wrap_exe.append(["bash", "-c", "sde -bdw -- " + "." + os.sep + out_name])
         fail_tag.append("gcc" + os.sep + "run-uns")
     if ("clang" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("clang" + os.sep + "run-uns")
+        #compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
+        #wrap_exe.append(out_name)
+        #fail_tag.append("clang" + os.sep + "run-uns")
         compiler_passes.append(["bash", "-c", make_run_str + "clang_opt"])
         wrap_exe.append(out_name)
         fail_tag.append("clang" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
-        wrap_exe.append(out_name)
-        fail_tag.append("gen")
+        #compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
+        #wrap_exe.append(out_name)
+        #fail_tag.append("gen")
     if ("icc" in compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "icc_knl_opt"])
         wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
@@ -213,6 +213,7 @@ def gen_and_test(num, lock, end_time):
             if (ret_code != 0):
                 save_test(lock, gen_file, compiler_passes[i], "", "compfail", output, seed)
                 continue
+            #print compiler_passes[i]
             ret_code, output = run_cmd(num, wrap_exe [i], args.verbose)
             if (ret_code != 0):
                 save_test(lock, gen_file, wrap_exe [i], "", "runfail", output, seed)

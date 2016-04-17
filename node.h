@@ -51,6 +51,7 @@ class Node {
             CNT_LOOP,
             IF,
             LHDR,
+            CMNT,
             BREAK,
             CONTINUE,
             MAX_STMT_ID
@@ -291,8 +292,13 @@ class FuncCallExpr : public Expr {
 };
 
 class Stmt : public Node {
+    protected:
+        bool dead;
+
     public:
-        Stmt () {}
+        Stmt () : dead(false) {}
+        virtual void set_dead() {this->dead = true;}
+        virtual bool is_dead () {return this->dead;}
         std::shared_ptr<SymbolTable> local_sym_table;
 };
 

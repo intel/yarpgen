@@ -23,8 +23,8 @@ using namespace rl;
 
 int MAX_ALLOWED_INT_TYPES = 3;
 
-int MIN_ARRAY_SIZE = 1000;
-int MAX_ARRAY_SIZE = 10000;
+int MIN_ARRAY_SIZE = 100;
+int MAX_ARRAY_SIZE = 5000;
 
 int MAX_ARITH_DEPTH = 5;
 
