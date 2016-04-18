@@ -127,6 +127,9 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     ret += extern_mix_sym_table->emit_variable_check ("    ");
     ret += extern_out_sym_table->emit_variable_check ("    ");
 
+    ret += extern_mix_sym_table->emit_struct_check ("    ");
+    ret += extern_out_sym_table->emit_struct_check ("    ");
+
     ret += "    return seed;\n";
     ret += "}";
     write_file("check.cpp", ret);

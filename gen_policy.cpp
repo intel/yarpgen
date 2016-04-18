@@ -32,6 +32,8 @@ int MAX_TMP_VAR_NUM = 5;
 
 int MIN_INP_VAR_NUM = 20;
 int MAX_INP_VAR_NUM = 60;
+int MIN_MIX_VAR_NUM = 20;
+int MAX_MIX_VAR_NUM = 60;
 
 int MAX_CSE_NUM = 5;
 
@@ -40,8 +42,12 @@ int MAX_IF_DEPTH = 3;
 
 int MIN_STRUCT_TYPES_NUM = 3;
 int MAX_STRUCT_TYPES_NUM = 6;
-int MIN_STRUCT_NUM = 4;
-int MAX_STRUCT_NUM = 8;
+int MIN_INP_STRUCT_NUM = 3;
+int MAX_INP_STRUCT_NUM = 6;
+int MIN_MIX_STRUCT_NUM = 3;
+int MAX_MIX_STRUCT_NUM = 6;
+int MIN_OUT_STRUCT_NUM = 4;
+int MAX_OUT_STRUCT_NUM = 8;
 int MIN_STRUCT_MEMBERS_NUM = 5;
 int MAX_STRUCT_MEMBERS_NUM = 10;
 int MAX_STRUCT_DEPTH = 5;
@@ -78,8 +84,12 @@ GenPolicy::GenPolicy () {
     allow_struct = true;
     min_struct_types_num = MIN_STRUCT_TYPES_NUM;
     max_struct_types_num = MAX_STRUCT_TYPES_NUM;
-    min_struct_num = MIN_STRUCT_NUM;
-    max_struct_num = MAX_STRUCT_NUM;
+    min_inp_struct_num = MIN_INP_STRUCT_NUM;
+    max_inp_struct_num = MAX_INP_STRUCT_NUM;
+    min_mix_struct_num = MIN_MIX_STRUCT_NUM;
+    max_mix_struct_num = MAX_MIX_STRUCT_NUM;
+    min_out_struct_num = MIN_OUT_STRUCT_NUM;
+    max_out_struct_num = MAX_OUT_STRUCT_NUM;
     min_struct_members_num = MIN_STRUCT_MEMBERS_NUM;
     max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
     allow_mix_mod_in_struct = false;
@@ -100,6 +110,8 @@ GenPolicy::GenPolicy () {
 
     min_inp_var_num = MIN_INP_VAR_NUM;
     max_inp_var_num = MAX_INP_VAR_NUM;
+    min_mix_var_num = MIN_MIX_VAR_NUM;
+    max_mix_var_num = MAX_MIX_VAR_NUM;
 
     max_tmp_var_num = MAX_TMP_VAR_NUM;
     used_tmp_var_num = 0;

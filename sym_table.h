@@ -53,11 +53,12 @@ class SymbolTable {
         std::string emit_struct_def (std::string offset = "");
         std::string emit_struct_extern_decl (std::string offset = "");
         std::string emit_struct_init (std::string offset = "");
+        std::string emit_struct_check (std::string offset = "");
 
     private:
         void form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var);
         std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
-        std::string emit_single_struct_init ();
+        std::string emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
 
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;

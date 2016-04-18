@@ -155,6 +155,11 @@ class GenPolicy {
         void set_max_inp_var_num (int _max_inp_var_num) { max_inp_var_num = _max_inp_var_num; }
         int get_max_inp_var_num () { return max_inp_var_num; }
 
+        void set_min_mix_var_num (int _min_mix_var_num) { min_mix_var_num = _min_mix_var_num; }
+        int get_min_mix_var_num () { return min_mix_var_num; }
+        void set_max_mix_var_num (int _max_mix_var_num) { max_mix_var_num = _max_mix_var_num; }
+        int get_max_mix_var_num () { return max_mix_var_num; }
+
         void add_unary_op (Probability<UnaryExpr::Op> prob) { allowed_unary_op.push_back(prob); }
         std::vector<Probability<UnaryExpr::Op>>& get_allowed_unary_op () { return allowed_unary_op; }
         void add_binary_op (Probability<BinaryExpr::Op> prob) { allowed_binary_op.push_back(prob); }
@@ -193,10 +198,18 @@ class GenPolicy {
         uint64_t get_min_struct_types_num () { return min_struct_types_num; }
         void set_max_struct_types_num (uint64_t _max_struct_types_num) { max_struct_types_num = _max_struct_types_num; }
         uint64_t get_max_struct_types_num () { return max_struct_types_num; }
-        void set_min_struct_num (uint64_t _min_struct_num) { min_struct_num = _min_struct_num; }
-        uint64_t get_min_struct_num () { return min_struct_num; }
-        void set_max_struct_num (uint64_t _max_struct_num) { max_struct_num = _max_struct_num; }
-        uint64_t get_max_struct_num () { return max_struct_num; }
+        void set_min_inp_struct_num (uint64_t _min_inp_struct_num) { min_inp_struct_num = _min_inp_struct_num; }
+        uint64_t get_min_inp_struct_num () { return min_inp_struct_num; }
+        void set_max_inp_struct_num (uint64_t _max_inp_struct_num) { max_inp_struct_num = _max_inp_struct_num; }
+        uint64_t get_max_inp_struct_num () { return max_inp_struct_num; }
+        void set_min_mix_struct_num (uint64_t _min_mix_struct_num) { min_mix_struct_num = _min_mix_struct_num; }
+        uint64_t get_min_mix_struct_num () { return min_mix_struct_num; }
+        void set_max_mix_struct_num (uint64_t _max_mix_struct_num) { max_mix_struct_num = _max_mix_struct_num; }
+        uint64_t get_max_mix_struct_num () { return max_mix_struct_num; }
+        void set_min_out_struct_num (uint64_t _min_out_struct_num) { min_out_struct_num = _min_out_struct_num; }
+        uint64_t get_min_out_struct_num () { return min_out_struct_num; }
+        void set_max_out_struct_num (uint64_t _max_out_struct_num) { max_out_struct_num = _max_out_struct_num; }
+        uint64_t get_max_out_struct_num () { return max_out_struct_num; }
         void set_min_struct_members_num (uint64_t _min_struct_members_num) { min_struct_members_num = _min_struct_members_num; }
         uint64_t get_min_struct_members_num () { return min_struct_members_num; }
         void set_max_struct_members_num (uint64_t _max_struct_members_num) { max_struct_members_num = _max_struct_members_num; }
@@ -221,8 +234,12 @@ class GenPolicy {
         bool allow_struct;
         uint64_t min_struct_types_num;
         uint64_t max_struct_types_num;
-        uint64_t min_struct_num;
-        uint64_t max_struct_num;
+        uint64_t min_inp_struct_num;
+        uint64_t max_inp_struct_num;
+        uint64_t min_mix_struct_num;
+        uint64_t max_mix_struct_num;
+        uint64_t min_out_struct_num;
+        uint64_t max_out_struct_num;
         uint64_t min_struct_members_num;
         uint64_t max_struct_members_num;
         bool allow_mix_mod_in_struct;
@@ -265,6 +282,8 @@ class GenPolicy {
 
         int min_inp_var_num;
         int max_inp_var_num;
+        int min_mix_var_num;
+        int max_mix_var_num;
 
         std::vector<Probability<bool>> else_prob;
         int max_if_depth;

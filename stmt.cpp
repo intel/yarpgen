@@ -115,7 +115,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
             GenPolicy::OutDataTypeID out_rata_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_out_data_type_prob());
             std::shared_ptr<Expr> assign_lhs = NULL;
             if (use_mix) {
-                if (out_rata_type == GenPolicy::OutDataTypeID::VAR) {
+                if (out_rata_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
                     int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
                     assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
                 }
@@ -125,7 +125,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                 }
             }
             else {
-                if (out_rata_type == GenPolicy::OutDataTypeID::VAR) {
+                if (out_rata_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_out_sym_table()->get_avail_members().size() == 0) {
                     std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
                     ctx->get_extern_out_sym_table()->add_variable (out_var);
                     assign_lhs = std::make_shared<VarUseExpr>(out_var);
@@ -186,8 +186,8 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
     //TODO: add to gen_policy
-    inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
-    for (int i = 0; i < inp_var_num; ++i) {
+     int mix_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_var_num(), ctx->get_gen_policy()->get_max_mix_var_num());
+    for (int i = 0; i < mix_var_num; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
@@ -200,18 +200,18 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         ctx->get_extern_mix_sym_table()->add_struct_type(struct_type);
     }
 
-    int struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_num(), ctx->get_gen_policy()->get_max_struct_num());
-    for (int i = 0; i < struct_num; ++i) {
+    int inp_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_struct_num(), ctx->get_gen_policy()->get_max_inp_struct_num());
+    for (int i = 0; i < inp_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
         ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
     }
-    struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_num(), ctx->get_gen_policy()->get_max_struct_num());
-    for (int i = 0; i < struct_num; ++i) {
+    int mix_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_struct_num(), ctx->get_gen_policy()->get_max_mix_struct_num());
+    for (int i = 0; i < mix_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
         ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
     }
-    struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_num(), ctx->get_gen_policy()->get_max_struct_num());
-    for (int i = 0; i < struct_num; ++i) {
+    int out_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_out_struct_num(), ctx->get_gen_policy()->get_max_out_struct_num());
+    for (int i = 0; i < out_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
         ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
     }

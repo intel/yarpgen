@@ -121,6 +121,31 @@ std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> pa
     return ret;
 }
 
+std::string SymbolTable::emit_struct_check (std::string offset) {
+    std::string ret = "";
+    for (auto i : structs) {
+        ret += emit_single_struct_check(NULL, i, offset);
+    }
+    return ret;
+}
+
+std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset) {
+    std::string ret = "";
+    for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
+        std::shared_ptr<MemberExpr> member_expr;
+        if  (parent_memb_expr != NULL)
+            member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
+        else
+            member_expr = std::make_shared<MemberExpr>(struct_var, j);
+
+        if (struct_var->get_member(j)->get_type()->is_struct_type())
+            ret += emit_single_struct_check(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)), offset);
+        else
+            ret += offset + "hash(seed, " + member_expr->emit() + ");\n";
+    }
+    return ret;
+}
+
 std::string SymbolTable::emit_variable_check (std::string offset) {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
