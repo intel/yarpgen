@@ -68,6 +68,12 @@ std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx) {
     return ret;
 }
 
+std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type) {
+    std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), struct_type);
+    ret->generate_members_init(ctx);
+    return ret;
+}
+
 void Struct::generate_members_init(std::shared_ptr<Context> ctx) {
     for (int i = 0; i < get_num_of_members(); ++i) {
         if (get_member(i)->get_type()->is_struct_type()) {

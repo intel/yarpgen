@@ -922,11 +922,6 @@ UB MemberExpr::propagate_value () {
 
 void MemberExpr::set_value (std::shared_ptr<Data> _new_value) {
     //TODO: what about struct?
-    if (member_expr == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad member_expr in MemberExpr::set_value" << std::endl;
-        exit (-1);
-    }
-
     if (_new_value->get_class_id() != value->get_class_id()) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": different Data::VarClassID in MemberExpr::set_value" << std::endl;
         exit(-1);

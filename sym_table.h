@@ -30,35 +30,38 @@ namespace rl {
 class SymbolTable {
     public:
         SymbolTable () {}
-        std::shared_ptr<SymbolTable> merge (std::shared_ptr<SymbolTable> inp_st);
 
         void add_variable (std::shared_ptr<ScalarVariable> _var) { variable.push_back (_var); }
-//        void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
-//        void add_struct (std::shared_ptr<Struct> _struct) { structs.push_back (_struct); }
+        void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
+        void add_struct (std::shared_ptr<Struct> _struct);
 
         void set_variables (std::vector<std::shared_ptr<ScalarVariable>> _variable) { variable = _variable; }
-//        void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
-//        void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
+        void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
+        void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
 
         std::vector<std::shared_ptr<ScalarVariable>>& get_variables () { return variable; }
-//        std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
-//        std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
+        std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
+        std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
+        std::vector<std::shared_ptr<MemberExpr>>& get_avail_members() { return avail_members; }
+        void del_avail_member(int idx) { avail_members.erase(avail_members.begin() + idx); }
 
         std::string emit_variable_extern_decl (std::string offset = "");
         std::string emit_variable_def (std::string offset = "");
         // TODO: rewrite with IR
         std::string emit_variable_check (std::string offset = "");
-//        std::string emit_struct_type_def (std::string offset = "");
-//        std::string emit_struct_def (std::string offset = "");
-//        std::string emit_struct_extern_decl (std::string offset = "");
-//        std::string emit_struct_init (std::string offset = "");
+        std::string emit_struct_type_def (std::string offset = "");
+        std::string emit_struct_def (std::string offset = "");
+        std::string emit_struct_extern_decl (std::string offset = "");
+        std::string emit_struct_init (std::string offset = "");
 
     private:
-//        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
-//        std::string emit_single_struct_init ();
+        void form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var);
+        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
+        std::string emit_single_struct_init ();
 
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;
+        std::vector<std::shared_ptr<MemberExpr>> avail_members;
         std::vector<std::shared_ptr<ScalarVariable>> variable;
 };
 

@@ -52,10 +52,14 @@ std::string Master::emit_init () {
     ret += extern_inp_sym_table->emit_variable_def() + "\n\n";
     ret += extern_mix_sym_table->emit_variable_def() + "\n\n";
     ret += extern_out_sym_table->emit_variable_def() + "\n\n";
-//    ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
+    ret += extern_mix_sym_table->emit_struct_def() + "\n\n";
+    ret += extern_out_sym_table->emit_struct_def() + "\n\n";
 
     ret += "void init () {\n";
-//    ret += extern_inp_sym_table->emit_struct_init ("    ");
+    ret += extern_inp_sym_table->emit_struct_init ("    ");
+    ret += extern_mix_sym_table->emit_struct_init ("    ");
+    ret += extern_out_sym_table->emit_struct_init ("    ");
     ret += "}";
 
     write_file("init.cpp", ret);
@@ -75,8 +79,10 @@ std::string Master::emit_decl () {
     ret += extern_inp_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_mix_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_out_sym_table->emit_variable_extern_decl() + "\n\n";
-//    ret += extern_inp_sym_table->emit_struct_type_def() + "\n\n";
-//    ret += extern_inp_sym_table->emit_struct_extern_decl() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_type_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_extern_decl() + "\n\n";
+    ret += extern_mix_sym_table->emit_struct_extern_decl() + "\n\n";
+    ret += extern_out_sym_table->emit_struct_extern_decl() + "\n\n";
 
     write_file("init.h", ret);
     return ret;

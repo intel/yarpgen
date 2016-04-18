@@ -91,20 +91,12 @@ std::string DeclStmt::emit (std::string offset) {
 
 std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     if (ctx->get_parent_ctx() == NULL)
-        form_external_sym_table(ctx);
+        form_extern_sym_table(ctx);
 
     std::shared_ptr<ScopeStmt> ret = std::make_shared<ScopeStmt>();
 
     std::vector<std::shared_ptr<Expr>> inp = form_inp_from_ctx(ctx);
-    std::vector<std::shared_ptr<Expr>> cse_inp;
-    for (auto i : ctx->get_extern_inp_sym_table()->get_variables()) {
-        inp.push_back(std::make_shared<VarUseExpr> (i));
-        cse_inp.push_back(std::make_shared<VarUseExpr> (i));
-    }
-
-    for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
-        inp.push_back(std::make_shared<VarUseExpr> (i));
-    }
+    std::vector<std::shared_ptr<Expr>> cse_inp = form_const_inp_from_ctx(ctx);
 
     //TODO: add to gen_policy stmt number
     int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_arith_stmt_num(), ctx->get_gen_policy()->get_max_arith_stmt_num());
@@ -120,15 +112,29 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
-            std::shared_ptr<VarUseExpr> assign_lhs = NULL;
+            GenPolicy::OutDataTypeID out_rata_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_out_data_type_prob());
+            std::shared_ptr<Expr> assign_lhs = NULL;
             if (use_mix) {
-                int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
-                assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
+                if (out_rata_type == GenPolicy::OutDataTypeID::VAR) {
+                    int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
+                    assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
+                }
+                else {
+                    int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_avail_members().size() - 1);
+                    assign_lhs = ctx->get_extern_mix_sym_table()->get_avail_members().at(mix_num);
+                }
             }
             else {
-                std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
-                ctx->get_extern_out_sym_table()->add_variable (out_var);
-                assign_lhs = std::make_shared<VarUseExpr>(out_var);
+                if (out_rata_type == GenPolicy::OutDataTypeID::VAR) {
+                    std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
+                    ctx->get_extern_out_sym_table()->add_variable (out_var);
+                    assign_lhs = std::make_shared<VarUseExpr>(out_var);
+                }
+                else {
+                    int out_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_out_sym_table()->get_avail_members().size() - 1);
+                    assign_lhs = ctx->get_extern_out_sym_table()->get_avail_members().at(out_num);
+                    ctx->get_extern_out_sym_table()->del_avail_member(out_num);
+                }
             }
             ret->add_stmt(ExprStmt::generate(ctx, inp, assign_lhs));
         }
@@ -146,8 +152,26 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     return ret;
 }
 
-std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr<Context> ctx) {
+std::vector<std::shared_ptr<Expr>> ScopeStmt::form_const_inp_from_ctx (std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<Expr>> ret;
+    for (auto i : ctx->get_extern_inp_sym_table()->get_variables()) {
+        ret.push_back(std::make_shared<VarUseExpr> (i));
+    }
+
+    for (auto i : ctx->get_extern_inp_sym_table()->get_avail_members()) {
+        ret.push_back(i);
+    }
+    return ret;
+}
+
+std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr<Context> ctx) {
+    std::vector<std::shared_ptr<Expr>> ret = form_const_inp_from_ctx (ctx);
+    for (auto i : ctx->get_extern_mix_sym_table()->get_avail_members()) {
+        ret.push_back(i);
+    }
+    for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
+        ret.push_back(std::make_shared<VarUseExpr> (i));
+    }
     if (ctx->get_parent_ctx() != NULL)
         ret = form_inp_from_ctx(ctx->get_parent_ctx());
     //TODO: add struct members
@@ -156,7 +180,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr
     return ret;
 }
 
-void ScopeStmt::form_external_sym_table(std::shared_ptr<Context> ctx) {
+void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     int inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
     for (int i = 0; i < inp_var_num; ++i) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(ctx));
@@ -165,6 +189,31 @@ void ScopeStmt::form_external_sym_table(std::shared_ptr<Context> ctx) {
     inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
     for (int i = 0; i < inp_var_num; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
+    }
+
+    int struct_types_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_types_num(), ctx->get_gen_policy()->get_max_struct_types_num());
+    for (int i = 0; i < struct_types_num; ++i) {
+        //TODO: Maybe we should create one container for all struct types? And should they all be equal?
+        std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types());
+        ctx->get_extern_inp_sym_table()->add_struct_type(struct_type);
+        ctx->get_extern_out_sym_table()->add_struct_type(struct_type);
+        ctx->get_extern_mix_sym_table()->add_struct_type(struct_type);
+    }
+
+    int struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_num(), ctx->get_gen_policy()->get_max_struct_num());
+    for (int i = 0; i < struct_num; ++i) {
+        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+        ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
+    }
+    struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_num(), ctx->get_gen_policy()->get_max_struct_num());
+    for (int i = 0; i < struct_num; ++i) {
+        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+        ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
+    }
+    struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_num(), ctx->get_gen_policy()->get_max_struct_num());
+    for (int i = 0; i < struct_num; ++i) {
+        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+        ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
     }
 }
 

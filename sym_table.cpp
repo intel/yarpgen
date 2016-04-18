@@ -22,25 +22,29 @@ limitations under the License.
 
 using namespace rl;
 
-std::shared_ptr<SymbolTable> SymbolTable::merge (std::shared_ptr<SymbolTable> inp_st) {
-    SymbolTable new_st;
 
-    assert (this != NULL && "SymbolTable::merge failed");
-    new_st.set_variables(this->get_variables());
-//    new_st.set_struct_types(this->get_struct_types());
-//    new_st.set_structs(this->get_structs());
-
-    if (inp_st != NULL) {
-        for (auto i : inp_st->get_variables())
-            new_st.add_variable(i);
-//        for (auto i : inp_st->get_struct_types())
-//            new_st.add_struct_type(i);
-//        for (auto i : inp_st->get_structs())
-//            new_st.add_struct(i);
-    }
-    return std::make_shared<SymbolTable> (new_st);
+void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {
+    structs.push_back(_struct);
+    form_struct_member_expr(NULL, _struct);
 }
 
+void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var) {
+    for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
+        GenPolicy gen_policy;
+        if (rand_val_gen->get_rand_id(gen_policy.get_member_use_prob())) {
+            std::shared_ptr<MemberExpr> member_expr;
+            if (parent_memb_expr != NULL)
+                member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
+            else
+                member_expr = std::make_shared<MemberExpr>(struct_var, j);
+
+            if (struct_var->get_member(j)->get_type()->is_struct_type())
+                form_struct_member_expr(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)));
+            else
+                avail_members.push_back(member_expr);
+        }
+    }
+}
 
 std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
     std::string ret = "";
@@ -61,7 +65,7 @@ std::string SymbolTable::emit_variable_def (std::string offset) {
     }
     return ret;
 }
-/*
+
 std::string SymbolTable::emit_struct_type_def (std::string offset) {
     std::string ret = "";
     for (auto i : struct_type) {
@@ -73,9 +77,7 @@ std::string SymbolTable::emit_struct_type_def (std::string offset) {
 std::string SymbolTable::emit_struct_def (std::string offset) {
     std::string ret = "";
     for (auto i : structs) {
-        DeclStmt decl;
-        decl.set_data(i);
-        decl.set_is_extern(false);
+        DeclStmt decl (i, NULL, false);
         ret += offset + decl.emit() + "\n";
     }
     return ret;
@@ -84,9 +86,7 @@ std::string SymbolTable::emit_struct_def (std::string offset) {
 std::string SymbolTable::emit_struct_extern_decl (std::string offset) {
     std::string ret = "";
     for (auto i : structs) {
-        DeclStmt decl;
-        decl.set_data(i);
-        decl.set_is_extern(true);
+        DeclStmt decl (i, NULL, true);
         ret += offset + decl.emit() + "\n";
     }
     return ret;
@@ -103,28 +103,24 @@ std::string SymbolTable::emit_struct_init (std::string offset) {
 std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset) {
     std::string ret = "";
     for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
-        MemberExpr member_expr;
-        member_expr.set_struct(struct_var);
-        member_expr.set_identifier(j);
-        member_expr.set_member_expr(parent_memb_expr);
+        std::shared_ptr<MemberExpr> member_expr;
+        if  (parent_memb_expr != NULL)
+            member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
+        else
+            member_expr = std::make_shared<MemberExpr>(struct_var, j);
 
-        if (struct_var->get_member(j)->get_type()->is_struct_type())
-            ret += emit_single_struct_init(std::make_shared<MemberExpr> (member_expr), std::static_pointer_cast<Struct>(struct_var->get_member(j)), offset);
+        if (struct_var->get_member(j)->get_type()->is_struct_type()) {
+            ret += emit_single_struct_init(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)), offset);
+        }
         else {
-            ConstExpr const_init;
-            const_init.set_type (std::static_pointer_cast<IntegerType>(struct_var->get_member(j)->get_type())->get_int_type_id());
-            const_init.set_data (struct_var->get_member(j)->get_value());
-
-            AssignExpr assign;
-            assign.set_to (std::make_shared<MemberExpr> (member_expr));
-            assign.set_from (std::make_shared<ConstExpr> (const_init));
-
+            std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr>(std::static_pointer_cast<ScalarVariable>(struct_var->get_member(j))->get_init_value());
+            AssignExpr assign (member_expr, const_init, false);
             ret += offset + assign.emit() + ";\n";
         }
     }
     return ret;
 }
-*/
+
 std::string SymbolTable::emit_variable_check (std::string offset) {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {

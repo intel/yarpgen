@@ -84,11 +84,14 @@ GenPolicy::GenPolicy () {
     max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
     allow_mix_mod_in_struct = false;
     allow_mix_types_in_struct = true;
-    member_use_prob.push_back(Probability<bool>(true, 70));
-    member_use_prob.push_back(Probability<bool>(false, 30));
+    member_use_prob.push_back(Probability<bool>(true, 80));
+    member_use_prob.push_back(Probability<bool>(false, 20));
     max_struct_depth = MAX_STRUCT_DEPTH;
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::VAR, 70));
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::STRUCT, 30));
+
+    out_data_type_prob.push_back(Probability<OutDataTypeID>(VAR, 70));
+    out_data_type_prob.push_back(Probability<OutDataTypeID>(STRUCT, 30));
 
     max_arith_depth = MAX_ARITH_DEPTH;
 

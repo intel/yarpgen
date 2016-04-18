@@ -116,6 +116,10 @@ class GenPolicy {
             Add, MAX_CSE_GEN_ID
         };
 
+        enum OutDataTypeID {
+            VAR, STRUCT, MAX_OUT_DATA_TYPE_ID
+        };
+
         void copy_data (std::shared_ptr<GenPolicy> old);
 
         void set_num_of_allowed_int_types (int _num_of_allowed_int_types) { num_of_allowed_int_types = _num_of_allowed_int_types; }
@@ -205,6 +209,8 @@ class GenPolicy {
         void set_max_struct_depth (uint64_t _max_struct_depth) { max_struct_depth = _max_struct_depth; }
         uint64_t get_max_struct_depth () { return max_struct_depth; }
         std::vector<Probability<Data::VarClassID>>& get_member_class_prob () { return member_class_prob; }
+        void add_out_data_type_prob(Probability<OutDataTypeID> prob) { out_data_type_prob.push_back(prob); }
+        std::vector<Probability<OutDataTypeID>> get_out_data_type_prob() { return out_data_type_prob; }
 
     private:
         // Number of allowed integer types
@@ -224,6 +230,7 @@ class GenPolicy {
         std::vector<Probability<bool>> member_use_prob;
         std::vector<Probability<Data::VarClassID>> member_class_prob;
         uint64_t max_struct_depth;
+        std::vector<Probability<OutDataTypeID>> out_data_type_prob;
 
 
         void set_modifier (bool value, Type::Mod modifier);
