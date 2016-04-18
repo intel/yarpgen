@@ -76,6 +76,7 @@ class IfStmt : public Stmt {
         IfStmt (std::shared_ptr<Expr> cond, std::shared_ptr<ScopeStmt> if_branch, std::shared_ptr<ScopeStmt> else_branch);
         static bool count_if_taken (std::shared_ptr<Expr> cond);
         std::string emit (std::string offset = "");
+        static std::shared_ptr<IfStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     private:
         bool taken;

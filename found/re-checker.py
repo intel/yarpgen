@@ -63,7 +63,7 @@ def test(num, file_queue, out_passed_queue, out_failed_queue, lock):
                 break
         if failed_flag:
             out_failed_queue.put(test_seed_folder)
-            brutus_blame.blame(cwd_save + os.sep + args.folder + test_seed_folder, yarpgen_home+os.sep+'found'+os.sep+"sort", args.verbose, lock)
+            #brutus_blame.blame(cwd_save + os.sep + args.folder + test_seed_folder, yarpgen_home+os.sep+'found'+os.sep+"sort", args.verbose, lock)
         else:
             out_passed_queue.put(test_seed_folder)
 

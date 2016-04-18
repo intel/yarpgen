@@ -64,14 +64,14 @@ class SymbolTable {
 
 class Context {
     public:
-        Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx);
+        Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx, Node::NodeID _self_stmt_id, bool _taken);
 
         void set_gen_policy (GenPolicy _gen_policy) { gen_policy = std::make_shared<GenPolicy>(_gen_policy); }
         std::shared_ptr<GenPolicy> get_gen_policy () { return gen_policy; }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }
         Node::NodeID get_self_stmt_id () { return self_stmt_id; }
-
+        bool get_taken () { return taken; }
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
         std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
         void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }
@@ -96,6 +96,7 @@ class Context {
         Node::NodeID self_stmt_id;
         int if_depth;
         int depth;
+        bool taken;
         //TODO: maybe we should add taken member?
 };
 }

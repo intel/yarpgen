@@ -30,7 +30,7 @@ Master::Master (std::string _out_folder) {
 }
 
 void Master::generate () {
-    Context ctx (gen_policy, NULL);
+    Context ctx (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, true);
     ctx.set_extern_inp_sym_table (extern_inp_sym_table);
     ctx.set_extern_mix_sym_table (extern_mix_sym_table);
     ctx.set_extern_out_sym_table (extern_out_sym_table);

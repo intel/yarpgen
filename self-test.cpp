@@ -167,7 +167,7 @@ void self_test () {
     std::cout << "\n====================="<< std::endl;
 */
     GenPolicy gen_policy;
-    Context ctx_var (gen_policy, NULL);
+    Context ctx_var (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, true);
     ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
     std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
 /*
@@ -284,7 +284,7 @@ void self_test () {
     std::cout << "type_cast_expr: " << type_cast_expr->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 
-    std::shared_ptr<DeclStmt> decl_stmt = DeclStmt::generate(std::make_shared<Context>(gen_policy, ctx), inp);
+    std::shared_ptr<DeclStmt> decl_stmt = DeclStmt::generate(std::make_shared<Context>(gen_policy, ctx, Node::NodeID::DECL, true), inp);
     std::cout << "decl_stmt: " << decl_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 

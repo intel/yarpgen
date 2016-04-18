@@ -107,8 +107,8 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     }
 
     //TODO: add to gen_policy stmt number
-//    int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_arith_stmt_num(), ctx->get_gen_policy()->get_max_arith_stmt_num());
-    for (int i = 0; i < 100; ++i) {
+    int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_arith_stmt_num(), ctx->get_gen_policy()->get_max_arith_stmt_num());
+    for (int i = 0; i < arith_stmt_num; ++i) {
         GenPolicy::ArithCSEGenID add_cse = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_arith_cse_gen());
         if (add_cse == GenPolicy::ArithCSEGenID::Add &&
            ((ctx->get_gen_policy()->get_cse().size() - 1 < ctx->get_gen_policy()->get_max_cse_num()) ||
@@ -120,24 +120,28 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
+            std::shared_ptr<VarUseExpr> assign_lhs = NULL;
             if (use_mix) {
                 int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
-                std::shared_ptr<VarUseExpr> mix_use = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
-                ret->add_stmt(ExprStmt::generate(ctx, inp, mix_use));
+                assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
             }
             else {
                 std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
                 ctx->get_extern_out_sym_table()->add_variable (out_var);
-                std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(out_var);
-                ret->add_stmt(ExprStmt::generate(ctx, inp, var_use));
+                assign_lhs = std::make_shared<VarUseExpr>(out_var);
             }
+            ret->add_stmt(ExprStmt::generate(ctx, inp, assign_lhs));
         }
-        else {//if (gen_id == Node::NodeID::DECL)
-            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx), inp);
+        else if (gen_id == Node::NodeID::DECL || (ctx->get_if_depth() == ctx->get_gen_policy()->get_max_if_depth())) {
+            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::DECL, true), inp);
             std::shared_ptr<ScalarVariable> tmp_var = std::static_pointer_cast<ScalarVariable>(tmp_decl->get_data());
             inp.push_back(std::make_shared<VarUseExpr>(tmp_var));
             ret->add_stmt(tmp_decl);
         }
+        else if (gen_id == Node::NodeID::IF) {
+            ret->add_stmt(IfStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::IF, true), inp));
+        }
+
     }
     return ret;
 }
@@ -176,7 +180,7 @@ std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std:
     //TODO: now it can be only assign. Do we want something more?
     //TODO: implement taken mechanism
     std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
-    std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from);
+    std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
     return std::make_shared<ExprStmt>(assign_exp);
 }
 
@@ -199,13 +203,24 @@ IfStmt::IfStmt (std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _if_br, 
     taken = count_if_taken(cond);
 }
 
+std::shared_ptr<IfStmt> IfStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    std::shared_ptr<Expr> cond = ArithExpr::generate(ctx, inp);
+    bool else_exist = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_else_prob());
+    bool cond_taken = IfStmt::count_if_taken(cond);
+    std::shared_ptr<ScopeStmt> then_br = ScopeStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::SCOPE, cond_taken));
+    std::shared_ptr<ScopeStmt> else_br = NULL;
+    if (else_exist)
+        else_br = ScopeStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::SCOPE, !cond_taken));
+    return std::make_shared<IfStmt>(cond, then_br, else_br);
+}
+
 std::string IfStmt::emit (std::string offset) {
     std::string ret = offset;
     ret += "if (" + cond->emit() + ")\n";
-    ret += if_branch->emit();
+    ret += if_branch->emit(offset);
     if (else_branch != NULL) {
         ret += offset + "else\n";
-        ret += else_branch->emit();
+        ret += else_branch->emit(offset);
     }
     return ret;
 }
