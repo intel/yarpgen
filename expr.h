@@ -44,7 +44,7 @@ class Expr : public Node {
 class VarUseExpr : public Expr {
     public:
         VarUseExpr (std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var) {}
-        void set_value (std::shared_ptr<Data> _new_value);
+        std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
         std::string emit (std::string offset = "") { return value->get_name (); }
 
     private:
@@ -187,12 +187,13 @@ class MemberExpr : public Expr {
                     Expr(Node::NodeID::MEMBER, _struct), member_expr(NULL), struct_var(_struct), identifier(_identifier) { propagate_type(); propagate_value(); }
         MemberExpr (std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier) :
                     Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(NULL), identifier(_identifier) { propagate_type(); propagate_value(); }
-        void set_value (std::shared_ptr<Data> _new_value);
+        std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
         std::string emit (std::string offset = "");
 
     private:
         bool propagate_type ();
         UB propagate_value ();
+        std::shared_ptr<Expr> check_and_set_bit_field (std::shared_ptr<Expr> _expr);
 
         std::shared_ptr<MemberExpr> member_expr;
         std::shared_ptr<Struct> struct_var;

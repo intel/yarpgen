@@ -43,7 +43,8 @@ std::shared_ptr<Data> Expr::get_value () {
     }
 }
 
-void VarUseExpr::set_value (std::shared_ptr<Data> _new_value) {
+std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
+    std::shared_ptr<Data> _new_value = _expr->get_value();
     if (_new_value->get_class_id() != value->get_class_id()) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": different Data::VarClassID in VarUseExpr::set_value" << std::endl;
         exit(-1);
@@ -52,6 +53,7 @@ void VarUseExpr::set_value (std::shared_ptr<Data> _new_value) {
         case Data::VarClassID::VAR:
             //TODO: Add integer type id check. We can't assign different types
             std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(_new_value)->get_cur_value());
+            return _expr;
             break;
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
@@ -93,10 +95,10 @@ UB AssignExpr::propagate_value () {
         return NoUB;
 
     if (to->get_id() == Node::NodeID::VAR_USE) {
-        std::static_pointer_cast<VarUseExpr>(to)->set_value(from->get_value());
+        from = std::static_pointer_cast<VarUseExpr>(to)->set_value(from);
     }
     else if (to->get_id() == Node::NodeID::MEMBER) {
-        std::static_pointer_cast<MemberExpr>(to)->set_value(from->get_value());
+        from = std::static_pointer_cast<MemberExpr>(to)->set_value(from);
     }
     else {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::propagate_value" << std::endl;
@@ -214,10 +216,20 @@ std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
         exit(-1);
     }
 
-    //[conv.prom]
-    if (arg->get_value()->get_type()->get_int_type_id() >= IntegerType::IntegerTypeID::INT) // can't perform integral promotiom
+    if (!arg->get_value()->get_type()->get_is_bit_field()) {
+        //[conv.prom]
+        if (arg->get_value()->get_type()->get_int_type_id() >= IntegerType::IntegerTypeID::INT) // can't perform integral promotiom
+            return arg;
+        return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::INT), true);
+    }
+    else {
+        AtomicType::ScalarTypedVal val = std::static_pointer_cast<ScalarVariable>(arg->get_value())->get_cur_value();
+        if (BitField::can_fit_in_int(val, false))
+            return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::INT), true);
+        if (BitField::can_fit_in_int(val, true))
+            return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::UINT), true);
         return arg;
-    return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::INT), true);
+    }
 }
 
 std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
@@ -700,6 +712,7 @@ UB BinaryExpr::propagate_value () {
     std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
     AtomicType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
 
+
 /*
     std::cout << "Before prop:" << std::endl;
     std::cout << arg0->emit() << std::endl;
@@ -711,7 +724,6 @@ UB BinaryExpr::propagate_value () {
     std::cout << "rhs val id: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value().get_int_type_id() << std::endl;
     std::cout << "rhs id: " << arg1->get_value()->get_type()->get_int_type_id() << std::endl;
 */
-
 
     switch (op) {
         case Add:
@@ -791,6 +803,7 @@ UB BinaryExpr::propagate_value () {
     std::cout << "new id: " << new_val.get_int_type_id() << std::endl;
     std::cout << "UB: " << new_val.get_ub() << std::endl;
     std::cout << "ret: " << std::static_pointer_cast<ScalarVariable>(value)->get_cur_value() << std::endl;
+    std::cout << "=============" << std::endl;
 */
     return new_val.get_ub();
 }
@@ -920,16 +933,25 @@ UB MemberExpr::propagate_value () {
     return NoUB;
 }
 
-void MemberExpr::set_value (std::shared_ptr<Data> _new_value) {
+std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
     //TODO: what about struct?
+    std::shared_ptr<Data> _new_value = _expr->get_value();
     if (_new_value->get_class_id() != value->get_class_id()) {
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": different Data::VarClassID in MemberExpr::set_value" << std::endl;
         exit(-1);
     }
     switch (value->get_class_id()) {
         case Data::VarClassID::VAR:
-            //TODO: Add integer type id check. We can't assign different types
-            std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(_new_value)->get_cur_value());
+            if (value->get_type()->get_int_type_id() != _new_value->get_type()->get_int_type_id()) {
+                std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can't assign different types in MemberExpr::set_value" << std::endl;
+                exit(-1);
+            }
+            if (value->get_type()->get_is_bit_field())
+                return check_and_set_bit_field(_expr);
+            else {
+                std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(_new_value)->get_cur_value());
+                return _expr;
+            }
             break;
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
@@ -940,6 +962,39 @@ void MemberExpr::set_value (std::shared_ptr<Data> _new_value) {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported Data::VarClassID in MemberExpr::set_value" << std::endl;
             exit(-1);
     }
+}
+
+static std::shared_ptr<Expr> change_to_value(std::shared_ptr<Context> ctx, std::shared_ptr<Expr> _expr, AtomicType::ScalarTypedVal to_val) {
+    std::shared_ptr<Data> expr_data = _expr->get_value();
+    if (expr_data->get_class_id() != Data::VarClassID::VAR) {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": only variables are supported in change_to_value" << std::endl;
+        exit(-1);
+    }
+    AtomicType::ScalarTypedVal value = std::static_pointer_cast<ScalarVariable>(expr_data)->get_cur_value();
+    std::shared_ptr<ConstExpr> const_expr = std::make_shared<ConstExpr>(value);
+    std::shared_ptr<Expr> to_zero =  std::make_shared<BinaryExpr>(BinaryExpr::Op::Sub, _expr, const_expr);
+    std::shared_ptr<ConstExpr> to_val_const_expr = std::make_shared<ConstExpr>(to_val);
+    return std::make_shared<BinaryExpr>(BinaryExpr::Op::Add, to_zero, to_val_const_expr);
+}
+
+std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr> _expr) {
+    AtomicType::ScalarTypedVal new_val = std::static_pointer_cast<ScalarVariable>(_expr->get_value())->get_cur_value();
+    std::shared_ptr<BitField> bit_field = std::static_pointer_cast<BitField>(value->get_type());
+    AtomicType::ScalarTypedVal ovf_cmp_val = (bit_field->get_min() > new_val) || (bit_field->get_max() < new_val);
+    if (!ovf_cmp_val.val.bool_val) {
+        std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(new_val);
+        return _expr;
+    }
+    //TODO: it is a stub. We need to change it
+    GenPolicy gen_policy;
+    Context ctx_var (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, true);
+    ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
+    std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
+    AtomicType::ScalarTypedVal to_value = AtomicType::ScalarTypedVal::generate(ctx, bit_field->get_min(), bit_field->get_max());
+    std::shared_ptr<Expr> ret = change_to_value(ctx, _expr, to_value);
+
+    std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(ret->get_value())->get_cur_value());
+    return ret;
 }
 
 std::string MemberExpr::emit (std::string offset) {

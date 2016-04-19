@@ -224,6 +224,12 @@ class GenPolicy {
         std::vector<Probability<Data::VarClassID>>& get_member_class_prob () { return member_class_prob; }
         void add_out_data_type_prob(Probability<OutDataTypeID> prob) { out_data_type_prob.push_back(prob); }
         std::vector<Probability<OutDataTypeID>> get_out_data_type_prob() { return out_data_type_prob; }
+        void set_min_bit_field_size (uint64_t _min_bit_field_size) { min_bit_field_size = _min_bit_field_size; }
+        uint64_t get_min_bit_field_size () { return min_bit_field_size; }
+        void set_max_bit_field_size (uint64_t _max_bit_field_size) { max_bit_field_size = _max_bit_field_size; }
+        uint64_t get_max_bit_field_size () { return max_bit_field_size; }
+        std::vector<Probability<bool>>& get_bit_field_prob () { return bit_field_prob; }
+        void add_bit_field_prob(Probability<bool> prob) { bit_field_prob.push_back(prob); }
 
     private:
         // Number of allowed integer types
@@ -248,7 +254,9 @@ class GenPolicy {
         std::vector<Probability<Data::VarClassID>> member_class_prob;
         uint64_t max_struct_depth;
         std::vector<Probability<OutDataTypeID>> out_data_type_prob;
-
+        uint64_t min_bit_field_size;
+        uint64_t max_bit_field_size;
+        std::vector<Probability<bool>> bit_field_prob;
 
         void set_modifier (bool value, Type::Mod modifier);
         bool get_modifier (Type::Mod modifier);

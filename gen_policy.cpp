@@ -51,6 +51,8 @@ int MAX_OUT_STRUCT_NUM = 8;
 int MIN_STRUCT_MEMBERS_NUM = 5;
 int MAX_STRUCT_MEMBERS_NUM = 10;
 int MAX_STRUCT_DEPTH = 5;
+int MIN_BIT_FIELD_SIZE = 8;
+int MAX_BIT_FIELD_SIZE = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -99,6 +101,10 @@ GenPolicy::GenPolicy () {
     max_struct_depth = MAX_STRUCT_DEPTH;
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::VAR, 70));
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::STRUCT, 30));
+    min_bit_field_size = MIN_BIT_FIELD_SIZE;
+    max_bit_field_size = MAX_BIT_FIELD_SIZE;
+    bit_field_prob.push_back(Probability<bool>(true, 90));
+    bit_field_prob.push_back(Probability<bool>(false, 10));
 
     out_data_type_prob.push_back(Probability<OutDataTypeID>(VAR, 70));
     out_data_type_prob.push_back(Probability<OutDataTypeID>(STRUCT, 30));

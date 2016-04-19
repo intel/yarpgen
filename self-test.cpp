@@ -174,6 +174,11 @@ void self_test () {
     std::shared_ptr<IntegerType> rand_int_type = IntegerType::generate(ctx);
     rand_int_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
+*/
+
+    std::shared_ptr<BitField> rand_bit_field = BitField::generate(ctx);
+    rand_bit_field->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
 
     std::shared_ptr<StructType> rand_struct_type = StructType::generate(ctx);
     rand_struct_type->dbg_dump();
@@ -182,7 +187,7 @@ void self_test () {
     std::shared_ptr<StructType> rand_par_struct_type = StructType::generate(ctx, substr_types);
     rand_par_struct_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
-
+/*
     AtomicType::ScalarTypedVal rand_val = AtomicType::ScalarTypedVal::generate(ctx, Type::IntegerTypeID::SHRT);
     std::cout << "rand_val: " << rand_val << std::endl;
     std::cout << "\n====================="<< std::endl;
@@ -204,26 +209,26 @@ void self_test () {
     std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
     std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
-*/
 
-   std::vector<std::shared_ptr<Expr>> inp;
+
+   std::vector<std::shared_ptr<Expr>> inp2;
     for (int i = 0; i < 10; ++i) {
         std::shared_ptr<ScalarVariable> rand_scalar_var = ScalarVariable::generate(ctx);
         std::shared_ptr<VarUseExpr> var_use = std::make_shared<VarUseExpr>(rand_scalar_var);
-        inp.push_back(var_use);
+        inp2.push_back(var_use);
     }
 
-/*
-    std::shared_ptr<Expr> unary_rand = UnaryExpr::generate(ctx, inp, 0);
-    std::cout << "unary_rand: " << unary_rand->emit() << std::endl;
+
+    std::shared_ptr<Expr> unary_rand2 = UnaryExpr::generate(ctx, inp, 0);
+    std::cout << "unary_rand: " << unary_rand2->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
-*/
-/*
+
+
    std::shared_ptr<Expr> arith_rand = ArithExpr::generate(ctx, inp);
     std::cout << "arith_rand: " << arith_rand->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
-*/
-/*
+
+
     for (int i = UnaryExpr::Op::PreInc; i < UnaryExpr::Op::MaxOp; ++i) {
         for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
             if (j == Type::IntegerTypeID::BOOL &&
@@ -246,8 +251,8 @@ void self_test () {
             std::cout << "\n====================="<< std::endl;
         }
     }
-*/
-/*
+
+
     for (int i = BinaryExpr::Op::Add; i < BinaryExpr::Op::MaxOp; ++i) {
         for (int j = Type::IntegerTypeID::BOOL; j < Type::IntegerTypeID::MAX_INT_ID; ++j) {
             for (int k = Type::IntegerTypeID::BOOL; k < Type::IntegerTypeID::MAX_INT_ID; ++k) {
@@ -275,7 +280,7 @@ void self_test () {
             }
         }
     }
-*/
+
     std::shared_ptr<ConstExpr> const_expr = ConstExpr::generate(ctx);
     std::cout << "const_expr: " << const_expr->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
@@ -291,4 +296,5 @@ void self_test () {
     std::shared_ptr<ExprStmt> expr_stmt = ExprStmt::generate(ctx, inp, inp.at(0));
     std::cout << "expr_stmt: " << expr_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
+*/
 }

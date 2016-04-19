@@ -5,3 +5,4 @@ yarpgen
 objs
 res
 *.swp
+found/old-*

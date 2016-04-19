@@ -69,6 +69,7 @@ class Type {
         virtual AtomicTypeID get_atomic_type_id () { return Max_AtomicTypeID; }
         virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
         virtual bool get_is_signed() { return false; }
+        virtual bool get_is_bit_field() { return false; }
         std::string get_name ();
         std::string get_simple_name () { return name; }
         void set_modifier (Mod _modifier) { modifier = _modifier; }
@@ -104,7 +105,7 @@ class StructType : public Type {
                 StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name) {}
                 std::string get_name () { return name; }
                 std::shared_ptr<Type> get_type() { return type; }
-                std::string get_definition (std::string offset = "") { return offset + type->get_name() + " " + name; }
+                std::string get_definition (std::string offset = "");
 
             private:
                 std::shared_ptr<Type> type;
@@ -200,6 +201,7 @@ class AtomicType : public Type {
                 ScalarTypedVal operator>> (ScalarTypedVal rhs);
 
                 static ScalarTypedVal generate (std::shared_ptr<Context> ctx, AtomicType::IntegerTypeID _int_type_id);
+                static ScalarTypedVal generate (std::shared_ptr<Context> ctx, ScalarTypedVal min, ScalarTypedVal max);
 
                 Val val;
 
@@ -254,11 +256,29 @@ class IntegerType : public AtomicType {
         IntegerTypeID int_type_id;
 };
 
+class BitField : public IntegerType {
+    public:
+        BitField (IntegerTypeID it_id, uint64_t _bit_size) : IntegerType(it_id) { init_type(it_id, _bit_size); }
+        BitField (IntegerTypeID it_id, uint64_t _bit_size, Mod _modifier) : IntegerType(it_id, _modifier, false, 0) { init_type(it_id, _bit_size); }
+        bool get_is_bit_field() { return true; }
+        static bool can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned);
+        uint64_t get_bit_field_width() { return bit_field_width; }
+        static std::shared_ptr<BitField> generate (std::shared_ptr<Context> ctx);
+        void dbg_dump ();
+
+    private:
+        void init_type(IntegerTypeID it_id, uint64_t _bit_size);
+        uint64_t bit_field_width;
+};
+
 class TypeBOOL : public IntegerType {
     public:
         TypeBOOL () : IntegerType(AtomicType::IntegerTypeID::BOOL) { init_type (); }
         TypeBOOL (Mod _modifier, bool _is_static, uint64_t _align) :
                   IntegerType(AtomicType::IntegerTypeID::BOOL, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "bool";
             suffix = "";
@@ -267,7 +287,6 @@ class TypeBOOL : public IntegerType {
             bit_size = sizeof (bool) * CHAR_BIT;
             is_signed = false;
         }
-        void dbg_dump ();
 };
 
 class TypeCHAR : public IntegerType {
@@ -275,6 +294,9 @@ class TypeCHAR : public IntegerType {
         TypeCHAR () : IntegerType(AtomicType::IntegerTypeID::CHAR) { init_type (); }
         TypeCHAR (Mod _modifier, bool _is_static, uint64_t _align) :
                   IntegerType(AtomicType::IntegerTypeID::CHAR, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "signed char";
             suffix = "";
@@ -283,7 +305,6 @@ class TypeCHAR : public IntegerType {
             bit_size = sizeof (char) * CHAR_BIT;
             is_signed = true;
         }
-        void dbg_dump ();
 };
 
 class TypeUCHAR : public IntegerType {
@@ -291,6 +312,9 @@ class TypeUCHAR : public IntegerType {
         TypeUCHAR () : IntegerType(AtomicType::IntegerTypeID::UCHAR) { init_type (); }
         TypeUCHAR (Mod _modifier, bool _is_static, uint64_t _align) :
                    IntegerType(AtomicType::IntegerTypeID::UCHAR, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "unsigned char";
             suffix = "";
@@ -299,7 +323,6 @@ class TypeUCHAR : public IntegerType {
             bit_size = sizeof (unsigned char) * CHAR_BIT;
             is_signed = false;
         }
-        void dbg_dump ();
 };
 
 class TypeSHRT : public IntegerType {
@@ -307,6 +330,9 @@ class TypeSHRT : public IntegerType {
         TypeSHRT () : IntegerType(AtomicType::IntegerTypeID::SHRT) { init_type (); }
         TypeSHRT (Mod _modifier, bool _is_static, uint64_t _align) :
                   IntegerType(AtomicType::IntegerTypeID::SHRT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "short";
             suffix = "";
@@ -315,7 +341,6 @@ class TypeSHRT : public IntegerType {
             bit_size = sizeof (short) * CHAR_BIT;
             is_signed = true;
         }
-        void dbg_dump ();
 };
 
 class TypeUSHRT : public IntegerType {
@@ -323,6 +348,9 @@ class TypeUSHRT : public IntegerType {
         TypeUSHRT () : IntegerType(AtomicType::IntegerTypeID::USHRT) { init_type (); }
         TypeUSHRT (Mod _modifier, bool _is_static, uint64_t _align) :
                    IntegerType(AtomicType::IntegerTypeID::USHRT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "unsigned short";
             suffix = "";
@@ -331,7 +359,6 @@ class TypeUSHRT : public IntegerType {
             bit_size = sizeof (unsigned short) * CHAR_BIT;
             is_signed = false;
         }
-        void dbg_dump ();
 };
 
 class TypeINT : public IntegerType {
@@ -339,6 +366,9 @@ class TypeINT : public IntegerType {
         TypeINT () : IntegerType(AtomicType::IntegerTypeID::INT) { init_type (); }
         TypeINT (Mod _modifier, bool _is_static, uint64_t _align) :
                  IntegerType(AtomicType::IntegerTypeID::INT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "int";
             suffix = "";
@@ -347,7 +377,6 @@ class TypeINT : public IntegerType {
             bit_size = sizeof (int) * CHAR_BIT;
             is_signed = true;
         }
-        void dbg_dump ();
 };
 
 class TypeUINT : public IntegerType {
@@ -355,6 +384,9 @@ class TypeUINT : public IntegerType {
         TypeUINT () : IntegerType(AtomicType::IntegerTypeID::UINT) { init_type (); }
         TypeUINT (Mod _modifier, bool _is_static, uint64_t _align) :
                   IntegerType(AtomicType::IntegerTypeID::UINT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "unsigned int";
             suffix = "U";
@@ -363,7 +395,6 @@ class TypeUINT : public IntegerType {
             bit_size = sizeof (unsigned int) * CHAR_BIT;
             is_signed = false;
         }
-        void dbg_dump ();
 };
 
 class TypeLINT : public IntegerType {
@@ -371,6 +402,9 @@ class TypeLINT : public IntegerType {
         TypeLINT () : IntegerType(AtomicType::IntegerTypeID::LINT) { init_type (); }
         TypeLINT (Mod _modifier, bool _is_static, uint64_t _align) :
                   IntegerType(AtomicType::IntegerTypeID::LINT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "long int";
             suffix = "L";
@@ -379,7 +413,6 @@ class TypeLINT : public IntegerType {
             bit_size = sizeof (long int) * CHAR_BIT;
             is_signed = true;
         }
-        void dbg_dump ();
 };
 
 class TypeULINT : public IntegerType {
@@ -387,6 +420,9 @@ class TypeULINT : public IntegerType {
         TypeULINT () : IntegerType(AtomicType::IntegerTypeID::ULINT) { init_type (); }
         TypeULINT (Mod _modifier, bool _is_static, uint64_t _align) :
                    IntegerType(AtomicType::IntegerTypeID::ULINT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "unsigned long int";
             suffix = "UL";
@@ -395,7 +431,6 @@ class TypeULINT : public IntegerType {
             bit_size = sizeof (unsigned long int) * CHAR_BIT;
             is_signed = false;
         }
-        void dbg_dump ();
 };
 
 class TypeLLINT : public IntegerType {
@@ -403,6 +438,9 @@ class TypeLLINT : public IntegerType {
         TypeLLINT () : IntegerType(AtomicType::IntegerTypeID::LLINT) { init_type (); }
         TypeLLINT (Mod _modifier, bool _is_static, uint64_t _align) :
                    IntegerType(AtomicType::IntegerTypeID::LLINT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "long long int";
             suffix = "LL";
@@ -411,7 +449,6 @@ class TypeLLINT : public IntegerType {
             bit_size = sizeof (long long int) * CHAR_BIT;
             is_signed = true;
         }
-        void dbg_dump ();
 };
 
 class TypeULLINT : public IntegerType {
@@ -419,6 +456,9 @@ class TypeULLINT : public IntegerType {
         TypeULLINT () : IntegerType(AtomicType::IntegerTypeID::ULLINT) { init_type (); }
         TypeULLINT (Mod _modifier, bool _is_static, uint64_t _align) :
                     IntegerType(AtomicType::IntegerTypeID::ULLINT, _modifier, _is_static, _align) { init_type (); }
+        void dbg_dump ();
+
+    private:
         void init_type () {
             name = "unsigned long long int";
             suffix = "ULL";
@@ -427,6 +467,5 @@ class TypeULLINT : public IntegerType {
             bit_size = sizeof (unsigned long long int) * CHAR_BIT;
             is_signed = false;
         }
-        void dbg_dump ();
 };
 }

@@ -80,7 +80,8 @@ void Struct::generate_members_init(std::shared_ptr<Context> ctx) {
             std::static_pointer_cast<Struct>(get_member(i))->generate_members_init(ctx);
         }
         else if (get_member(i)->get_type()->is_int_type()) {
-            AtomicType::ScalarTypedVal init_val = AtomicType::ScalarTypedVal::generate(ctx, get_member(i)->get_type()->get_int_type_id());
+            std::shared_ptr<IntegerType> member_type = std::static_pointer_cast<IntegerType>(get_member(i)->get_type());
+            AtomicType::ScalarTypedVal init_val = AtomicType::ScalarTypedVal::generate(ctx, member_type->get_min(), member_type->get_max());
             std::static_pointer_cast<ScalarVariable>(get_member(i))->set_init_value(init_val);
         }
         else {
