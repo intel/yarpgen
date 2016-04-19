@@ -116,9 +116,11 @@ class StructType : public Type {
         StructType (std::string _name, Mod _modifier, bool _is_static, uint64_t _align) :
                     Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = "struct " + _name; }
         //TODO: it should handle nest_depth change
-        void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); }
+        void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); shadow_members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
+        void add_shadow_member (std::shared_ptr<Type> _type) { shadow_members.push_back(std::make_shared<StructMember>(_type, "")); }
         uint64_t get_num_of_members () { return members.size(); }
+        uint64_t get_num_of_shadow_members () { return shadow_members.size(); }
         uint64_t get_nest_depth () { return nest_depth; }
         std::shared_ptr<StructMember> get_member (unsigned int num);
         std::string get_definition (std::string offset = "");
@@ -128,6 +130,8 @@ class StructType : public Type {
         static std::shared_ptr<StructType> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types);
 
     private:
+        //TODO: it is a stub for unnamed bit fields. Nobody should know about them
+        std::vector<std::shared_ptr<StructMember>> shadow_members;
         std::vector<std::shared_ptr<StructMember>> members;
         uint64_t nest_depth;
 };
@@ -263,7 +267,7 @@ class BitField : public IntegerType {
         bool get_is_bit_field() { return true; }
         static bool can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned);
         uint64_t get_bit_field_width() { return bit_field_width; }
-        static std::shared_ptr<BitField> generate (std::shared_ptr<Context> ctx);
+        static std::shared_ptr<BitField> generate (std::shared_ptr<Context> ctx, bool is_unnamed = false);
         void dbg_dump ();
 
     private:

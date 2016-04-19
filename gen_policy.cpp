@@ -103,8 +103,9 @@ GenPolicy::GenPolicy () {
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::STRUCT, 30));
     min_bit_field_size = MIN_BIT_FIELD_SIZE;
     max_bit_field_size = MAX_BIT_FIELD_SIZE;
-    bit_field_prob.push_back(Probability<bool>(true, 90));
-    bit_field_prob.push_back(Probability<bool>(false, 10));
+    bit_field_prob.push_back(Probability<BitFieldID>(UNNAMED, 30));
+    bit_field_prob.push_back(Probability<BitFieldID>(NAMED, 60));
+    bit_field_prob.push_back(Probability<BitFieldID>(MAX_BIT_FIELD_ID, 10));
 
     out_data_type_prob.push_back(Probability<OutDataTypeID>(VAR, 70));
     out_data_type_prob.push_back(Probability<OutDataTypeID>(STRUCT, 30));

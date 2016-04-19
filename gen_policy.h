@@ -120,6 +120,10 @@ class GenPolicy {
             VAR, STRUCT, MAX_OUT_DATA_TYPE_ID
         };
 
+        enum BitFieldID {
+            UNNAMED, NAMED, MAX_BIT_FIELD_ID
+        };
+
         void copy_data (std::shared_ptr<GenPolicy> old);
 
         void set_num_of_allowed_int_types (int _num_of_allowed_int_types) { num_of_allowed_int_types = _num_of_allowed_int_types; }
@@ -228,8 +232,8 @@ class GenPolicy {
         uint64_t get_min_bit_field_size () { return min_bit_field_size; }
         void set_max_bit_field_size (uint64_t _max_bit_field_size) { max_bit_field_size = _max_bit_field_size; }
         uint64_t get_max_bit_field_size () { return max_bit_field_size; }
-        std::vector<Probability<bool>>& get_bit_field_prob () { return bit_field_prob; }
-        void add_bit_field_prob(Probability<bool> prob) { bit_field_prob.push_back(prob); }
+        std::vector<Probability<BitFieldID>>& get_bit_field_prob () { return bit_field_prob; }
+        void add_bit_field_prob(Probability<BitFieldID> prob) { bit_field_prob.push_back(prob); }
 
     private:
         // Number of allowed integer types
@@ -256,7 +260,7 @@ class GenPolicy {
         std::vector<Probability<OutDataTypeID>> out_data_type_prob;
         uint64_t min_bit_field_size;
         uint64_t max_bit_field_size;
-        std::vector<Probability<bool>> bit_field_prob;
+        std::vector<Probability<BitFieldID>> bit_field_prob;
 
         void set_modifier (bool value, Type::Mod modifier);
         bool get_modifier (Type::Mod modifier);

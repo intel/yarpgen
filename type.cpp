@@ -54,6 +54,7 @@ void StructType::add_member (std::shared_ptr<Type> _type, std::string _name) {
                      std::static_pointer_cast<StructType>(_type)->get_nest_depth() + 1 : nest_depth;
     }
     members.push_back(std::make_shared<StructMember>(new_mem));
+    shadow_members.push_back(std::make_shared<StructMember>(new_mem));
 }
 
 std::shared_ptr<StructType::StructMember> StructType::get_member (unsigned int num) {
@@ -73,7 +74,7 @@ std::string StructType::StructMember::get_definition (std::string offset) {
 std::string StructType::get_definition (std::string offset) {
     std::string ret = "";
     ret+= name + " {\n";
-    for (auto i : members) {
+    for (auto i : shadow_members) {
         ret += i->get_definition(offset + "    ") + ";\n";
     }
     ret += "};\n";
@@ -128,7 +129,11 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
                 primary_type = substruct_type;
             }
             else {
-                if (rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob()))
+                if (rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob()) == GenPolicy::BitFieldID::UNNAMED) {
+                    struct_type->add_shadow_member(BitField::generate(ctx, true));
+                    continue;
+                }
+                else if (rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob()) == GenPolicy::BitFieldID::NAMED)
                     primary_type = BitField::generate(ctx);
                 else
                     primary_type = IntegerType::generate(ctx);
@@ -1678,11 +1683,11 @@ void TypeULLINT::dbg_dump () {
     std::cout << dbg_dump_helper<unsigned long long int>(get_name(), get_int_type_id(), min.val.ullint_val, max.val.ullint_val, bit_size, is_signed) << std::endl;
 }
 
-std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx) {
+std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool is_unnamed) {
     Type::Mod modifier = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
-    uint64_t min_bit_size = tmp_int_type->get_bit_size() / ctx->get_gen_policy()->get_min_bit_field_size();
+    uint64_t min_bit_size = is_unnamed ? 0 : (tmp_int_type->get_bit_size() / ctx->get_gen_policy()->get_min_bit_field_size());
     uint64_t max_bit_size = tmp_int_type->get_bit_size() * ctx->get_gen_policy()->get_max_bit_field_size();
     uint64_t bit_size = rand_val_gen->get_rand_value<uint64_t>(min_bit_size, max_bit_size);
     return std::make_shared<BitField>(int_type_id, bit_size, modifier);
