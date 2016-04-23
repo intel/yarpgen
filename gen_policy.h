@@ -132,6 +132,8 @@ class GenPolicy {
         int get_min_array_size () { return min_array_size; }
         void set_max_array_size (int _max_array_size) { max_array_size = _max_array_size; }
         int get_max_array_size () { return max_array_size; }
+        int get_random_arr_kind ();
+
 
         void set_essence_differ (bool _essence_differ) { essence_differ = _essence_differ; }
         bool get_essence_differ () { return essence_differ; }

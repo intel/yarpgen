@@ -100,6 +100,7 @@ class Context {
         std::shared_ptr<SymbolTable> get_global_sym_table () { return global_sym_table; }
         std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
 
+        void echo_seed() {std::cout << "/*SEED " << rand_val_gen->get_seed() << "*/\n";}
         void setScopeId(unsigned long long id_) {this->scope_id = id_;}
         unsigned long long getScopeId() {return this->scope_id;}
 

@@ -19,7 +19,7 @@ limitations under the License.
 #include <cassert>
 
 #include "sym_table.h"
-#include <lbbuilder.h>
+#include <crosschain/lbbuilder.h>
 
 using namespace rl;
 
@@ -223,9 +223,6 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, std::
     this->extern_out_sym_table = std::make_shared<SymbolTable>();
     this->global_sym_table = std::make_shared<SymbolTable>();
 
-    if (parent_ctx.use_count() == 0)
-        std::cout << "/*SEED " << rand_val_gen->get_seed() << "*/\n";
-
     if (this->parent_ctx.use_count() != 0) {
         this->extern_inp_sym_table = this->parent_ctx->get_extern_inp_sym_table ();
         this->extern_out_sym_table = this->parent_ctx->get_extern_out_sym_table ();
@@ -255,9 +252,6 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Stmt> _glob_stmt, Node:
     extern_inp_sym_table = std::make_shared<SymbolTable>();
     extern_out_sym_table = std::make_shared<SymbolTable>();
     global_sym_table = std::make_shared<SymbolTable>();
-
-    if (parent_ctx.use_count() == 0)
-        std::cout << "/*SEED " << rand_val_gen->get_seed() << "*/\n";
 
     if (parent_ctx != NULL) {
         extern_inp_sym_table = parent_ctx->get_extern_inp_sym_table ();

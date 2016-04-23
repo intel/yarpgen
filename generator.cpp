@@ -17,7 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "generator.h"
-#include <lbbuilder.h>
+#include <crosschain/lbbuilder.h>
 
 using namespace rl;
 

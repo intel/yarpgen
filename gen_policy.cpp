@@ -16,7 +16,7 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 #include "gen_policy.h"
-
+#include <crosschain/types.h>
 ///////////////////////////////////////////////////////////////////////////////
 
 using namespace rl;
@@ -191,6 +191,15 @@ GenPolicy::GenPolicy () {
     allow_arrays = true;
     allow_scalar_variables = true;
 */
+}
+
+int GenPolicy::get_random_arr_kind () {
+    std::vector<Probability<crosschain::VecElem::Kind>> decisions;
+    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::C_ARR, 10));
+    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_VEC, 10));
+    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_VARR, 10));
+    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_ARR, 10));
+    return int(rand_val_gen->get_rand_id(decisions));
 }
 
 void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {
