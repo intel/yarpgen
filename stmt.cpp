@@ -182,11 +182,15 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr
 
 void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     int inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
+    std::shared_ptr<Context> const_ctx = std::make_shared<Context>(*(ctx));
+    GenPolicy const_gen_policy = *(const_ctx->get_gen_policy());
+    const_gen_policy.set_allow_const(true);
+    const_ctx->set_gen_policy(const_gen_policy);
     for (int i = 0; i < inp_var_num; ++i) {
-        ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(ctx));
+        ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
     //TODO: add to gen_policy
-     int mix_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_var_num(), ctx->get_gen_policy()->get_max_mix_var_num());
+    int mix_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_var_num(), ctx->get_gen_policy()->get_max_mix_var_num());
     for (int i = 0; i < mix_var_num; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
@@ -203,7 +207,7 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     int inp_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_struct_num(), ctx->get_gen_policy()->get_max_inp_struct_num());
     for (int i = 0; i < inp_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
-        ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
+        ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(const_ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
     }
     int mix_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_struct_num(), ctx->get_gen_policy()->get_max_mix_struct_num());
     for (int i = 0; i < mix_struct_num; ++i) {
@@ -227,7 +231,6 @@ std::string ScopeStmt::emit (std::string offset) {
 
 std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out) {
     //TODO: now it can be only assign. Do we want something more?
-    //TODO: implement taken mechanism
     std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
     std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
     return std::make_shared<ExprStmt>(assign_exp);

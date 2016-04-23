@@ -61,14 +61,14 @@ void Struct::dbg_dump () {
     }
 }
 
-std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx) {
+std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, bool change_mod) {
     //TODO: what about nested structs? StructType::generate need it. Should it take it itself from context?
     std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), StructType::generate(ctx));
     ret->generate_members_init(ctx);
     return ret;
 }
 
-std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type) {
+std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type, bool change_mod) {
     std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), struct_type);
     ret->generate_members_init(ctx);
     return ret;

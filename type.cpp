@@ -1688,7 +1688,11 @@ std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
     uint64_t min_bit_size = is_unnamed ? 0 : (tmp_int_type->get_bit_size() / ctx->get_gen_policy()->get_min_bit_field_size());
-    uint64_t max_bit_size = tmp_int_type->get_bit_size() * ctx->get_gen_policy()->get_max_bit_field_size();
+    //TODO: it cause different result for LLVM and GCC. See pr70733
+//    uint64_t max_bit_size = tmp_int_type->get_bit_size() * ctx->get_gen_policy()->get_max_bit_field_size();
+     std::shared_ptr<IntegerType> int_type = IntegerType::init(Type::IntegerTypeID::INT);
+    uint64_t max_bit_size = int_type->get_bit_size();
+
     uint64_t bit_size = rand_val_gen->get_rand_value<uint64_t>(min_bit_size, max_bit_size);
     return std::make_shared<BitField>(int_type_id, bit_size, modifier);
 }
