@@ -195,11 +195,21 @@ GenPolicy::GenPolicy () {
 
 int GenPolicy::get_random_arr_kind () {
     std::vector<Probability<crosschain::VecElem::Kind>> decisions;
-    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::C_ARR, 10));
-    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_VEC, 10));
-    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_VARR, 10));
-    decisions.push_back(rl::Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_ARR, 10));
+    decisions.push_back(Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::C_ARR, 30));
+    decisions.push_back(Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_VEC, 10));
+    decisions.push_back(Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_VARR, 10));
+    decisions.push_back(Probability<crosschain::VecElem::Kind>(crosschain::VecElem::Kind::STD_ARR, 10));
     return int(rand_val_gen->get_rand_id(decisions));
+}
+
+int GenPolicy::get_access_type_score (int knd_) {
+    switch (knd_) {
+    case crosschain::VecElem::AccessKind::REGULAR : return 10;
+    case crosschain::VecElem::AccessKind::AT : return 10;
+    case crosschain::VecElem::AccessKind::PTR : return 10;
+    case crosschain::VecElem::AccessKind::ITERPTR : return 10;
+    }
+    return 0;
 }
 
 void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {
