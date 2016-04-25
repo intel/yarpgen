@@ -17,6 +17,7 @@
 ###############################################################################
 
 CXXFLAGS=-std=c++11
+LDFLAGS=-std=c++11 -static-libgcc -static-libstdc++
 SOURCES=init.cpp driver.cpp func.cpp check.cpp hash.cpp
 EXECUTABLE=out
 COMPILER=
@@ -72,32 +73,32 @@ clean_clang_san:
 icc_no_opt: COMPILER=icc
 icc_no_opt: OPTFLAGS=-O0 -vec-threshold0 -restrict
 icc_no_opt: $(addprefix icc_no_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 icc_opt: COMPILER=icc
 icc_opt: OPTFLAGS=-O3 -vec-threshold0 -restrict
 icc_opt: $(addprefix icc_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 gcc_no_opt: COMPILER=g++
 gcc_no_opt: OPTFLAGS=-O0 -march=nehalem
 gcc_no_opt: $(addprefix gcc_no_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 gcc_wsm_opt: COMPILER=g++
 gcc_wsm_opt: OPTFLAGS=-Ofast -march=westmere
 gcc_wsm_opt: $(addprefix gcc_wsm_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 gcc_ivb_opt: COMPILER=g++
 gcc_ivb_opt: OPTFLAGS=-Ofast -march=ivybridge
 gcc_ivb_opt: $(addprefix gcc_ivb_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 gcc_bdw_opt: COMPILER=g++
 gcc_bdw_opt: OPTFLAGS=-Ofast -march=broadwell
 gcc_bdw_opt: $(addprefix gcc_bdw_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 clang_no_opt: COMPILER=clang++
 clang_no_opt: OPTFLAGS=-O0 -fslp-vectorize-aggressive
@@ -117,12 +118,12 @@ ubsan: $(addprefix ubsan_, $(SOURCES:.cpp=.o))
 icc_knl_no_opt: COMPILER=icc
 icc_knl_no_opt: OPTFLAGS=-O0 -vec-threshold0 -restrict -xMIC-AVX512
 icc_knl_no_opt: $(addprefix icc_knl_no_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 icc_knl_opt: COMPILER=icc
 icc_knl_opt: OPTFLAGS=-O3 -vec-threshold0 -restrict -xMIC-AVX512
 icc_knl_opt: $(addprefix icc_knl_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 clang_knl_no_opt: COMPILER=clang++
 clang_knl_no_opt: OPTFLAGS=-O0 -fslp-vectorize-aggressive -march=knl
@@ -137,17 +138,17 @@ clang_knl_opt: $(addprefix clang_knl_opt_, $(SOURCES:.cpp=.o))
 gcc_knl_no_opt: COMPILER=g++
 gcc_knl_no_opt: OPTFLAGS=-O0 -march=knl
 gcc_knl_no_opt: $(addprefix gcc_knl_no_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 gcc_knl_opt: COMPILER=g++
 gcc_knl_opt: OPTFLAGS=-Ofast -march=knl
 gcc_knl_opt: $(addprefix gcc_knl_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 gcc_skx_opt: COMPILER=g++
 gcc_skx_opt: OPTFLAGS=-Ofast -march=skylake-avx512
 gcc_skx_opt: $(addprefix gcc_skx_opt_, $(SOURCES:.cpp=.o))
-	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
+	$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 
 
