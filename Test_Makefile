@@ -111,7 +111,7 @@ clang_opt: $(addprefix clang_opt_, $(SOURCES:.cpp=.o))
 	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 
 ubsan: COMPILER=clang++
-ubsan: OPTFLAGS=-O0 -fsanitize=undefined
+ubsan: OPTFLAGS=-O2 -fsanitize=undefined
 ubsan: $(addprefix ubsan_, $(SOURCES:.cpp=.o))
 	$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^
 

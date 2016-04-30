@@ -52,7 +52,7 @@ void Master::generate () {
 //    std::cerr << "DEBUG OUTSIDE: st_ptr " << ((uint64_t) (&(*inp_st_ptr))) << std::endl;
     ctx.set_extern_inp_sym_table (extern_inp_sym_table);
     ctx.set_extern_out_sym_table (extern_out_sym_table);
-    ctx.set_verbose_level(1);
+    ctx.set_verbose_level(0);
     ctx.echo_seed();
 
 //    std::shared_ptr<Context> ctx_ptr = std::make_shared<Context> (ctx);
