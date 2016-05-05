@@ -16,7 +16,7 @@
 #
 ###############################################################################
 
-CXXFLAGS=-std=c++11
+CXXFLAGS=-std=c++11 -w
 LDFLAGS=-std=c++11 -static-libgcc -static-libstdc++
 SOURCES=init.cpp driver.cpp func.cpp check.cpp hash.cpp
 EXECUTABLE=out
