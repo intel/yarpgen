@@ -165,16 +165,16 @@ void self_test () {
     if_val->dbg_dump();
     else_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
-*/
+
     GenPolicy gen_policy;
     Context ctx_var (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, true);
     ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
     std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
-/*
+
     std::shared_ptr<IntegerType> rand_int_type = IntegerType::generate(ctx);
     rand_int_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
-*/
+
 
     std::shared_ptr<BitField> rand_bit_field = BitField::generate(ctx);
     rand_bit_field->dbg_dump();
@@ -187,7 +187,7 @@ void self_test () {
     std::shared_ptr<StructType> rand_par_struct_type = StructType::generate(ctx, substr_types);
     rand_par_struct_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
-/*
+
     AtomicType::ScalarTypedVal rand_val = AtomicType::ScalarTypedVal::generate(ctx, Type::IntegerTypeID::SHRT);
     std::cout << "rand_val: " << rand_val << std::endl;
     std::cout << "\n====================="<< std::endl;
@@ -297,4 +297,31 @@ void self_test () {
     std::cout << "expr_stmt: " << expr_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
 */
+
+    std::shared_ptr<StructType> struct_type0 = std::make_shared<StructType> ("struct A");
+    std::shared_ptr<IntegerType> int_type = IntegerType::init(Type::IntegerTypeID::INT);
+    struct_type0->add_member(int_type, "memb0");
+    struct_type0->set_is_static(true);
+    struct_type0->dbg_dump();
+
+    std::shared_ptr<StructType> struct_type1 = std::make_shared<StructType> ("struct B");
+    struct_type1->add_member(struct_type0, "memb1");
+    struct_type1->dbg_dump();
+
+    std::shared_ptr<Struct> struct0 = std::make_shared<Struct>("struct0", struct_type1);
+    std::shared_ptr<Struct> struct1 = std::make_shared<Struct>("struct1", struct_type1);
+    std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct0->get_member(0))->get_member(0))->get_cur_value() << std::endl;
+    std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct1->get_member(0))->get_member(0))->get_cur_value() << std::endl;
+
+    AtomicType::ScalarTypedVal char_const_val (Type::IntegerTypeID::INT);
+    char_const_val.val.int_val = 100;
+    std::shared_ptr<ConstExpr> char_const = std::make_shared<ConstExpr>(char_const_val);
+    std::shared_ptr<MemberExpr> mem_expr0 = std::make_shared<MemberExpr>(struct0, 0);
+    std::shared_ptr<MemberExpr> mem_expr1 = std::make_shared<MemberExpr>(mem_expr0, 0);
+    std::shared_ptr<AssignExpr> struct0_assign = std::make_shared<AssignExpr>(mem_expr1, char_const);
+
+    std::cout << struct0_assign->emit() << std::endl;
+
+    std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct0->get_member(0))->get_member(0))->get_cur_value() << std::endl;
+    std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct1->get_member(0))->get_member(0))->get_cur_value() << std::endl;
 }

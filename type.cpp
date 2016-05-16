@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "type.h"
 #include "sym_table.h"
+#include "variable.h"
 
 using namespace rl;
 
@@ -47,6 +48,19 @@ std::string Type::get_name () {
     return ret;
 }
 
+StructType::StructMember::StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name), data(NULL) {
+    if (!type->get_is_static())
+        return;
+    if (type->is_int_type())
+        data = std::make_shared<ScalarVariable>(name, std::static_pointer_cast<IntegerType>(type));
+    else if (type->is_struct_type())
+        data = std::make_shared<Struct>(name, std::static_pointer_cast<StructType>(type));
+    else {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported data type in StructType::StructMember::StructMember" << std::endl;
+        exit(-1);
+    }
+}
+
 void StructType::add_member (std::shared_ptr<Type> _type, std::string _name) {
     StructType::StructMember new_mem (_type, _name);
     if (_type->is_struct_type()) {
@@ -73,11 +87,20 @@ std::string StructType::StructMember::get_definition (std::string offset) {
 
 std::string StructType::get_definition (std::string offset) {
     std::string ret = "";
-    ret+= name + " {\n";
+    ret+= "struct " + name + " {\n";
     for (auto i : shadow_members) {
         ret += i->get_definition(offset + "    ") + ";\n";
     }
     ret += "};\n";
+    return ret;
+}
+
+std::string StructType::get_static_memb_def (std::string offset) {
+    std::string ret = "";
+    for (auto i : members) {
+        if (i->get_type()->get_is_static())
+        ret += offset + i->get_type()->get_simple_name() + " " + name + "::" + i->get_name() + ";\n";
+    }
     return ret;
 }
 
@@ -95,13 +118,12 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
     Type::Mod primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
 
     bool primary_static_spec = false;
-    //TODO: allow static members in struct
-/*
+    //TODO: add distr to gen_policy
     if (ctx->get_gen_policy()->get_allow_static_var())
         primary_static_spec = rand_val_gen->get_rand_value<int>(0, 1);
     else
         primary_static_spec = false;
-*/
+
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     //TODO: what about align?
     std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_mod, primary_static_spec, 0);
@@ -110,6 +132,14 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
     int struct_member_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_members_num(), ctx->get_gen_policy()->get_max_struct_members_num());
     int member_num = 0;
     for (int i = 0; i < struct_member_num; ++i) {
+        if (ctx->get_gen_policy()->get_allow_mix_mod_in_struct()) {
+            primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));;
+        }
+
+        if (ctx->get_gen_policy()->get_allow_mix_static_in_struct()) {
+            primary_static_spec = ctx->get_gen_policy()->get_allow_static_members() ? rand_val_gen->get_rand_value<int>(0, 1) : false;
+        }
+
         if (ctx->get_gen_policy()->get_allow_mix_types_in_struct()) {
             Data::VarClassID member_class = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_member_class_prob());
             bool add_substruct = false;
@@ -126,23 +156,21 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
                 }
             }
             if (add_substruct) {
-                primary_type = substruct_type;
+                primary_type = std::make_shared<StructType>(*substruct_type);
             }
             else {
-                if (rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob()) == GenPolicy::BitFieldID::UNNAMED) {
+                GenPolicy::BitFieldID bit_field_dis = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob());
+                if (bit_field_dis == GenPolicy::BitFieldID::UNNAMED) {
                     struct_type->add_shadow_member(BitField::generate(ctx, true));
                     continue;
                 }
-                else if (rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob()) == GenPolicy::BitFieldID::NAMED)
+                else if (bit_field_dis == GenPolicy::BitFieldID::NAMED) {
                     primary_type = BitField::generate(ctx);
+                    primary_static_spec = false; // BitField can't be static member of struct
+                }
                 else
                     primary_type = IntegerType::generate(ctx);
             }
-        }
-        if (ctx->get_gen_policy()->get_allow_mix_mod_in_struct()) {
-            primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));;
-//            static_spec_gen.generate ();
-//            primary_static_spec = static_spec_gen.get_specifier ();
         }
         primary_type->set_modifier(primary_mod);
         primary_type->set_is_static(primary_static_spec);

@@ -54,6 +54,7 @@ def fill_task(compiler):
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
+    
     if ("icc" in compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
         wrap_exe.append(out_name)
@@ -99,6 +100,14 @@ def fill_task(compiler):
         compiler_passes.append(["bash", "-c", make_run_str + "gcc_skx_opt"])
         wrap_exe.append(["bash", "-c", "sde -skx -- " + "." + os.sep + out_name])
         fail_tag.append("gcc" + os.sep + "skx-runfail")
+    '''
+    compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
+    wrap_exe.append(out_name)
+    fail_tag.append("clang" + os.sep + "run-uns")
+    compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
+    wrap_exe.append(out_name)
+    fail_tag.append("gen")
+    '''
     return compiler_passes, wrap_exe, fail_tag
 
 def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
@@ -200,7 +209,12 @@ def gen_and_test(num, lock, end_time):
 
     while inf or end_time > time.time():
         seed = ""
-        seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q"])
+        ret_code, output = run_cmd(num, ["bash", "-c", ".." + os.sep + "yarpgen -q"], args.verbose)
+        seed = output
+        if (ret_code != 0):
+            save_test(lock, gen_file, ["bash", "-c", ".." + os.sep + "yarpgen -q"], "gen", "generator", output, seed)
+            continue
+        seed = output
         print_debug ("Job #" + str(num) + " " + seed, args.verbose)
         pass_res = set()
         tag = ""

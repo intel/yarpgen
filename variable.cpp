@@ -28,13 +28,27 @@ void Struct::allocate_members() {
     for (int i = 0; i < struct_type->get_num_of_members(); ++i) {
         std::shared_ptr<StructType::StructMember> cur_member = struct_type->get_member(i);
         if (cur_member->get_type()->is_int_type()) {
-            std::shared_ptr<IntegerType> int_mem_type = std::static_pointer_cast<IntegerType> (struct_type->get_member(i)->get_type());
-            ScalarVariable new_mem (struct_type->get_member(i)->get_name(), int_mem_type);
-            members.push_back(std::make_shared<ScalarVariable>(new_mem));
+            if (struct_type->get_member(i)->get_type()->get_is_static()) {
+//                std::cout << struct_type->get_member(i)->get_definition() << std::endl;
+//                std::cout << struct_type->get_member(i)->get_data().get() << std::endl;
+                members.push_back(struct_type->get_member(i)->get_data());
+            }
+            else {
+                std::shared_ptr<IntegerType> int_mem_type = std::static_pointer_cast<IntegerType> (struct_type->get_member(i)->get_type());
+                ScalarVariable new_mem (struct_type->get_member(i)->get_name(), int_mem_type);
+                members.push_back(std::make_shared<ScalarVariable>(new_mem));
+            }
         }
         else if (cur_member->get_type()->is_struct_type()) {
-            Struct new_struct (cur_member->get_name(), std::static_pointer_cast<StructType>(cur_member->get_type()));
-            members.push_back(std::make_shared<Struct>(new_struct));
+            if (struct_type->get_member(i)->get_type()->get_is_static()) {
+//                std::cout << struct_type->get_member(i)->get_definition() << std::endl;
+//                std::cout << struct_type->get_member(i)->get_data().get() << std::endl;
+                members.push_back(struct_type->get_member(i)->get_data());
+            }
+            else {
+                Struct new_struct (cur_member->get_name(), std::static_pointer_cast<StructType>(cur_member->get_type()));
+                members.push_back(std::make_shared<Struct>(new_struct));
+            }
         }
         else {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::allocate_members" << std::endl;
@@ -61,14 +75,14 @@ void Struct::dbg_dump () {
     }
 }
 
-std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, bool change_mod) {
+std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx) {
     //TODO: what about nested structs? StructType::generate need it. Should it take it itself from context?
     std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), StructType::generate(ctx));
     ret->generate_members_init(ctx);
     return ret;
 }
 
-std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type, bool change_mod) {
+std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type) {
     std::shared_ptr<Struct> ret = std::make_shared<Struct>(rand_val_gen->get_struct_var_name(), struct_type);
     ret->generate_members_init(ctx);
     return ret;

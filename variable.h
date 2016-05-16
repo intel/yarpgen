@@ -55,8 +55,8 @@ class Struct : public Data {
         std::shared_ptr<Data> get_member (unsigned int num);
         void dbg_dump ();
         //TODO: stub for modifiers, cause now they are inside type.
-        static std::shared_ptr<Struct> generate (std::shared_ptr<Context> ctx, bool change_mod = false);
-        static std::shared_ptr<Struct> generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type, bool change_mod = false);
+        static std::shared_ptr<Struct> generate (std::shared_ptr<Context> ctx);
+        static std::shared_ptr<Struct> generate (std::shared_ptr<Context> ctx, std::shared_ptr<StructType> struct_type);
 
     private:
         void allocate_members();

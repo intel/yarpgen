@@ -55,6 +55,8 @@ std::string Master::emit_init () {
     ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
     ret += extern_mix_sym_table->emit_struct_def() + "\n\n";
     ret += extern_out_sym_table->emit_struct_def() + "\n\n";
+    //TODO: what if we extand struct types in mix_sym_table and out_sym_table
+    ret += extern_inp_sym_table->emit_struct_type_static_memb_def() + "\n\n";
 
     ret += "void init () {\n";
     ret += extern_inp_sym_table->emit_struct_init ("    ");
@@ -79,6 +81,7 @@ std::string Master::emit_decl () {
     ret += extern_inp_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_mix_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_out_sym_table->emit_variable_extern_decl() + "\n\n";
+    //TODO: what if we extand struct types in mix_sym_tabl
     ret += extern_inp_sym_table->emit_struct_type_def() + "\n\n";
     ret += extern_inp_sym_table->emit_struct_extern_decl() + "\n\n";
     ret += extern_mix_sym_table->emit_struct_extern_decl() + "\n\n";

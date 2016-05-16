@@ -158,7 +158,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_const_inp_from_ctx (std::shar
         ret.push_back(std::make_shared<VarUseExpr> (i));
     }
 
-    for (auto i : ctx->get_extern_inp_sym_table()->get_avail_members()) {
+    for (auto i : ctx->get_extern_inp_sym_table()->get_avail_const_members()) {
         ret.push_back(i);
     }
     return ret;

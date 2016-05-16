@@ -82,6 +82,7 @@ GenPolicy::GenPolicy () {
     allowed_modifiers.push_back (Type::Mod::NTHG);
 
     allow_static_var = false;
+    allow_static_members = true;
 
     allow_struct = true;
     min_struct_types_num = MIN_STRUCT_TYPES_NUM;
@@ -95,6 +96,7 @@ GenPolicy::GenPolicy () {
     min_struct_members_num = MIN_STRUCT_MEMBERS_NUM;
     max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
     allow_mix_mod_in_struct = false;
+    allow_mix_static_in_struct = true;
     allow_mix_types_in_struct = true;
     member_use_prob.push_back(Probability<bool>(true, 80));
     member_use_prob.push_back(Probability<bool>(false, 20));

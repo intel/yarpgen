@@ -28,7 +28,7 @@ void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {
     form_struct_member_expr(NULL, _struct);
 }
 
-void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var) {
+void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, bool ignore_const) {
     for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
         GenPolicy gen_policy;
         if (rand_val_gen->get_rand_id(gen_policy.get_member_use_prob())) {
@@ -38,10 +38,17 @@ void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_me
             else
                 member_expr = std::make_shared<MemberExpr>(struct_var, j);
 
-            if (struct_var->get_member(j)->get_type()->is_struct_type())
-                form_struct_member_expr(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)));
-            else
+            bool is_static = struct_var->get_member(j)->get_type()->get_is_static();
+
+            if (struct_var->get_member(j)->get_type()->is_struct_type()) {
+                form_struct_member_expr(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)), is_static || ignore_const);
+            }
+            else {
                 avail_members.push_back(member_expr);
+                if (!is_static && !ignore_const) {
+                    avail_const_members.push_back(member_expr);
+                }
+            }
         }
     }
 }
@@ -62,6 +69,14 @@ std::string SymbolTable::emit_variable_def (std::string offset) {
 
         std::shared_ptr<DeclStmt> decl = std::make_shared<DeclStmt>(i, const_init);
         ret += offset + decl->emit() + "\n";
+    }
+    return ret;
+}
+
+std::string SymbolTable::emit_struct_type_static_memb_def (std::string offset) {
+    std::string ret = "";
+    for (auto i : struct_type) {
+        ret += i->get_static_memb_def() + "\n";
     }
     return ret;
 }

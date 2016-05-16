@@ -144,6 +144,10 @@ class GenPolicy {
         void set_allow_static_var (bool _allow_static_var) { allow_static_var = _allow_static_var; }
         bool get_allow_static_var () { return allow_static_var; }
 
+        void set_allow_static_members (bool _allow_static_members) { allow_static_members = _allow_static_members; }
+        bool get_allow_static_members () { return allow_static_members; }
+
+
         void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         int get_max_arith_depth () { return max_arith_depth; }
 
@@ -220,6 +224,8 @@ class GenPolicy {
         uint64_t get_max_struct_members_num () { return max_struct_members_num; }
         void set_allow_mix_mod_in_struct (bool mix) { allow_mix_mod_in_struct = mix; }
         bool get_allow_mix_mod_in_struct () { return allow_mix_mod_in_struct; }
+        void set_allow_mix_static_in_struct (bool mix) { allow_mix_static_in_struct = mix; }
+        bool get_allow_mix_static_in_struct () { return allow_mix_static_in_struct; }
         void set_allow_mix_types_in_struct (bool mix) { allow_mix_types_in_struct = mix; }
         bool get_allow_mix_types_in_struct () { return allow_mix_types_in_struct; }
         std::vector<Probability<bool>> get_member_use_prob () { return member_use_prob; }
@@ -253,6 +259,7 @@ class GenPolicy {
         uint64_t min_struct_members_num;
         uint64_t max_struct_members_num;
         bool allow_mix_mod_in_struct;
+        bool allow_mix_static_in_struct;
         bool allow_mix_types_in_struct;
         std::vector<Probability<bool>> member_use_prob;
         std::vector<Probability<Data::VarClassID>> member_class_prob;
@@ -267,6 +274,7 @@ class GenPolicy {
         std::vector<Type::Mod> allowed_modifiers;
 
         bool allow_static_var;
+        bool allow_static_members;
 
         int max_arith_depth;
         int min_arith_stmt_num;

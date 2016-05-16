@@ -26,6 +26,7 @@ limitations under the License.
 namespace rl {
 
 class Context;
+class Data;
 
 class Type {
     public:
@@ -102,19 +103,22 @@ class StructType : public Type {
         //TODO: add generator?
         struct StructMember {
             public:
-                StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name) {}
+                StructMember (std::shared_ptr<Type> _type, std::string _name);
                 std::string get_name () { return name; }
                 std::shared_ptr<Type> get_type() { return type; }
+                std::shared_ptr<Data> get_data () { return data; }
                 std::string get_definition (std::string offset = "");
 
             private:
                 std::shared_ptr<Type> type;
                 std::string name;
+
+                std::shared_ptr<Data> data; //TODO: it is a stub for static members
         };
 
-        StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = "struct " + _name; }
+        StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = _name; }
         StructType (std::string _name, Mod _modifier, bool _is_static, uint64_t _align) :
-                    Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = "struct " + _name; }
+                    Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = _name; }
         //TODO: it should handle nest_depth change
         void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); shadow_members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
@@ -124,6 +128,7 @@ class StructType : public Type {
         uint64_t get_nest_depth () { return nest_depth; }
         std::shared_ptr<StructMember> get_member (unsigned int num);
         std::string get_definition (std::string offset = "");
+        std::string get_static_memb_def (std::string offset = "");
         bool is_struct_type() { return true; }
         void dbg_dump();
         static std::shared_ptr<StructType> generate (std::shared_ptr<Context> ctx);
