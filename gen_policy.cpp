@@ -187,6 +187,7 @@ GenPolicy::GenPolicy () {
     else_prob.push_back(no_else);
 
     max_if_depth = MAX_IF_DEPTH;
+    loop_unknown_e_prob = 70;
 /*
     allow_arrays = true;
     allow_scalar_variables = true;
@@ -329,4 +330,14 @@ void GenPolicy::set_modifier (bool value, Type::Mod modifier) {
 
 bool GenPolicy::get_modifier (Type::Mod modifier) {
     return (std::find(allowed_modifiers.begin(), allowed_modifiers.end(), modifier) != allowed_modifiers.end());
+}
+
+bool GenPolicy::do_loop_unknown_end() {
+    if (loop_unknown_e_prob <= 0) return false;
+    if (loop_unknown_e_prob >= 100) return true;
+    std::vector<Probability<bool>> decisions;
+    decisions.push_back(Probability<bool>(true, loop_unknown_e_prob));
+    decisions.push_back(Probability<bool>(false, 100 - loop_unknown_e_prob));
+    return rand_val_gen->get_rand_id(decisions);
+
 }

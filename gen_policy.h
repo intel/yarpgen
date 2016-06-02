@@ -220,6 +220,9 @@ class GenPolicy {
         uint64_t get_max_struct_depth () { return max_struct_depth; }
         std::vector<Probability<Data::VarClassID>>& get_member_class_prob () { return member_class_prob; }
 
+        // Loop related stuff
+        bool do_loop_unknown_end();
+        void set_lue_prob(int prob) {this->loop_unknown_e_prob = prob; }
 /*
         void set_allow_arrays (bool _allow_arrays) { allow_arrays = _allow_arrays; }
         bool get_allow_arrays () { return allow_arrays; }
@@ -295,6 +298,7 @@ class GenPolicy {
 
         std::vector<Probability<bool>> else_prob;
         int max_if_depth;
+        int loop_unknown_e_prob;
 /*
         // Indicates whether the arrays  are allowed
         bool allow_arrays;

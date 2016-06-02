@@ -100,8 +100,18 @@ for f in candidates:
     processed = False
     for g in groups.keys():
         g_sample = groups[g]
-        distance =  levenshteinDistance(sample, g_sample)
+        print "Processing: " + str(g) + "; sizes are: " + str(len(sample)) + ", " + str(len(g_sample))
+        
+        distance = abs(len(sample) - len(g_sample))
         error = float(2*distance)/float(len(sample)+len(g_sample))
+
+        if (error < rate):
+            if ((len(sample) > 3000) or (len(g_sample) > 3000)):
+                continue
+
+            distance = levenshteinDistance(sample, g_sample)
+            error = float(2*distance)/float(len(sample)+len(g_sample))
+        
         print ("Distance between " + f + " and " + g + " is " + str(distance) + 
                " error rate is: " + str(error))
 
