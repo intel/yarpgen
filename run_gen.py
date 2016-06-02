@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!python3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -36,72 +36,86 @@ def print_debug (line, verbose):
         sys.stdout.flush()
 
 def run_cmd (job_num, args, verbose):
+    elapsed = -1
+    start = time.time()
+    
     try:
         output = subprocess.check_output(args, stderr=subprocess.STDOUT)
+        elapsed = (time.time() - start)
         ret_code = 0
     except subprocess.CalledProcessError as e:
+        elapsed = (time.time() - start)
         print_debug ("Exception in run cmd in process " + str(job_num) + " with args:" + str(args), verbose)
         output = e.output
         ret_code = e.returncode
-    return ret_code, output
+    return ret_code, output, elapsed
 
-out_name = "out"
 
-def fill_task(compiler):
+def get_sde_target(target):
+    if ("bdw" in target):
+        return "bdw"
+    if ("knl" in target):
+        return "knl"
+    if ("skx" in target):
+        return "skx"
+    return "unsupported!"
+
+
+def add_task(exe_name_base, make_run_str, make_target, compiler_passes, wrap_exe, native=True):
+    out_name = exe_name_base + "_" + make_target
+    compiler_passes.append(["bash", "-c", make_run_str + out_name + " " + make_target])
+    if (native):
+        wrap_exe.append(out_name)
+    else:
+        wrap_exe.append(["bash", "-c", "sde -" + get_sde_target(make_target) 
+                                     + " -- " + "." + os.sep + out_name])
+
+
+def fill_task(compiler, task):
+    out_name_base = "out_" + str(task)
+
     shutil.copy(yarpgen_home + os.sep + "Test_Makefile", ".")
     make_run_str = "make -f " + os.getcwd() + os.sep + "Test_Makefile "
+    make_run_str += "EXECUTABLE="
 
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
     if ("icc" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_no_opt"])
-        wrap_exe.append(out_name)
+        #add_task(out_name_base, make_run_str, "icc_no_opt", compiler_passes, wrap_exe)
+        #fail_tag.append("icc" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "icc_opt", compiler_passes, wrap_exe)
         fail_tag.append("icc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("icc" + os.sep + "run-uns")
-    if ("gcc" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("gcc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_wsm_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("gcc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_ivb_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("gcc" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_bdw_opt"])
-        wrap_exe.append(["bash", "-c", "sde -bdw -- " + "." + os.sep + out_name])
-        fail_tag.append("gcc" + os.sep + "run-uns")
-    if ("clang" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_no_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("clang" + os.sep + "run-uns")
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_opt"])
-        wrap_exe.append(out_name)
-        fail_tag.append("clang" + os.sep + "run-uns")
-        #compiler_passes.append(["bash", "-c", make_run_str + "ubsan"])
-        #wrap_exe.append(out_name)
-        #fail_tag.append("gen")
-    if ("icc" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "icc_knl_opt"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        add_task(out_name_base, make_run_str, "icc_knl_opt", compiler_passes, wrap_exe, False)
         fail_tag.append("icc" + os.sep + "knl-runfail")
-    if ("clang" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "clang_knl_opt"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
-        fail_tag.append("clang" + os.sep + "knl-runfail")
+
     if ("gcc" in compiler):
-        compiler_passes.append(["bash", "-c", make_run_str + "gcc_knl_opt"])
-        wrap_exe.append(["bash", "-c", "sde -knl -- " + "." + os.sep + out_name])
+        add_task(out_name_base, make_run_str, "gcc_no_opt", compiler_passes, wrap_exe)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "gcc_wsm_opt", compiler_passes, wrap_exe)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "gcc_ivb_opt", compiler_passes, wrap_exe)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "gcc_bdw_opt", compiler_passes, wrap_exe, False)
+        fail_tag.append("gcc" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "gcc_knl_opt", compiler_passes, wrap_exe, False)
         fail_tag.append("gcc" + os.sep + "knl-runfail")
-        #compiler_passes.append(["bash", "-c", make_run_str + "gcc_skx_opt"])
-        #wrap_exe.append(["bash", "-c", "sde -skx -- " + "." + os.sep + out_name])
+        #add_task(out_name_base, make_run_str, "gcc_skx_opt", compiler_passes, wrap_exe, False)
         #fail_tag.append("gcc" + os.sep + "skx-runfail")
+
+    if ("clang" in compiler):
+        add_task(out_name_base, make_run_str, "clang_no_opt", compiler_passes, wrap_exe)
+        fail_tag.append("clang" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "clang_opt", compiler_passes, wrap_exe)
+        fail_tag.append("clang" + os.sep + "run-uns")
+        add_task(out_name_base, make_run_str, "clang_knl_opt", compiler_passes, wrap_exe, False)
+        fail_tag.append("clang" + os.sep + "knl-runfail")
+        #add_task(out_name_base, make_run_str, "ubsan", compiler_passes, wrap_exe)
+        #fail_tag.append("gen")
+
     return compiler_passes, wrap_exe, fail_tag
 
-def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
+def save_test (lock, gen_file, cmd, tag, fail_type, output, seed, compile_cmd = ""):
     lock.acquire()
     str_seed = str(seed).split()[1][:-2]
     dest = ".." + os.sep + "result"
@@ -164,6 +178,7 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
     if (os.path.exists(dest)):
         log = open(dest + os.sep + "log.txt", "a")
         log.write("Type: " + str(fail_type) + "\n")
+        log.write("Build cmd: " + str(compile_cmd) + "\n")
         log.write("Command: " + str(cmd) + "\n")
         log.write("Error: " + str(output) + "\n")
         lock.release()
@@ -176,6 +191,7 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed):
     log.write("Seed: " + str(str_seed) + "\n")
     log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
     log.write("Type: " + str(fail_type) + "\n")
+    log.write("Build cmd: " + str(compile_cmd) + "\n")
     log.write("Command: " + str(cmd) + "\n")
     log.write("Error: \n" + str(output) + "\n")
     log.close()
@@ -187,36 +203,31 @@ test_files = test_files_env + "func.cpp "
 gen_file = test_files + " init.h"
 
 def gen_and_test(num, lock, end_time):
-    print "Job #" + str(num)
+    print ("Job #" + str(num))
     os.chdir(str(num))
     inf = end_time == -1
-
-    out_name = "out"
 
     compiler_passes = []
     wrap_exe = []
     fail_tag = []
-    compiler_passes, wrap_exe, fail_tag = fill_task(args.compiler)
+    compiler_passes, wrap_exe, fail_tag = fill_task(args.compiler, num)
 
     while inf or end_time > time.time():
-        seed = ""
-        seed = subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q"])
+        seed = str(subprocess.check_output(["bash", "-c", ".." + os.sep + "yarpgen -q"]).decode('UTF-8'))
         print_debug ("Job #" + str(num) + " " + seed, args.verbose)
         pass_res = set()
         tag = ""
         for i in range(len(compiler_passes)):
-#            print_debug("Job #" + str(num), args.verbose)
-#            print_debug(str(i), args.verbose)
-#            print_debug (str(compiler_passes[i]), args.verbose)
-#            print_debug (str(wrap_exe[i]), args.verbose)
-            ret_code, output = run_cmd(num, compiler_passes[i], args.verbose)
+            ret_code, output, t = run_cmd(num, compiler_passes[i], args.verbose)
+            print_debug ("Job #" + str(num) + " (" + seed + ") COMPILE - " + str(compiler_passes[i][2]) + ": " + str(t), args.verbose)
             if (ret_code != 0):
-                save_test(lock, gen_file, compiler_passes[i], "", "compfail", output, seed)
+                save_test(lock, gen_file, compiler_passes[i], "", "compfail", output, seed, compiler_passes[i][2])
                 continue
-            #print compiler_passes[i]
-            ret_code, output = run_cmd(num, wrap_exe [i], args.verbose)
+            
+            ret_code, output, t = run_cmd(num, wrap_exe[i], args.verbose)
+            print_debug ("Job #" + str(num) + " (" + seed + ") RUN - " + str(wrap_exe[i]) + ": " + str(t), args.verbose)
             if (ret_code != 0):
-                save_test(lock, gen_file, wrap_exe [i], "", "runfail", output, seed)
+                save_test(lock, gen_file, wrap_exe[i], "", "runfail", output, seed, compiler_passes[i][2])
                 continue
             else:
                 pass_res.add(output)
@@ -224,15 +235,15 @@ def gen_and_test(num, lock, end_time):
                 if tag == "":
                     tag = fail_tag[i]
                 print_debug (str(seed) + " " + str(compiler_passes[i]) + " " + str(wrap_exe[i]), args.verbose)
-                save_test (lock, gen_file, compiler_passes [i], tag, "runfail", "output differs", seed)
+                save_test (lock, gen_file, compiler_passes [i], tag, "runfail", "output differs", seed, compiler_passes[i][2])
 
 def print_compiler_version():
     compilers = args.compiler.split()
     for i in compilers:
-        ret_code, output = run_cmd(-1, ("which " + i).split (), args.verbose)
-        print_debug(i + " folder: " + output, args.verbose)
-        ret_code, output = run_cmd(-1, (i + " -v").split (), args.verbose)
-        print_debug(i + " version: " + output, args.verbose)
+        ret_code, output, t = run_cmd(-1, ("which " + i).split (), args.verbose)
+        print_debug(i + " folder: " + str(output), args.verbose)
+        ret_code, output, t = run_cmd(-1, (i + " -v").split (), args.verbose)
+        print_debug(i + " version: " + str(output), args.verbose)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test system of random loop generator.')

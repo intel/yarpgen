@@ -18,4 +18,4 @@
 ###############################################################################
 
 
-nohup nice -n 19 python2.7 ./run_gen.py -v -c "clang gcc icc" -t 96 &> log.txt
+nohup nice -n 19 python3 ./run_gen.py -v -c "clang gcc icc" -t 96 &> log.txt
