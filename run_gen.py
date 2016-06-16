@@ -180,7 +180,7 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed, compile_cmd = 
         log.write("Type: " + str(fail_type) + "\n")
         log.write("Build cmd: " + str(compile_cmd) + "\n")
         log.write("Command: " + str(cmd) + "\n")
-        log.write("Error: " + str(output) + "\n")
+        log.write("Error: " + str(output.decode('UTF-8')) + "\n")
         lock.release()
         return
     else:
@@ -188,12 +188,12 @@ def save_test (lock, gen_file, cmd, tag, fail_type, output, seed, compile_cmd = 
     print_debug("Test files were copied to " + dest, args.verbose)
     lock.release()
     log = open(dest + os.sep + "log.txt", "w")
-    log.write("Seed: " + str(str_seed) + "\n")
+    log.write("Seed: " + str_seed + "\n")
     log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
     log.write("Type: " + str(fail_type) + "\n")
     log.write("Build cmd: " + str(compile_cmd) + "\n")
     log.write("Command: " + str(cmd) + "\n")
-    log.write("Error: \n" + str(output) + "\n")
+    log.write("Error: \n" + str(output.decode('UTF-8')) + "\n")
     log.close()
     for i in gen_file.split():
         shutil.copy(i, dest)

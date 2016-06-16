@@ -97,6 +97,10 @@ print "Found groups:", groups.keys()
 
 for f in candidates:
     sample = get_sample(f)
+    if (len(sample) == 0):
+        print "Zero len log found! Skipping!"
+        continue
+
     processed = False
     for g in groups.keys():
         g_sample = groups[g]
