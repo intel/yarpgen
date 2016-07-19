@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/bin/python2.7
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
