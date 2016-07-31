@@ -25,7 +25,7 @@ clean:
 	/bin/rm $(EXECUTABLE)
 
 icc_no_opt:
-	icc $(CXXFLAGS) -O0 -vec-threshold0 -restrict -o $(EXECUTABLE) $(SOURCES)
+	icc $(CXXFLAGS) -O0 -o $(EXECUTABLE) $(SOURCES)
 
 icc_opt:
 	icc $(CXXFLAGS) -O3 -vec-threshold0 -restrict -o $(EXECUTABLE) $(SOURCES)
@@ -43,7 +43,7 @@ gcc_bdw_opt:
 	g++ $(CXXFLAGS) -Ofast -march=broadwell -o $(EXECUTABLE) $(SOURCES)
 
 clang_no_opt:
-	clang++ $(CXXFLAGS) -O0 -fslp-vectorize-aggressive -o $(EXECUTABLE) $(SOURCES)
+	clang++ $(CXXFLAGS) -O0 -o $(EXECUTABLE) $(SOURCES)
 
 clang_opt:
 	clang++ $(CXXFLAGS) -O3 -fslp-vectorize-aggressive -o $(EXECUTABLE) $(SOURCES)
@@ -52,13 +52,13 @@ ubsan:
 	clang++ $(CXXFLAGS) -O0 -fsanitize=undefined -o $(EXECUTABLE) $(SOURCES)
 
 icc_knl_no_opt:
-	icc $(CXXFLAGS) -O0 -vec-threshold0 -restrict -xMIC-AVX512 -o $(EXECUTABLE) $(SOURCES)
+	icc $(CXXFLAGS) -O0 -xMIC-AVX512 -o $(EXECUTABLE) $(SOURCES)
 
 icc_knl_opt:
 	icc $(CXXFLAGS) -O3 -vec-threshold0 -restrict -xMIC-AVX512 -o $(EXECUTABLE) $(SOURCES)
 
 clang_knl_no_opt:
-	clang++ $(CXXFLAGS) -O0 -fslp-vectorize-aggressive -march=knl -o $(EXECUTABLE) $(SOURCES)
+	clang++ $(CXXFLAGS) -O0 -march=knl -o $(EXECUTABLE) $(SOURCES)
 
 clang_knl_opt:
 	clang++ $(CXXFLAGS) -O3 -fslp-vectorize-aggressive -march=knl -o $(EXECUTABLE) $(SOURCES)
