@@ -26,7 +26,7 @@ import subprocess
 import shutil
 import time
 
-yarpgen_home = os.environ["YARPGEN_HOME"]
+yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
 
 def print_debug (line, verbose):
     if verbose:
@@ -241,6 +241,7 @@ def gen_and_test(num, lock, end_time):
 def print_compiler_version():
     compilers = args.compiler.split()
     for i in compilers:
+        # TODO: need not use run_cmd and need to recover if compiler doesn't exist
         ret_code, output = run_cmd(-1, ("which " + i).split (), args.verbose)
         print_debug(i + " folder: " + output, args.verbose)
         ret_code, output = run_cmd(-1, (i + " -v").split (), args.verbose)
@@ -262,6 +263,8 @@ if __name__ == '__main__':
 
     print_compiler_version()
 
+    if not ("YARPGEN_HOME" in os.environ):
+        print("Warning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using "+yarpgen_home+" for now")
 #    if os.path.exists("test"):
 #       shutil.rmtree("test")
     if not os.path.exists(args.folder):
