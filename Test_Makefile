@@ -46,7 +46,7 @@ clang_no_opt:
 	clang++ $(CXXFLAGS) -O0 -o $(EXECUTABLE) $(SOURCES)
 
 clang_opt:
-	clang++ $(CXXFLAGS) -O3 -fslp-vectorize-aggressive -o $(EXECUTABLE) $(SOURCES)
+	clang++ $(CXXFLAGS) -O3 -o $(EXECUTABLE) $(SOURCES)
 
 ubsan:
 	clang++ $(CXXFLAGS) -O0 -fsanitize=undefined -o $(EXECUTABLE) $(SOURCES)
