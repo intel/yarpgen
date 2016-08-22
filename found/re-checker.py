@@ -17,6 +17,7 @@
 #
 ###############################################################################
 
+
 import subprocess
 import argparse
 import multiprocessing
@@ -24,7 +25,7 @@ import os
 import shutil
 import sys
 
-yarpgen_home = os.environ["YARPGEN_HOME"]
+yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
 sys.path.insert(0, yarpgen_home)
 import run_gen
 import brutus_blame
@@ -78,6 +79,8 @@ if __name__ == '__main__':
                         help='Test compilers')
     args = parser.parse_args()
 
+    if not ("YARPGEN_HOME" in os.environ):
+        print("Warning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using "+yarpgen_home+" for now")
     print("Re-check folder is " + args.folder)
     files = os.listdir(args.folder)
     file_queue = multiprocessing.Queue()
