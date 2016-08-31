@@ -424,6 +424,9 @@ uint64_t AtomicType::ScalarTypedVal::get_abs_val () {
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::get_abs_val" << std::endl;
             exit(-1);
     }
+    // TODO: add unreachable macro to the project.
+    std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << "reachin unreachable code in AtomicType::ScalarTypedVal::get_abs_val" << std::endl;
+    exit(-1);
 }
 
 void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
