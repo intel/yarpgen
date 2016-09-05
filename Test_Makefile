@@ -61,7 +61,7 @@ clang_knl_no_opt:
 	clang++ $(CXXFLAGS) -O0 -march=knl -o $(EXECUTABLE) $(SOURCES)
 
 clang_knl_opt:
-	clang++ $(CXXFLAGS) -O3 -fslp-vectorize-aggressive -march=knl -o $(EXECUTABLE) $(SOURCES)
+	clang++ $(CXXFLAGS) -O3 -march=knl -o $(EXECUTABLE) $(SOURCES)
 
 gcc_knl_no_opt:
 	g++ $(CXXFLAGS) -O0 -march=knl -o $(EXECUTABLE) $(SOURCES)
