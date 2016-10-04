@@ -22,17 +22,20 @@ OPT=-O3
 LDFLAGS=-L./ -std=c++11
 LIBSOURCES=type.cpp variable.cpp expr.cpp stmt.cpp gen_policy.cpp sym_table.cpp master.cpp
 SOURCES=main.cpp $(LIBSOURCES) self-test.cpp
+LIBSOURCES_SRC=$(addprefix src/, $(LIBSOURCES))
+SOURCES_SRC=$(addprefix src/, $(SOURCES))
 LIBOBJS=$(addprefix objs/, $(LIBSOURCES:.cpp=.o))
 OBJS=$(addprefix objs/, $(SOURCES:.cpp=.o))
 HEADERS=type.h variable.h ir_node.h expr.h stmt.h gen_policy.h sym_table.h master.h
+HEADERS_SRC=$(addprefix src/, $(HEADERS))
 EXECUTABLE=yarpgen
 
 default: $(EXECUTABLE)
 
-$(EXECUTABLE): dir $(SOURCES) $(HEADERS) $(OBJS) libyarpgen
+$(EXECUTABLE): dir $(SOURCES_SRC) $(HEADERS_SRC) $(OBJS) libyarpgen
 	$(CXX) $(OPT) $(LDFLAGS) -o $@ $(OBJS)
 
-libyarpgen: dir $(LIBSOURCES) $(HEADERS) $(LIBOBJS)
+libyarpgen: dir $(LIBSOURCES_SRC) $(HEADERS_SRC) $(LIBOBJS)
 	ar rcs $@.a $(LIBOBJS)
 
 dir:
@@ -54,5 +57,5 @@ gcov: $(EXECUTABLE)
 gcov: CXX=g++
 gcov: OPT+=-fprofile-arcs -ftest-coverage -g
 
-objs/%.o: %.cpp $(HEADERS)
+objs/%.o: src/%.cpp $(HEADERS_SRC)
 	$(CXX) $(OPT) $(CXXFLAGS) -o $@ -c $<
