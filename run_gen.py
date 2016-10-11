@@ -257,7 +257,7 @@ if __name__ == '__main__':
                         help='Maximum number of jobs to run in parallel')
     parser.add_argument('-f', '--folder', dest='folder', default="test", type=str,
                         help='Test folder')
-    parser.add_argument('-c', '--compiler', dest='compiler', default="icc clang", type=str,
+    parser.add_argument('-c', '--compiler', dest='compiler', default="gcc clang", type=str,
                         help='Test compilers')
     args = parser.parse_args()
 
