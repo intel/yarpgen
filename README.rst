@@ -9,6 +9,7 @@ A generated random program is guaranteed to be statically and dynamically correc
 Each generated program consists of several files and after being compiled and run produces a decimal number, which is hash of all program global variable values. This number is supposed to be the same for all compilers and optimization levels. If the output differs for different compilers and/or optimization levels, you should have encountered a compiler bug.
 
 Several techniques are used to increase the probability of triggering compiler bugs:
+
 * all variable types, alignments and values / value ranges are known at the time of generation, which allows the accurate detection of undefined behavior and provides maximum variability of produced code.
 * the generation is random, but it is guided by a number of policies, which increase the likelihood of applying optimizations to the generated code.
 * in some cases a high level model of computations with known properties is generated first and then augmented with other random computations. This ensures that the code is "meaningful" and is more similar to code written by a human being.
@@ -34,6 +35,6 @@ Also you may want to test compilers for future hardware, which is not available 
 People
 ------
 
-Dmitry Babokin
-Anton Mitrokhin
-Vsevolod Livinskiy
+* Dmitry Babokin
+* Anton Mitrokhin
+* Vsevolod Livinskiy
