@@ -6,3 +6,5 @@ objs
 res
 *.swp
 found/old-*
+check_isa
+Test_Makefile
