@@ -740,9 +740,6 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal rhs) {
     AtomicType::ScalarTypedVal ret = *this;
 
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
-    int64_t s_tmp = 0;
-
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -757,11 +754,11 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
                 ret.set_ub(ZeroDiv);
                 return ret;
             }
-            s_tmp = (long long int) val.int_val / (long long int) rhs.val.int_val;
-            if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+            if ((val.int_val == INT_MIN && rhs.val.int_val == -1) ||
+                (rhs.val.int_val == INT_MIN && val.int_val == -1))
                 ret.set_ub(SignOvf);
             else
-                ret.val.int_val = (int) s_tmp;
+                ret.val.int_val = val.int_val / rhs.val.int_val;
             break;
         case IntegerType::IntegerTypeID::UINT:
             if (rhs.val.uint_val == 0) {
@@ -775,20 +772,11 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
                 ret.set_ub(ZeroDiv);
                 return ret;
             }
-            if (!long_eq_long_long) {
-                s_tmp = (long long int) val.lint_val / (long long int) rhs.val.lint_val;
-                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
-                    ret.set_ub(SignOvf);
-                else
-                    ret.val.lint_val = (long int) s_tmp;
-            }
-            else {
-                if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
-                    (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
-                    ret.set_ub(SignOvf);
-                else
-                    ret.val.lint_val = val.lint_val / rhs.val.lint_val;
-            }
+            if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
+                (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
+                ret.set_ub(SignOvf);
+            else
+                ret.val.lint_val = val.lint_val / rhs.val.lint_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
             if (rhs.val.ulint_val == 0) {
@@ -822,9 +810,6 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal rhs) {
     AtomicType::ScalarTypedVal ret = *this;
 
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
-    int64_t s_tmp = 0;
-
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -839,11 +824,11 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
                 ret.set_ub(ZeroDiv);
                 return ret;
             }
-            s_tmp = (long long int) val.int_val % (long long int) rhs.val.int_val;
-            if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+            if ((val.int_val == INT_MIN && rhs.val.int_val == -1) ||
+                (rhs.val.int_val == INT_MIN && val.int_val == -1))
                 ret.set_ub(SignOvf);
             else
-                ret.val.int_val = (int) s_tmp;
+                ret.val.int_val = val.int_val % rhs.val.int_val;
             break;
         case IntegerType::IntegerTypeID::UINT:
             if (rhs.val.uint_val == 0) {
@@ -857,20 +842,11 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
                 ret.set_ub(ZeroDiv);
                 return ret;
             }
-            if (!long_eq_long_long) {
-                s_tmp = (long long int) val.lint_val % (long long int) rhs.val.lint_val;
-                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
-                    ret.set_ub(SignOvf);
-                else
-                    ret.val.lint_val = (long int) s_tmp;
-            }
-            else {
-                if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
-                    (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
-                    ret.set_ub(SignOvf);
-                else
-                    ret.val.lint_val = val.lint_val % rhs.val.lint_val;
-            }
+            if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
+                (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
+                ret.set_ub(SignOvf);
+            else
+                ret.val.lint_val = val.lint_val % rhs.val.lint_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
             if (rhs.val.ulint_val == 0) {
