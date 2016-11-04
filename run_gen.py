@@ -167,7 +167,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
         ret_code, output, err_output, time_expired = common.run_cmd([comp_exec_name, "--version"])
         #TODO: I hope it will work for all compilers
-        logging.warning(str(output.splitlines() [0], "utf-8"))
+        logging.debug(str(output.splitlines() [0], "utf-8"))
 
     os.chdir(out_dir)
     common.check_dir_and_create(res_dir)
@@ -180,7 +180,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
     stat = manager.Statistics()
 
     start_time = time.time()
-    end_time = start_time + timeout * 10
+    end_time = start_time + timeout * 3600
     if timeout == -1:
         end_time = -1
 
@@ -199,7 +199,6 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
                     sys.stdout.write("\b\r")
                 sys.stdout.flush()
             stat_str = ""
-            #os.system("clear")
             stat_str += "\n##########################\n"
             stat_str += "YARPGEN runs stat:\n"
             stat_str += "Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n"
@@ -270,7 +269,7 @@ def gen_and_test(num, lock, end_time, stat, compilers):
             if (not i.specs.name in compilers.split()):
                 continue
             lock.acquire()
-            logging.warning("From process #" + str(num) + ": " + str(output, "utf-8"))
+            logging.debug("From process #" + str(num) + ": " + str(output, "utf-8"))
             lock.release()
 
             start_target_interval = datetime.datetime.now()
@@ -371,7 +370,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "The startup script for compiler's testing system.")
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",
                         help = "Increase output verbosity")
-    parser.add_argument("--log-file", dest="log_file", default = "run_gen_log.txt", type = str,
+    parser.add_argument("--log-file", dest="log_file", default = "run_gen_log", type = str,
                         help = "Logfile")
     parser.add_argument("-o", "--output", dest = "out_dir", default = "testing", type = str,
                         help = "Directory, which is used for testing.")
@@ -383,10 +382,11 @@ if __name__ == '__main__':
                         help='Maximum number of instances to run in parallel')
     args = parser.parse_args()
 
+    log_file = str(args.log_file) + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     if args.verbose:
-        logging.basicConfig(filename=args.log_file, level = logging.DEBUG)
+        logging.basicConfig(filename = log_file, level = logging.DEBUG)
     else:
-        logging.basicConfig(filename=args.log_file)
+        logging.basicConfig(filename = log_file)
 
-    logging.warning("Start time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
+    logging.debug("Start time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
     prepare_env(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs)
