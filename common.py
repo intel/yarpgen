@@ -89,14 +89,14 @@ def if_exec_exist (program):
     fpath, fname = os.path.split(program)
     if fpath:
         if is_exe(program):
-            logging.warning("Exec " + program + " was found at " + program)
+            logging.debug("Exec " + program + " was found at " + program)
             return True
     else:
         for path in os.environ["PATH"].split(os.pathsep):
             path = path.strip('"')
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
-                logging.warning("Exec " + program + " was found at " + exe_file)
+                logging.debug("Exec " + program + " was found at " + exe_file)
                 return True
     logging.debug("Exec wasn't found")
     return False
