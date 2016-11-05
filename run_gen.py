@@ -38,7 +38,8 @@ Test_Makefile_name = "Test_Makefile"
 yarpgen_timeout = 60
 compiler_timeout = 600
 run_timeout = 300 
-stat_update_delay = 60
+stat_update_delay = 10
+stat_verbose_delay = 60
 
 ###############################################################################
 
@@ -149,7 +150,7 @@ MyManager.register("Statistics", Statistics)
 
 
 
-def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
+def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
     common.check_dir_and_create (out_dir)
 
     # Check for binary of generator
@@ -194,15 +195,16 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
     stat_str = ""
     while any_alive:
         lock.acquire()
-        if verbose:
-            if (stat_str != ""):
-                for i in range(stat_str.count("\n")):
-                    sys.stdout.write("\b\r")
-                sys.stdout.flush()
-            stat_str = ""
-            stat_str += "\n##########################\n"
-            stat_str += "YARPGEN runs stat:\n"
-            stat_str += "Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n"
+        if (stat_str != ""):
+            for i in range(stat_str.count("\n")):
+                sys.stdout.write("\b\r")
+        sys.stdout.flush()
+        stat_str = ""
+        stat_str += "\n##########################\n"
+        stat_str += "YARPGEN runs stat:\n"
+        stat_str += "Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n"
+
+        if stat_verbose:
             stat_str += "duration: " + str(stat.get_yarpgen_duration()) + "\n"
             stat_str += "\t" + total + " : " + str(stat.get_yarpgen_runs(total)) + "\n"
             stat_str += "\t" + ok + " : " + str(stat.get_yarpgen_runs(ok)) + "\n"
@@ -221,15 +223,50 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
                 stat_str += "\t" + compfail_timeout + " : " + str(stat.get_target_runs(i.name, compfail_timeout)) + "\n"
                 stat_str += "\t" + compfail + " : " + str(stat.get_target_runs(i.name, compfail)) + "\n"
                 stat_str += "\t" + out_dif + " : " + str(stat.get_target_runs(i.name, out_dif)) + "\n"
-            logging.debug(stat_str)
-            sys.stdout.write(stat_str)
-            sys.stdout.flush()
+        else:
+            total_duration = stat.get_yarpgen_duration()
+            total_gen_errors = stat.get_yarpgen_runs(runfail_timeout)
+            total_gen_errors += stat.get_yarpgen_runs(runfail)
+            stat_str += "total yarpgen errors: " + str(total_gen_errors) + "\n"
+            total_runs = 0
+            total_ok = 0
+            total_runfail_timeout = 0
+            total_runfail = 0
+            total_compfail_timeout = 0
+            total_compfail = 0
+            total_out_dif = 0
+            for i in gen_test_makefile.Compiler_target.all_targets:
+                if (not i.specs.name in compiler.split()):
+                    continue
+                total_duration += stat.get_target_duration(i.name)
+                total_runs += stat.get_target_runs(i.name, total)
+                total_ok += stat.get_target_runs(i.name, ok)
+                total_runfail_timeout += stat.get_target_runs(i.name, runfail_timeout)
+                total_runfail += stat.get_target_runs(i.name, runfail)
+                total_compfail_timeout += stat.get_target_runs(i.name, compfail_timeout)
+                total_compfail += stat.get_target_runs(i.name, compfail)
+                total_out_dif += stat.get_target_runs(i.name, out_dif)
+            stat_str += "total duration: " + str(total_duration) + "\n"
+            stat_str += "total runs: " + str(total_runs) + "\n"
+            stat_str += "total ok: " + str(total_ok) + "\n"
+            stat_str += "total runfail timeout: " + str(total_runfail_timeout) + "\n"
+            stat_str += "total runfail: " + str(total_runfail) + "\n"
+            stat_str += "total compfail timeout: " + str(total_compfail_timeout) + "\n"
+            stat_str += "total compfail: " + str(total_compfail) + "\n"
+            stat_str += "total out_dif: " + str(total_out_dif) + "\n"
+
+        logging.debug(stat_str)
+        sys.stdout.write(stat_str)
+        sys.stdout.flush()
         lock.release()
 
         any_alive = task_threads[num_jobs - 1].is_alive()
         for num in range(num_jobs - 1):
             any_alive |= task_threads [num].is_alive()
-        time.sleep(stat_update_delay)
+        if (stat_verbose):
+            time.sleep(stat_verbose_delay)
+        else:
+            time.sleep(stat_update_delay)
 
     sys.stdout.write("\n")
     for i in range(num_jobs):
@@ -368,6 +405,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "The startup script for compiler's testing system.")
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",
                         help = "Increase output verbosity")
+    parser.add_argument("-sv", "--stat-verbose", dest = "stat_verbose", default = False, action = "store_true",
+                        help = "Increase output verbosity for statistics")
     parser.add_argument("--log-file", dest="log_file", default = "run_gen_log", type = str,
                         help = "Logfile")
     parser.add_argument("-o", "--output", dest = "out_dir", default = "testing", type = str,
@@ -387,4 +426,4 @@ if __name__ == '__main__':
         logging.basicConfig(filename = log_file)
 
     logging.debug("Start time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-    prepare_env(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs)
+    prepare_env(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose)

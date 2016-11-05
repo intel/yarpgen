@@ -142,7 +142,7 @@ gcc_knl_opt    = Compiler_target("gcc_knl_opt"   , gcc_specs, "-O3", Arch("knl",
 gcc_skx_no_opt = Compiler_target("gcc_skx_no_opt", gcc_specs, "-O0", Arch("skylake-avx512", SdeArch.skx), gcc_targets)
 gcc_skx_opt    = Compiler_target("gcc_skx_opt"   , gcc_specs, "-O3", Arch("skylake-avx512", SdeArch.skx), gcc_targets)
 
-clang_no_opt     = Compiler_target("clang_no_opt"    , clang_specs, "-O0",  Arch("", SdeArch.native),clang_targets)
+clang_no_opt     = Compiler_target("clang_no_opt"    , clang_specs, "-O0",  Arch("", SdeArch.native), clang_targets)
 clang_opt        = Compiler_target("clang_opt"       , clang_specs, "-O3",  Arch("", SdeArch.native), clang_targets)
 clang_knl_no_opt = Compiler_target("clang_knl_no_opt", clang_specs, "-O0",  Arch("knl", SdeArch.knl), clang_targets)
 clang_knl_opt    = Compiler_target("clang_knl_opt"   , clang_specs, "-O3",  Arch("knl", SdeArch.knl), clang_targets)
@@ -198,26 +198,30 @@ def gen_makefile(out_file_name, force, verbose):
         if (i.arch.comp_name != ""):
             output += " -march=" + i.arch.comp_name + " "
         output += "\n"
-        output += i.name + ": " + "$(SOURCES:.cpp=.o)\n"
+        output += i.name + ": " + "EXECUTABLE=" + i.name + "_" + executable.value + "\n"
+        output += i.name + ": " + "$(addprefix " + i.name + "_, $(SOURCES:.cpp=.o))\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
 
     # Force make to rebuild everything
     #TODO: replace with PHONY
     output += "FORCE:\n\n"
-    output += "%.o: %.cpp FORCE\n"
-    output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
+    
+    for i in sources.value.split():
+        source_name = i.split(".") [0]
+        output += "%" + source_name + ".o: "+ i + " FORCE\n"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
 
     output += "clean:\n"
     output += "\trm *.o $(EXECUTABLE)\n\n"
 
     native_arch = detect_native_arch()
     for i in Compiler_target.all_targets:
-        output += "run_" + i.name + ": $(EXECUTABLE)\n"
+        output += "run_" + i.name + ": " + i.name + "_" + executable.value + "\n"
         output += "\t"
         required_sde_arch = define_sde_arch(native_arch, i.arch.sde_arch)
         if (required_sde_arch != ""):
             output += "sde -" + required_sde_arch + " -- "
-        output += "." + os.sep + executable.value + "\n\n"
+        output += "." + os.sep + i.name + "_" + executable.value + "\n\n"
 
     if (not os.path.isfile(out_file_name)):
         out_file = open(out_file_name, "w")
