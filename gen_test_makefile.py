@@ -28,6 +28,7 @@ import sys
 import common
 
 license_file_name = "LICENSE.txt"
+check_isa_file_name = "check_isa.cpp"
 
 ###############################################################################
 # Section for Test_Makefile parameters
@@ -159,14 +160,16 @@ def detect_native_arch():
     if (sys_compiler == ""):
         common.print_and_exit("Can't find any compiler")
 
-    if (not os.path.exists(common.yarpgen_home + os.sep + "check_isa.cpp")):
-        common.print_and_exit("Can't find check_isa.cpp")
-    ret_code, output, err_output, time_expired = common.run_cmd([sys_compiler, "check_isa.cpp", "-o", "check_isa"], None, 0)
+    check_isa_file = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name)
+    check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
+    if (not os.path.exists(check_isa_file)):
+        common.print_and_exit("Can't find " + check_isa_file)
+    ret_code, output, err_output, time_expired = common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
     if (ret_code != 0):
-         common.print_and_exit("Can't compile check_isa.cpp: " + str(err_output))
-    ret_code, output, err_output, time_expired = common.run_cmd(["." + os.sep + "check_isa"], None, 0)
+         common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output))
+    ret_code, output, err_output, time_expired = common.run_cmd([check_isa_binary], None, 0)
     if (ret_code != 0):
-        common.print_and_exit("Error while executing check_isa")
+        common.print_and_exit("Error while executing " + check_isa_binary)
     native_arch_str = str(output, "utf-8").split()[0]
     for i in SdeTarget.all_sde_targets:
         if (i.name == native_arch_str):
@@ -176,7 +179,7 @@ def detect_native_arch():
 
 def gen_makefile(out_file_name, force, verbose):
     output = ""
-    license_file = common.check_and_open_file(license_file_name, "r")
+    license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for i in license_file:
         output += "#" + i
     output += "###############################################################################\n" 
@@ -230,10 +233,7 @@ def gen_makefile(out_file_name, force, verbose):
 
 if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") == None:
-        logging.error("you have no YARPGEN_HOME")
-        exit(-1)
-    else:
-        common.yarpgen_home = os.environ["YARPGEN_HOME"]
+        sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using " + common.yarpgen_home + " for now\n")
 
     parser = argparse.ArgumentParser(description = 'Generator of Test_Makefiles.')
     parser.add_argument("-o", "--output", dest = "out_file", default = "Test_Makefile", type = str,
@@ -247,4 +247,4 @@ if __name__ == '__main__':
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    gen_makefile(args.out_file, args.force, args.verbose)
+    gen_makefile(os.path.abspath(args.out_file), args.force, args.verbose)
