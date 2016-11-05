@@ -8,3 +8,4 @@ res
 found/old-*
 check_isa
 Test_Makefile
+run_gen_log_*
