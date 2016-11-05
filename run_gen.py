@@ -156,6 +156,10 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
     # Check for binary of generator
     yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
     common.check_and_copy (yarpgen_bin, out_dir)
+    ret_code, output, err_output, time_expired = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
+    common.yarpgen_version = output
+    #TODO: need to add some check, but I hope that it is safe
+    logging.debug("YARPGEN version: " + str(common.yarpgen_version))
 
     # Generate Test_Makefile and copy it
     Test_Makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
@@ -284,8 +288,7 @@ def gen_and_test(num, lock, end_time, stat, compilers):
         seed = ""
         start_yarpgen_interval = datetime.datetime.now()
         ret_code, output, err_output, time_expired = common.run_cmd([".." + os.sep + "yarpgen", "-q"], yarpgen_timeout, num)
-        #TODO: it is needed to save generator fail, but actually we need SEED
-        seed = str(ret_code)
+        seed = str(output, "utf-8").split()[1][:-2]
         if (time_expired):
             logging.warning("Generator has failed (" + runfail_timeout + ")")
             stat.update_yarpgen_runs(runfail_timeout)
@@ -293,14 +296,13 @@ def gen_and_test(num, lock, end_time, stat, compilers):
             continue
         if (ret_code != 0):
             logging.warning("Generator has failed (" + runfail + ")")
-            stat.update_yarpgen_runs(run)
+            stat.update_yarpgen_runs(runfail)
             save_test (lock, num, seed, output, err_output, None, runfail)
             continue
         end_yarpgen_interval = datetime.datetime.now()
         stat.update_yarpgen_runs(ok)
-        #TODO: It is inappropriate way to do this and it won't work.
+        #TODO: It is inappropriate way to measure duration and it won't work.
         stat.update_yarpgen_duration(end_yarpgen_interval - start_yarpgen_interval)
-        seed = str(output, "utf-8").split()[1][:-2]
         out_res = set()
         prev_out_res_len = 1 # We can't check first result
         for i in gen_test_makefile.Compiler_target.all_targets:
@@ -335,7 +337,7 @@ def gen_and_test(num, lock, end_time, stat, compilers):
                 save_test (lock, num, seed, output, err_output, i, runfail)
                 continue
 
-            #TODO: It is inappropriate way to do this and it won't work.
+            #TODO: It is inappropriate way to measure duration and it won't work.
             end_target_interval = datetime.datetime.now()
             stat.update_target_duration(i.name, end_target_interval - start_target_interval)
 
@@ -360,7 +362,7 @@ def save_test (lock, num, seed, output, err_output, target, fail_tag):
     # Check and/or create fail_tag dir
     dest += os.sep + str(fail_tag)
     common.check_dir_and_create(dest)
-    if (target.arch.sde_arch.name != ""):
+    if (target != None and target.arch.sde_arch.name != ""):
         dest += os.sep + target.arch.sde_arch.name
         common.check_dir_and_create(dest)
     dest += os.sep + "S_" + seed
@@ -372,11 +374,12 @@ def save_test (lock, num, seed, output, err_output, target, fail_tag):
     else:
         os.makedirs(dest)
     log = open(dest + os.sep + "log.txt", "a")
-    
+
+    log.write("YARPGEN version: " + str(common.yarpgen_version) + "\n")
     log.write("Seed: " + str(seed) + "\n")
     log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
     log.write("Type: " + str(fail_tag) + "\n")
-    #TODO: I can't normally capture SEED for failed generator, so I use exit_code
+    #If it is generator's error, we can't copy test's source files
     if (target == None):
         log.close()
         shutil.copy(".." + os.sep + "yarpgen", dest)
@@ -420,6 +423,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     log_file = str(args.log_file) + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    #log_file_file = open(log_file, 'w')
+    #log_file_file.close()
     if args.verbose:
         logging.basicConfig(filename = log_file, level = logging.DEBUG)
     else:

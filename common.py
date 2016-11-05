@@ -24,6 +24,7 @@ import subprocess
 
 # $YARPGEN_HOME environment variable should be set to YARP Generator directory
 yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
+yarpgen_version = ""
 
 def print_and_exit (msg):
     logging.error(msg)

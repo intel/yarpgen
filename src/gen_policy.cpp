@@ -69,7 +69,7 @@ RandValGen::RandValGen (uint64_t _seed) {
         std::random_device rd;
         seed = rd ();
     }
-    std::cout << "/*SEED " << seed << "*/\n";
+    std::cout << "/*SEED " << seed << "*/" << std::endl;
     rand_gen = std::mt19937_64(seed);
 }
 
