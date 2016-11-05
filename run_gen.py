@@ -38,7 +38,7 @@ Test_Makefile_name = "Test_Makefile"
 yarpgen_timeout = 60
 compiler_timeout = 600
 run_timeout = 300 
-stat_update_delay = 10
+stat_update_delay = 60
 
 ###############################################################################
 
@@ -153,12 +153,13 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
     common.check_dir_and_create (out_dir)
 
     # Check for binary of generator
-    yarpgen_bin = common.yarpgen_home + os.sep + "yarpgen"
+    yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
     common.check_and_copy (yarpgen_bin, out_dir)
 
     # Generate Test_Makefile and copy it
-    gen_test_makefile.gen_makefile(Test_Makefile_name, True, verbose)
-    common.check_and_copy (Test_Makefile_name, out_dir)
+    Test_Makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
+    gen_test_makefile.gen_makefile(Test_Makefile_location, True, verbose)
+    common.check_and_copy (Test_Makefile_location, out_dir)
 
     # Search for target compilers and print their location and version
     for i in compiler.split():
@@ -173,7 +174,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs):
     common.check_dir_and_create(res_dir)
     for i in range(num_jobs):
         common.check_dir_and_create(process_dir + str(i))
-        common.check_and_copy (Test_Makefile_name, process_dir + str(i))
+        common.check_and_copy (Test_Makefile_location, process_dir + str(i))
 
     lock = multiprocessing.Lock()
     manager = Manager()
@@ -362,10 +363,7 @@ def save_test (lock, num, seed, output, err_output, target, fail_tag):
 
 if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") == None:
-        logging.error("You have no YARPGEN_HOME")
-        exit(-1)
-    else:
-        common.yarpgen_home = os.environ["YARPGEN_HOME"]
+       sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using " + common.yarpgen_home + " for now\n")
 
     parser = argparse.ArgumentParser(description = "The startup script for compiler's testing system.")
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",

@@ -23,7 +23,7 @@ import shutil
 import subprocess
 
 # $YARPGEN_HOME environment variable should be set to YARP Generator directory
-yarpgen_home = ""
+yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
 
 def print_and_exit (msg):
     logging.error(msg)
@@ -31,27 +31,31 @@ def print_and_exit (msg):
 
 
 def check_and_open_file(file_name, mode):
-    if (not os.path.isfile(file_name)):
-        print_and_exit("File " + file_name + " doesn't exist and can't be opened")
-    return open(file_name, mode)
+    norm_file_name = os.path.abspath(file_name)
+    if (not os.path.isfile(norm_file_name)):
+        print_and_exit("File " + norm_file_name + " doesn't exist and can't be opened")
+    return open(norm_file_name, mode)
 
 
 def check_and_copy (src, dst):
     if not isinstance(src, str) or not isinstance(dst, str):
         print_and_exit("Src and dst should be strings")
-    if os.path.exists(src):
-        logging.debug("Copying " + src + " to " + dst)
-        shutil.copy(src, dst)
+    norm_src = os.path.abspath(src)
+    norm_dst = os.path.abspath(dst)
+    if os.path.exists(norm_src):
+        logging.debug("Copying " + norm_src + " to " + norm_dst)
+        shutil.copy(norm_src, norm_dst)
     else:
-        print_and_exit("File " + src + " wasn't found")
+        print_and_exit("File " + norm_src + " wasn't found")
 
 
 def check_dir_and_create (directory):
-    if (not os.path.exists(directory)):
-        logging.debug("Creating '" + str(directory) + "' directory")
-        os.makedirs(directory)
-    elif (not os.path.isdir(directory)):
-        print_and_exit("Can't use '" + directory + "' directory")
+    norm_dir = os.path.abspath(directory)
+    if (not os.path.exists(norm_dir)):
+        logging.debug("Creating '" + str(norm_dir) + "' directory")
+        os.makedirs(norm_dir)
+    elif (not os.path.isdir(norm_dir)):
+        print_and_exit("Can't use '" + norm_dir + "' directory")
 
 
 def run_cmd (cmd, time_out = None, num = -1):
