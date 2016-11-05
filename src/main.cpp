@@ -25,7 +25,19 @@ limitations under the License.
 #include "sym_table.h"
 #include "master.h"
 
+#ifndef BUILD_DATE
+#define BUILD_DATE __DATE__
+#endif
+
+#ifndef BUILD_VERSION
+#define BUILD_DATE ""
+#endif
+
 using namespace rl;
+
+void printVersion () {
+    std::cout << "yarpgen version 1.0 (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
+}
 
 extern void self_test();
 
@@ -37,11 +49,12 @@ int main (int argc, char* argv[]) {
     std::string out_dir = "./";
     int c;
     uint64_t seed = 0;
-    static char usage[] = "usage: [-q -d <out_dir> -s <seed>\n";
+    static char usage[] = "usage: [-q -v -d <out_dir> -s <seed>\n";
     bool opt_parse_err = 0;
     bool quiet = false;
+    bool print_version = false;
 
-    while ((c = getopt(argc, argv, "qhrd:s:")) != -1)
+    while ((c = getopt(argc, argv, "qvhrd:s:")) != -1)
         switch (c) {
         case 'd':
             out_dir = std::string(optarg);
@@ -51,6 +64,9 @@ int main (int argc, char* argv[]) {
             break;
         case 'q':
             quiet = true;
+            break;
+        case 'v':
+            print_version = true;
             break;
         case 'h':
         default:
@@ -71,6 +87,10 @@ int main (int argc, char* argv[]) {
         exit(-1);
     }
 
+    if (print_version) {
+        printVersion();
+        exit(0);
+    }
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
 

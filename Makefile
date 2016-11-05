@@ -16,8 +16,16 @@
 #
 ###############################################################################
 
+BUILD_DATE=$(shell date +%Y:%m:%d)
+GIT_REV=$(shell git log --abbrev-commit --abbrev=16 2>/dev/null | head -1)
+ifeq (${GIT_REV},)
+	BUILD_VERSION="no_version_info"
+else
+	BUILD_VERSION=$(GIT_REV)
+endif
+
 CXX=clang++
-CXXFLAGS=-std=c++11 -Wall -Wpedantic -Werror
+CXXFLAGS=-std=c++11 -Wall -Wpedantic -Werror -DBUILD_DATE="\"$(BUILD_DATE)\"" -DBUILD_VERSION="\"$(BUILD_VERSION)\""
 OPT=-O3
 LDFLAGS=-L./ -std=c++11
 LIBSOURCES=type.cpp variable.cpp expr.cpp stmt.cpp gen_policy.cpp sym_table.cpp master.cpp
