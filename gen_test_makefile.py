@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 ###############################################################################
-# We need some file to store compiler arguments. It can be stored in Makefile, but we need it in Python scripts. 
+# We need some file to store compiler arguments. It can be stored in Makefile, but we need it in Python scripts.
 # So we store them here and generate Test_Makefile
 ###############################################################################
 
@@ -29,6 +29,19 @@ import common
 
 license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
+
+time_exec = "/usr/bin/time"
+time_output_format = '%U %S'
+time_log_file_name = "time_log.txt"
+time_args = ["-f", time_output_format, "-o", time_log_file_name, "-a"]
+
+time_args_str = ""
+need_quotes = False
+for i in time_args:
+    time_args_str += (i + " ") if (not need_quotes) else ('"' + i + '" ')
+    need_quotes = True if (i == "-f") else False
+
+time_run_str = time_exec + ' ' + time_args_str
 
 ###############################################################################
 # Section for Test_Makefile parameters
@@ -200,7 +213,7 @@ def gen_makefile(out_file_name, force, verbose):
         output += "\n"
         output += i.name + ": " + "EXECUTABLE=" + i.name + "_" + executable.value + "\n"
         output += i.name + ": " + "$(addprefix " + i.name + "_, $(SOURCES:.cpp=.o))\n"
-        output += "\t" + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
+        output += "\t" + time_run_str + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
 
     # Force make to rebuild everything
     #TODO: replace with PHONY
@@ -209,7 +222,7 @@ def gen_makefile(out_file_name, force, verbose):
     for i in sources.value.split():
         source_name = i.split(".") [0]
         output += "%" + source_name + ".o: "+ i + " FORCE\n"
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
+        output += "\t" + time_run_str + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
 
     output += "clean:\n"
     output += "\trm *.o $(EXECUTABLE)\n\n"
@@ -217,7 +230,7 @@ def gen_makefile(out_file_name, force, verbose):
     native_arch = detect_native_arch()
     for i in Compiler_target.all_targets:
         output += "run_" + i.name + ": " + i.name + "_" + executable.value + "\n"
-        output += "\t"
+        output += "\t" + time_run_str 
         required_sde_arch = define_sde_arch(native_arch, i.arch.sde_arch)
         if (required_sde_arch != ""):
             output += "sde -" + required_sde_arch + " -- "

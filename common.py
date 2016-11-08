@@ -17,6 +17,7 @@
 #
 ###############################################################################
 
+import datetime
 import logging
 import os
 import shutil
@@ -105,3 +106,26 @@ def if_exec_exist (program):
                 return True
     logging.debug("Exec wasn't found")
     return False
+
+
+def remove_file_if_exists(file_name):
+    if (os.path.isfile(file_name)):
+        os.remove(file_name)
+
+
+def parse_time_log(file_name):
+    time_log_file = check_and_open_file(file_name, "r")
+    time_results_log = time_log_file.readlines()
+    time_log_file.close()
+
+    duration = datetime.timedelta()
+    for i in time_results_log:
+        #TODO: time --quiet doesn't work, so we use this kludge
+        if i.startswith("Command"):
+            continue
+        time_results = i.split()
+        duration += datetime.timedelta(seconds = float(time_results[0]))
+        duration += datetime.timedelta(seconds = float(time_results[1]))
+
+    remove_file_if_exists(file_name)
+    return duration
