@@ -286,8 +286,10 @@ def gen_and_test(num, lock, end_time, stat, compilers):
 
     while inf or end_time > time.time():
         seed = ""
-        start_yarpgen_interval = datetime.datetime.now()
-        ret_code, output, err_output, time_expired = common.run_cmd([".." + os.sep + "yarpgen", "-q"], yarpgen_timeout, num)
+        common.remove_file_if_exists(gen_test_makefile.time_log_file_name)
+        #TODO: maybe, it is better to call generator through Makefile?
+        yarpgen_run_list = [gen_test_makefile.time_exec] + gen_test_makefile.time_args + [".." + os.sep + "yarpgen", "-q"]
+        ret_code, output, err_output, time_expired = common.run_cmd(yarpgen_run_list, yarpgen_timeout, num)
         seed = str(output, "utf-8").split()[1][:-2]
         if (time_expired):
             logging.warning("Generator has failed (" + runfail_timeout + ")")
@@ -299,20 +301,19 @@ def gen_and_test(num, lock, end_time, stat, compilers):
             stat.update_yarpgen_runs(runfail)
             save_test (lock, num, seed, output, err_output, None, runfail)
             continue
-        end_yarpgen_interval = datetime.datetime.now()
         stat.update_yarpgen_runs(ok)
-        #TODO: It is inappropriate way to measure duration and it won't work.
-        stat.update_yarpgen_duration(end_yarpgen_interval - start_yarpgen_interval)
+        stat.update_yarpgen_duration(common.parse_time_log(gen_test_makefile.time_log_file_name))
         out_res = set()
         prev_out_res_len = 1 # We can't check first result
         for i in gen_test_makefile.Compiler_target.all_targets:
             if (not i.specs.name in compilers.split()):
                 continue
+            # Clear time_log file in case it is left after previous target
+            common.remove_file_if_exists(gen_test_makefile.time_log_file_name)
             lock.acquire()
             logging.debug("From process #" + str(num) + ": " + str(output, "utf-8"))
             lock.release()
 
-            start_target_interval = datetime.datetime.now()
             ret_code, output, err_output, time_expired = common.run_cmd(["make", "-f", Test_Makefile_name, i.name], compiler_timeout, num)
             if (time_expired):
                 logging.warning("Task " + i.name + " has failed (" + compfail_timeout + ")")
@@ -337,9 +338,7 @@ def gen_and_test(num, lock, end_time, stat, compilers):
                 save_test (lock, num, seed, output, err_output, i, runfail)
                 continue
 
-            #TODO: It is inappropriate way to measure duration and it won't work.
-            end_target_interval = datetime.datetime.now()
-            stat.update_target_duration(i.name, end_target_interval - start_target_interval)
+            stat.update_target_duration(i.name, common.parse_time_log(gen_test_makefile.time_log_file_name))
 
             out_res.add(str(output, "utf-8").split()[-1])
             if (len(out_res) > prev_out_res_len):
