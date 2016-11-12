@@ -1,4 +1,9 @@
 LLVM:
+30813 - Assertion `ShiftBits != 0 && MaskBits <= Size' failed.
+30783 - Assertion `New->getType() == getType() && "replaceAllUses of value with new value of different type!"' failed
+30777 - Assertion `DestBits == SrcBits && "Illegal cast to vector (wrong type or size)"' failed
+30775 - Assertion `NodeToMatch->getOpcode() != ISD::DELETED_NODE && "NodeToMatch was removed partway through selection"' failed.
+30693 - AVX512 Segfault: alignment incorrect for relative addressing
 30286 - [AVX-512] KNL bug at -O0
 30256 - Assert in llvm::ReassociatePass::OptimizeAdd
 29058 - Assert in llvm::SelectionDAG::Legalize()
@@ -22,35 +27,36 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
-77544 - [6 Regression] segfault at -O0 - infinite loop in simplification    2016-09-27
-77476 - [7 Regression] [AVX-512] illegal kmovb instruction on KNL    2016-09-08
-73714 - [Regression 7] Incorrect unsigned long long arithmetic optimization    2016-08-31
-72835 - [7 Regression] Incorrect arithmetic optimization involving bitfield arguments    2016-09-21
-71657 - Wrong code on trunk gcc (std::out_of_range), westmere    2016-06-26
-71655 - [7 Regression] GCC trunk ICE on westmere target    2016-06-29
-71488 - [6 Regression] Wrong code for vector comparisons with ivybridge and westmere targets    2016-08-22
-71470 - Wrong code on trunk gcc with westmere target    2016-06-19
-71389 - [7 Regression] ICE on trunk gcc on ivybridge target (df_refs_verify)    2016-06-07
-71386 - Wrong code on c++14 (GCC trunk)    2016-06-28
-71281 - [7 Regression] ICE on gcc trunk on knl, wsm, ivb and bdw targets (tree-ssa-reassoc)    2016-07-03
-71279 - [6/7 Regression] ICE on trunk gcc with knl target    2016-06-16
-71261 - [7 Regression] Trunk GCC hangs on knl and broadwell targets    2016-06-02
-71259 - [6/7 Regression] GCC trunk emits wrong code    2016-06-06
-70941 - [5 Regression] Test miscompiled with -O2.    2016-05-20
-70902 - [7 Regression] GCC freezes while compiling for 'skylake-avx512' target    2016-06-26
-70733 - Wrong code with nested structs and bit field.    2016-06-17
-70728 - GCC trunk emits invalid assembly for knl target    2016-04-27
-70726 - [6/7 Regression] Internal compiler error (ICE) on valid code    2016-04-20
-70725 - Internal compiler error (ICE) on valid code    2016-04-22
-70542 - [6 Regression] Wrong code with -O3 -mavx2.    2016-04-05
-70450 - [6 Regression] Wrong code with -O0 and -O1.    2016-04-06
-70429 - Wrong code with -O1.    2016-07-08
-70354 - [6 Regression] Wrong code with -O3 -march=broadwell and -march=skylake-avx512.    2016-03-23
-70333 - [5 Regression] Test miscompiled with -O0.    2016-04-06
-70252 - ICE in vect_get_vec_def_for_stmt_copy with -O3 -march=skylake-avx512.    2016-03-18
-70251 - Wrong code with -O3 -march=skylake-avx512.    2016-03-23
-70222 - Test miscompiled with -O1    2016-07-08
-70153 - [6 Regression] ICE on valid C++ code    2016-04-19
-70026 - [6 Regression] ICE in expand_expr_real_2 with -O1 -ftree-vectorize    2016-03-04
-70021 - [6 Regression] Test miscompiled with -O3 option for -march=core-avx2.    2016-03-03
-69820 - [6 Regression] Test miscompiled with -O3 option    2016-02-19
+78132 - [7 Regression] GCC produces invalid instruction (kmovd and kmovq) for KNL.
+77544 - [6 Regression] segfault at -O0 - infinite loop in simplification
+77476 - [7 Regression] [AVX-512] illegal kmovb instruction on KNL
+73714 - [Regression 7] Incorrect unsigned long long arithmetic optimization
+72835 - [7 Regression] Incorrect arithmetic optimization involving bitfield arguments
+71657 - Wrong code on trunk gcc (std::out_of_range), westmere
+71655 - [7 Regression] GCC trunk ICE on westmere target
+71488 - [6 Regression] Wrong code for vector comparisons with ivybridge and westmere targets
+71470 - Wrong code on trunk gcc with westmere target
+71389 - [7 Regression] ICE on trunk gcc on ivybridge target (df_refs_verify)
+71386 - Wrong code on c++14 (GCC trunk)
+71281 - [7 Regression] ICE on gcc trunk on knl, wsm, ivb and bdw targets (tree-ssa-reassoc)
+71279 - [6/7 Regression] ICE on trunk gcc with knl target
+71261 - [7 Regression] Trunk GCC hangs on knl and broadwell targets
+71259 - [6/7 Regression] GCC trunk emits wrong code
+70941 - [5 Regression] Test miscompiled with -O2.
+70902 - [7 Regression] GCC freezes while compiling for 'skylake-avx512' target
+70733 - Wrong code with nested structs and bit field.
+70728 - GCC trunk emits invalid assembly for knl target
+70726 - [6/7 Regression] Internal compiler error (ICE) on valid code
+70725 - Internal compiler error (ICE) on valid code
+70542 - [6 Regression] Wrong code with -O3 -mavx2.
+70450 - [6 Regression] Wrong code with -O0 and -O1.
+70429 - Wrong code with -O1.
+70354 - [6 Regression] Wrong code with -O3 -march=broadwell and -march=skylake-avx512.
+70333 - [5 Regression] Test miscompiled with -O0.
+70252 - ICE in vect_get_vec_def_for_stmt_copy with -O3 -march=skylake-avx512.
+70251 - Wrong code with -O3 -march=skylake-avx512.
+70222 - Test miscompiled with -O1
+70153 - [6 Regression] ICE on valid C++ code
+70026 - [6 Regression] ICE in expand_expr_real_2 with -O1 -ftree-vectorize
+70021 - [6 Regression] Test miscompiled with -O3 option for -march=core-avx2.
+69820 - [6 Regression] Test miscompiled with -O3 option
