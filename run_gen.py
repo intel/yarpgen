@@ -186,7 +186,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
     stat = manager.Statistics()
 
     start_time = time.time()
-    end_time = start_time + timeout * 3600
+    end_time = start_time + timeout * 10
     if timeout == -1:
         end_time = -1
 
@@ -400,11 +400,26 @@ def save_test (lock, num, seed, output, err_output, target, fail_tag):
 
 ###############################################################################
 
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+    pass
+
 if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") == None:
        sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using " + common.yarpgen_home + " for now\n")
 
-    parser = argparse.ArgumentParser(description = "The startup script for compiler's testing system.")
+    description = "The startup script for compiler's testing system."
+    epilog = '''
+Examples:
+Run testing of gcc and clang with clang sanitizer for 3 hours
+        run_gen.py -c "gcc clang ubsan" -t 3
+Run testing with debug logging level to specified log_file
+        run_gen.py -v --log-file my_log_file.txt
+Run testing with verbose statistics
+        run_gen.py -sv
+Use specified folder for testing
+        run_gen.py -o my_folder
+    '''
+    parser = argparse.ArgumentParser(description = description, epilog = epilog, formatter_class = CustomFormatter)
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",
                         help = "Increase output verbosity")
     parser.add_argument("-sv", "--stat-verbose", dest = "stat_verbose", default = False, action = "store_true",
@@ -416,7 +431,7 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--timeout", dest = "timeout", type = int, default = 1,
                         help = "Timeout for testing system in hours. -1 means infinity")
     parser.add_argument("-c", "--compiler", dest = "compiler", default = "clang ubsan gcc", type = str,
-                        help = "Compilers for testing. Possible variants are clang and gcc.")
+                        help = "Compilers for testing. Possible variants are clang, ubsan and gcc.")
     parser.add_argument("-j", dest = "num_jobs", default = multiprocessing.cpu_count(), type = int,
                         help='Maximum number of instances to run in parallel')
     args = parser.parse_args()
