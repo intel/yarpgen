@@ -41,6 +41,8 @@ run_timeout = 300
 stat_update_delay = 10
 stat_verbose_delay = 60
 
+script_start_time = datetime.datetime.now() # We should init variable, so let's do it this way
+
 ###############################################################################
 
 class MyManager(multiprocessing.managers.BaseManager): pass
@@ -150,7 +152,7 @@ MyManager.register("Statistics", Statistics)
 
 
 
-def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
+def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
     common.check_dir_and_create (out_dir)
 
     # Check for binary of generator
@@ -159,7 +161,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
     ret_code, output, err_output, time_expired = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
     common.yarpgen_version = output
     #TODO: need to add some check, but I hope that it is safe
-    logging.debug("YARPGEN version: " + str(common.yarpgen_version))
+    common.log_msg(logging.DEBUG, "YARPGEN version: " + str(common.yarpgen_version))
 
     # Generate Test_Makefile and copy it
     Test_Makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
@@ -168,12 +170,13 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
 
     # Search for target compilers and print their location and version
     for i in compiler.split():
-        comp_exec_name = gen_test_makefile.Compiler_specs.all_comp_specs [i]
+        comp_exec_name = gen_test_makefile.Compiler_specs.all_comp_specs [i].comp_name
         if not common.if_exec_exist(comp_exec_name):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
         ret_code, output, err_output, time_expired = common.run_cmd([comp_exec_name, "--version"])
         #TODO: I hope it will work for all compilers
-        logging.debug(str(output.splitlines() [0], "utf-8"))
+        common.log_msg(logging.DEBUG, str(output.splitlines() [0], "utf-8"))
+        gen_test_makefile.Compiler_specs.all_comp_specs [i].set_version(str(output.splitlines() [0], "utf-8"))
 
     os.chdir(out_dir)
     common.check_dir_and_create(res_dir)
@@ -207,9 +210,10 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
         stat_str += "\n##########################\n"
         stat_str += "YARPGEN runs stat:\n"
         stat_str += "Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n"
+        stat_str += "duration: " + str(datetime.datetime.now() - script_start_time) + "\n"
 
         if stat_verbose:
-            stat_str += "duration: " + str(stat.get_yarpgen_duration()) + "\n"
+            stat_str += "\tcpu time: " + str(stat.get_yarpgen_duration()) + "\n"
             stat_str += "\t" + total + " : " + str(stat.get_yarpgen_runs(total)) + "\n"
             stat_str += "\t" + ok + " : " + str(stat.get_yarpgen_runs(ok)) + "\n"
             stat_str += "\t" + runfail_timeout + " : " + str(stat.get_yarpgen_runs(runfail_timeout)) + "\n"
@@ -219,7 +223,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
                     continue
                 stat_str += "\n##########################\n"
                 stat_str += i.name + " stat:" + "\n"
-                stat_str += "duration: " + str(stat.get_target_duration(i.name))  + "\n"
+                stat_str += "\tcpu time: " + str(stat.get_target_duration(i.name))  + "\n"
                 stat_str += "\t" + total + " : " + str(stat.get_target_runs(i.name, total)) + "\n"
                 stat_str += "\t" + ok + " : " + str(stat.get_target_runs(i.name, ok)) + "\n"
                 stat_str += "\t" + runfail_timeout + " : " + str(stat.get_target_runs(i.name, runfail_timeout)) + "\n"
@@ -250,8 +254,8 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
                 total_compfail_timeout += stat.get_target_runs(i.name, compfail_timeout)
                 total_compfail += stat.get_target_runs(i.name, compfail)
                 total_out_dif += stat.get_target_runs(i.name, out_dif)
-            stat_str += "total duration: " + str(total_duration) + "\n"
-            stat_str += "total runs: " + str(total_runs) + "\n"
+            stat_str += "total cpu time: " + str(total_duration) + "\n"
+            stat_str += "total target runs: " + str(total_runs) + "\n"
             stat_str += "total ok: " + str(total_ok) + "\n"
             stat_str += "total runfail timeout: " + str(total_runfail_timeout) + "\n"
             stat_str += "total runfail: " + str(total_runfail) + "\n"
@@ -259,7 +263,7 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
             stat_str += "total compfail: " + str(total_compfail) + "\n"
             stat_str += "total out_dif: " + str(total_out_dif) + "\n"
 
-        logging.debug(stat_str)
+        common.stat_logger.info(stat_str)
         sys.stdout.write(stat_str)
         sys.stdout.flush()
         lock.release()
@@ -274,13 +278,13 @@ def prepare_env (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
 
     sys.stdout.write("\n")
     for i in range(num_jobs):
-        logging.debug("Removing " + process_dir + str(i) + " dir")
+        common.log_msg(logging.DEBUG, "Removing " + process_dir + str(i) + " dir")
         shutil.rmtree(process_dir + str(i))
 
 
 
 def gen_and_test(num, lock, end_time, stat, compilers):
-    logging.debug("Job #" + str(num))
+    common.log_msg(logging.DEBUG,"Job #" + str(num))
     os.chdir(process_dir + str(num))
     inf = (end_time == -1)
 
@@ -292,12 +296,12 @@ def gen_and_test(num, lock, end_time, stat, compilers):
         ret_code, output, err_output, time_expired = common.run_cmd(yarpgen_run_list, yarpgen_timeout, num)
         seed = str(output, "utf-8").split()[1][:-2]
         if (time_expired):
-            logging.warning("Generator has failed (" + runfail_timeout + ")")
+            common.log_msg(logging.WARNING, "Generator has failed (" + runfail_timeout + ")")
             stat.update_yarpgen_runs(runfail_timeout)
             save_test (lock, num, seed, output, err_output, None, runfail_timeout)
             continue
         if (ret_code != 0):
-            logging.warning("Generator has failed (" + runfail + ")")
+            common.log_msg(logging.WARNING, "Generator has failed (" + runfail + ")")
             stat.update_yarpgen_runs(runfail)
             save_test (lock, num, seed, output, err_output, None, runfail)
             continue
@@ -308,32 +312,32 @@ def gen_and_test(num, lock, end_time, stat, compilers):
         for i in gen_test_makefile.Compiler_target.all_targets:
             if (not i.specs.name in compilers.split()):
                 continue
-            # Clear time_log file in case it is left after previous target
+            # Clear time_log file in case it has left after previous target
             common.remove_file_if_exists(gen_test_makefile.time_log_file_name)
             lock.acquire()
-            logging.debug("From process #" + str(num) + ": " + str(output, "utf-8"))
+            common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
             lock.release()
 
             ret_code, output, err_output, time_expired = common.run_cmd(["make", "-f", Test_Makefile_name, i.name], compiler_timeout, num)
             if (time_expired):
-                logging.warning("Task " + i.name + " has failed (" + compfail_timeout + ")")
+                common.log_msg(logging.WARNING, "Task " + i.name + " has failed (" + compfail_timeout + ")")
                 stat.update_target_runs(i.name, compfail_timeout)
                 save_test (lock, num, seed, output, err_output, i, compfail_timeout)
                 continue
             if (ret_code != 0):
-                logging.warning("Task " + i.name + " has failed (" + compfail + ")")
+                common.log_msg(logging.WARNING, "Task " + i.name + " has failed (" + compfail + ")")
                 stat.update_target_runs(i.name, compfail)
                 save_test (lock, num, seed, output, err_output, i, compfail)
                 continue
 
             ret_code, output, err_output, time_expired = common.run_cmd(["make", "-f", Test_Makefile_name, "run_" + i.name], run_timeout, num)
             if (time_expired):
-                logging.warning("Run of " + i.name + " has failed (" + runfail_timeout + ")")
+                common.log_msg(logging.WARNING, "Run of " + i.name + " has failed (" + runfail_timeout + ")")
                 stat.update_target_runs(i.name, runfail_timeout)
                 save_test (lock, num, seed, output, err_output, i, runfail_timeout)
                 continue
             if (ret_code != 0):
-                logging.warning("Run of " + i.name + " has failed ( " + runfail + ")")
+                common.log_msg(logging.WARNING, "Run of " + i.name + " has failed ( " + runfail + ")")
                 stat.update_target_runs(i.name, runfail)
                 save_test (lock, num, seed, output, err_output, i, runfail)
                 continue
@@ -343,7 +347,7 @@ def gen_and_test(num, lock, end_time, stat, compilers):
             out_res.add(str(output, "utf-8").split()[-1])
             if (len(out_res) > prev_out_res_len):
                 prev_out_res_len = len(out_res) 
-                logging.warning("Output for " + i.name + " differs")
+                common.log_msg(logging.WARNING, "Output for " + i.name + " differs")
                 stat.update_target_runs(i.name, out_dif)
                 save_test (lock, num, seed, output, err_output, i, "output")
             stat.update_target_runs(i.name, ok) 
@@ -385,8 +389,9 @@ def save_test (lock, num, seed, output, err_output, target, fail_tag):
         lock.release()
         return
     log.write("Target: " + str(target.name) + "\n")
-    log.write("Output: \n" + str(output) + "\n\n")
-    log.write("Err_output:\n" + str(err_output) + "\n")
+    log.write("Compiler version: " + str(target.specs.version) + "\n")
+    log.write("Output: \n" + str(output, "utf-8") + "\n\n")
+    log.write("Err_output:\n" + str(err_output, "utf-8") + "\n")
     log.write("====================================\n")
     log.close()
 
@@ -410,22 +415,16 @@ if __name__ == '__main__':
     description = "The startup script for compiler's testing system."
     epilog = '''
 Examples:
-Run testing of gcc and clang with clang sanitizer for 3 hours
-        run_gen.py -c "gcc clang ubsan" -t 3
-Run testing with debug logging level to specified log_file
+Run testing of gcc and clang with clang sanitizer forever
+        run_gen.py -c "gcc clang ubsan" -t -1
+Run testing with debug logging level; save log to specified file
         run_gen.py -v --log-file my_log_file.txt
-Run testing with verbose statistics
-        run_gen.py -sv
+Run testing with verbose statistics and save it to specified file
+        run_gen.py -sv --stat-log-file my_stat_log_file.txt
 Use specified folder for testing
         run_gen.py -o my_folder
     '''
     parser = argparse.ArgumentParser(description = description, epilog = epilog, formatter_class = CustomFormatter)
-    parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",
-                        help = "Increase output verbosity")
-    parser.add_argument("-sv", "--stat-verbose", dest = "stat_verbose", default = False, action = "store_true",
-                        help = "Increase output verbosity for statistics")
-    parser.add_argument("--log-file", dest="log_file", default = "run_gen_log", type = str,
-                        help = "Logfile")
     parser.add_argument("-o", "--output", dest = "out_dir", default = "testing", type = str,
                         help = "Directory, which is used for testing.")
     parser.add_argument("-t", "--timeout", dest = "timeout", type = int, default = 1,
@@ -434,15 +433,34 @@ Use specified folder for testing
                         help = "Compilers for testing. Possible variants are clang, ubsan and gcc.")
     parser.add_argument("-j", dest = "num_jobs", default = multiprocessing.cpu_count(), type = int,
                         help='Maximum number of instances to run in parallel')
+    default_log_file = "run_gen_log"
+    parser.add_argument("--log-file", dest="log_file", default = default_log_file, type = str,
+                        help = "Logfile")
+    parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",
+                        help = "Increase output verbosity")
+    parser.add_argument("-sv", "--stat-verbose", dest = "stat_verbose", default = False, action = "store_true",
+                        help = "Increase output verbosity for statistics")
+    default_stat_log_file = "statistics_log"
+    parser.add_argument("--stat-log-file", dest="stat_log_file", default = default_stat_log_file, type = str,
+                        help = "Logfile")
     args = parser.parse_args()
 
-    log_file = str(args.log_file) + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-    #log_file_file = open(log_file, 'w')
-    #log_file_file.close()
-    if args.verbose:
-        logging.basicConfig(filename = log_file, level = logging.DEBUG)
-    else:
-        logging.basicConfig(filename = log_file)
+    log_level = logging.DEBUG if (args.verbose) else logging.ERROR
+    common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)
 
-    logging.debug("Start time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-    prepare_env(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose)
+    logs_to_dir = "."
+    log_file_is_def = str(args.log_file) == default_log_file
+    stat_log_file_is_def = str(args.stat_log_file) == default_stat_log_file
+    if (log_file_is_def or stat_log_file_is_def):
+        logs_to_dir = "testing_log" + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        common.check_dir_and_create(logs_to_dir)
+
+    log_file = str(args.log_file) if not log_file_is_def else (logs_to_dir + os.sep + str(args.log_file))
+    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.DEBUG)
+
+    stat_log_file = str(args.stat_log_file) if not stat_log_file_is_def else (logs_to_dir + os.sep + str(args.stat_log_file))
+    common.setup_logger(logger_name = common.stat_logger_name, log_file = stat_log_file, file_mode = "w", log_level = logging.INFO)
+
+    script_start_time = datetime.datetime.now()
+    common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
+    prepare_env_and_start_testing(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose)

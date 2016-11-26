@@ -21,6 +21,7 @@
 ###############################################################################
 
 import argparse
+import datetime
 import logging
 import os
 import sys
@@ -117,7 +118,11 @@ class Compiler_specs (object):
         self.name = name
         self.comp_name = exec_name
         self.common_args = common_args
-        Compiler_specs.all_comp_specs [name] = exec_name
+        self.version = "unknown"
+        Compiler_specs.all_comp_specs [name] = self
+
+    def set_version (self, version):
+        self.version = version
 
 gcc_specs = Compiler_specs("gcc", "g++", "-w")
 ubsan_specs = Compiler_specs("ubsan", "clang++", "-O0 -fsanitize=undefined -w")
@@ -167,7 +172,7 @@ clang_skx_opt    = Compiler_target("clang_skx_opt"   , clang_specs, "-O3",  Arch
 def detect_native_arch():
     sys_compiler = ""
     for i in Compiler_specs.all_comp_specs:
-        exec_name = Compiler_specs.all_comp_specs[i]
+        exec_name = Compiler_specs.all_comp_specs[i].comp_name
         if common.if_exec_exist(exec_name):
             sys_compiler = exec_name
     if (sys_compiler == ""):
@@ -179,7 +184,7 @@ def detect_native_arch():
         common.print_and_exit("Can't find " + check_isa_file)
     ret_code, output, err_output, time_expired = common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
     if (ret_code != 0):
-         common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output))
+         common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
     ret_code, output, err_output, time_expired = common.run_cmd([check_isa_binary], None, 0)
     if (ret_code != 0):
         common.print_and_exit("Error while executing " + check_isa_binary)
@@ -252,16 +257,23 @@ if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") == None:
         sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using " + common.yarpgen_home + " for now\n")
 
-    parser = argparse.ArgumentParser(description = 'Generator of Test_Makefiles.')
+    description = 'Generator of Test_Makefiles.'
+    parser = argparse.ArgumentParser(description = description, formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-o", "--output", dest = "out_file", default = "Test_Makefile", type = str,
                         help = "Output file")
     parser.add_argument("-f", "--force", dest = "force", default = False, action = "store_true",
                         help = "Rewrite output file")
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true", 
                         help = "Increase output verbosity")
+    default_log_file = "gen_test_makefile_log"
+    parser.add_argument("--log-file", dest="log_file", default = default_log_file, type = str,
+                        help = "Logfile")
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+    log_file = common.wrap_log_file(str(args.log_file), default_log_file)
+    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.DEBUG)
+
+    log_level = logging.DEBUG if (args.verbose) else logging.ERROR
+    common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)
 
     gen_makefile(os.path.abspath(args.out_file), args.force, args.verbose)
