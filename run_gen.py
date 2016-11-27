@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -463,4 +463,5 @@ Use specified folder for testing
 
     script_start_time = datetime.datetime.now()
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
+    common.check_python_version()
     prepare_env_and_start_testing(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose)

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -22,6 +22,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 
 # $YARPGEN_HOME environment variable should be set to YARP Generator directory
 yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
@@ -70,6 +71,11 @@ def print_and_exit (msg):
     exit (-1)
 
 
+def check_python_version():
+    if sys.version_info < (3, 3):
+        print_and_exit("This script requires at least python 3.3.")
+
+
 def check_and_open_file(file_name, mode):
     norm_file_name = os.path.abspath(file_name)
     if (not os.path.isfile(norm_file_name)):
@@ -101,27 +107,25 @@ def check_dir_and_create (directory):
 def run_cmd (cmd, time_out = None, num = -1):
     time_expired = False
     ret_code = 0
-    try:
-        log_msg_str = "Running " + str(cmd)
-        if (num != -1):
-            log_msg_str += " in process " + str(num)
-        log_msg(logging.DEBUG, log_msg_str)
-        compl_proc = subprocess.run(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, timeout = time_out, check = True)
-        compl_proc.check_returncode()
-        ret_code = compl_proc.returncode
-        output = compl_proc.stdout
-        err_output = compl_proc.stderr
-    except subprocess.CalledProcessError as cpe:
-        log_msg(logging.DEBUG, str(cmd) + " failed")
-        ret_code = cpe.returncode
-        output = cpe.stdout
-        err_output = cpe.stderr
-    except subprocess.TimeoutExpired as te:
-        log_msg(logging.DEBUG, "Timeout expired while executing " + str(cmd))
-        time_expired = True
-        ret_code = None
-        output = te.stdout
-        err_output = te.stderr
+    with subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE) as process:
+        try:
+            log_msg_str = "Running " + str(cmd)
+            if (num != -1):
+                log_msg_str += " in process " + str(num)
+            log_msg(logging.DEBUG, log_msg_str)
+            output, err_output = process.communicate(timeout = time_out)
+            ret_code = process.poll()
+        except subprocess.TimeoutExpired:
+            process.kill()
+            log_msg(logging.DEBUG, str(cmd) + " failed")
+            output, err_output = process.communicate()
+            time_expired = True
+            ret_code = None
+        except:
+            log_msg(logging.ERROR, str(cmd) + " failed: unknown exception")
+            process.kill()
+            process.wait()
+            raise
     return ret_code, output, err_output, time_expired
 
 
