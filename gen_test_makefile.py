@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -276,4 +276,5 @@ if __name__ == '__main__':
     log_level = logging.DEBUG if (args.verbose) else logging.ERROR
     common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)
 
+    common.check_python_version()
     gen_makefile(os.path.abspath(args.out_file), args.force, args.verbose)
