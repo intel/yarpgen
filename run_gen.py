@@ -152,7 +152,7 @@ MyManager.register("Statistics", Statistics)
 
 
 
-def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose):
+def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose, config_file):
     common.check_dir_and_create (out_dir)
 
     # Check for binary of generator
@@ -165,8 +165,13 @@ def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs
 
     # Generate Test_Makefile and copy it
     Test_Makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
-    gen_test_makefile.gen_makefile(Test_Makefile_location, True, verbose)
+    gen_test_makefile.gen_makefile(Test_Makefile_location, True, verbose, config_file)
     common.check_and_copy (Test_Makefile_location, out_dir)
+
+    common.log_msg(logging.INFO, "Testing sets: ")
+    for i in gen_test_makefile.Compiler_target.all_targets:
+        if (i.specs.name in compiler.split()):
+            common.log_msg(logging.INFO, i.name)
 
     # Search for target compilers and print their location and version
     for i in compiler.split():
@@ -433,6 +438,8 @@ Use specified folder for testing
                         help = "Compilers for testing. Possible variants are clang, ubsan and gcc.")
     parser.add_argument("-j", dest = "num_jobs", default = multiprocessing.cpu_count(), type = int,
                         help='Maximum number of instances to run in parallel')
+    parser.add_argument("--config-file", dest = "config_file", default = "test_sets.txt", type = str,
+                            help = "Configuration file for testing")
     default_log_file = "run_gen_log"
     parser.add_argument("--log-file", dest="log_file", default = default_log_file, type = str,
                         help = "Logfile")
@@ -445,7 +452,7 @@ Use specified folder for testing
                         help = "Logfile")
     args = parser.parse_args()
 
-    log_level = logging.DEBUG if (args.verbose) else logging.ERROR
+    log_level = logging.DEBUG if (args.verbose) else logging.INFO
     common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)
 
     logs_to_dir = "."
@@ -456,7 +463,7 @@ Use specified folder for testing
         common.check_dir_and_create(logs_to_dir)
 
     log_file = str(args.log_file) if not log_file_is_def else (logs_to_dir + os.sep + str(args.log_file))
-    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.DEBUG)
+    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.INFO)
 
     stat_log_file = str(args.stat_log_file) if not stat_log_file_is_def else (logs_to_dir + os.sep + str(args.stat_log_file))
     common.setup_logger(logger_name = common.stat_logger_name, log_file = stat_log_file, file_mode = "w", log_level = logging.INFO)
@@ -464,4 +471,4 @@ Use specified folder for testing
     script_start_time = datetime.datetime.now()
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
-    prepare_env_and_start_testing(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose)
+    prepare_env_and_start_testing(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose, args.config_file)
