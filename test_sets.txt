@@ -1,0 +1,50 @@
+###############################################################################
+#
+# Copyright (c) 2016, Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+###############################################################################
+# README:
+# Testing configuration file
+# You can start single-line comment with #. Don't use indentation at the beginning of line!
+# Config can contain only one "Compiler specs" and "Testing sets" blocks!
+# You should always specify "Compiler specs" before "Testing sets"!
+###############################################################################
+
+Compiler specs:
+# Spec name | Executable name | Common arguments
+gcc         | g++             | -w
+ubsan       | clang++         | -O0 -fsanitize=undefined -w
+clang       | clang++         | -w
+
+
+Testing sets:
+# Set name       | Spec name | Arguments | Compiler arch  | Sde arch
+ubsan            | ubsan     |           |                | 
+
+gcc_no_opt       | gcc       | -O0       | nehalem        | nhm
+gcc_wsm_opt      | gcc       | -O3       | westmere       | wsm
+gcc_ivb_opt      | gcc       | -O3       | ivybridge      | ivb
+gcc_bdw_opt      | gcc       | -O3       | broadwell      | bdw
+gcc_knl_no_opt   | gcc       | -O0       | knl            | knl
+gcc_knl_opt      | gcc       | -O3       | knl            | knl
+gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
+gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
+
+clang_no_opt     | clang     | -O0       |                |
+clang_opt        | clang     | -O3       |                |
+clang_knl_no_opt | clang     | -O0       | knl            | knl
+clang_knl_opt    | clang     | -O3       | knl            | knl
+clang_skx_no_opt | clang     | -O0       | skx            | skx
+clang_skx_opt    | clang     | -O3       | skx            | skx

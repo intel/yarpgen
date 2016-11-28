@@ -16,8 +16,7 @@
 # limitations under the License.
 #
 ###############################################################################
-# We need some file to store compiler arguments. It can be stored in Makefile, but we need it in Python scripts.
-# So we store them here and generate Test_Makefile
+# This scripts creates Test_Makefile, basing on configuration file
 ###############################################################################
 
 import argparse
@@ -25,6 +24,7 @@ import datetime
 import logging
 import os
 import sys
+import re
 
 import common
 
@@ -43,6 +43,12 @@ for i in time_args:
     need_quotes = True if (i == "-f") else False
 
 time_run_str = time_exec + ' ' + time_args_str
+
+default_config_file = "test_sets.txt"
+comp_specs_line = "Compiler specs:"
+spec_list_len = 3
+test_sets_line = "Testing sets:"
+set_list_len = 5
 
 ###############################################################################
 # Section for Test_Makefile parameters
@@ -83,27 +89,27 @@ class SdeTarget (object):
         self.enum_value = enum_value
         SdeTarget.all_sde_targets.append(self)
 
-class SdeArch ():
-    # This list should be ordered!
-    p4  = SdeTarget("p4" , 0)
-    p4p = SdeTarget("p4p", 1)
-    mrm = SdeTarget("mrm", 2)
-    pnr = SdeTarget("pnr", 3)
-    nhm = SdeTarget("nhm", 4)
-    wsm = SdeTarget("wsm", 5)
-    snb = SdeTarget("snb", 6)
-    ivb = SdeTarget("ivb", 7)
-    hsw = SdeTarget("hsw", 8)
-    bdw = SdeTarget("bdw", 9)
-    skx = SdeTarget("skx", 10)
-    knl = SdeTarget("knl", 11)
-    native = SdeTarget("", 12) # It is a fake target and it should always be the last
+SdeArch = {}
+# This list should be ordered!
+SdeArch["p4"]  = SdeTarget("p4" , 0)
+SdeArch["p4p"] = SdeTarget("p4p", 1)
+SdeArch["mrm"] = SdeTarget("mrm", 2)
+SdeArch["pnr"] = SdeTarget("pnr", 3)
+SdeArch["nhm"] = SdeTarget("nhm", 4)
+SdeArch["wsm"] = SdeTarget("wsm", 5)
+SdeArch["snb"] = SdeTarget("snb", 6)
+SdeArch["ivb"] = SdeTarget("ivb", 7)
+SdeArch["hsw"] = SdeTarget("hsw", 8)
+SdeArch["bdw"] = SdeTarget("bdw", 9)
+SdeArch["skx"] = SdeTarget("skx", 10)
+SdeArch["knl"] = SdeTarget("knl", 11)
+SdeArch[""] = SdeTarget("", 12) # It is a fake target and it should always be the last
 
 def define_sde_arch (native, target):
-    if (target == SdeArch.skx and native != SdeArch.skx):
-        return SdeArch.skx.name
-    if (target == SdeArch.knl and native != SdeArch.knl):
-        return SdeArch.knl.name
+    if (target == SdeArch["skx"] and native != SdeArch["skx"]):
+        return SdeArch["skx"].name
+    if (target == SdeArch["knl"] and native != SdeArch["knl"]):
+        return SdeArch["knl"].name
     if (native.enum_value < target.enum_value):
         return target.name
     return ""
@@ -124,9 +130,6 @@ class Compiler_specs (object):
     def set_version (self, version):
         self.version = version
 
-gcc_specs = Compiler_specs("gcc", "g++", "-w")
-ubsan_specs = Compiler_specs("ubsan", "clang++", "-O0 -fsanitize=undefined -w")
-clang_specs = Compiler_specs("clang", "clang++", "-w")
 
 class Arch (object):
     def __init__ (self, comp_name, sde_arch):
@@ -137,35 +140,68 @@ class Arch (object):
 class Compiler_target (object):
     all_targets = []
 
-    def __init__ (self, name, specs, args, arch, target_list):
+    def __init__ (self, name, specs, args, arch):
         self.name = name
         self.specs = specs
         self.args = specs.common_args + " " + args
         self.arch = arch
         Compiler_target.all_targets.append(self)
-        target_list.append(self)
 
-gcc_targets = []
-ubsan_targets = []
-clang_targets = []
 
-ubsan = Compiler_target("ubsan", ubsan_specs, "",  Arch("", SdeArch.native), ubsan_targets)
+###############################################################################
+# Section for config parser
 
-gcc_no_opt     = Compiler_target("gcc_no_opt"    , gcc_specs, "-O0", Arch("nehalem", SdeArch.nhm)       , gcc_targets)
-gcc_wsm_opt    = Compiler_target("gcc_wsm_opt"   , gcc_specs, "-O3", Arch("westmere", SdeArch.wsm)      , gcc_targets)
-gcc_ivb_opt    = Compiler_target("gcc_ivb_opt"   , gcc_specs, "-O3", Arch("ivybridge", SdeArch.ivb)     , gcc_targets)
-gcc_bdw_opt    = Compiler_target("gcc_bdw_opt"   , gcc_specs, "-O3", Arch("broadwell", SdeArch.bdw)     , gcc_targets)
-gcc_knl_no_opt = Compiler_target("gcc_knl_no_opt", gcc_specs, "-O0", Arch("knl", SdeArch.knl)           , gcc_targets)
-gcc_knl_opt    = Compiler_target("gcc_knl_opt"   , gcc_specs, "-O3", Arch("knl", SdeArch.knl)           , gcc_targets)
-gcc_skx_no_opt = Compiler_target("gcc_skx_no_opt", gcc_specs, "-O0", Arch("skylake-avx512", SdeArch.skx), gcc_targets)
-gcc_skx_opt    = Compiler_target("gcc_skx_opt"   , gcc_specs, "-O3", Arch("skylake-avx512", SdeArch.skx), gcc_targets)
+def skip_line(line):
+    return line.startswith("#") or re.match(r'^\s*$', line)
 
-clang_no_opt     = Compiler_target("clang_no_opt"    , clang_specs, "-O0",  Arch("", SdeArch.native), clang_targets)
-clang_opt        = Compiler_target("clang_opt"       , clang_specs, "-O3",  Arch("", SdeArch.native), clang_targets)
-clang_knl_no_opt = Compiler_target("clang_knl_no_opt", clang_specs, "-O0",  Arch("knl", SdeArch.knl), clang_targets)
-clang_knl_opt    = Compiler_target("clang_knl_opt"   , clang_specs, "-O3",  Arch("knl", SdeArch.knl), clang_targets)
-clang_skx_no_opt = Compiler_target("clang_skx_no_opt", clang_specs, "-O0",  Arch("skx", SdeArch.skx), clang_targets)
-clang_skx_opt    = Compiler_target("clang_skx_opt"   , clang_specs, "-O3",  Arch("skx", SdeArch.skx), clang_targets)
+def check_config_list (config_list, fixed_len, message):
+    common.log_msg(logging.DEBUG, "Adding config list: " + str(config_list))
+    if len(config_list) < fixed_len:
+        common.print_and_exit(message + str(config_list))
+    config_list = [x.strip() for x in config_list]
+    return config_list
+
+def add_specs (spec_list):
+    spec_list = check_config_list(spec_list, spec_list_len, "Error in spec string, check it: ")
+    try:
+        Compiler_specs(spec_list [0], spec_list [1], spec_list [2])
+        common.log_msg(logging.DEBUG, "Finished adding compiler spec")
+    except KeyError:
+        common.print_and_exit("Can't find key!")
+
+
+def add_sets (set_list):
+    set_list = check_config_list(set_list, set_list_len, "Error in set string, check it: ")
+    try:
+        Compiler_target(set_list [0], Compiler_specs.all_comp_specs [set_list [1]], set_list [2],
+                        Arch(set_list [3], SdeArch[set_list [4]]))
+        common.log_msg(logging.DEBUG, "Finished adding testing set")
+    except KeyError:
+        common.print_and_exit("Can't find key!")
+
+def read_compiler_specs (config_iter, function, next_section_name = ""):
+    for i in config_iter:
+        if skip_line(i):
+            continue
+        if (next_section_name != "" and i.startswith(next_section_name)):
+            return
+        specs = i.split("|")
+        function(specs)
+
+def parse_config(file_name):
+    config_file = common.check_and_open_file(file_name, "r")
+    config = config_file.read().splitlines()
+    config_file.close ()
+    if not any(s.startswith(comp_specs_line) for s in config) or \
+       not any(s.startswith(test_sets_line ) for s in config):
+        common.print_and_exit("Invalid condig file! Check it!")
+    config_iter = iter(config)
+    for i in config_iter:
+        if skip_line(i):
+            continue
+        if (i.startswith(comp_specs_line)):
+            read_compiler_specs(config_iter, add_specs, test_sets_line)
+            read_compiler_specs(config_iter, add_sets)
 
 ###############################################################################
 
@@ -195,7 +231,8 @@ def detect_native_arch():
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, verbose):
+def gen_makefile(out_file_name, force, verbose, config_file):
+    parse_config(config_file)
     output = ""
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for i in license_file:
@@ -259,6 +296,8 @@ if __name__ == '__main__':
 
     description = 'Generator of Test_Makefiles.'
     parser = argparse.ArgumentParser(description = description, formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--config-file", dest = "config_file", default = "test_sets.txt", type = str,
+                        help = "Configuration file for testing")
     parser.add_argument("-o", "--output", dest = "out_file", default = "Test_Makefile", type = str,
                         help = "Output file")
     parser.add_argument("-f", "--force", dest = "force", default = False, action = "store_true",
@@ -271,10 +310,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     log_file = common.wrap_log_file(str(args.log_file), default_log_file)
-    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.DEBUG)
+    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.INFO)
 
     log_level = logging.DEBUG if (args.verbose) else logging.ERROR
     common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)
 
     common.check_python_version()
-    gen_makefile(os.path.abspath(args.out_file), args.force, args.verbose)
+    gen_makefile(os.path.abspath(args.out_file), args.force, args.verbose, args.config_file)

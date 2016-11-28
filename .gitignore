@@ -9,3 +9,4 @@ found/old-*
 check_isa
 Test_Makefile
 testing_log_*
+gen_test_makefile_log_*
