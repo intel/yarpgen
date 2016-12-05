@@ -1,4 +1,4 @@
-#!/usr/bin/python3.3
+#!/usr/bin/python3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -304,13 +304,16 @@ if __name__ == '__main__':
                         help = "Rewrite output file")
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true", 
                         help = "Increase output verbosity")
-    default_log_file = "gen_test_makefile_log"
+    parser.add_argument("-efl", "--enable-file-logging", dest="enable_file_logging", default = False, action = "store_true",
+                         help = "Enable logging to file.")
+    default_log_file = "gen_test_makefile.log"
     parser.add_argument("--log-file", dest="log_file", default = default_log_file, type = str,
                         help = "Logfile")
     args = parser.parse_args()
 
-    log_file = common.wrap_log_file(str(args.log_file), default_log_file)
-    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.INFO)
+    if (args.enable_file_logging or args.log_file != default_log_file):
+        log_file = common.wrap_log_file(str(args.log_file), default_log_file)
+        common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.DEBUG)
 
     log_level = logging.DEBUG if (args.verbose) else logging.ERROR
     common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)

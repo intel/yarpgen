@@ -1,4 +1,4 @@
-#!/usr/bin/python3.3
+#!/usr/bin/python3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -151,58 +151,7 @@ class Statistics (object):
 MyManager.register("Statistics", Statistics)
 
 
-
-def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs, stat_verbose, config_file):
-    common.check_dir_and_create (out_dir)
-
-    # Check for binary of generator
-    yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
-    common.check_and_copy (yarpgen_bin, out_dir)
-    ret_code, output, err_output, time_expired = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
-    common.yarpgen_version = output
-    #TODO: need to add some check, but I hope that it is safe
-    common.log_msg(logging.DEBUG, "YARPGEN version: " + str(common.yarpgen_version))
-
-    # Generate Test_Makefile and copy it
-    Test_Makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
-    gen_test_makefile.gen_makefile(Test_Makefile_location, True, verbose, config_file)
-    common.check_and_copy (Test_Makefile_location, out_dir)
-
-    common.log_msg(logging.INFO, "Testing sets: ")
-    for i in gen_test_makefile.Compiler_target.all_targets:
-        if (i.specs.name in compiler.split()):
-            common.log_msg(logging.INFO, i.name)
-
-    # Search for target compilers and print their location and version
-    for i in compiler.split():
-        comp_exec_name = gen_test_makefile.Compiler_specs.all_comp_specs [i].comp_name
-        if not common.if_exec_exist(comp_exec_name):
-            common.print_and_exit("Can't find " + comp_exec_name + " binary")
-        ret_code, output, err_output, time_expired = common.run_cmd([comp_exec_name, "--version"])
-        #TODO: I hope it will work for all compilers
-        common.log_msg(logging.DEBUG, str(output.splitlines() [0], "utf-8"))
-        gen_test_makefile.Compiler_specs.all_comp_specs [i].set_version(str(output.splitlines() [0], "utf-8"))
-
-    os.chdir(out_dir)
-    common.check_dir_and_create(res_dir)
-    for i in range(num_jobs):
-        common.check_dir_and_create(process_dir + str(i))
-        common.check_and_copy (Test_Makefile_location, process_dir + str(i))
-
-    lock = multiprocessing.Lock()
-    manager = Manager()
-    stat = manager.Statistics()
-
-    start_time = time.time()
-    end_time = start_time + timeout * 10
-    if timeout == -1:
-        end_time = -1
-
-    task_threads = [0] * num_jobs
-    for num in range(num_jobs):
-        task_threads [num] =  multiprocessing.Process(target = gen_and_test, args = (num, lock, end_time, stat, compiler))
-        task_threads [num].start()
-
+def print_statistics (lock, stat_verbose, stat, target, task_threads, num_jobs):
     any_alive = True
     stat_str = ""
     while any_alive:
@@ -224,7 +173,7 @@ def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs
             stat_str += "\t" + runfail_timeout + " : " + str(stat.get_yarpgen_runs(runfail_timeout)) + "\n"
             stat_str += "\t" + runfail + " : " + str(stat.get_yarpgen_runs(runfail)) + "\n"
             for i in gen_test_makefile.Compiler_target.all_targets:
-                if (not i.specs.name in compiler.split()):
+                if (not i.specs.name in target.split()):
                     continue
                 stat_str += "\n##########################\n"
                 stat_str += i.name + " stat:" + "\n"
@@ -249,7 +198,7 @@ def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs
             total_compfail = 0
             total_out_dif = 0
             for i in gen_test_makefile.Compiler_target.all_targets:
-                if (not i.specs.name in compiler.split()):
+                if (not i.specs.name in target.split()):
                     continue
                 total_duration += stat.get_target_duration(i.name)
                 total_runs += stat.get_target_runs(i.name, total)
@@ -281,6 +230,61 @@ def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs
         else:
             time.sleep(stat_update_delay)
 
+
+
+def prepare_env_and_start_testing (verbose, out_dir, timeout, target, num_jobs, stat_verbose, config_file):
+    common.check_dir_and_create (out_dir)
+
+    # Check for binary of generator
+    yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
+    common.check_and_copy (yarpgen_bin, out_dir)
+    ret_code, output, err_output, time_expired = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
+    common.yarpgen_version = output
+    #TODO: need to add some check, but I hope that it is safe
+    common.log_msg(logging.DEBUG, "YARPGEN version: " + str(common.yarpgen_version))
+
+    # Generate Test_Makefile and copy it
+    Test_Makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
+    gen_test_makefile.gen_makefile(Test_Makefile_location, True, verbose, config_file)
+    common.check_and_copy (Test_Makefile_location, out_dir)
+
+    common.log_msg(logging.INFO, "Testing sets: ")
+    for i in gen_test_makefile.Compiler_target.all_targets:
+        if (i.specs.name in target.split()):
+            common.log_msg(logging.INFO, i.name)
+
+    # Search for target compilers and print their location and version
+    for i in target.split():
+        comp_exec_name = gen_test_makefile.Compiler_specs.all_comp_specs [i].comp_name
+        if not common.if_exec_exist(comp_exec_name):
+            common.print_and_exit("Can't find " + comp_exec_name + " binary")
+        ret_code, output, err_output, time_expired = common.run_cmd([comp_exec_name, "--version"])
+        #TODO: I hope it will work for all compilers
+        common.log_msg(logging.DEBUG, str(output.splitlines() [0], "utf-8"))
+        gen_test_makefile.Compiler_specs.all_comp_specs [i].set_version(str(output.splitlines() [0], "utf-8"))
+
+    os.chdir(out_dir)
+    common.check_dir_and_create(res_dir)
+    for i in range(num_jobs):
+        common.check_dir_and_create(process_dir + str(i))
+        common.check_and_copy (Test_Makefile_location, process_dir + str(i))
+
+    lock = multiprocessing.Lock()
+    manager = Manager()
+    stat = manager.Statistics()
+
+    start_time = time.time()
+    end_time = start_time + timeout * 10
+    if timeout == -1:
+        end_time = -1
+
+    task_threads = [0] * num_jobs
+    for num in range(num_jobs):
+        task_threads [num] =  multiprocessing.Process(target = gen_and_test, args = (num, lock, end_time, stat, target))
+        task_threads [num].start()
+
+    print_statistics(lock, stat_verbose, stat, target, task_threads, num_jobs)
+
     sys.stdout.write("\n")
     for i in range(num_jobs):
         common.log_msg(logging.DEBUG, "Removing " + process_dir + str(i) + " dir")
@@ -288,7 +292,7 @@ def prepare_env_and_start_testing (verbose, out_dir, timeout, compiler, num_jobs
 
 
 
-def gen_and_test(num, lock, end_time, stat, compilers):
+def gen_and_test(num, lock, end_time, stat, target):
     common.log_msg(logging.DEBUG,"Job #" + str(num))
     os.chdir(process_dir + str(num))
     inf = (end_time == -1)
@@ -315,7 +319,7 @@ def gen_and_test(num, lock, end_time, stat, compilers):
         out_res = set()
         prev_out_res_len = 1 # We can't check first result
         for i in gen_test_makefile.Compiler_target.all_targets:
-            if (not i.specs.name in compilers.split()):
+            if (not i.specs.name in target.split()):
                 continue
             # Clear time_log file in case it has left after previous target
             common.remove_file_if_exists(gen_test_makefile.time_log_file_name)
@@ -433,21 +437,24 @@ Use specified folder for testing
     parser.add_argument("-o", "--output", dest = "out_dir", default = "testing", type = str,
                         help = "Directory, which is used for testing.")
     parser.add_argument("-t", "--timeout", dest = "timeout", type = int, default = 1,
-                        help = "Timeout for testing system in hours. -1 means infinity")
-    parser.add_argument("-c", "--compiler", dest = "compiler", default = "clang ubsan gcc", type = str,
-                        help = "Compilers for testing. Possible variants are clang, ubsan and gcc.")
+                        help = "Timeout for test system in hours. -1 means infinity")
+    parser.add_argument("--target", dest = "target", default = "clang ubsan gcc", type = str,
+                        help = "Targets for testing (see test_sets.txt). By default, possible variants are clang, ubsan and gcc \
+                        (ubsan is a clang with sanitizer options).")
     parser.add_argument("-j", dest = "num_jobs", default = multiprocessing.cpu_count(), type = int,
-                        help='Maximum number of instances to run in parallel')
+                        help='Maximum number of instances to run in parallel. By defaulti, it is set to number of processor in your system')
     parser.add_argument("--config-file", dest = "config_file", default = "test_sets.txt", type = str,
                             help = "Configuration file for testing")
-    default_log_file = "run_gen_log"
+    parser.add_argument("-dfl", "--disable-file-logging", dest="disable_file_logging", default = False, action = "store_true",
+                        help = "Disable logging to file.")
+    default_log_file = "run_gen.log"
     parser.add_argument("--log-file", dest="log_file", default = default_log_file, type = str,
                         help = "Logfile")
     parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true",
                         help = "Increase output verbosity")
     parser.add_argument("-sv", "--stat-verbose", dest = "stat_verbose", default = False, action = "store_true",
                         help = "Increase output verbosity for statistics")
-    default_stat_log_file = "statistics_log"
+    default_stat_log_file = "statistics.log"
     parser.add_argument("--stat-log-file", dest="stat_log_file", default = default_stat_log_file, type = str,
                         help = "Logfile")
     args = parser.parse_args()
@@ -458,17 +465,19 @@ Use specified folder for testing
     logs_to_dir = "."
     log_file_is_def = str(args.log_file) == default_log_file
     stat_log_file_is_def = str(args.stat_log_file) == default_stat_log_file
-    if (log_file_is_def or stat_log_file_is_def):
+    if (not args.disable_file_logging and (log_file_is_def or stat_log_file_is_def)):
         logs_to_dir = "testing_log" + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         common.check_dir_and_create(logs_to_dir)
 
-    log_file = str(args.log_file) if not log_file_is_def else (logs_to_dir + os.sep + str(args.log_file))
-    common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.INFO)
+    if (not args.disable_file_logging or not log_file_is_def):
+        log_file = str(args.log_file) if not log_file_is_def else (logs_to_dir + os.sep + str(args.log_file))
+        common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.INFO)
 
-    stat_log_file = str(args.stat_log_file) if not stat_log_file_is_def else (logs_to_dir + os.sep + str(args.stat_log_file))
-    common.setup_logger(logger_name = common.stat_logger_name, log_file = stat_log_file, file_mode = "w", log_level = logging.INFO)
+    if (not args.disable_file_logging or not stat_log_file_is_def):
+        stat_log_file = str(args.stat_log_file) if not stat_log_file_is_def else (logs_to_dir + os.sep + str(args.stat_log_file))
+        common.setup_logger(logger_name = common.stat_logger_name, log_file = stat_log_file, file_mode = "w", log_level = logging.INFO)
 
     script_start_time = datetime.datetime.now()
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
-    prepare_env_and_start_testing(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.compiler, args.num_jobs, args.stat_verbose, args.config_file)
+    prepare_env_and_start_testing(args.verbose, os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs, args.stat_verbose, args.config_file)

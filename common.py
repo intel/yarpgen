@@ -1,4 +1,4 @@
-#!/usr/bin/python3.3
+#!/usr/bin/python3
 ###############################################################################
 #
 # Copyright (c) 2015-2016, Intel Corporation
@@ -56,7 +56,8 @@ def setup_logger (logger_name = "", log_file = "", file_mode = "a", log_level = 
 
 def wrap_log_file (log_file, default_log_file):
     if (log_file == default_log_file):
-        return log_file + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        log_file = log_file.replace(".log", "")
+        return log_file + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S') + ".log"
     else:
         return log_file
 
