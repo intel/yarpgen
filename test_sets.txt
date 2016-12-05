@@ -25,8 +25,9 @@
 Compiler specs:
 # Spec name | Executable name | Common arguments
 gcc         | g++             | -w
-ubsan       | clang++         | -O0 -fsanitize=undefined -w
 clang       | clang++         | -w
+#Ubsan it is clang with sanitizer options. It is used for generator check.
+ubsan       | clang++         | -O0 -fsanitize=undefined -w
 
 
 Testing sets:
