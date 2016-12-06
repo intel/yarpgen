@@ -20,7 +20,6 @@
 ###############################################################################
 
 import argparse
-import datetime
 import logging
 import os
 import sys
@@ -30,6 +29,7 @@ import common
 
 license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
+default_test_sets_file_name = "test_sets.txt"
 
 time_exec = "/usr/bin/time"
 time_output_format = '%U %S'
@@ -53,8 +53,9 @@ set_list_len = 5
 ###############################################################################
 # Section for Test_Makefile parameters
 
-class Makefile_variable ():
-    '''A special class, which should link together name and value of parameters'''
+
+class MakefileVariable:
+    """A special class, which should link together name and value of parameters"""
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -62,34 +63,35 @@ class Makefile_variable ():
 # I can't use build-in dictionary, because variables should be ordered
 Makefile_variable_list = []
 
-cxx_flags = Makefile_variable("CXXFLAGS", "-std=c++11")
+cxx_flags = MakefileVariable("CXXFLAGS", "-std=c++11")
 Makefile_variable_list.append(cxx_flags)
 
-ld_flags = Makefile_variable("LDFLAGS", "-std=c++11")
+ld_flags = MakefileVariable("LDFLAGS", "-std=c++11")
 Makefile_variable_list.append(ld_flags)
 
-sources = Makefile_variable("SOURCES", "init.cpp driver.cpp func.cpp check.cpp hash.cpp")
+sources = MakefileVariable("SOURCES", "init.cpp driver.cpp func.cpp check.cpp hash.cpp")
 Makefile_variable_list.append(sources)
 
-headers = Makefile_variable("HEADERS", "init.h")
+headers = MakefileVariable("HEADERS", "init.h")
 Makefile_variable_list.append(headers)
 
-executable = Makefile_variable("EXECUTABLE", "out")
+executable = MakefileVariable("EXECUTABLE", "out")
 Makefile_variable_list.append(executable)
-#Makefile_variable_list.append(Makefile_variable("",""))
+# Makefile_variable_list.append(Makefile_variable("",""))
 
 ###############################################################################
 # Section for sde
 
+
 class SdeTarget (object):
     all_sde_targets = []
 
-    def __init__ (self, name, enum_value):
+    def __init__(self, name, enum_value):
         self.name = name
         self.enum_value = enum_value
         SdeTarget.all_sde_targets.append(self)
 
-SdeArch = {}
+SdeArch = dict()
 # This list should be ordered!
 SdeArch["p4"]  = SdeTarget("p4" , 0)
 SdeArch["p4p"] = SdeTarget("p4p", 1)
@@ -103,49 +105,51 @@ SdeArch["hsw"] = SdeTarget("hsw", 8)
 SdeArch["bdw"] = SdeTarget("bdw", 9)
 SdeArch["skx"] = SdeTarget("skx", 10)
 SdeArch["knl"] = SdeTarget("knl", 11)
-SdeArch[""] = SdeTarget("", 12) # It is a fake target and it should always be the last
+SdeArch[""] = SdeTarget("", 12)  # It is a fake target and it should always be the last
 
-def define_sde_arch (native, target):
-    if (target == SdeArch["skx"] and native != SdeArch["skx"]):
+
+def define_sde_arch(native, target):
+    if target == SdeArch["skx"] and native != SdeArch["skx"]:
         return SdeArch["skx"].name
-    if (target == SdeArch["knl"] and native != SdeArch["knl"]):
+    if target == SdeArch["knl"] and native != SdeArch["knl"]:
         return SdeArch["knl"].name
-    if (native.enum_value < target.enum_value):
+    if native.enum_value < target.enum_value:
         return target.name
     return ""
 
 ###############################################################################
 # Section for targets
 
-class Compiler_specs (object):
+
+class CompilerSpecs (object):
     all_comp_specs = dict()
 
-    def __init__ (self, name, exec_name, common_args):
+    def __init__(self, name, exec_name, common_args):
         self.name = name
         self.comp_name = exec_name
         self.common_args = common_args
         self.version = "unknown"
-        Compiler_specs.all_comp_specs [name] = self
+        CompilerSpecs.all_comp_specs[name] = self
 
-    def set_version (self, version):
+    def set_version(self, version):
         self.version = version
 
 
 class Arch (object):
-    def __init__ (self, comp_name, sde_arch):
+    def __init__(self, comp_name, sde_arch):
         self.comp_name = comp_name
         self.sde_arch = sde_arch
 
 
-class Compiler_target (object):
+class CompilerTarget (object):
     all_targets = []
 
-    def __init__ (self, name, specs, args, arch):
+    def __init__(self, name, specs, target_args, arch):
         self.name = name
         self.specs = specs
-        self.args = specs.common_args + " " + args
+        self.args = specs.common_args + " " + target_args
         self.arch = arch
-        Compiler_target.all_targets.append(self)
+        CompilerTarget.all_targets.append(self)
 
 
 ###############################################################################
@@ -154,134 +158,140 @@ class Compiler_target (object):
 def skip_line(line):
     return line.startswith("#") or re.match(r'^\s*$', line)
 
-def check_config_list (config_list, fixed_len, message):
+
+def check_config_list(config_list, fixed_len, message):
     common.log_msg(logging.DEBUG, "Adding config list: " + str(config_list))
     if len(config_list) < fixed_len:
         common.print_and_exit(message + str(config_list))
     config_list = [x.strip() for x in config_list]
     return config_list
 
-def add_specs (spec_list):
+
+def add_specs(spec_list):
     spec_list = check_config_list(spec_list, spec_list_len, "Error in spec string, check it: ")
     try:
-        Compiler_specs(spec_list [0], spec_list [1], spec_list [2])
+        CompilerSpecs(spec_list[0], spec_list[1], spec_list[2])
         common.log_msg(logging.DEBUG, "Finished adding compiler spec")
     except KeyError:
         common.print_and_exit("Can't find key!")
 
 
-def add_sets (set_list):
+def add_sets(set_list):
     set_list = check_config_list(set_list, set_list_len, "Error in set string, check it: ")
     try:
-        Compiler_target(set_list [0], Compiler_specs.all_comp_specs [set_list [1]], set_list [2],
-                        Arch(set_list [3], SdeArch[set_list [4]]))
+        CompilerTarget(set_list[0], CompilerSpecs.all_comp_specs[set_list[1]], set_list[2],
+                       Arch(set_list[3], SdeArch[set_list[4]]))
         common.log_msg(logging.DEBUG, "Finished adding testing set")
     except KeyError:
         common.print_and_exit("Can't find key!")
 
-def read_compiler_specs (config_iter, function, next_section_name = ""):
-    for i in config_iter:
-        if skip_line(i):
+
+def read_compiler_specs(config_iter, function, next_section_name=""):
+    for config_line in config_iter:
+        if skip_line(config_line):
             continue
-        if (next_section_name != "" and i.startswith(next_section_name)):
+        if next_section_name != "" and config_line.startswith(next_section_name):
             return
-        specs = i.split("|")
+        specs = config_line.split("|")
         function(specs)
+
 
 def parse_config(file_name):
     config_file = common.check_and_open_file(file_name, "r")
     config = config_file.read().splitlines()
-    config_file.close ()
-    if not any(s.startswith(comp_specs_line) for s in config) or \
-       not any(s.startswith(test_sets_line ) for s in config):
-        common.print_and_exit("Invalid condig file! Check it!")
+    config_file.close()
+    if not any(s.startswith(comp_specs_line) for s in config) or not any(s.startswith(test_sets_line) for s in config):
+        common.print_and_exit("Invalid config file! Check it!")
     config_iter = iter(config)
-    for i in config_iter:
-        if skip_line(i):
+    for config_line in config_iter:
+        if skip_line(config_line):
             continue
-        if (i.startswith(comp_specs_line)):
+        if config_line.startswith(comp_specs_line):
             read_compiler_specs(config_iter, add_specs, test_sets_line)
             read_compiler_specs(config_iter, add_sets)
 
 ###############################################################################
 
+
 def detect_native_arch():
     sys_compiler = ""
-    for i in Compiler_specs.all_comp_specs:
-        exec_name = Compiler_specs.all_comp_specs[i].comp_name
+    for key in CompilerSpecs.all_comp_specs:
+        exec_name = CompilerSpecs.all_comp_specs[key].comp_name
         if common.if_exec_exist(exec_name):
             sys_compiler = exec_name
-    if (sys_compiler == ""):
+    if sys_compiler == "":
         common.print_and_exit("Can't find any compiler")
 
     check_isa_file = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name)
     check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
-    if (not os.path.exists(check_isa_file)):
+    if not os.path.exists(check_isa_file):
         common.print_and_exit("Can't find " + check_isa_file)
-    ret_code, output, err_output, time_expired = common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
-    if (ret_code != 0):
-         common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
+    ret_code, output, err_output, time_expired = \
+        common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
+    if ret_code != 0:
+        common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
     ret_code, output, err_output, time_expired = common.run_cmd([check_isa_binary], None, 0)
-    if (ret_code != 0):
+    if ret_code != 0:
         common.print_and_exit("Error while executing " + check_isa_binary)
     native_arch_str = str(output, "utf-8").split()[0]
-    for i in SdeTarget.all_sde_targets:
-        if (i.name == native_arch_str):
-            return i
+    for sde_target in SdeTarget.all_sde_targets:
+        if sde_target.name == native_arch_str:
+            return sde_target
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, verbose, config_file):
+def gen_makefile(out_file_name, force, config_file):
     parse_config(config_file)
     output = ""
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
-    for i in license_file:
-        output += "#" + i
+    for license_str in license_file:
+        output += "#" + license_str
     output += "###############################################################################\n" 
 
     output += "#This file was generated automatically.\n"
     output += "#If you want to make a permanent changes, you should edit gen_test_makefile.py\n"
     output += "###############################################################################\n\n"
 
-    for i in Makefile_variable_list:
-        output += i.name + "=" + i.value + "\n"
+    for makefile_variable in Makefile_variable_list:
+        output += makefile_variable.name + "=" + makefile_variable.value + "\n"
     output += "\n"
 
-    for i in Compiler_target.all_targets:
-        output += i.name + ": " + "COMPILER=" + i.specs.comp_name + "\n"
-        output += i.name + ": " + "OPTFLAGS=" + i.args
-        if (i.arch.comp_name != ""):
-            output += " -march=" + i.arch.comp_name + " "
+    for target in CompilerTarget.all_targets:
+        output += target.name + ": " + "COMPILER=" + target.specs.comp_name + "\n"
+        output += target.name + ": " + "OPTFLAGS=" + target.args
+        if target.arch.comp_name != "":
+            output += " -march=" + target.arch.comp_name + " "
         output += "\n"
-        output += i.name + ": " + "EXECUTABLE=" + i.name + "_" + executable.value + "\n"
-        output += i.name + ": " + "$(addprefix " + i.name + "_, $(SOURCES:.cpp=.o))\n"
+        output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
+        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:.cpp=.o))\n"
         output += "\t" + time_run_str + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
 
     # Force make to rebuild everything
-    #TODO: replace with PHONY
+    # TODO: replace with PHONY
     output += "FORCE:\n\n"
     
-    for i in sources.value.split():
-        source_name = i.split(".") [0]
-        output += "%" + source_name + ".o: "+ i + " FORCE\n"
+    for source in sources.value.split():
+        source_name = source.split(".")[0]
+        output += "%" + source_name + ".o: " + source + " FORCE\n"
         output += "\t" + time_run_str + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
 
     output += "clean:\n"
     output += "\trm *.o $(EXECUTABLE)\n\n"
 
     native_arch = detect_native_arch()
-    for i in Compiler_target.all_targets:
-        output += "run_" + i.name + ": " + i.name + "_" + executable.value + "\n"
+    for target in CompilerTarget.all_targets:
+        output += "run_" + target.name + ": " + target.name + "_" + executable.value + "\n"
         output += "\t" + time_run_str 
-        required_sde_arch = define_sde_arch(native_arch, i.arch.sde_arch)
-        if (required_sde_arch != ""):
+        required_sde_arch = define_sde_arch(native_arch, target.arch.sde_arch)
+        if required_sde_arch != "":
             output += "sde -" + required_sde_arch + " -- "
-        output += "." + os.sep + i.name + "_" + executable.value + "\n\n"
+        output += "." + os.sep + target.name + "_" + executable.value + "\n\n"
 
-    if (not os.path.isfile(out_file_name)):
+    out_file = None
+    if not os.path.isfile(out_file_name):
         out_file = open(out_file_name, "w")
     else:
-        if (force):
+        if force:
             out_file = open(out_file_name, "w")
         else:
             common.print_and_exit("File already exists. Use -f if you want to rewrite it.")
@@ -291,32 +301,32 @@ def gen_makefile(out_file_name, force, verbose, config_file):
 ###############################################################################
 
 if __name__ == '__main__':
-    if os.environ.get("YARPGEN_HOME") == None:
-        sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, using " + common.yarpgen_home + " for now\n")
+    if os.environ.get("YARPGEN_HOME") is None:
+        sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, "
+                         "using " + common.yarpgen_home + " for now\n")
 
     description = 'Generator of Test_Makefiles.'
-    parser = argparse.ArgumentParser(description = description, formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--config-file", dest = "config_file", default = "test_sets.txt", type = str,
-                        help = "Configuration file for testing")
-    parser.add_argument("-o", "--output", dest = "out_file", default = "Test_Makefile", type = str,
-                        help = "Output file")
-    parser.add_argument("-f", "--force", dest = "force", default = False, action = "store_true",
-                        help = "Rewrite output file")
-    parser.add_argument("-v", "--verbose", dest = "verbose", default = False, action = "store_true", 
-                        help = "Increase output verbosity")
-    parser.add_argument("-efl", "--enable-file-logging", dest="enable_file_logging", default = False, action = "store_true",
-                         help = "Enable logging to file.")
-    default_log_file = "gen_test_makefile.log"
-    parser.add_argument("--log-file", dest="log_file", default = default_log_file, type = str,
-                        help = "Logfile")
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--config-file", dest="config_file", default=default_test_sets_file_name, type=str,
+                        help="Configuration file for testing")
+    parser.add_argument("-o", "--output", dest="out_file", default="Test_Makefile", type=str,
+                        help="Output file")
+    parser.add_argument("-f", "--force", dest="force", default=False, action="store_true",
+                        help="Rewrite output file")
+    parser.add_argument("-v", "--verbose", dest="verbose", default=False, action="store_true",
+                        help="Increase output verbosity")
+    parser.add_argument("-efl", "--enable-file-logging", dest="enable_file_logging", default=False, action="store_true",
+                        help="Enable logging to file.")
+    parser.add_argument("--log-file", dest="log_file", default="gen_test_makefile.log", type=str,
+                        help="Logfile")
     args = parser.parse_args()
 
-    if (args.enable_file_logging or args.log_file != default_log_file):
-        log_file = common.wrap_log_file(str(args.log_file), default_log_file)
-        common.setup_logger(logger_name = common.file_logger_name, log_file = log_file, log_level = logging.DEBUG)
+    if args.enable_file_logging or args.log_file != parser.get_default("log_file"):
+        log_file = common.wrap_log_file(str(args.log_file), parser.get_default("log_file"))
+        common.setup_logger(logger_name=common.file_logger_name, log_file=log_file, log_level=logging.DEBUG)
 
-    log_level = logging.DEBUG if (args.verbose) else logging.ERROR
-    common.setup_logger(logger_name = common.stderr_logger_name, log_level = log_level, write_to_stderr = True)
+    log_level = logging.DEBUG if args.verbose else logging.ERROR
+    common.setup_logger(logger_name=common.stderr_logger_name, log_level=log_level, write_to_stderr=True)
 
     common.check_python_version()
-    gen_makefile(os.path.abspath(args.out_file), args.force, args.verbose, args.config_file)
+    gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file)

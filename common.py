@@ -38,38 +38,38 @@ stat_logger_name = "stat_logger"
 stat_logger = logging.getLogger(stat_logger_name)
 
 
-def setup_logger (logger_name = "", log_file = "", file_mode = "a", log_level = logging.ERROR, write_to_stderr = False):
+def setup_logger(logger_name="", log_file="", file_mode="a", log_level=logging.ERROR, write_to_stderr=False):
     l = logging.getLogger(logger_name)
     formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
     l.setLevel(log_level)
 
-    if (log_file != ""):
-        fileHandler = logging.FileHandler(log_file, mode = file_mode)
-        fileHandler.setFormatter(formatter)
-        l.addHandler(fileHandler)
+    if log_file != "":
+        file_handler = logging.FileHandler(log_file, mode=file_mode)
+        file_handler.setFormatter(formatter)
+        l.addHandler(file_handler)
 
-    if (write_to_stderr):
-        streamHandler = logging.StreamHandler()
-        streamHandler.setFormatter(formatter)
-        l.addHandler(streamHandler)
+    if write_to_stderr:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        l.addHandler(stream_handler)
 
 
-def wrap_log_file (log_file, default_log_file):
-    if (log_file == default_log_file):
+def wrap_log_file(log_file, default_log_file):
+    if log_file == default_log_file:
         log_file = log_file.replace(".log", "")
         return log_file + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S') + ".log"
     else:
         return log_file
 
 
-def log_msg (log_level, message):
+def log_msg(log_level, message):
     stderr_logger.log(log_level, message)
     file_logger.log(log_level, message)
 
 
-def print_and_exit (msg):
+def print_and_exit(msg):
     log_msg(logging.ERROR, msg)
-    exit (-1)
+    exit(-1)
 
 
 def check_python_version():
@@ -79,12 +79,12 @@ def check_python_version():
 
 def check_and_open_file(file_name, mode):
     norm_file_name = os.path.abspath(file_name)
-    if (not os.path.isfile(norm_file_name)):
+    if not os.path.isfile(norm_file_name):
         print_and_exit("File " + norm_file_name + " doesn't exist and can't be opened")
     return open(norm_file_name, mode)
 
 
-def check_and_copy (src, dst):
+def check_and_copy(src, dst):
     if not isinstance(src, str) or not isinstance(dst, str):
         print_and_exit("Src and dst should be strings")
     norm_src = os.path.abspath(src)
@@ -96,25 +96,31 @@ def check_and_copy (src, dst):
         print_and_exit("File " + norm_src + " wasn't found")
 
 
-def check_dir_and_create (directory):
+def check_if_dir_exists(directory):
     norm_dir = os.path.abspath(directory)
-    if (not os.path.exists(norm_dir)):
+    if not os.path.exists(norm_dir) or not os.path.isdir(norm_dir):
+        return False
+    return True
+
+
+def check_dir_and_create(directory):
+    norm_dir = os.path.abspath(directory)
+    if not os.path.exists(norm_dir):
         log_msg(logging.DEBUG, "Creating '" + str(norm_dir) + "' directory")
         os.makedirs(norm_dir)
-    elif (not os.path.isdir(norm_dir)):
+    elif not os.path.isdir(norm_dir):
         print_and_exit("Can't use '" + norm_dir + "' directory")
 
 
-def run_cmd (cmd, time_out = None, num = -1):
+def run_cmd(cmd, time_out=None, num=-1):
     time_expired = False
-    ret_code = 0
-    with subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE) as process:
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         try:
             log_msg_str = "Running " + str(cmd)
-            if (num != -1):
+            if num != -1:
                 log_msg_str += " in process " + str(num)
             log_msg(logging.DEBUG, log_msg_str)
-            output, err_output = process.communicate(timeout = time_out)
+            output, err_output = process.communicate(timeout=time_out)
             ret_code = process.poll()
         except subprocess.TimeoutExpired:
             process.kill()
@@ -130,11 +136,11 @@ def run_cmd (cmd, time_out = None, num = -1):
     return ret_code, output, err_output, time_expired
 
 
-def if_exec_exist (program):
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+def if_exec_exist(program):
+    def is_exe(file_path):
+        return os.path.isfile(file_path) and os.access(file_path, os.X_OK)
 
-    log_msg(logging.DEBUG,"Checking if " + str(program) + " exists")
+    log_msg(logging.DEBUG, "Checking if " + str(program) + " exists")
     fpath, fname = os.path.split(program)
     if fpath:
         if is_exe(program):
@@ -147,12 +153,12 @@ def if_exec_exist (program):
             if is_exe(exe_file):
                 log_msg(logging.DEBUG, "Exec " + program + " was found at " + exe_file)
                 return True
-    log_msg(logging.DEBUG,"Exec wasn't found")
+    log_msg(logging.DEBUG, "Exec wasn't found")
     return False
 
 
 def remove_file_if_exists(file_name):
-    if (os.path.isfile(file_name)):
+    if os.path.isfile(file_name):
         os.remove(file_name)
 
 
@@ -163,12 +169,12 @@ def parse_time_log(file_name):
 
     duration = datetime.timedelta()
     for i in time_results_log:
-        #TODO: time --quiet doesn't work, so we use this kludge
+        # TODO: time --quiet doesn't work, so we use this kludge
         if i.startswith("Command"):
             continue
         time_results = i.split()
-        duration += datetime.timedelta(seconds = float(time_results[0]))
-        duration += datetime.timedelta(seconds = float(time_results[1]))
+        duration += datetime.timedelta(seconds=float(time_results[0]))
+        duration += datetime.timedelta(seconds=float(time_results[1]))
 
     remove_file_if_exists(file_name)
     return duration
