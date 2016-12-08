@@ -32,7 +32,6 @@ import gen_test_makefile
 
 res_dir = "result"
 process_dir = "process_"
-Test_Makefile_name = "Test_Makefile"
 
 yarpgen_timeout = 60
 compiler_timeout = 600
@@ -266,7 +265,7 @@ def print_online_statistics(lock, stat, target, task_threads, num_jobs):
 
 
 def gen_test_makefile_and_copy(dest, config_file):
-    test_makefile_location = os.path.abspath(common.yarpgen_home + os.sep + Test_Makefile_name)
+    test_makefile_location = os.path.abspath(common.yarpgen_home + os.sep + gen_test_makefile.Test_Makefile_name)
     gen_test_makefile.gen_makefile(test_makefile_location, True, config_file)
     common.check_and_copy(test_makefile_location, dest)
     return test_makefile_location
@@ -372,7 +371,7 @@ def gen_and_test(num, lock, end_time, stat, target):
             common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
 
             ret_code, output, err_output, time_expired, elapsed_time = \
-                common.run_cmd(["make", "-f", Test_Makefile_name, i.name], compiler_timeout, num)
+                common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, i.name], compiler_timeout, num)
             target_elapsed_time += elapsed_time
             if time_expired:
                 stat.update_target_runs(i.name, compfail_timeout)
@@ -384,7 +383,7 @@ def gen_and_test(num, lock, end_time, stat, target):
                 continue
 
             ret_code, output, err_output, time_expired, elapsed_time = \
-                common.run_cmd(["make", "-f", Test_Makefile_name, "run_" + i.name], run_timeout, num)
+                common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + i.name], run_timeout, num)
             target_elapsed_time += elapsed_time
             if time_expired:
                 stat.update_target_runs(i.name, runfail_timeout)
@@ -399,7 +398,7 @@ def gen_and_test(num, lock, end_time, stat, target):
 
             out_res.add(str(output, "utf-8").split()[-1])
             if len(out_res) > prev_out_res_len:
-                prev_out_res_len = len(out_res) 
+                prev_out_res_len = len(out_res)
                 stat.update_target_runs(i.name, out_dif)
                 save_test(lock, num, seed, output, err_output, i, "output")
             else:
@@ -450,7 +449,7 @@ def save_test(lock, num, seed, output, err_output, target, fail_tag):
     log.close()
 
     test_files = gen_test_makefile.sources.value.split() + gen_test_makefile.headers.value.split()
-    test_files.append(Test_Makefile_name)
+    test_files.append(gen_test_makefile.Test_Makefile_name)
     for i in test_files:
         common.check_and_copy(i, dest)
     lock.release()
@@ -490,7 +489,8 @@ Use specified folder for testing
     parser.add_argument("-j", dest="num_jobs", default=multiprocessing.cpu_count(), type=int,
                         help='Maximum number of instances to run in parallel. By defaulti, it is set to'
                              ' number of processor in your system')
-    parser.add_argument("--config-file", dest="config_file", default=gen_test_makefile.default_test_sets_file_name,
+    parser.add_argument("--config-file", dest="config_file",
+                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
                         type=str, help="Configuration file for testing")
     parser.add_argument("--log-file", dest="log_file", type=str,
                         help="Logfile")
