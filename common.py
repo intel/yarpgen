@@ -28,30 +28,32 @@ import sys
 yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
 yarpgen_version = ""
 
-stderr_logger_name = "stderr_logger"
-stderr_logger = logging.getLogger(stderr_logger_name)
-
-file_logger_name = "file_logger"
-file_logger = logging.getLogger(file_logger_name)
+main_logger_name = "main_logger"
+main_logger = None
 
 stat_logger_name = "stat_logger"
-stat_logger = logging.getLogger(stat_logger_name)
+stat_logger = None
 
 
-def setup_logger(logger_name="", log_file="", file_mode="a", log_level=logging.ERROR, write_to_stderr=False):
-    l = logging.getLogger(logger_name)
+def print_and_exit(msg):
+    log_msg(logging.ERROR, msg)
+    exit(-1)
+
+
+def setup_logger(log_file, log_level):
+    global main_logger
+    main_logger = logging.getLogger(main_logger_name)
     formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
-    l.setLevel(log_level)
+    main_logger.setLevel(log_level)
 
-    if log_file != "":
-        file_handler = logging.FileHandler(log_file, mode=file_mode)
+    if log_file is not None:
+        file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(formatter)
-        l.addHandler(file_handler)
-
-    if write_to_stderr:
+        main_logger.addHandler(file_handler)
+    else:
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
-        l.addHandler(stream_handler)
+        main_logger.addHandler(stream_handler)
 
 
 def wrap_log_file(log_file, default_log_file):
@@ -63,13 +65,24 @@ def wrap_log_file(log_file, default_log_file):
 
 
 def log_msg(log_level, message):
-    stderr_logger.log(log_level, message)
-    file_logger.log(log_level, message)
+    global main_logger
+    main_logger.log(log_level, message)
 
 
-def print_and_exit(msg):
-    log_msg(logging.ERROR, msg)
-    exit(-1)
+class StatisticsFileHandler(logging.FileHandler):
+    def emit(self, record):
+        if self.stream is None:
+            self.stream = self._open()
+        logging.StreamHandler.emit(self, record)
+        self.close()
+
+
+def setup_stat_logger(log_file):
+    global stat_logger
+    stat_logger = logging.getLogger(stat_logger_name)
+    stat_handler = StatisticsFileHandler(filename=log_file, mode="w", delay=True)
+    stat_logger.addHandler(stat_handler)
+    stat_logger.setLevel(logging.INFO)
 
 
 def check_python_version():
@@ -114,6 +127,7 @@ def check_dir_and_create(directory):
 
 def run_cmd(cmd, time_out=None, num=-1):
     time_expired = False
+    start_time = os.times()
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         try:
             log_msg_str = "Running " + str(cmd)
@@ -133,7 +147,10 @@ def run_cmd(cmd, time_out=None, num=-1):
             process.kill()
             process.wait()
             raise
-    return ret_code, output, err_output, time_expired
+    end_time = os.times()
+    elapsed_time = end_time.children_user - start_time.children_user + \
+                   end_time.children_system - start_time.children_system
+    return ret_code, output, err_output, time_expired, elapsed_time
 
 
 def if_exec_exist(program):
@@ -155,26 +172,3 @@ def if_exec_exist(program):
                 return True
     log_msg(logging.DEBUG, "Exec wasn't found")
     return False
-
-
-def remove_file_if_exists(file_name):
-    if os.path.isfile(file_name):
-        os.remove(file_name)
-
-
-def parse_time_log(file_name):
-    time_log_file = check_and_open_file(file_name, "r")
-    time_results_log = time_log_file.readlines()
-    time_log_file.close()
-
-    duration = datetime.timedelta()
-    for i in time_results_log:
-        # TODO: time --quiet doesn't work, so we use this kludge
-        if i.startswith("Command"):
-            continue
-        time_results = i.split()
-        duration += datetime.timedelta(seconds=float(time_results[0]))
-        duration += datetime.timedelta(seconds=float(time_results[1]))
-
-    remove_file_if_exists(file_name)
-    return duration

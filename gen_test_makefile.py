@@ -31,19 +31,6 @@ license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
 default_test_sets_file_name = "test_sets.txt"
 
-time_exec = "/usr/bin/time"
-time_output_format = '%U %S'
-time_log_file_name = "time_log.txt"
-time_args = ["-f", time_output_format, "-o", time_log_file_name, "-a"]
-
-time_args_str = ""
-need_quotes = False
-for i in time_args:
-    time_args_str += (i + " ") if (not need_quotes) else ('"' + i + '" ')
-    need_quotes = True if (i == "-f") else False
-
-time_run_str = time_exec + ' ' + time_args_str
-
 default_config_file = "test_sets.txt"
 comp_specs_line = "Compiler specs:"
 spec_list_len = 3
@@ -226,11 +213,11 @@ def detect_native_arch():
     check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
     if not os.path.exists(check_isa_file):
         common.print_and_exit("Can't find " + check_isa_file)
-    ret_code, output, err_output, time_expired = \
+    ret_code, output, err_output, time_expired, elapsed_time = \
         common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
     if ret_code != 0:
         common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
-    ret_code, output, err_output, time_expired = common.run_cmd([check_isa_binary], None, 0)
+    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([check_isa_binary], None, 0)
     if ret_code != 0:
         common.print_and_exit("Error while executing " + check_isa_binary)
     native_arch_str = str(output, "utf-8").split()[0]
@@ -246,6 +233,7 @@ def gen_makefile(out_file_name, force, config_file):
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for license_str in license_file:
         output += "#" + license_str
+    license_file.close()
     output += "###############################################################################\n" 
 
     output += "#This file was generated automatically.\n"
@@ -264,7 +252,7 @@ def gen_makefile(out_file_name, force, config_file):
         output += "\n"
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
         output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:.cpp=.o))\n"
-        output += "\t" + time_run_str + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
+        output += "\t" + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
 
     # Force make to rebuild everything
     # TODO: replace with PHONY
@@ -273,7 +261,7 @@ def gen_makefile(out_file_name, force, config_file):
     for source in sources.value.split():
         source_name = source.split(".")[0]
         output += "%" + source_name + ".o: " + source + " FORCE\n"
-        output += "\t" + time_run_str + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
 
     output += "clean:\n"
     output += "\trm *.o $(EXECUTABLE)\n\n"
@@ -281,7 +269,7 @@ def gen_makefile(out_file_name, force, config_file):
     native_arch = detect_native_arch()
     for target in CompilerTarget.all_targets:
         output += "run_" + target.name + ": " + target.name + "_" + executable.value + "\n"
-        output += "\t" + time_run_str 
+        output += "\t" 
         required_sde_arch = define_sde_arch(native_arch, target.arch.sde_arch)
         if required_sde_arch != "":
             output += "sde -" + required_sde_arch + " -- "
@@ -315,18 +303,12 @@ if __name__ == '__main__':
                         help="Rewrite output file")
     parser.add_argument("-v", "--verbose", dest="verbose", default=False, action="store_true",
                         help="Increase output verbosity")
-    parser.add_argument("-efl", "--enable-file-logging", dest="enable_file_logging", default=False, action="store_true",
-                        help="Enable logging to file.")
-    parser.add_argument("--log-file", dest="log_file", default="gen_test_makefile.log", type=str,
+    parser.add_argument("--log-file", dest="log_file", type=str,
                         help="Logfile")
     args = parser.parse_args()
 
-    if args.enable_file_logging or args.log_file != parser.get_default("log_file"):
-        log_file = common.wrap_log_file(str(args.log_file), parser.get_default("log_file"))
-        common.setup_logger(logger_name=common.file_logger_name, log_file=log_file, log_level=logging.DEBUG)
-
-    log_level = logging.DEBUG if args.verbose else logging.ERROR
-    common.setup_logger(logger_name=common.stderr_logger_name, log_level=log_level, write_to_stderr=True)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
     gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file)
