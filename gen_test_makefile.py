@@ -27,6 +27,7 @@ import re
 
 import common
 
+Test_Makefile_name = "Test_Makefile"
 license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
 default_test_sets_file_name = "test_sets.txt"
@@ -295,9 +296,10 @@ if __name__ == '__main__':
 
     description = 'Generator of Test_Makefiles.'
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--config-file", dest="config_file", default=default_test_sets_file_name, type=str,
+    parser.add_argument("--config-file", dest="config_file",
+                        default=os.path.join(common.yarpgen_home, default_test_sets_file_name), type=str,
                         help="Configuration file for testing")
-    parser.add_argument("-o", "--output", dest="out_file", default="Test_Makefile", type=str,
+    parser.add_argument("-o", "--output", dest="out_file", default=Test_Makefile_name, type=str,
                         help="Output file")
     parser.add_argument("-f", "--force", dest="force", default=False, action="store_true",
                         help="Rewrite output file")
