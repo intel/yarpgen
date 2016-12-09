@@ -29,6 +29,7 @@ import queue
 import common
 import gen_test_makefile
 import run_gen
+import blame_opt
 
 
 ###############################################################################
@@ -90,12 +91,14 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
                                   os.path.join(abs_test_dir, gen_test_makefile.Test_Makefile_name))
             os.chdir(os.path.join(cwd_save, abs_test_dir))
 
+            valid_res = None
             out_res = set()
             prev_out_res_len = 1  # We can't check first result
             for i in gen_test_makefile.CompilerTarget.all_targets:
                 if i.specs.name not in target.split():
                     continue
 
+                common.log_msg(logging.DEBUG, "Re-checking target " + i.name)
                 ret_code, output, err_output, time_expired, elapsed_time = \
                     common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, i.name],
                                    run_gen.compiler_timeout, num)
@@ -119,16 +122,20 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
                     prev_out_res_len = len(out_res)
                     failed_queue.put(test_dir)
                     common.log_msg(logging.DEBUG, "#" + str(num) + " Out differs")
-                    copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
+                    if not blame_opt.prepare_env_and_blame(abs_test_dir, valid_res, i, abs_out_dir, lock, num):
+                        copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
                     break
+                valid_res = str(output, "utf-8").split()[-1]
 
             passed_queue.put(test_dir)
             os.chdir(cwd_save)
+
         except queue.Empty:
             job_finished = True
 
 
 def copy_test_to_out(test_dir, out_dir, lock):
+    common.log_msg(logging.DEBUG, "Copying " + test_dir + " to " + out_dir)
     lock.acquire()
     try:
         shutil.copytree(test_dir, out_dir)
@@ -158,7 +165,7 @@ if __name__ == '__main__':
                         type=str, help="Configuration file for testing")
     parser.add_argument("--target", dest="target", default="clang ubsan gcc", type=str,
                         help="Targets for testing (see test_sets.txt). By default, possible variants are "
-                              "clang, ubsan and gcc (ubsan is a clang with sanitizer options).")
+                             "clang, ubsan and gcc (ubsan is a clang with sanitizer options).")
     parser.add_argument("-j", dest="num_jobs", default=multiprocessing.cpu_count(), type=int,
                         help='Maximum number of instances to run in parallel. By default, '
                              'it is set to number of processor in your system')
