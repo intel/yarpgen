@@ -202,6 +202,9 @@ def parse_config(file_name):
 
 
 def detect_native_arch():
+    check_isa_file = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name)
+    check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
+
     sys_compiler = ""
     for key in CompilerSpecs.all_comp_specs:
         exec_name = CompilerSpecs.all_comp_specs[key].comp_name
@@ -210,14 +213,14 @@ def detect_native_arch():
     if sys_compiler == "":
         common.print_and_exit("Can't find any compiler")
 
-    check_isa_file = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name)
-    check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
-    if not os.path.exists(check_isa_file):
-        common.print_and_exit("Can't find " + check_isa_file)
-    ret_code, output, err_output, time_expired, elapsed_time = \
-        common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
-    if ret_code != 0:
-        common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
+    if not common.if_exec_exist(check_isa_binary):
+        if not os.path.exists(check_isa_file):
+            common.print_and_exit("Can't find " + check_isa_file)
+        ret_code, output, err_output, time_expired, elapsed_time = \
+            common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
+        if ret_code != 0:
+            common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
+
     ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([check_isa_binary], None, 0)
     if ret_code != 0:
         common.print_and_exit("Error while executing " + check_isa_binary)
@@ -228,8 +231,10 @@ def detect_native_arch():
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, config_file):
-    parse_config(config_file)
+def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None):
+    # Somebody can prepare test specs and target, so we don't need to parse config file
+    if config_file is not None:
+        parse_config(config_file)
     output = ""
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for license_str in license_file:
@@ -246,11 +251,18 @@ def gen_makefile(out_file_name, force, config_file):
     output += "\n"
 
     for target in CompilerTarget.all_targets:
+        if only_target is not None and only_target.name != target.name:
+            continue
         output += target.name + ": " + "COMPILER=" + target.specs.comp_name + "\n"
         output += target.name + ": " + "OPTFLAGS=" + target.args
         if target.arch.comp_name != "":
-            output += " -march=" + target.arch.comp_name + " "
+            if target.specs.name != "icc":
+                output += " -march=" + target.arch.comp_name + " "
+            else:
+                output += " " + target.arch.comp_name + " "
         output += "\n"
+        if inject_blame_opt is not None:
+            output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
         output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:.cpp=.o))\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
@@ -262,13 +274,18 @@ def gen_makefile(out_file_name, force, config_file):
     for source in sources.value.split():
         source_name = source.split(".")[0]
         output += "%" + source_name + ".o: " + source + " FORCE\n"
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<\n\n"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<"
+        if inject_blame_opt is not None and source_name == "func":
+            output += " $(BLAMEOPTS)"
+        output += "\n\n"
 
     output += "clean:\n"
-    output += "\trm *.o $(EXECUTABLE)\n\n"
+    output += "\trm *.o *_$(EXECUTABLE)\n\n"
 
     native_arch = detect_native_arch()
     for target in CompilerTarget.all_targets:
+        if only_target is not None and only_target.name != target.name:
+            continue
         output += "run_" + target.name + ": " + target.name + "_" + executable.value + "\n"
         output += "\t" 
         required_sde_arch = define_sde_arch(native_arch, target.arch.sde_arch)
