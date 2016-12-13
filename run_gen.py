@@ -16,6 +16,10 @@
 # limitations under the License.
 #
 ###############################################################################
+"""
+Script for autonomous testing with YARP Generator
+"""
+###############################################################################
 
 import argparse
 import datetime
@@ -275,7 +279,7 @@ def dump_testing_sets(target):
     common.log_msg(logging.INFO, "Testing sets: ")
     for i in gen_test_makefile.CompilerTarget.all_targets:
         if i.specs.name in target.split():
-            common.log_msg(logging.INFO, i.name)
+            common.log_msg(logging.INFO, i.name, forced_duplication=True)
 
 
 def print_compilers_version(target):

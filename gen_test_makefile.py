@@ -34,7 +34,7 @@ default_test_sets_file_name = "test_sets.txt"
 
 default_config_file = "test_sets.txt"
 comp_specs_line = "Compiler specs:"
-spec_list_len = 3
+spec_list_len = 4
 test_sets_line = "Testing sets:"
 set_list_len = 5
 
@@ -112,10 +112,11 @@ def define_sde_arch(native, target):
 class CompilerSpecs (object):
     all_comp_specs = dict()
 
-    def __init__(self, name, exec_name, common_args):
+    def __init__(self, name, exec_name, common_args, arch_prefix):
         self.name = name
         self.comp_name = exec_name
         self.common_args = common_args
+        self.arch_prefix = arch_prefix
         self.version = "unknown"
         CompilerSpecs.all_comp_specs[name] = self
 
@@ -158,7 +159,7 @@ def check_config_list(config_list, fixed_len, message):
 def add_specs(spec_list):
     spec_list = check_config_list(spec_list, spec_list_len, "Error in spec string, check it: ")
     try:
-        CompilerSpecs(spec_list[0], spec_list[1], spec_list[2])
+        CompilerSpecs(spec_list[0], spec_list[1], spec_list[2], spec_list[3])
         common.log_msg(logging.DEBUG, "Finished adding compiler spec")
     except KeyError:
         common.print_and_exit("Can't find key!")
@@ -210,6 +211,7 @@ def detect_native_arch():
         exec_name = CompilerSpecs.all_comp_specs[key].comp_name
         if common.if_exec_exist(exec_name):
             sys_compiler = exec_name
+            break
     if sys_compiler == "":
         common.print_and_exit("Can't find any compiler")
 
@@ -256,10 +258,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += target.name + ": " + "COMPILER=" + target.specs.comp_name + "\n"
         output += target.name + ": " + "OPTFLAGS=" + target.args
         if target.arch.comp_name != "":
-            if target.specs.name != "icc":
-                output += " -march=" + target.arch.comp_name + " "
-            else:
-                output += " " + target.arch.comp_name + " "
+            output += " " + target.specs.arch_prefix + target.arch.comp_name
         output += "\n"
         if inject_blame_opt is not None:
             output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
