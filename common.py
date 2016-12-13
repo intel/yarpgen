@@ -16,8 +16,13 @@
 # limitations under the License.
 #
 ###############################################################################
+"""
+File for common data and functions, which are used in scripts
+"""
+###############################################################################
 
 import datetime
+import errno
 import logging
 import os
 import shutil
@@ -30,6 +35,7 @@ yarpgen_version = ""
 
 main_logger_name = "main_logger"
 main_logger = None
+__duplicate_err_to_stderr__ = False
 
 stat_logger_name = "stat_logger"
 stat_logger = None
@@ -50,6 +56,8 @@ def setup_logger(log_file, log_level):
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(formatter)
         main_logger.addHandler(file_handler)
+        global __duplicate_err_to_stderr__
+        __duplicate_err_to_stderr__ = True
     else:
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
@@ -64,9 +72,12 @@ def wrap_log_file(log_file, default_log_file):
         return log_file
 
 
-def log_msg(log_level, message):
+def log_msg(log_level, message, forced_duplication = False):
     global main_logger
     main_logger.log(log_level, message)
+    if __duplicate_err_to_stderr__ and (log_level == logging.ERROR or forced_duplication):
+        sys.stderr.write(str(message) + "\n")
+        sys.stderr.flush()
 
 
 class StatisticsFileHandler(logging.FileHandler):
@@ -107,6 +118,20 @@ def check_and_copy(src, dst):
         shutil.copy(norm_src, norm_dst)
     else:
         print_and_exit("File " + norm_src + " wasn't found")
+
+
+def copy_test_to_out(test_dir, out_dir, lock):
+    log_msg(logging.DEBUG, "Copying " + test_dir + " to " + out_dir)
+    lock.acquire()
+    try:
+        shutil.copytree(test_dir, out_dir)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+    finally:
+        lock.release()
 
 
 def check_if_dir_exists(directory):

@@ -16,6 +16,10 @@
 # limitations under the License.
 #
 ###############################################################################
+"""
+Experimental script for automatic sorting of errors, basing on failed optimization phase
+"""
+###############################################################################
 
 import logging
 import os
@@ -25,7 +29,6 @@ import re
 import common
 import gen_test_makefile
 import run_gen
-import rechecker
 
 
 icc_blame_opts = ["-from_rtn=0 -to_rtn=", "-num_opt=", "-num-case="]
@@ -59,10 +62,14 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
     ret_code, output, err_output, time_expired, elapsed_time = \
         common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
     opt_num_regex = re.compile(compilers_blame_patterns[fail_target.specs.name][phase_num])
-    max_opt_num_str = opt_num_regex.findall(str(err_output, "utf-8"))[-1]
-    remove_brackets_pattern = re.compile("\d+")
-    max_opt_num = int(remove_brackets_pattern.findall(max_opt_num_str)[-1])
-    common.log_msg(logging.DEBUG, "Max opt num: " + str(max_opt_num))
+    try:
+        max_opt_num_str = opt_num_regex.findall(str(err_output, "utf-8"))[-1]
+        remove_brackets_pattern = re.compile("\d+")
+        max_opt_num = int(remove_brackets_pattern.findall(max_opt_num_str)[-1])
+        common.log_msg(logging.DEBUG, "Max opt num: " + str(max_opt_num))
+    except IndexError:
+        common.log_msg(logging.ERROR, "Can't decode max opt number in \n" + str(err_output, "utf-8"))
+        raise
 
     start_opt = 0
     end_opt = max_opt_num
@@ -120,11 +127,15 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num):
     blame_str = ""
     blame_opts = compilers_blame_opts[fail_target.specs.name]
     phase_num = 0
-    for i in blame_opts:
-        blame_str += i
-        blame_str += execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
-        blame_str += " "
-        phase_num += 1
+    try:
+        for i in blame_opts:
+            blame_str += i
+            blame_str += execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
+            blame_str += " "
+            phase_num += 1
+    except:
+        common.log_msg(logging.ERROR, "Something went wrong while executing bpame_opt.py on " + str(fail_dir))
+        return False
 
     gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_str)
     ret_code, output, err_output, time_expired, elapsed_time = \
@@ -141,7 +152,7 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num):
 
     seed_dir = os.path.basename(os.path.normpath(fail_dir))
     full_out_path = os.path.join(os.path.join(out_dir, opt_name), seed_dir)
-    rechecker.copy_test_to_out(fail_dir, full_out_path, lock)
+    common.copy_test_to_out(fail_dir, full_out_path, lock)
     with common.check_and_open_file(os.path.join(full_out_path, "log.txt"), "a") as log_file:
         log_file.write("\nBlame opts: " + blame_str + "\n")
     common.log_msg(logging.DEBUG, "Done blaming")

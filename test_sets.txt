@@ -23,12 +23,12 @@
 ###############################################################################
 
 Compiler specs:
-# Spec name | Executable name | Common arguments
-gcc         | g++             | -w
-clang       | clang++         | -w
+# Spec name | Executable name | Common arguments                                            | Arch prefix
+gcc         | g++             | -w                                                          | -march=
+clang       | clang++         | -w                                                          | -march=
 #Ubsan it is clang with sanitizer options. It is used for generator check.
-ubsan       | clang++         | -O0 -fsanitize=undefined -w
-icc         | icc             | -w
+ubsan       | clang++         | -O0 -fsanitize=undefined -fno-sanitize-recover=undefined -w | -march=
+icc         | icpc            | -w                                                          | -x
 
 Testing sets:
 # Set name       | Spec name | Arguments | Compiler arch  | Sde arch
@@ -52,7 +52,7 @@ clang_skx_opt    | clang     | -O3       | skx            | skx
 
 icc_no_opt       | icc       | -O0       |                |
 icc_opt          | icc       | -O3       |                |
-icc_knl_no_opt   | icc       | -O0       | -xMIC-AVX512   | knl
-icc_knl_opt      | icc       | -O3       | -xMIC-AVX512   | knl
-icc_skx_no_opt   | icc       | -O0       | -xCORE-AVX512  | skx
-icc_skx_opt      | icc       | -O3       | -xCORE-AVX512  | skx
+icc_knl_no_opt   | icc       | -O0       | MIC-AVX512     | knl
+icc_knl_opt      | icc       | -O3       | MIC-AVX512     | knl
+icc_skx_no_opt   | icc       | -O0       | CORE-AVX512    | skx
+icc_skx_opt      | icc       | -O3       | CORE-AVX512    | skx

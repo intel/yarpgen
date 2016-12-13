@@ -16,13 +16,15 @@
 # limitations under the License.
 #
 ###############################################################################
+"""
+Script for rechecking of previously found errors
+"""
+###############################################################################
 
 import argparse
-import errno
 import logging
 import multiprocessing
 import os
-import shutil
 import sys
 import queue
 
@@ -123,7 +125,7 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
                     failed_queue.put(test_dir)
                     common.log_msg(logging.DEBUG, "#" + str(num) + " Out differs")
                     if not blame_opt.prepare_env_and_blame(abs_test_dir, valid_res, i, abs_out_dir, lock, num):
-                        copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
+                        common.copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
                     break
                 valid_res = str(output, "utf-8").split()[-1]
 
@@ -133,19 +135,6 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
         except queue.Empty:
             job_finished = True
 
-
-def copy_test_to_out(test_dir, out_dir, lock):
-    common.log_msg(logging.DEBUG, "Copying " + test_dir + " to " + out_dir)
-    lock.acquire()
-    try:
-        shutil.copytree(test_dir, out_dir)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise
-    finally:
-        lock.release()
 
 ###############################################################################
 
