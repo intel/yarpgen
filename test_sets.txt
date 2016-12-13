@@ -23,6 +23,11 @@
 ###############################################################################
 
 Compiler specs:
+# Spec name - codename for compiler and its options
+# Executable name - name of compiler binary file. It should be in your PATH
+# Common arguments - arguments which will be passed to every compiler run
+# Arch prefix - prefix for specifying different architectures (it will be concatenated with Compiler arch value)
+
 # Spec name | Executable name | Common arguments                                            | Arch prefix
 gcc         | g++             | -w                                                          | -march=
 clang       | clang++         | -w                                                          | -march=
@@ -31,6 +36,12 @@ ubsan       | clang++         | -O0 -fsanitize=undefined -fno-sanitize-recover=u
 icc         | icpc            | -w                                                          | -x
 
 Testing sets:
+# Set name - codename for testing set
+# Spec name - codename of spec, it should be described in Compiler specs
+# Arguments - compiler options for this testing set
+# Compiler arch - architecture which will be passed to compiler
+# Sde arch - architecture which will be passed to SDE
+
 # Set name       | Spec name | Arguments | Compiler arch  | Sde arch
 ubsan            | ubsan     |           |                | 
 
