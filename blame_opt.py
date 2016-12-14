@@ -57,6 +57,14 @@ def get_next_step(start, end, current, fail_flag):
     return next_start, next_end, next_current
 
 
+def dump_exec_output(msg, ret_code, output, err_output, time_expired, num):
+    common.log_msg(logging.DEBUG, msg + " (process " + str(num) + ")")
+    common.log_msg(logging.DEBUG, "Ret code: " + str(ret_code) + " | process " + str(num))
+    common.log_msg(logging.DEBUG, "Time exp: " + str(time_expired) + " | process " + str(num))
+    common.log_msg(logging.DEBUG, "Output: " + str(output, "utf-8") + " | process " + str(num))
+    common.log_msg(logging.DEBUG, "Err output: " + str(err_output, "utf-8") + " | process " + str(num))
+
+
 def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
     gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, inject_str + "-1")
     ret_code, output, err_output, time_expired, elapsed_time = \
@@ -66,9 +74,10 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         max_opt_num_str = opt_num_regex.findall(str(err_output, "utf-8"))[-1]
         remove_brackets_pattern = re.compile("\d+")
         max_opt_num = int(remove_brackets_pattern.findall(max_opt_num_str)[-1])
-        common.log_msg(logging.DEBUG, "Max opt num: " + str(max_opt_num))
+        common.log_msg(logging.DEBUG, "Max opt num (process " + str(num) + "): " + str(max_opt_num))
     except IndexError:
-        common.log_msg(logging.ERROR, "Can't decode max opt number in \n" + str(err_output, "utf-8"))
+        common.log_msg(logging.ERROR, "Can't decode max opt number in \n" + str(err_output, "utf-8")
+                       + " (process " + str(num) + "): ")
         raise
 
     start_opt = 0
@@ -78,7 +87,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
     time_to_finish = False
     while not time_to_finish:
         start_opt, end_opt, cur_opt = get_next_step(start_opt, end_opt, cur_opt, failed_flag)
-        common.log_msg(logging.DEBUG, "Previous failed: " + str(failed_flag))
+        common.log_msg(logging.DEBUG, "Previous failed (process " + str(num) + "): " + str(failed_flag))
         failed_flag = False
         eff = ((start_opt + 1) == cur_opt)  # Earliest fail was found
 
@@ -88,7 +97,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         ret_code, output, err_output, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
         if time_expired or ret_code != 0:
-            common.log_msg(logging.DEBUG, "#" + str(num) + " Compilation failed")
+            dump_exec_output("Compilation failed", ret_code, output, err_output, time_expired, num)
             failed_flag = True
             if not eff:
                 continue
@@ -98,7 +107,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         ret_code, output, err_output, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, "run_" + fail_target.name], run_gen.run_timeout, num)
         if time_expired or ret_code != 0:
-            common.log_msg(logging.DEBUG, "#" + str(num) + " Execution failed")
+            dump_exec_output("Execution failed", ret_code, output, err_output, time_expired, num)
             failed_flag = True
             if not eff:
                 continue
@@ -106,7 +115,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
                 break
 
         if str(output, "utf-8").split()[-1] != valid_res:
-            common.log_msg(logging.DEBUG, "#" + str(num) + " Out differs")
+            common.log_msg(logging.DEBUG, "Out differs (process " + str(num) + ")")
             failed_flag = True
             if not eff:
                 continue
@@ -119,6 +128,8 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
     if not failed_flag:
         common.log_msg(logging.DEBUG, "Swapping current and end opt (process " + str(num) + ")")
         cur_opt = end_opt
+
+    common.log_msg(logging.DEBUG, "Finished blame phase, result: " + str(cur_opt) + " (process " + str(num) + ")")
 
     return str(cur_opt)
 
@@ -188,6 +199,6 @@ def prepare_env_and_blame(fail_dir, valid_res, fail_target, out_dir, lock, num, 
     common.log_msg(logging.DEBUG, "Blaming target: " + fail_target.name + " | " + fail_target.specs.name)
     os.chdir(fail_dir)
     if fail_target.specs.name not in compilers_blame_opts:
-        common.log_msg(logging.DEBUG, "We can't blame " + fail_target.name)
+        common.log_msg(logging.DEBUG, "We can't blame " + fail_target.name + " (process " + str(num) + ")")
         return False
     return blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace)

@@ -107,7 +107,7 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
                 if time_expired or ret_code != 0:
                     failed_queue.put(test_dir)
                     common.log_msg(logging.DEBUG, "#" + str(num) + " Compilation failed")
-                    copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
+                    common.copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
                     break
 
                 ret_code, output, err_output, time_expired, elapsed_time = \
@@ -116,7 +116,7 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
                 if time_expired or ret_code != 0:
                     failed_queue.put(test_dir)
                     common.log_msg(logging.DEBUG, "#" + str(num) + " Execution failed")
-                    copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
+                    common.copy_test_to_out(abs_test_dir, os.path.join(abs_out_dir, test_dir), lock)
                     break
 
                 out_res.add(str(output, "utf-8").split()[-1])
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     parser.add_argument("--config-file", dest="config_file",
                         default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
                         type=str, help="Configuration file for testing")
-    parser.add_argument("--target", dest="target", default="clang ubsan gcc", type=str,
+    parser.add_argument("--target", dest="target", default="clang ubsan_clang gcc", type=str,
                         help="Targets for testing (see test_sets.txt). By default, possible variants are "
                              "clang, ubsan and gcc (ubsan is a clang with sanitizer options).")
     parser.add_argument("-j", dest="num_jobs", default=multiprocessing.cpu_count(), type=int,
