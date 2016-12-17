@@ -17,7 +17,7 @@ Several techniques are used to increase the probability of triggering compiler b
 Compiler bugs found by YARP Generator
 -------------------------------------
 
-``yarpgen`` managed to find more than 50 bugs in gcc and clang and a comparable number of bugs in proprietary compilers. For the list of the bugs in gcc and clang see bugs.txt.
+``yarpgen`` managed to find more than 60 bugs in gcc and clang and a comparable number of bugs in proprietary compilers. For the list of the bugs in gcc and clang see bugs.txt.
 
 If you have used ``yarpgen`` to find bugs in open source compilers, please update bugs.txt. We are aslo excited to hear about your experience using it with proprietary compilers and other tools you might want to validate.
 
@@ -26,7 +26,7 @@ Building and running
 
 Building ``yarpgen`` is trivial.  All you have to do is invoke "make".
 
-To run ``yarpgen`` we recommend using ``run_gen.py`` script, which will run the generator for you on a number of available compilers with a set of pre-defined options. Feel free to hack run_gen.py and Test_Makefile to add or remove compiler options.
+To run ``yarpgen`` we recommend using ``run_gen.py`` script, which will run the generator for you on a number of available compilers with a set of pre-defined options. Feel free to hack test_set.txt to add or remove compiler options.
 
 The script will run several compilers with several compiler options and run executables to compare the output results. If the results mismatch, the test program will be saved in "results" folder for your analysis.
 
