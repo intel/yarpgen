@@ -30,6 +30,7 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+78726 - [5/6 Regression] Incorrect unsigned arithmetic optimization
 78720 - [7 Regression] Illegal instruction in generated code
 78438 - [7 Regression] incorrect comparison optimization
 78436 - [7 Regression] incorrect write to larger-than-type bitfield (signed char x:9)
