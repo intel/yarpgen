@@ -39,7 +39,7 @@ process_dir = "process_"
 
 yarpgen_timeout = 60
 compiler_timeout = 600
-run_timeout = 300 
+run_timeout = 300
 stat_update_delay = 10
 
 script_start_time = datetime.datetime.now()  # We should init variable, so let's do it this way
@@ -54,7 +54,7 @@ class MyManager(multiprocessing.managers.BaseManager):
 def manager():
     m = MyManager()
     m.start()
-    return m 
+    return m
 
 
 total = "total"
@@ -129,7 +129,7 @@ class CmdRun (object):
 class Statistics (object):
     def __init__(self):
         self.yarpgen_runs = CmdRun("yarpgen")
-        self.target_runs = {} 
+        self.target_runs = {}
         # TODO: we create objects for every target, but we can choose less in arguments
         for i in gen_test_makefile.CompilerTarget.all_targets:
             self.target_runs[i.name] = CmdRun(i.name)
@@ -175,7 +175,7 @@ def get_testing_speed(seed_num, time_delta):
     return "{:.2f}".format(seed_num / minutes) + " seed/min"
 
 
-def form_statistics(stat, target, prev_len):
+def form_statistics(stat, targets, prev_len):
     verbose_stat_str = ""
 
     testing_speed = get_testing_speed(stat.get_yarpgen_runs(total), datetime.datetime.now() - script_start_time)
@@ -208,7 +208,7 @@ def form_statistics(stat, target, prev_len):
     total_out_dif = 0
 
     for i in gen_test_makefile.CompilerTarget.all_targets:
-        if i.specs.name not in target.split():
+        if i.specs.name not in targets.split():
             continue
         verbose_stat_str += "\n##########################\n"
         verbose_stat_str += i.name + " stat:" + "\n"
@@ -250,12 +250,12 @@ def form_statistics(stat, target, prev_len):
     return stat_str, verbose_stat_str, prev_len
 
 
-def print_online_statistics(lock, stat, target, task_threads, num_jobs):
+def print_online_statistics(lock, stat, targets, task_threads, num_jobs):
     any_alive = True
     prev_len = 0
     while any_alive:
         lock.acquire()
-        stat_str, verbose_stat_str, prev_len = form_statistics(stat, target, prev_len)
+        stat_str, verbose_stat_str, prev_len = form_statistics(stat, targets, prev_len)
         common.stat_logger.log(logging.INFO, verbose_stat_str)
         sys.stdout.write(stat_str)
         sys.stdout.flush()
@@ -275,15 +275,15 @@ def gen_test_makefile_and_copy(dest, config_file):
     return test_makefile_location
 
 
-def dump_testing_sets(target):
+def dump_testing_sets(targets):
     common.log_msg(logging.INFO, "Testing sets: ")
     for i in gen_test_makefile.CompilerTarget.all_targets:
-        if i.specs.name in target.split():
+        if i.specs.name in targets.split():
             common.log_msg(logging.INFO, i.name, forced_duplication=True)
 
 
-def print_compilers_version(target):
-    for i in target.split():
+def print_compilers_version(targets):
+    for i in targets.split():
         comp_exec_name = gen_test_makefile.CompilerSpecs.all_comp_specs[i].comp_name
         if not common.if_exec_exist(comp_exec_name):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
@@ -293,22 +293,22 @@ def print_compilers_version(target):
         gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(str(output.splitlines()[0], "utf-8"))
 
 
-def prepare_env_and_start_testing(out_dir, timeout, target, num_jobs, config_file):
+def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file):
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
     yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
     common.check_and_copy(yarpgen_bin, out_dir)
     ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
-    common.yarpgen_version = output
+    common.yarpgen_version_str = str(output, "utf-8")
     # TODO: need to add some check, but I hope that it is safe
-    common.log_msg(logging.DEBUG, "YARPGEN version: " + str(common.yarpgen_version))
+    common.log_msg(logging.DEBUG, "YARPGEN version: " + common.yarpgen_version_str)
 
     test_makefile_location = gen_test_makefile_and_copy(out_dir, config_file)
 
-    dump_testing_sets(target)
+    dump_testing_sets(targets)
 
-    print_compilers_version(target)
+    print_compilers_version(targets)
 
     os.chdir(out_dir)
     common.check_dir_and_create(res_dir)
@@ -327,27 +327,28 @@ def prepare_env_and_start_testing(out_dir, timeout, target, num_jobs, config_fil
 
     task_threads = [0] * num_jobs
     for num in range(num_jobs):
-        task_threads[num] = multiprocessing.Process(target=gen_and_test, args=(num, lock, end_time, stat, target))
+        task_threads[num] = multiprocessing.Process(target=gen_and_test, args=(num, lock, end_time, stat, targets))
         task_threads[num].start()
 
-    print_online_statistics(lock, stat, target, task_threads, num_jobs)
+    print_online_statistics(lock, stat, targets, task_threads, num_jobs)
 
     sys.stdout.write("\n")
     for i in range(num_jobs):
         common.log_msg(logging.DEBUG, "Removing " + process_dir + str(i) + " dir")
         shutil.rmtree(process_dir + str(i))
 
-    stat_str, verbose_stat_str, prev_len = form_statistics(stat, target, 0)
+    stat_str, verbose_stat_str, prev_len = form_statistics(stat, targets, 0)
     sys.stdout.write(verbose_stat_str)
     sys.stdout.flush()
 
 
-def gen_and_test(num, lock, end_time, stat, target):
+def gen_and_test(num, lock, end_time, stat, targets):
     common.log_msg(logging.DEBUG, "Job #" + str(num))
     os.chdir(process_dir + str(num))
     inf = (end_time == -1)
 
     while inf or end_time > time.time():
+        # Generate the test.
         # TODO: maybe, it is better to call generator through Makefile?
         yarpgen_run_list = [".." + os.sep + "yarpgen", "-q"]
         ret_code, output, err_output, time_expired, elapsed_time = \
@@ -366,14 +367,18 @@ def gen_and_test(num, lock, end_time, stat, target):
             continue
         stat.update_yarpgen_runs(ok)
         stat.update_yarpgen_duration(datetime.timedelta(seconds=elapsed_time))
+
+        # Run all required opt-sets.
         out_res = set()
         prev_out_res_len = 1  # We can't check first result
         for i in gen_test_makefile.CompilerTarget.all_targets:
-            if i.specs.name not in target.split():
+            # Skip the target we are not supposed to run.
+            if i.specs.name not in targets.split():
                 continue
             target_elapsed_time = 0.0
             common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
 
+            # Build the test.
             ret_code, output, err_output, time_expired, elapsed_time = \
                 common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, i.name], compiler_timeout, num)
             target_elapsed_time += elapsed_time
@@ -386,6 +391,7 @@ def gen_and_test(num, lock, end_time, stat, target):
                 save_test(lock, num, seed, output, err_output, i, compfail)
                 continue
 
+            # Run the test.
             ret_code, output, err_output, time_expired, elapsed_time = \
                 common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + i.name], run_timeout, num)
             target_elapsed_time += elapsed_time
@@ -400,6 +406,7 @@ def gen_and_test(num, lock, end_time, stat, target):
 
             stat.update_target_duration(i.name, datetime.timedelta(seconds=target_elapsed_time))
 
+            # Verify the result.
             out_res.add(str(output, "utf-8").split()[-1])
             if len(out_res) > prev_out_res_len:
                 prev_out_res_len = len(out_res)
@@ -435,7 +442,7 @@ def save_test(lock, num, seed, output, err_output, target, fail_tag):
     log = open(dest + os.sep + "log.txt", "a")
     common.log_msg(logging.DEBUG, "Saving test in " + str(num) + "thread to " + dest)
 
-    log.write("YARPGEN version: " + str(common.yarpgen_version) + "\n")
+    log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
     log.write("Seed: " + str(seed) + "\n")
     log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
     log.write("Type: " + str(fail_tag) + "\n")
@@ -457,7 +464,7 @@ def save_test(lock, num, seed, output, err_output, target, fail_tag):
     for i in test_files:
         common.check_and_copy(i, dest)
     lock.release()
-   
+
 
 ###############################################################################
 
