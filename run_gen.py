@@ -469,10 +469,11 @@ def gen_test_makefile_and_copy(dest, config_file):
 
 
 def dump_testing_sets(targets):
-    common.log_msg(logging.INFO, "Testing sets: ")
+    test_sets = []
     for i in gen_test_makefile.CompilerTarget.all_targets:
         if i.specs.name in targets.split():
-            common.log_msg(logging.INFO, i.name, forced_duplication=True)
+            test_sets.append(i.name)
+    common.log_msg(logging.INFO, "Running "+str(len(test_sets))+" test sets: "+ str(test_sets), forced_duplication=True)
 
 
 def print_compilers_version(targets):
@@ -508,23 +509,12 @@ def proccess_seeds(seeds_option_value):
             seeds += process_seed_line(line)
     else:
         seeds = process_seed_line(seeds_option_value)
-    common.log_msg(logging.DEBUG, "Running generator for "+str(len(seeds))+" seeds. Seed are:");
-    common.log_msg(logging.DEBUG, seeds)
+    common.log_msg(logging.INFO, "Running generator for "+str(len(seeds))+" seeds. Seed are: ", forced_duplication=True);
+    common.log_msg(logging.INFO, seeds, forced_duplication=True)
     return seeds
 
 def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value):
     common.check_dir_and_create(out_dir)
-
-    seeds = []
-    task_queue = None
-    if seeds_option_value:
-        seeds = proccess_seeds(seeds_option_value)
-        task_queue = multiprocessing.Queue()
-        for s in seeds:
-            task_queue.put(s)
-#        for num in range(num_jobs):
-#            task_queue.put(None)
-
 
     # Check for binary of generator
     yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
@@ -537,6 +527,14 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     test_makefile_location = gen_test_makefile_and_copy(out_dir, config_file)
 
     dump_testing_sets(targets)
+
+    seeds = []
+    task_queue = None
+    if seeds_option_value:
+        seeds = proccess_seeds(seeds_option_value)
+        task_queue = multiprocessing.Queue()
+        for s in seeds:
+            task_queue.put(s)
 
     print_compilers_version(targets)
 
