@@ -391,6 +391,7 @@ def form_statistics(stat, targets, prev_len):
     total_cpu_duration = stat.get_yarpgen_duration()
     total_gen_errors = stat.get_yarpgen_runs(runfail_timeout)
     total_gen_errors += stat.get_yarpgen_runs(runfail)
+    total_seeds = stat.get_yarpgen_runs(total)
     total_runs = 0
     total_ok = 0
     total_runfail_timeout = 0
@@ -427,7 +428,7 @@ def form_statistics(stat, targets, prev_len):
                                     "{days} d {hours}:{minutes}:{seconds}") + " | "
     stat_str += "cpu time: " + strfdelta(total_cpu_duration, "{days} d {hours}:{minutes}:{seconds}") + " | "
     stat_str += testing_speed + " | "
-    stat_str += "target runs: " + str(total_runs) + " | "
+    stat_str += "seeds/targets: " + str(total_seeds)+"/"+str(total_runs) + " | "
     stat_str += "Errors: " + str(total_gen_errors) + "/"
     stat_str += str(total_compfail_timeout) + "/"
     stat_str += str(total_compfail) + "/"
