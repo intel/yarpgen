@@ -509,9 +509,12 @@ def proccess_seeds(seeds_option_value):
             seeds += process_seed_line(line)
     else:
         seeds = process_seed_line(seeds_option_value)
-    common.log_msg(logging.INFO, "Running generator for "+str(len(seeds))+" seeds. Seed are: ", forced_duplication=True);
-    common.log_msg(logging.INFO, seeds, forced_duplication=True)
-    return seeds
+    unique_seeds = list(set(seeds))
+    common.log_msg(logging.INFO, "Running generator for "+str(len(unique_seeds))+" seeds. Seed are: ", forced_duplication=True);
+    common.log_msg(logging.INFO, unique_seeds, forced_duplication=True)
+    if len(unique_seeds) != len(seeds):
+        common.log_msg(logging.INFO, "Note, that in the input seeds list there were "+str(len(seeds)-len(unique_seeds))+" duplicating seeds.", forced_duplication=True)
+    return unique_seeds
 
 def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value):
     common.check_dir_and_create(out_dir)
