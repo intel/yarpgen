@@ -30,6 +30,7 @@ import os
 import shutil
 import sys
 import time
+import queue
 
 import common
 import gen_test_makefile
@@ -64,6 +65,197 @@ runfail_timeout = "runfail_timeout"
 compfail = "compfail"
 compfail_timeout = "compfail_timeout"
 out_dif = "different_output"
+
+# class representing the test
+class Test(object):
+    # list of files
+    # seed, string
+    # generator's logs
+    # generation time
+    # return code
+    # is time_expired
+    # path
+    # process number for logging
+
+    # status values
+    STATUS_ok=1
+    STATUS_fail=2
+    STATUS_fail_timeout=3
+
+    # Generate new test
+    # stat is statistics object
+    # seed is optional, if we want to generate some particular seed.
+    # proc_num is optinal debug info to track in what process we are running this activity.
+    def __init__(self, stat, seed="", proc_num=-1):
+        # Run generator
+        yarpgen_run_list = [".." + os.sep + "yarpgen", "-q"]
+        if seed:
+            yarpgen_run_list += ["-s", seed]
+        self.ret_code, self.stdout, self.stderr, self.is_time_expired, self.elapsed_time = \
+            common.run_cmd(yarpgen_run_list, yarpgen_timeout, proc_num)
+
+        # Files that belongs to generate test. They are hardcoded for now.
+        # Generator may report them in output later and we may need to parse it.
+        self.files = ["check.cpp", "driver.cpp", "func.cpp", "hash.cpp", "init.cpp", "init.h"]
+
+        # Parse generated seed.
+        if not seed:
+            if self.stdout:
+                seed = str(self.stdout, "utf-8").split()[1][:-2]
+            else:
+                seed = str(proc_num) + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        self.seed = seed
+
+        self.path = os.getcwd()
+        self.proc_num = proc_num
+        self.stat = stat
+
+        # Update statistics and set the status
+        stat.update_yarpgen_duration(datetime.timedelta(seconds=self.elapsed_time))
+        if self.is_time_expired:
+            common.log_msg(logging.WARNING, "Generator has failed (" + runfail_timeout + ")")
+            self.status = self.STATUS_fail_timeout
+            stat.update_yarpgen_runs(runfail)
+        elif self.ret_code != 0:
+            common.log_msg(logging.WARNING, "Generator has failed (" + runfail + ")")
+            self.status = self.STATUS_fail
+            stat.update_yarpgen_runs(runfail)
+        else:
+            self.status = self.STATUS_ok
+            stat.update_yarpgen_runs(ok)
+
+        # Initialize set of test runs
+        self.successful_test_runs = []
+
+    # Check status
+    def is_ok(self):
+        return self.status == self.STATUS_ok
+
+    # Save test
+    def save(self, lock):
+        # TODO: add list of files
+        if self.status == self.STATUS_fail_timeout:
+            save_status = runfail_timeout
+        elif self.status == self.STATUS_fail:
+            save_status = runfail
+        else:
+            save_status = ok
+        save_test(lock, self.proc_num, self.seed, self.stdout, self.stderr, None, save_status)
+
+    # Add successful test run
+    def add_success_run(self, test_run):
+        self.successful_test_runs.append(test_run)
+
+    # Verify the results and if bad results are found, report / save them.
+    def verify_results(self, lock):
+        results = set()
+        for t in self.successful_test_runs:
+            assert t.status == TestRun.STATUS_ok
+            len1 = len(results)
+            results.add(t.checksum)
+            len2 = len(results)
+            if len1 > 0 and len2 > len1:
+                self.stat.update_target_runs(t.optset, out_dif)
+                save_test(lock, self.proc_num, self.seed, self.stdout, self.stderr, t.target, "output")
+
+# End of Test class
+
+# class representing the result of running a single opt-set for the test
+class TestRun(object):
+    # opt-set
+    # build / execution log
+    # build / execution time
+    # run result: pass / compfail / compfail_timeout / runfail / runfail_timeout / miscompare.
+    # compilation log
+
+    STATUS_ok = 1
+    STATUS_miscompare = 2
+    STATUS_compfail = 3
+    STATUS_compfail_timeout = 4
+    STATUS_runfail = 5
+    STATUS_runfail_timeout = 6
+    STATUS_not_built = 7
+    STATUS_not_run = 8
+
+    def __init__(self, stat, target, seed, proc_num=-1):
+        self.stat = stat
+        self.target = target
+        self.optset = target.name
+        self.seed = seed
+        self.proc_num = proc_num
+        self.status = self.STATUS_not_built
+        self.files = []
+
+    # Build test
+    def build(self):
+        # build
+        self.build_ret_code, self.build_stdout, self.build_stderr, self.is_build_time_expired, self.build_elapsed_time = \
+            common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, self.optset], compiler_timeout, self.proc_num)
+        # update status and stats
+        if self.is_build_time_expired:
+            self.stat.update_target_runs(self.optset, compfail_timeout)
+            self.status = self.STATUS_compfail_timeout
+        elif self.build_ret_code != 0:
+            self.stat.update_target_runs(self.optset, compfail)
+            self.status = self.STATUS_compfail
+        else:
+            self.status = self.STATUS_not_run
+        # update file list
+        expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", self.optset+"_out"]
+        for f in expected_files:
+            if os.path.isfile(f):
+                self.files.append(f)
+        return self.status == self.STATUS_not_run
+
+    # Run test
+    def run(self):
+        # run
+        self.run_ret_code, self.run_stdout, self.run_stderr, self.run_is_time_expired, self.run_elapsed_time = \
+            common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + self.optset], run_timeout, self.proc_num)
+        # update status and stats
+        if self.run_is_time_expired:
+            self.stat.update_target_runs(self.optset, runfail_timeout)
+            self.status = self.STATUS_runfail_timeout
+        elif self.run_ret_code != 0:
+            self.stat.update_target_runs(self.optset, runfail)
+            self.status = self.STATUS_runfail
+        else:
+            self.stat.update_target_runs(self.optset, ok)
+            self.status = self.STATUS_ok
+            self.checksum = str(self.run_stdout, "utf-8").split()[-1]
+        self.stat.update_target_duration(self.optset, datetime.timedelta(seconds=self.build_elapsed_time+self.run_elapsed_time))
+        return self.status == self.STATUS_ok
+
+    def save(self, lock):
+        assert self.status != self.STATUS_not_built
+        # TODO: add list of files
+        if self.status == self.STATUS_compfail_timeout:
+            save_status = compfail_timeout
+            out = self.build_stdout
+            err = self.build_stderr
+        elif self.status == self.STATUS_compfail:
+            save_status = compfail
+            out = self.build_stdout
+            err = self.build_stderr
+        elif self.status == self.STATUS_runfail_timeout:
+            save_status = runfail_timeout
+            out = self.run_stdout
+            err = self.run_stderr
+        elif self.status == self.STATUS_runfail:
+            save_status = runfail
+            out = self.run_stdout
+            err = self.run_stderr
+        elif self.status == self.STATUS_miscompare:
+            save_status = "output"
+            out = self.run_stdout
+            err = self.run_stderr
+        elif self.status == self.STATUS_ok:
+            return
+        else:
+            raise
+
+        save_test(lock, self.proc_num, self.seed, out, err, self.target, save_status)
+# End of TestRun class
 
 
 class CmdRun (object):
@@ -293,8 +485,45 @@ def print_compilers_version(targets):
         gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(str(output.splitlines()[0], "utf-8"))
 
 
-def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file):
+def process_seed_line(line):
+    seeds = []
+    line = line.replace(",", " ")
+    l_seeds = line.split()
+    for s1 in l_seeds:
+        s2 = s1.lstrip("S_").rstrip("/")
+        if not s2.isnumeric():
+            common.print_and_exit("Seed "+s1+" can't be parsed")
+        seeds.append(s2)
+    return seeds
+
+
+# Parse input of "seeds" options. Return the list of seeds.
+def proccess_seeds(seeds_option_value):
+    seeds = seeds_option_value.split()
+    if len(seeds) == 1 and os.path.isfile(seeds[0]):
+        seeds_file = common.check_and_open_file(seeds[0], "r")
+        seeds = []
+        for line in seeds_file:
+            seeds += process_seed_line(line)
+    else:
+        seeds = process_seed_line(seeds_option_value)
+    common.log_msg(logging.DEBUG, "Running generator for "+str(len(seeds))+" seeds. Seed are:");
+    common.log_msg(logging.DEBUG, seeds)
+    return seeds
+
+def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value):
     common.check_dir_and_create(out_dir)
+
+    seeds = []
+    task_queue = None
+    if seeds_option_value:
+        seeds = proccess_seeds(seeds_option_value)
+        task_queue = multiprocessing.Queue()
+        for s in seeds:
+            task_queue.put(s)
+#        for num in range(num_jobs):
+#            task_queue.put(None)
+
 
     # Check for binary of generator
     yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
@@ -327,7 +556,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
 
     task_threads = [0] * num_jobs
     for num in range(num_jobs):
-        task_threads[num] = multiprocessing.Process(target=gen_and_test, args=(num, lock, end_time, stat, targets))
+        task_threads[num] = multiprocessing.Process(target=gen_and_test, args=(num, lock, end_time, task_queue, stat, targets))
         task_threads[num].start()
 
     print_online_statistics(lock, stat, targets, task_threads, num_jobs)
@@ -342,78 +571,49 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     sys.stdout.flush()
 
 
-def gen_and_test(num, lock, end_time, stat, targets):
+def gen_and_test(num, lock, end_time, task_queue, stat, targets):
     common.log_msg(logging.DEBUG, "Job #" + str(num))
     os.chdir(process_dir + str(num))
-    inf = (end_time == -1)
+    inf = (end_time == -1) or not (task_queue is None)
 
     while inf or end_time > time.time():
+        seed = ""
+        if not task_queue is None:
+            try:
+                seed = task_queue.get_nowait()
+            except queue.Empty:
+                return
+
         # Generate the test.
         # TODO: maybe, it is better to call generator through Makefile?
-        yarpgen_run_list = [".." + os.sep + "yarpgen", "-q"]
-        ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd(yarpgen_run_list, yarpgen_timeout, num)
-        seed = str(output, "utf-8").split()[1][:-2] if len(output) else \
-            str(num) + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-        if time_expired:
-            common.log_msg(logging.WARNING, "Generator has failed (" + runfail_timeout + ")")
-            stat.update_yarpgen_runs(runfail_timeout)
-            save_test(lock, num, seed, output, err_output, None, runfail_timeout)
+        test = Test(stat=stat, seed=seed, proc_num=num)
+        if not test.is_ok():
+            test.save(lock)
             continue
-        if ret_code != 0:
-            common.log_msg(logging.WARNING, "Generator has failed (" + runfail + ")")
-            stat.update_yarpgen_runs(runfail)
-            save_test(lock, num, seed, output, err_output, None, runfail)
-            continue
-        stat.update_yarpgen_runs(ok)
-        stat.update_yarpgen_duration(datetime.timedelta(seconds=elapsed_time))
 
         # Run all required opt-sets.
         out_res = set()
         prev_out_res_len = 1  # We can't check first result
-        for i in gen_test_makefile.CompilerTarget.all_targets:
+        for t in gen_test_makefile.CompilerTarget.all_targets:
             # Skip the target we are not supposed to run.
-            if i.specs.name not in targets.split():
+            if t.specs.name not in targets.split():
                 continue
             target_elapsed_time = 0.0
-            common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
+#            common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
 
-            # Build the test.
-            ret_code, output, err_output, time_expired, elapsed_time = \
-                common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, i.name], compiler_timeout, num)
-            target_elapsed_time += elapsed_time
-            if time_expired:
-                stat.update_target_runs(i.name, compfail_timeout)
-                save_test(lock, num, seed, output, err_output, i, compfail_timeout)
-                continue
-            if ret_code != 0:
-                stat.update_target_runs(i.name, compfail)
-                save_test(lock, num, seed, output, err_output, i, compfail)
+            test_run = TestRun(stat=stat, target=t, seed=test.seed, proc_num=num)
+            if not test_run.build():
+                test_run.save(lock)
                 continue
 
-            # Run the test.
-            ret_code, output, err_output, time_expired, elapsed_time = \
-                common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + i.name], run_timeout, num)
-            target_elapsed_time += elapsed_time
-            if time_expired:
-                stat.update_target_runs(i.name, runfail_timeout)
-                save_test(lock, num, seed, output, err_output, i, runfail_timeout)
-                continue
-            if ret_code != 0:
-                stat.update_target_runs(i.name, runfail)
-                save_test(lock, num, seed, output, err_output, i, runfail)
+            if not test_run.run():
+                test_run.save(lock)
                 continue
 
-            stat.update_target_duration(i.name, datetime.timedelta(seconds=target_elapsed_time))
+            test.add_success_run(test_run)
 
-            # Verify the result.
-            out_res.add(str(output, "utf-8").split()[-1])
-            if len(out_res) > prev_out_res_len:
-                prev_out_res_len = len(out_res)
-                stat.update_target_runs(i.name, out_dif)
-                save_test(lock, num, seed, output, err_output, i, "output")
-            else:
-                stat.update_target_runs(i.name, ok)
+        # Done with running tests, now verify the results.
+        test.verify_results(lock)
 
 
 def save_test(lock, num, seed, output, err_output, target, fail_tag):
@@ -461,8 +661,8 @@ def save_test(lock, num, seed, output, err_output, target, fail_tag):
 
     test_files = gen_test_makefile.sources.value.split() + gen_test_makefile.headers.value.split()
     test_files.append(gen_test_makefile.Test_Makefile_name)
-    for i in test_files:
-        common.check_and_copy(i, dest)
+    for f in test_files:
+        common.check_and_copy(f, dest)
     lock.release()
 
 
@@ -509,6 +709,10 @@ Use specified folder for testing
                         help="Increase output verbosity")
     parser.add_argument("--stat-log-file", dest="stat_log_file", default="statistics.log", type=str,
                         help="Logfile")
+    parser.add_argument("--seeds", dest="seeds_option_value", default="", type=str,
+                        help="List of generator seeds to run or a file name with the list of seeds. "\
+                             "Seeds may be separated by whitespaces and commas."\
+                             "The seed may start with S_ or end with /, i.e. S_12345/ is interpretted as 12345.")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -521,4 +725,4 @@ Use specified folder for testing
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
-                                  args.config_file)
+                                  args.config_file, args.seeds_option_value)

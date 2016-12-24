@@ -151,7 +151,7 @@ def check_dir_and_create(directory):
 
 
 def run_cmd(cmd, time_out=None, num=-1):
-    time_expired = False
+    is_time_expired = False
     start_time = os.times()
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         try:
@@ -165,7 +165,7 @@ def run_cmd(cmd, time_out=None, num=-1):
             process.kill()
             log_msg(logging.DEBUG, str(cmd) + " failed")
             output, err_output = process.communicate()
-            time_expired = True
+            is_time_expired = True
             ret_code = None
         except:
             log_msg(logging.ERROR, str(cmd) + " failed: unknown exception")
@@ -175,7 +175,7 @@ def run_cmd(cmd, time_out=None, num=-1):
     end_time = os.times()
     elapsed_time = end_time.children_user - start_time.children_user + \
                    end_time.children_system - start_time.children_system
-    return ret_code, output, err_output, time_expired, elapsed_time
+    return ret_code, output, err_output, is_time_expired, elapsed_time
 
 
 def if_exec_exist(program):
