@@ -24,6 +24,7 @@ limitations under the License.
 #include "variable.h"
 #include "sym_table.h"
 #include "master.h"
+#include "gen_policy.h"
 
 #ifndef BUILD_DATE
 #define BUILD_DATE __DATE__
@@ -93,6 +94,7 @@ int main (int argc, char* argv[]) {
     }
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
+    default_gen_policy.init_from_config();
 
 //    self_test();
 

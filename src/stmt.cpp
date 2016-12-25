@@ -196,6 +196,9 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     }
 
     int struct_types_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_types_num(), ctx->get_gen_policy()->get_max_struct_types_num());
+    if (struct_types_num == 0)
+        return;
+
     for (int i = 0; i < struct_types_num; ++i) {
         //TODO: Maybe we should create one container for all struct types? And should they all be equal?
         std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types());
