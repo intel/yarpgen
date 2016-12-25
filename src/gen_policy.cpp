@@ -100,17 +100,21 @@ GenPolicy::GenPolicy () {
     allow_mix_types_in_struct = true;
     member_use_prob.push_back(Probability<bool>(true, 80));
     member_use_prob.push_back(Probability<bool>(false, 20));
+    rand_val_gen->shuffle_prob(member_use_prob);
     max_struct_depth = MAX_STRUCT_DEPTH;
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::VAR, 70));
     member_class_prob.push_back(Probability<Data::VarClassID>(Data::VarClassID::STRUCT, 30));
+    rand_val_gen->shuffle_prob(member_class_prob);
     min_bit_field_size = MIN_BIT_FIELD_SIZE;
     max_bit_field_size = MAX_BIT_FIELD_SIZE;
-    bit_field_prob.push_back(Probability<BitFieldID>(UNNAMED, 30));
-    bit_field_prob.push_back(Probability<BitFieldID>(NAMED, 60));
-    bit_field_prob.push_back(Probability<BitFieldID>(MAX_BIT_FIELD_ID, 10));
+    bit_field_prob.push_back(Probability<BitFieldID>(UNNAMED, 15));
+    bit_field_prob.push_back(Probability<BitFieldID>(NAMED, 20));
+    bit_field_prob.push_back(Probability<BitFieldID>(MAX_BIT_FIELD_ID, 65));
+    rand_val_gen->shuffle_prob(bit_field_prob);
 
     out_data_type_prob.push_back(Probability<OutDataTypeID>(VAR, 70));
     out_data_type_prob.push_back(Probability<OutDataTypeID>(STRUCT, 30));
+    rand_val_gen->shuffle_prob(out_data_type_prob);
 
     max_arith_depth = MAX_ARITH_DEPTH;
 
@@ -128,14 +132,16 @@ GenPolicy::GenPolicy () {
     max_cse_num = MAX_CSE_NUM;
 
     for (int i = UnaryExpr::Op::Plus; i < UnaryExpr::Op::MaxOp; ++i) {
-        Probability<UnaryExpr::Op> prob ((UnaryExpr::Op) i, 1);
+        Probability<UnaryExpr::Op> prob ((UnaryExpr::Op) i, 10);
         allowed_unary_op.push_back (prob);
     }
+    rand_val_gen->shuffle_prob(allowed_unary_op);
 
     for (int i = 0; i < BinaryExpr::Op::MaxOp; ++i) {
-        Probability<BinaryExpr::Op> prob ((BinaryExpr::Op) i, 1);
+        Probability<BinaryExpr::Op> prob ((BinaryExpr::Op) i, 10);
         allowed_binary_op.push_back (prob);
     }
+    rand_val_gen->shuffle_prob(allowed_binary_op);
 
     Probability<Node::NodeID> decl_gen (Node::NodeID::DECL, 10);
     stmt_gen_prob.push_back (decl_gen);
@@ -143,6 +149,7 @@ GenPolicy::GenPolicy () {
     stmt_gen_prob.push_back (assign_gen);
     Probability<Node::NodeID> if_gen (Node::NodeID::IF, 10);
     stmt_gen_prob.push_back (if_gen);
+    rand_val_gen->shuffle_prob(stmt_gen_prob);
 
     Probability<ArithLeafID> data_leaf (ArithLeafID::Data, 10);
     arith_leaves.push_back (data_leaf);
@@ -154,16 +161,19 @@ GenPolicy::GenPolicy () {
     arith_leaves.push_back (type_cast_leaf);
     Probability<ArithLeafID> cse_leaf (ArithLeafID::CSE, 5);
     arith_leaves.push_back (cse_leaf);
+    rand_val_gen->shuffle_prob(arith_leaves);
 
     Probability<ArithDataID> inp_data (ArithDataID::Inp, 80);
     arith_data_distr.push_back (inp_data);
-    Probability<ArithDataID> const_data (ArithDataID::Const, 10);
+    Probability<ArithDataID> const_data (ArithDataID::Const, 20);
     arith_data_distr.push_back (const_data);
+    rand_val_gen->shuffle_prob(arith_data_distr);
 
     Probability<ArithCSEGenID> add_cse (ArithCSEGenID::Add, 20);
     arith_cse_gen.push_back (add_cse);
     Probability<ArithCSEGenID> max_cse_gen (ArithCSEGenID::MAX_CSE_GEN_ID, 80);
     arith_cse_gen.push_back (max_cse_gen);
+    rand_val_gen->shuffle_prob(arith_cse_gen);
 
     Probability<ArithSSP::ConstUse> const_branch (ArithSSP::ConstUse::CONST_BRANCH, 5);
     allowed_arith_ssp_const_use.push_back(const_branch);
@@ -171,6 +181,7 @@ GenPolicy::GenPolicy () {
     allowed_arith_ssp_const_use.push_back(half_const);
     Probability<ArithSSP::ConstUse> no_ssp_const_use (ArithSSP::ConstUse::MAX_CONST_USE, 90);
     allowed_arith_ssp_const_use.push_back(no_ssp_const_use);
+    rand_val_gen->shuffle_prob(allowed_arith_ssp_const_use);
 
     chosen_arith_ssp_const_use = ArithSSP::ConstUse::MAX_CONST_USE;
 
@@ -188,6 +199,7 @@ GenPolicy::GenPolicy () {
     allowed_arith_ssp_similar_op.push_back(add_mul);
     Probability<ArithSSP::SimilarOp> no_ssp_similar_op (ArithSSP::SimilarOp::MAX_SIMILAR_OP, 70);
     allowed_arith_ssp_similar_op.push_back(no_ssp_similar_op);
+    rand_val_gen->shuffle_prob(allowed_arith_ssp_similar_op);
 
     chosen_arith_ssp_similar_op = ArithSSP::SimilarOp::MAX_SIMILAR_OP;
 
@@ -195,6 +207,7 @@ GenPolicy::GenPolicy () {
     else_prob.push_back(else_exist);
     Probability<bool> no_else (false, 50);
     else_prob.push_back(no_else);
+    rand_val_gen->shuffle_prob(else_prob);
 
     max_if_depth = MAX_IF_DEPTH;
 }

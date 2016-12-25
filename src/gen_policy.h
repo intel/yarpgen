@@ -37,6 +37,7 @@ class Probability {
         Probability (T _id, int _prob) : id(_id), prob (_prob) {}
         T get_id () { return id; }
         uint64_t get_prob () { return prob; }
+        void increase_prob(uint64_t add_prob) { prob += add_prob; }
 
     private:
         T id;
@@ -71,6 +72,27 @@ class RandValGen {
         uint64_t get_struct_type_num() { return struct_type_num; }
         std::string get_scalar_var_name() { return "var_" + std::to_string(++scalar_var_num); }
         std::string get_struct_var_name() { return "struct_obj_" + std::to_string(++struct_var_num); }
+
+        template <typename T>
+        void shuffle_prob(std::vector<Probability<T>> &prob_vec) {
+            int total_prob = 0;
+            std::vector<double> discrete_dis_init;
+            std::vector<Probability<T>> new_prob;
+            for (auto i : prob_vec) {
+                total_prob += i.get_prob();
+                discrete_dis_init.push_back(i.get_prob());
+                new_prob.push_back(Probability<T>(i.get_id(), 0));
+            }
+
+            std::uniform_int_distribution<int> dis (1, total_prob);
+            int delta = round(((double) total_prob) / dis(rand_gen));
+
+            std::discrete_distribution<int> discrete_dis(discrete_dis_init.begin(), discrete_dis_init.end());
+            for (int i = 0; i < total_prob; i += delta)
+                new_prob.at(discrete_dis(rand_gen)).increase_prob(delta);
+
+            prob_vec = new_prob;
+        }
 
     private:
         uint64_t seed;

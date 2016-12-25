@@ -30,7 +30,7 @@ limitations under the License.
 #endif
 
 #ifndef BUILD_VERSION
-#define BUILD_DATE ""
+#define BUILD_VERSION ""
 #endif
 
 using namespace rl;
