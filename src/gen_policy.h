@@ -121,7 +121,6 @@ struct ArithSSP : public Pattern {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class GenPolicy {
     public:
         GenPolicy ();
@@ -213,11 +212,6 @@ class GenPolicy {
         void add_cse (std::shared_ptr<Expr> expr) { cse.push_back(expr); }
         std::vector<Probability<ArithCSEGenID>>& get_arith_cse_gen () { return arith_cse_gen; }
 
-        void set_max_tmp_var_num (int _max_tmp_var_num) { max_tmp_var_num = _max_tmp_var_num; }
-        int get_max_tmp_var_num () { return max_tmp_var_num; }
-        int get_used_tmp_var_num () { return used_tmp_var_num; }
-        void add_used_tmp_var_num () { used_tmp_var_num++; }
-
         std::vector<Probability<bool>>& get_else_prob () { return else_prob; }
         void set_max_if_depth (int _max_if_depth) { max_if_depth = _max_if_depth; }
         int get_max_if_depth () { return max_if_depth; }
@@ -262,8 +256,11 @@ class GenPolicy {
         uint64_t get_max_bit_field_size () { return max_bit_field_size; }
         std::vector<Probability<BitFieldID>>& get_bit_field_prob () { return bit_field_prob; }
         void add_bit_field_prob(Probability<BitFieldID> prob) { bit_field_prob.push_back(prob); }
+        void init_from_config();
+
 
     private:
+        static bool default_was_loaded;
         // Number of allowed integer types
         int num_of_allowed_int_types;
         // Allowed types of variables and basic types of arrays
@@ -319,9 +316,6 @@ class GenPolicy {
         std::vector<Probability<ArithCSEGenID>> arith_cse_gen;
         std::vector<std::shared_ptr<Expr>> cse;
 
-        int max_tmp_var_num;
-        int used_tmp_var_num;
-
         int min_inp_var_num;
         int max_inp_var_num;
         int min_mix_var_num;
@@ -330,4 +324,6 @@ class GenPolicy {
         std::vector<Probability<bool>> else_prob;
         int max_if_depth;
 };
+
+extern GenPolicy default_gen_policy;
 }

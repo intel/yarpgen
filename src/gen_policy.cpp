@@ -28,8 +28,6 @@ int MAX_ARITH_DEPTH = 5;
 int MIN_ARITH_STMT_NUM = 5;
 int MAX_ARITH_STMT_NUM = 10;
 
-int MAX_TMP_VAR_NUM = 5;
-
 int MIN_INP_VAR_NUM = 20;
 int MAX_INP_VAR_NUM = 60;
 int MIN_MIX_VAR_NUM = 20;
@@ -40,19 +38,19 @@ int MAX_CSE_NUM = 5;
 int MAX_IF_DEPTH = 3;
 
 
-int MIN_STRUCT_TYPES_NUM = 3;
+int MIN_STRUCT_TYPES_NUM = 0;
 int MAX_STRUCT_TYPES_NUM = 6;
-int MIN_INP_STRUCT_NUM = 3;
+int MIN_INP_STRUCT_NUM = 0;
 int MAX_INP_STRUCT_NUM = 6;
-int MIN_MIX_STRUCT_NUM = 3;
+int MIN_MIX_STRUCT_NUM = 0;
 int MAX_MIX_STRUCT_NUM = 6;
-int MIN_OUT_STRUCT_NUM = 4;
+int MIN_OUT_STRUCT_NUM = 0;
 int MAX_OUT_STRUCT_NUM = 8;
-int MIN_STRUCT_MEMBERS_NUM = 5;
+int MIN_STRUCT_MEMBERS_NUM = 1;
 int MAX_STRUCT_MEMBERS_NUM = 10;
 int MAX_STRUCT_DEPTH = 5;
 int MIN_BIT_FIELD_SIZE = 8;
-int MAX_BIT_FIELD_SIZE = 2;
+int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -75,7 +73,15 @@ RandValGen::RandValGen (uint64_t _seed) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+bool GenPolicy::default_was_loaded = false;
+GenPolicy rl::default_gen_policy;
+
 GenPolicy::GenPolicy () {
+    if (default_was_loaded)
+        *this = default_gen_policy;
+}
+
+void GenPolicy::init_from_config () {
     num_of_allowed_int_types = MAX_ALLOWED_INT_TYPES;
     rand_init_allowed_int_types();
 
@@ -125,9 +131,6 @@ GenPolicy::GenPolicy () {
     max_inp_var_num = MAX_INP_VAR_NUM;
     min_mix_var_num = MIN_MIX_VAR_NUM;
     max_mix_var_num = MAX_MIX_VAR_NUM;
-
-    max_tmp_var_num = MAX_TMP_VAR_NUM;
-    used_tmp_var_num = 0;
 
     max_cse_num = MAX_CSE_NUM;
 
@@ -210,6 +213,8 @@ GenPolicy::GenPolicy () {
     rand_val_gen->shuffle_prob(else_prob);
 
     max_if_depth = MAX_IF_DEPTH;
+
+    default_was_loaded = true;
 }
 
 void GenPolicy::copy_data (std::shared_ptr<GenPolicy> old) {
