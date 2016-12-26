@@ -55,17 +55,11 @@ class RandValGen {
 
         template<typename T>
         T get_rand_id (std::vector<Probability<T>> vec) {
-            uint64_t max_prob = 0;
-            for (auto i = vec.begin(); i != vec.end(); ++i)
-                max_prob += (*i).get_prob();
-            uint64_t rand_num = get_rand_value<uint64_t> (0, max_prob);
-            for (auto i = vec.begin(); i != vec.end(); ++i) {
-                max_prob -= (*i).get_prob();
-                if (rand_num >= max_prob)
-                    return (*i).get_id();
-            }
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unable to select any id." << std::endl;
-            exit (-1);
+            std::vector<double> discrete_dis_init;
+            for (auto i : vec)
+                discrete_dis_init.push_back(i.get_prob());
+            std::discrete_distribution<int> discrete_dis(discrete_dis_init.begin(), discrete_dis_init.end());
+            return vec.at(discrete_dis(rand_gen)).get_id();
         }
 
         std::string get_struct_type_name() { return "struct_" + std::to_string(++struct_type_num); }
