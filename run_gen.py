@@ -429,7 +429,7 @@ def form_statistics(stat, targets, prev_len):
     stat_str += "cpu time: " + strfdelta(total_cpu_duration, "{days} d {hours}:{minutes}:{seconds}") + " | "
     stat_str += testing_speed + " | "
     stat_str += "seeds/targets: " + str(total_seeds)+"/"+str(total_runs) + " | "
-    stat_str += "Errors: " + str(total_gen_errors) + "/"
+    stat_str += "Errors(g/ct/c/rt/r/d): " + str(total_gen_errors) + "/"
     stat_str += str(total_compfail_timeout) + "/"
     stat_str += str(total_compfail) + "/"
     stat_str += str(total_runfail_timeout) + "/"
