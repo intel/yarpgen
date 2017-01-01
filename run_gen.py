@@ -81,6 +81,8 @@ class Test(object):
     STATUS_ok=1
     STATUS_fail=2
     STATUS_fail_timeout=3
+    STATUS_miscompare=4
+    STATUS_multiple_miscompare=5
 
     # Generate new test
     # stat is statistics object
@@ -91,12 +93,14 @@ class Test(object):
         yarpgen_run_list = [".." + os.sep + "yarpgen", "-q"]
         if seed:
             yarpgen_run_list += ["-s", seed]
+        self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
         self.ret_code, self.stdout, self.stderr, self.is_time_expired, self.elapsed_time = \
             common.run_cmd(yarpgen_run_list, yarpgen_timeout, proc_num)
 
         # Files that belongs to generate test. They are hardcoded for now.
         # Generator may report them in output later and we may need to parse it.
-        self.files = ["check.cpp", "driver.cpp", "func.cpp", "hash.cpp", "init.cpp", "init.h"]
+        self.files = gen_test_makefile.sources.value.split() + gen_test_makefile.headers.value.split()
+        self.files.append(gen_test_makefile.Test_Makefile_name)
 
         # Parse generated seed.
         if not seed:
@@ -126,10 +130,19 @@ class Test(object):
 
         # Initialize set of test runs
         self.successful_test_runs = []
+        self.fail_test_runs = []
 
     # Check status
     def is_ok(self):
         return self.status == self.STATUS_ok
+
+    def status_string(self):
+        if self.status == self.STATUS_ok:                    return "ok"
+        elif self.status == self.STATUS_fail:                return "gen_fail"
+        elif self.status == self.STATUS_fail_timeout:        return "gen_fail_timeout"
+        elif self.status == self.STATUS_miscompare:          return "miscompare"
+        elif self.status == self.STATUS_multiple_miscompare: return "multiple_miscompare"
+        else: raise
 
     # Save test
     def save(self, lock):
@@ -139,25 +152,149 @@ class Test(object):
         elif self.status == self.STATUS_fail:
             save_status = runfail
         else:
-            save_status = ok
+            raise
         save_test(lock, self.proc_num, self.seed, self.stdout, self.stderr, None, save_status)
 
     # Add successful test run
     def add_success_run(self, test_run):
         self.successful_test_runs.append(test_run)
 
+    # Add fail test run
+    def add_fail_run(self, test_run):
+        self.fail_test_runs.append(test_run)
+
+    # Save failed runs and verify successul runs
+    def handle_results(self, lock):
+        self.save_failed(lock)
+        self.verify_results(lock)
+
+    # Save failed runs.
+    # Group similar fails together.
+    def save_failed(self, lock):
+        fail_reasons_build = {}
+        fail_reasons_run = {}
+        for run in self.fail_test_runs:
+            if run.status == TestRun.STATUS_compfail or \
+               run.status == TestRun.STATUS_compfail_timeout:
+                fail_reason = str(run.build_stderr)+str(run.build_ret_code)
+                fail_reason = fail_reason.replace(run.optset, "")
+                if fail_reason in fail_reasons_build:
+                    fail_reasons_build[fail_reason].similar_fails.append(run)
+                else:
+                    fail_reasons_build[fail_reason] = run
+            elif run.status == TestRun.STATUS_runfail or \
+                 run.status == TestRun.STATUS_runfail_timeout:
+                fail_reason = str(run.run_stdout+run.run_stderr)+str(run.run_ret_code)
+                fail_reason = fail_reason.replace(run.optset, "")
+                if fail_reason in fail_reasons_run:
+                    fail_reasons_run[fail_reason].similar_fails.append(run)
+                else:
+                    fail_reasons_run[fail_reason] = run
+            else:
+                raise
+
+        for run in fail_reasons_build.values():
+            run.save(lock)
+        for run in fail_reasons_run.values():
+            run.save(lock)
+
     # Verify the results and if bad results are found, report / save them.
     def verify_results(self, lock):
-        results = set()
+        results = {}
         for t in self.successful_test_runs:
             assert t.status == TestRun.STATUS_ok
-            len1 = len(results)
-            results.add(t.checksum)
-            len2 = len(results)
-            if len1 > 0 and len2 > len1:
-                self.stat.update_target_runs(t.optset, out_dif)
-                save_test(lock, self.proc_num, self.seed, self.stdout, self.stderr, t.target, "output")
+            if t.checksum not in results:
+                results[t.checksum] = [t]
+            else:
+                results[t.checksum].append(t)
 
+        # Check if test passed.
+        if len(results) == 1:
+            return
+        elif len(results) == 2:
+            self.status = self.STATUS_miscompare
+            runs = list(results.values())
+            good_runs = runs[0]
+            bad_runs = runs[1]
+            if len(bad_runs) > len(good_runs):
+                good_runs, bad_runs = bad_runs, good_runs
+        else:
+            # More than 2 different results.
+            # Treat all them as bad
+            self.status = self.STATUS_multiple_miscompare
+            good_runs = []
+            bad_runs = []
+            for run in results.values():
+                bad_runs += run
+
+        # Report
+        for run in bad_runs:
+            self.stat.update_target_runs(run.optset, out_dif)
+        # Build log
+        log = self.build_log(bad_runs, good_runs)
+        self.files.append(log)
+
+        # Save
+        files_to_save = self.files
+        for run in (bad_runs + good_runs):
+            files_to_save.append(run.exe_file)
+        cmplr_set = []
+        optset_set = []
+        for run in bad_runs:
+            cmplr_set.append(run.target.specs.name)
+            optset_set.append(run.optset)
+        cmplr = "-".join(c for c in cmplr_set)
+        optset = "-".join(o for o in optset_set)
+        if len(cmplr_set) == 1:
+            optset = optset.replace(cmplr+"_", "")
+
+        save_test2(lock, files_to_save,
+                   compiler_name = cmplr,
+                   fail_type = self.status_string(),
+                   optset = optset,
+                   classification = None,
+                   test_name = "S_" + str(self.seed))
+
+    def build_log(self, bad_runs, good_runs):
+        log_name = "log.txt"
+        log = open(log_name, "w")
+        log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
+        log.write("Seed: " + str(self.seed) + "\n")
+        log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
+        log.write("Type: " + self.status_string() + "\n")
+        log.write("\n\n")
+        if self.status == self.STATUS_fail_timeout:
+            log.write("Generator timeout: " + yarpgen_timeout + " seconds\n")
+        if self.status == self.STATUS_fail or self.status == self.STATUS_fail_timeout:
+            log.write("Generator cmd: " + self.yarpgen_cmd + "\n")
+            log.write("Generator exit code: " + str(self.ret_code) + "\n")
+            log.write("=== Generator log ==================================================\n")
+            log.write(str(self.stdout, "utf-8"))
+            log.write("=== Generator err ==================================================\n")
+            log.write(str(self.stderr, "utf-8"))
+            log.write("=== Generator end ==================================================\n")
+            log.write("\n")
+        if self.status >= self.STATUS_miscompare:
+            for run in bad_runs:
+                log.write("==== BAD ==================================\n")
+                log.write("Optset: " + run.optset + "\n")
+                log.write("Output: " + str(run.run_stdout, "utf-8") + "\n")
+            log.write("===========================================\n\n")
+            for run in good_runs:
+                log.write("==== GOOD =================================\n")
+                log.write("Optset: " + run.optset + "\n")
+                log.write("Output: " + str(run.run_stdout, "utf-8") + "\n")
+            log.write("===========================================\n")
+
+        log.close()
+        return log_name
+# End of Test class
+
+# TODO:
+# 1. save test
+# 2. generate log
+# 3. diagnostic logic
+# 4. rerun test from the dir?
 # End of Test class
 
 # class representing the result of running a single opt-set for the test
@@ -168,29 +305,32 @@ class TestRun(object):
     # run result: pass / compfail / compfail_timeout / runfail / runfail_timeout / miscompare.
     # compilation log
 
-    STATUS_ok = 1
-    STATUS_miscompare = 2
+    STATUS_not_built = 1
+    STATUS_not_run = 2
     STATUS_compfail = 3
     STATUS_compfail_timeout = 4
     STATUS_runfail = 5
     STATUS_runfail_timeout = 6
-    STATUS_not_built = 7
-    STATUS_not_run = 8
+    STATUS_ok = 7
+    STATUS_miscompare = 8
 
-    def __init__(self, stat, target, seed, proc_num=-1):
+    def __init__(self, test, stat, target, proc_num=-1):
+        self.test = test
         self.stat = stat
         self.target = target
         self.optset = target.name
-        self.seed = seed
         self.proc_num = proc_num
         self.status = self.STATUS_not_built
         self.files = []
+        self.similar_fails = []
 
     # Build test
     def build(self):
         # build
+        build_params_list = ["make", "-f", gen_test_makefile.Test_Makefile_name, self.optset]
+        self.build_cmd = " ".join(str(p) for p in build_params_list)
         self.build_ret_code, self.build_stdout, self.build_stderr, self.is_build_time_expired, self.build_elapsed_time = \
-            common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, self.optset], compiler_timeout, self.proc_num)
+            common.run_cmd(build_params_list, compiler_timeout, self.proc_num)
         # update status and stats
         if self.is_build_time_expired:
             self.stat.update_target_runs(self.optset, compfail_timeout)
@@ -201,17 +341,24 @@ class TestRun(object):
         else:
             self.status = self.STATUS_not_run
         # update file list
-        expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", self.optset+"_out"]
+        expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", "out"]
+        expected_files = [ self.optset + "_" + e for e in expected_files ]
         for f in expected_files:
             if os.path.isfile(f):
                 self.files.append(f)
+        # save executable separately (we need it in case of miscompare)
+        exe_file = self.optset + "_out"
+        if os.path.isfile(exe_file):
+            self.exe_file = exe_file
         return self.status == self.STATUS_not_run
 
     # Run test
     def run(self):
         # run
+        run_params_list = ["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + self.optset]
+        self.run_cmd = " ".join(str(p) for p in run_params_list)
         self.run_ret_code, self.run_stdout, self.run_stderr, self.run_is_time_expired, self.run_elapsed_time = \
-            common.run_cmd(["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + self.optset], run_timeout, self.proc_num)
+            common.run_cmd(run_params_list, run_timeout, self.proc_num)
         # update status and stats
         if self.run_is_time_expired:
             self.stat.update_target_runs(self.optset, runfail_timeout)
@@ -226,35 +373,95 @@ class TestRun(object):
         self.stat.update_target_duration(self.optset, datetime.timedelta(seconds=self.build_elapsed_time+self.run_elapsed_time))
         return self.status == self.STATUS_ok
 
+    def status_string(self):
+        if   self.status == self.STATUS_ok:               return "ok"
+        elif self.status == self.STATUS_miscompare:       return "miscompare"
+        elif self.status == self.STATUS_compfail:         return "compfail"
+        elif self.status == self.STATUS_compfail_timeout: return "compfail_timeout"
+        elif self.status == self.STATUS_runfail:          return "runfail"
+        elif self.status == self.STATUS_runfail_timeout:  return "runfail_timeout"
+        elif self.status == self.STATUS_not_built:        return "not_built"
+        elif self.status == self.STATUS_not_run:          return "not_run"
+        else: raise
+
     def save(self, lock):
-        assert self.status != self.STATUS_not_built
-        # TODO: add list of files
-        if self.status == self.STATUS_compfail_timeout:
-            save_status = compfail_timeout
-            out = self.build_stdout
-            err = self.build_stderr
-        elif self.status == self.STATUS_compfail:
-            save_status = compfail
-            out = self.build_stdout
-            err = self.build_stderr
-        elif self.status == self.STATUS_runfail_timeout:
-            save_status = runfail_timeout
-            out = self.run_stdout
-            err = self.run_stderr
-        elif self.status == self.STATUS_runfail:
-            save_status = runfail
-            out = self.run_stdout
-            err = self.run_stderr
-        elif self.status == self.STATUS_miscompare:
-            save_status = "output"
-            out = self.run_stdout
-            err = self.run_stderr
-        elif self.status == self.STATUS_ok:
-            return
-        else:
+        if self.status <= self.STATUS_not_built or self.status >= self.STATUS_miscompare:
             raise
 
-        save_test(lock, self.proc_num, self.seed, out, err, self.target, save_status)
+        save_status = self.status_string()
+
+        # TODO: it's the place to add a hook for build and run classification:
+        classification = None
+        if self.status == self.STATUS_compfail:
+            # classify compfail
+            pass
+        elif self.status == self.STATUS_runfail:
+            # classify runfail
+            pass
+
+        # Files to save: source files, own files, files from similar fails and
+        # log file.
+        file_list = self.test.files + self.files
+        for run in self.similar_fails:
+            file_list += run.files
+        # Remove duplicates
+        file_list = list(set(file_list))
+        log = self.build_log()
+        file_list.append(log)
+
+        optset_set = []
+        optset_set.append(self.optset)
+        for run in self.similar_fails:
+            optset_set.append(run.optset)
+        optset_set.sort()
+        optset = "-".join(o for o in optset_set)
+        optset = optset.replace(self.target.specs.name+"_", "")
+
+        save_test2(lock,
+                   file_list,
+                   compiler_name=self.target.specs.name,
+                   fail_type=save_status,
+                   optset=optset,
+                   classification=classification,
+                   test_name="S_"+str(self.test.seed))
+
+    def build_log(self):
+        log_name = "log.txt"
+        log = open(log_name, "w")
+        log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
+        log.write("Seed: " + str(self.test.seed) + "\n")
+        log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
+        log.write("Optset: " + self.optset + "\n")
+        if len(self.similar_fails) != 0:
+            optsets = ", ".join(str(r.optset) for r in self.similar_fails)
+            log.write("Other optset failing with same diagnostic: " + optsets + "\n")
+        log.write("Type: " + self.status_string() + "\n")
+        log.write("\n\n")
+        if self.status == self.STATUS_compfail_timeout:
+            log.write("Build timeout: " + compiler_timeout + " seconds\n")
+        if self.status >= self.STATUS_compfail:
+            log.write("Build cmd: " + self.build_cmd + "\n")
+            log.write("Build exit code: " + str(self.build_ret_code) + "\n")
+            log.write("=== Build log ======================================================\n")
+            log.write(str(self.build_stdout, "utf-8"))
+            log.write("=== Build err ======================================================\n")
+            log.write(str(self.build_stderr, "utf-8"))
+            log.write("=== Build end ======================================================\n")
+            log.write("\n")
+        if self.status == self.STATUS_runfail_timeout:
+            log.write("Build timeout: " + run_timeout + " seconds\n")
+        if self.status >= self.STATUS_runfail:
+            log.write("Run cmd: " + self.run_cmd + "\n")
+            log.write("Run exit code: " + str(self.run_ret_code) + "\n")
+            log.write("=== Run log ========================================================\n")
+            log.write(str(self.run_stdout, "utf-8"))
+            log.write("=== Run err ========================================================\n")
+            log.write(str(self.run_stderr, "utf-8"))
+            log.write("=== Run end ========================================================\n")
+            log.write("\n")
+
+        log.close()
+        return log_name
 # End of TestRun class
 
 
@@ -603,21 +810,51 @@ def gen_and_test(num, lock, end_time, task_queue, stat, targets):
             target_elapsed_time = 0.0
 #            common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
 
-            test_run = TestRun(stat=stat, target=t, seed=test.seed, proc_num=num)
+            test_run = TestRun(test=test, stat=stat, target=t, proc_num=num)
             if not test_run.build():
-                test_run.save(lock)
+                test.add_fail_run(test_run)
                 continue
 
             if not test_run.run():
-                test_run.save(lock)
+                test.add_fail_run(test_run)
                 continue
 
             test.add_success_run(test_run)
 
         # Done with running tests, now verify the results.
-        test.verify_results(lock)
+        test.handle_results(lock)
 
 
+# save file_list in compiler_name/fail_type/[optset]/[classification]/test_name
+# for example:
+# - icc/miscompare/S_123456
+# - icc/miscompare/icc_bdw/SIMP/S_123456
+# - clang/build_fail/assert_XXXX/S_123456
+# - gcc/miscompare/gcc_skx/S_123456
+# - generator_fail/S_20161230_22_30
+# return dir name
+def save_test2(lock, file_list, compiler_name=None, fail_type=None, optset=None, classification=None, test_name=None):
+    dest = ".." + os.sep + res_dir + \
+                  ((os.sep + compiler_name) if (compiler_name is not None) else "") + \
+                  ((os.sep + fail_type) if (fail_type is not None) else os.sep + "script_problem") + \
+                  ((os.sep + optset) if (optset is not None) else "") + \
+                  ((os.sep + classification) if (classification is not None) else "") + \
+                  ((os.sep + test_name) if (test_name is not None) else os.sep + "FAIL_" + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+    try:
+        lock.acquire()
+        dest = os.path.abspath(dest)
+        common.check_dir_and_create(dest)
+        for f in file_list:
+            common.check_and_copy(f, dest)
+    except:
+        common.log_msg(logging.ERROR, "Problem when saving test in " + str(dest) + " directory")
+    finally:
+        lock.release()
+
+    return dest
+
+
+# save test in target.specs.name/fail_tag/[target.arch.sde_arch.name]/S_seed
 def save_test(lock, num, seed, output, err_output, target, fail_tag):
     dest = ".." + os.sep + res_dir
     # Check and/or create compilers codename dir
