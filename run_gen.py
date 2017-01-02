@@ -216,7 +216,26 @@ class Test(object):
             runs = list(results.values())
             good_runs = runs[0]
             bad_runs = runs[1]
+            # Majority vote
             if len(bad_runs) > len(good_runs):
+                good_runs, bad_runs = bad_runs, good_runs
+            # Count number of no_opt optsets in each bin.
+            good_no_opt = 0
+            for run in good_runs:
+                good_no_opt += run.optset.count("no_opt")
+            bad_no_opt = 0
+            for run in bad_runs:
+                bad_no_opt += run.optset.count("no_opt")
+            if good_no_opt == 0 and bad_no_opt > 0:
+                good_runs, bad_runs = bad_runs, good_runs
+            # Assume one compiler is failing at many opt-sets.
+            good_cmplrs = set()
+            bad_cmplrs = set()
+            for run in good_runs:
+                good_cmplrs.add(run.target.specs.name)
+            for run in bad_runs:
+                bad_cmplrs.add(run.target.specs.name)
+            if len(good_cmplrs) < len(bad_cmplrs):
                 good_runs, bad_runs = bad_runs, good_runs
         else:
             # More than 2 different results.
@@ -238,9 +257,11 @@ class Test(object):
         files_to_save = self.files
         for run in (bad_runs + good_runs):
             files_to_save.append(run.exe_file)
-        cmplr_set = []
+        cmplr_set = set()
         for run in bad_runs:
-            cmplr_set.append(run.target.specs.name)
+            cmplr_set.add(run.target.specs.name)
+        cmplr_set = list(cmplr_set)
+        cmplr_set.sort()
         cmplr = "-".join(c for c in cmplr_set)
 
         save_test2(lock, files_to_save,
@@ -423,7 +444,7 @@ class TestRun(object):
         log.write("Type: " + self.status_string() + "\n")
         log.write("\n\n")
         if self.status == self.STATUS_compfail_timeout:
-            log.write("Build timeout: " + compiler_timeout + " seconds\n")
+            log.write("Build timeout: " + str(compiler_timeout) + " seconds\n")
         if self.status >= self.STATUS_compfail:
             log.write("Build cmd: " + self.build_cmd + "\n")
             log.write("Build exit code: " + str(self.build_ret_code) + "\n")
@@ -434,7 +455,7 @@ class TestRun(object):
             log.write("=== Build end ======================================================\n")
             log.write("\n")
         if self.status == self.STATUS_runfail_timeout:
-            log.write("Build timeout: " + run_timeout + " seconds\n")
+            log.write("Build timeout: " + str(run_timeout) + " seconds\n")
         if self.status >= self.STATUS_runfail:
             log.write("Run cmd: " + self.run_cmd + "\n")
             log.write("Run exit code: " + str(self.run_ret_code) + "\n")
