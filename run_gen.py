@@ -146,14 +146,14 @@ class Test(object):
 
     # Save test
     def save(self, lock):
-        # TODO: add list of files
-        if self.status == self.STATUS_fail_timeout:
-            save_status = runfail_timeout
-        elif self.status == self.STATUS_fail:
-            save_status = runfail
-        else:
+        if self.status != self.STATUS_fail_timeout and self.status != self.STATUS_fail:
             raise
-        save_test(lock, self.proc_num, self.seed, self.stdout, self.stderr, None, save_status)
+        log = self.build_log()
+        save_test(lock, file_list=[log],
+                   compiler_name=None,
+                   fail_type=self.status_string(),
+                   classification=None,
+                   test_name=None)
 
     # Add successful test run
     def add_success_run(self, test_run):
@@ -260,13 +260,13 @@ class Test(object):
         cmplr_set.sort()
         cmplr = "-".join(c for c in cmplr_set)
 
-        save_test2(lock, files_to_save,
+        save_test(lock, files_to_save,
                    compiler_name = cmplr,
                    fail_type = self.status_string(),
                    classification = None,
                    test_name = "S_" + str(self.seed))
 
-    def build_log(self, bad_runs, good_runs):
+    def build_log(self, bad_runs=[], good_runs=[]):
         log_name = "log.txt"
         log = open(log_name, "w")
         log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
@@ -275,7 +275,7 @@ class Test(object):
         log.write("Type: " + self.status_string() + "\n")
         log.write("\n\n")
         if self.status == self.STATUS_fail_timeout:
-            log.write("Generator timeout: " + yarpgen_timeout + " seconds\n")
+            log.write("Generator timeout: " + str(yarpgen_timeout) + " seconds\n")
         if self.status == self.STATUS_fail or self.status == self.STATUS_fail_timeout:
             log.write("Generator cmd: " + self.yarpgen_cmd + "\n")
             log.write("Generator exit code: " + str(self.ret_code) + "\n")
@@ -420,7 +420,7 @@ class TestRun(object):
         log = self.build_log()
         file_list.append(log)
 
-        save_test2(lock,
+        save_test(lock,
                    file_list,
                    compiler_name=self.target.specs.name,
                    fail_type=save_status,
@@ -439,7 +439,9 @@ class TestRun(object):
 
         for test in tests:
             log.write("\n\n")
-            log.write("Details for " + test.optset + " optset:\n")
+            log.write("====================================================================\n")
+            log.write("========== Details for " + test.optset + " optset.\n")
+            log.write("====================================================================\n")
             if test.status == self.STATUS_compfail_timeout:
                 log.write("Build timeout: " + str(compiler_timeout) + " seconds\n")
             if test.status >= self.STATUS_compfail:
@@ -830,15 +832,15 @@ def gen_and_test(num, lock, end_time, task_queue, stat, targets):
         test.handle_results(lock)
 
 
-# save file_list in compiler_name/fail_type/[classification]/test_name
+# save file_list in [compiler_name]/[fail_type]/[classification]/[test_name]
 # for example:
 # - icc/miscompare/S_123456
 # - icc/miscompare/SIMP/S_123456
 # - clang/build_fail/assert_XXXX/S_123456
 # - gcc/miscompare/S_123456
-# - generator_fail/S_20161230_22_30
+# - gen_fail/S_20161230_22_30
 # return dir name
-def save_test2(lock, file_list, compiler_name=None, fail_type=None, classification=None, test_name=None):
+def save_test(lock, file_list, compiler_name=None, fail_type=None, classification=None, test_name=None):
     dest = ".." + os.sep + res_dir + \
                   ((os.sep + compiler_name) if (compiler_name is not None) else "") + \
                   ((os.sep + fail_type) if (fail_type is not None) else os.sep + "script_problem") + \
@@ -856,57 +858,6 @@ def save_test2(lock, file_list, compiler_name=None, fail_type=None, classificati
         lock.release()
 
     return dest
-
-
-# save test in target.specs.name/fail_tag/[target.arch.sde_arch.name]/S_seed
-def save_test(lock, num, seed, output, err_output, target, fail_tag):
-    dest = ".." + os.sep + res_dir
-    # Check and/or create compilers codename dir
-    if target is not None:
-        dest += os.sep + target.specs.name
-    else:
-        dest += os.sep + "gen_fail"
-    lock.acquire()
-    common.check_dir_and_create(dest)
-    # Check and/or create fail_tag dir
-    dest += os.sep + str(fail_tag)
-    common.check_dir_and_create(dest)
-    if target is not None and target.arch.sde_arch.name != "":
-        dest += os.sep + target.arch.sde_arch.name
-        common.check_dir_and_create(dest)
-    dest += os.sep + "S_" + seed
-    if os.path.exists(dest):
-        if not os.path.isdir(dest):
-            common.print_and_exit("Can't use '" + dest + "' directory")
-            lock.release()
-            return
-    else:
-        os.makedirs(dest)
-    log = open(dest + os.sep + "log.txt", "a")
-    common.log_msg(logging.DEBUG, "Saving test in " + str(num) + "thread to " + dest)
-
-    log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
-    log.write("Seed: " + str(seed) + "\n")
-    log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
-    log.write("Type: " + str(fail_tag) + "\n")
-    # If it is generator's error, we can't copy test's source files
-    if target is None:
-        log.close()
-        shutil.copy(".." + os.sep + "yarpgen", dest)
-        lock.release()
-        return
-    log.write("Target: " + str(target.name) + "\n")
-    log.write("Compiler version: " + str(target.specs.version) + "\n")
-    log.write("Output: \n" + str(output, "utf-8") + "\n\n")
-    log.write("Err_output:\n" + str(err_output, "utf-8") + "\n")
-    log.write("====================================\n")
-    log.close()
-
-    test_files = gen_test_makefile.sources.value.split() + gen_test_makefile.headers.value.split()
-    test_files.append(gen_test_makefile.Test_Makefile_name)
-    for f in test_files:
-        common.check_and_copy(f, dest)
-    lock.release()
 
 
 ###############################################################################
