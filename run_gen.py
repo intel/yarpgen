@@ -713,6 +713,8 @@ def proccess_seeds(seeds_option_value):
         seeds_file = common.check_and_open_file(seeds[0], "r")
         seeds = []
         for line in seeds_file:
+            if line.lstrip().startswith("#"):
+                continue
             seeds += process_seed_line(line)
     else:
         seeds = process_seed_line(seeds_option_value)
@@ -951,7 +953,8 @@ Use specified folder for testing
     parser.add_argument("--seeds", dest="seeds_option_value", default="", type=str,
                         help="List of generator seeds to run or a file name with the list of seeds. "\
                              "Seeds may be separated by whitespaces and commas."\
-                             "The seed may start with S_ or end with /, i.e. S_12345/ is interpretted as 12345.")
+                             "The seed may start with S_ or end with /, i.e. S_12345/ is interpretted as 12345."
+                             "File comments may start with #")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
