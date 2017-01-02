@@ -239,19 +239,13 @@ class Test(object):
         for run in (bad_runs + good_runs):
             files_to_save.append(run.exe_file)
         cmplr_set = []
-        optset_set = []
         for run in bad_runs:
             cmplr_set.append(run.target.specs.name)
-            optset_set.append(run.optset)
         cmplr = "-".join(c for c in cmplr_set)
-        optset = "-".join(o for o in optset_set)
-        if len(cmplr_set) == 1:
-            optset = optset.replace(cmplr+"_", "")
 
         save_test2(lock, files_to_save,
                    compiler_name = cmplr,
                    fail_type = self.status_string(),
-                   optset = optset,
                    classification = None,
                    test_name = "S_" + str(self.seed))
 
@@ -409,19 +403,10 @@ class TestRun(object):
         log = self.build_log()
         file_list.append(log)
 
-        optset_set = []
-        optset_set.append(self.optset)
-        for run in self.similar_fails:
-            optset_set.append(run.optset)
-        optset_set.sort()
-        optset = "-".join(o for o in optset_set)
-        optset = optset.replace(self.target.specs.name+"_", "")
-
         save_test2(lock,
                    file_list,
                    compiler_name=self.target.specs.name,
                    fail_type=save_status,
-                   optset=optset,
                    classification=classification,
                    test_name="S_"+str(self.test.seed))
 
@@ -827,19 +812,18 @@ def gen_and_test(num, lock, end_time, task_queue, stat, targets):
         test.handle_results(lock)
 
 
-# save file_list in compiler_name/fail_type/[optset]/[classification]/test_name
+# save file_list in compiler_name/fail_type/[classification]/test_name
 # for example:
 # - icc/miscompare/S_123456
-# - icc/miscompare/icc_bdw/SIMP/S_123456
+# - icc/miscompare/SIMP/S_123456
 # - clang/build_fail/assert_XXXX/S_123456
-# - gcc/miscompare/gcc_skx/S_123456
+# - gcc/miscompare/S_123456
 # - generator_fail/S_20161230_22_30
 # return dir name
-def save_test2(lock, file_list, compiler_name=None, fail_type=None, optset=None, classification=None, test_name=None):
+def save_test2(lock, file_list, compiler_name=None, fail_type=None, classification=None, test_name=None):
     dest = ".." + os.sep + res_dir + \
                   ((os.sep + compiler_name) if (compiler_name is not None) else "") + \
                   ((os.sep + fail_type) if (fail_type is not None) else os.sep + "script_problem") + \
-                  ((os.sep + optset) if (optset is not None) else "") + \
                   ((os.sep + classification) if (classification is not None) else "") + \
                   ((os.sep + test_name) if (test_name is not None) else os.sep + "FAIL_" + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     try:
