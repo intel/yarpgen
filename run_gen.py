@@ -169,34 +169,30 @@ class Test(object):
         self.verify_results(lock)
 
     # Save failed runs.
-    # Group similar fails together.
+    # Report fails of the same type together.
     def save_failed(self, lock):
-        fail_reasons_build = {}
-        fail_reasons_run = {}
+        build_fail = None
+        run_fail = None
         for run in self.fail_test_runs:
             if run.status == TestRun.STATUS_compfail or \
                run.status == TestRun.STATUS_compfail_timeout:
-                fail_reason = str(run.build_stderr)+str(run.build_ret_code)
-                fail_reason = fail_reason.replace(run.optset, "")
-                if fail_reason in fail_reasons_build:
-                    fail_reasons_build[fail_reason].similar_fails.append(run)
+                if build_fail:
+                    build_fail.same_type_fails.append(run)
                 else:
-                    fail_reasons_build[fail_reason] = run
+                    build_fail = run
             elif run.status == TestRun.STATUS_runfail or \
                  run.status == TestRun.STATUS_runfail_timeout:
-                fail_reason = str(run.run_stdout+run.run_stderr)+str(run.run_ret_code)
-                fail_reason = fail_reason.replace(run.optset, "")
-                if fail_reason in fail_reasons_run:
-                    fail_reasons_run[fail_reason].similar_fails.append(run)
+                if run_fail:
+                    run_fail.same_type_fails.append(run)
                 else:
-                    fail_reasons_run[fail_reason] = run
+                    run_fail = run
             else:
                 raise
 
-        for run in fail_reasons_build.values():
-            run.save(lock)
-        for run in fail_reasons_run.values():
-            run.save(lock)
+        if build_fail:
+            build_fail.save(lock)
+        if run_fail:
+            run_fail.save(lock)
 
     # Verify the results and if bad results are found, report / save them.
     def verify_results(self, lock):
@@ -239,7 +235,7 @@ class Test(object):
                 good_runs, bad_runs = bad_runs, good_runs
         else:
             # More than 2 different results.
-            # Treat all them as bad
+            # Treat them all as bad
             self.status = self.STATUS_multiple_miscompare
             good_runs = []
             bad_runs = []
@@ -337,7 +333,7 @@ class TestRun(object):
         self.proc_num = proc_num
         self.status = self.STATUS_not_built
         self.files = []
-        self.similar_fails = []
+        self.same_type_fails = []
 
     # Build test
     def build(self):
@@ -417,7 +413,7 @@ class TestRun(object):
         # Files to save: source files, own files, files from similar fails and
         # log file.
         file_list = self.test.files + self.files
-        for run in self.similar_fails:
+        for run in self.same_type_fails:
             file_list += run.files
         # Remove duplicates
         file_list = list(set(file_list))
@@ -437,34 +433,35 @@ class TestRun(object):
         log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
         log.write("Seed: " + str(self.test.seed) + "\n")
         log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
-        log.write("Optset: " + self.optset + "\n")
-        if len(self.similar_fails) != 0:
-            optsets = ", ".join(str(r.optset) for r in self.similar_fails)
-            log.write("Other optset failing with same diagnostic: " + optsets + "\n")
+        tests = [self] + self.same_type_fails
+        log.write("Optsets: " + ", ".join(t.optset for t in tests) + "\n")
         log.write("Type: " + self.status_string() + "\n")
-        log.write("\n\n")
-        if self.status == self.STATUS_compfail_timeout:
-            log.write("Build timeout: " + str(compiler_timeout) + " seconds\n")
-        if self.status >= self.STATUS_compfail:
-            log.write("Build cmd: " + self.build_cmd + "\n")
-            log.write("Build exit code: " + str(self.build_ret_code) + "\n")
-            log.write("=== Build log ======================================================\n")
-            log.write(str(self.build_stdout, "utf-8"))
-            log.write("=== Build err ======================================================\n")
-            log.write(str(self.build_stderr, "utf-8"))
-            log.write("=== Build end ======================================================\n")
-            log.write("\n")
-        if self.status == self.STATUS_runfail_timeout:
-            log.write("Build timeout: " + str(run_timeout) + " seconds\n")
-        if self.status >= self.STATUS_runfail:
-            log.write("Run cmd: " + self.run_cmd + "\n")
-            log.write("Run exit code: " + str(self.run_ret_code) + "\n")
-            log.write("=== Run log ========================================================\n")
-            log.write(str(self.run_stdout, "utf-8"))
-            log.write("=== Run err ========================================================\n")
-            log.write(str(self.run_stderr, "utf-8"))
-            log.write("=== Run end ========================================================\n")
-            log.write("\n")
+
+        for test in tests:
+            log.write("\n\n")
+            log.write("Details for " + test.optset + " optset:\n")
+            if test.status == self.STATUS_compfail_timeout:
+                log.write("Build timeout: " + str(compiler_timeout) + " seconds\n")
+            if test.status >= self.STATUS_compfail:
+                log.write("Build cmd: " + test.build_cmd + "\n")
+                log.write("Build exit code: " + str(test.build_ret_code) + "\n")
+                log.write("=== Build log ======================================================\n")
+                log.write(str(test.build_stdout, "utf-8"))
+                log.write("=== Build err ======================================================\n")
+                log.write(str(test.build_stderr, "utf-8"))
+                log.write("=== Build end ======================================================\n")
+                log.write("\n")
+            if test.status == self.STATUS_runfail_timeout:
+                log.write("Build timeout: " + str(run_timeout) + " seconds\n")
+            if test.status >= self.STATUS_runfail:
+                log.write("Run cmd: " + test.run_cmd + "\n")
+                log.write("Run exit code: " + str(test.run_ret_code) + "\n")
+                log.write("=== Run log ========================================================\n")
+                log.write(str(test.run_stdout, "utf-8"))
+                log.write("=== Run err ========================================================\n")
+                log.write(str(test.run_stderr, "utf-8"))
+                log.write("=== Run end ========================================================\n")
+                log.write("\n")
 
         log.close()
         return log_name
