@@ -167,6 +167,10 @@ class Test(object):
     def handle_results(self, lock):
         self.save_failed(lock)
         self.verify_results(lock)
+        if self.status == self.STATUS_ok and len(self.fail_test_runs) == 0:
+            self.stat.seed_passed(self.seed)
+        else:
+            self.stat.seed_failed(self.seed)
 
     # Save failed runs.
     # Report fails of the same type together.
@@ -537,6 +541,8 @@ class Statistics (object):
         # TODO: we create objects for every target, but we can choose less in arguments
         for i in gen_test_makefile.CompilerTarget.all_targets:
             self.target_runs[i.name] = CmdRun(i.name)
+        self.seeds_pass = None
+        self.seeds_fail = None
 
     def update_yarpgen_runs(self, tag):
         self.yarpgen_runs.update(tag)
@@ -563,6 +569,24 @@ class Statistics (object):
 
     def get_target_duration(self, target_name):
         return self.target_runs[target_name].get_duration()
+
+    def enable_seeds(self):
+        self.seeds_pass = []
+        self.seeds_fail = []
+
+    def seeds_enabled(self):
+        return not self.seeds_pass is None
+
+    def get_seeds(self):
+        return self.seeds_pass, self.seeds_fail
+
+    def seed_passed(self, seed):
+        if not self.seeds_pass is None:
+            self.seeds_pass.append(seed)
+
+    def seed_failed(self, seed):
+        if not self.seeds_fail is None:
+            self.seeds_fail.append(seed)
 
 MyManager.register("Statistics", Statistics)
 
@@ -634,6 +658,13 @@ def form_statistics(stat, targets, prev_len):
         total_runfail += stat.get_target_runs(i.name, runfail)
         verbose_stat_str += "\t" + out_dif + " : " + str(stat.get_target_runs(i.name, out_dif)) + "\n"
         total_out_dif += stat.get_target_runs(i.name, out_dif)
+
+    if stat.seeds_enabled():
+        seeds_pass, seeds_fail = stat.get_seeds()
+        verbose_stat_str += "PASSED SEEDS (" + str(len(seeds_pass)) + "): " + \
+                            ", ".join("S_"+s for s in seeds_pass) + "\n"
+        verbose_stat_str += "FAILED SEEDS (" + str(len(seeds_fail)) + "): " + \
+                            ", ".join("S_"+s for s in seeds_fail) + "\n"
 
     stat_str = '\r'
     stat_str += "time " + strfdelta(datetime.datetime.now() - script_start_time,
@@ -764,6 +795,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     lock = multiprocessing.Lock()
     manager_obj = manager()
     stat = manager_obj.Statistics()
+    if seeds_option_value:
+        stat.enable_seeds()
 
     start_time = time.time()
     end_time = start_time + timeout * 60
