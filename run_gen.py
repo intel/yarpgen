@@ -34,6 +34,7 @@ import queue
 
 import common
 import gen_test_makefile
+import blame_opt
 
 res_dir = "result"
 process_dir = "process_"
@@ -88,7 +89,7 @@ class Test(object):
     # stat is statistics object
     # seed is optional, if we want to generate some particular seed.
     # proc_num is optinal debug info to track in what process we are running this activity.
-    def __init__(self, stat, seed="", proc_num=-1):
+    def __init__(self, stat, seed="", proc_num=-1, blame=False):
         # Run generator
         yarpgen_run_list = [".." + os.sep + "yarpgen", "-q"]
         if seed:
@@ -113,6 +114,9 @@ class Test(object):
         self.path = os.getcwd()
         self.proc_num = proc_num
         self.stat = stat
+        self.blame = blame
+        self.blame_phase = ""
+        self.blame_result = "was not run"
 
         # Update statistics and set the status
         stat.update_yarpgen_duration(datetime.timedelta(seconds=self.elapsed_time))
@@ -196,6 +200,8 @@ class Test(object):
         if build_fail:
             build_fail.save(lock)
         if run_fail:
+            if self.blame and len(self.successful_test_runs) > 0:
+                do_blame(run_fail, self.files, self.successful_test_runs[0].checksum, run_fail.target)
             run_fail.save(lock)
 
     # Verify the results and if bad results are found, report / save them.
@@ -246,6 +252,10 @@ class Test(object):
             for run in results.values():
                 bad_runs += run
 
+        # Run blame triagging for one of failing optsets
+        if self.blame:
+            do_blame(self, self.files, good_runs[0].checksum, bad_runs[0].target)
+
         # Report
         for run in bad_runs:
             self.stat.update_target_runs(run.optset, out_dif)
@@ -263,11 +273,14 @@ class Test(object):
         cmplr_set = list(cmplr_set)
         cmplr_set.sort()
         cmplr = "-".join(c for c in cmplr_set)
+        blame_phase = None
+        if len(self.blame_phase) != 0:
+            blame_phase = self.blame_phase.replace(" ", "_")
 
         save_test(lock, files_to_save,
                    compiler_name = cmplr,
                    fail_type = self.status_string(),
-                   classification = None,
+                   classification = blame_phase,
                    test_name = "S_" + str(self.seed))
 
     def build_log(self, bad_runs=[], good_runs=[]):
@@ -277,6 +290,9 @@ class Test(object):
         log.write("Seed: " + str(self.seed) + "\n")
         log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
         log.write("Type: " + self.status_string() + "\n")
+        if self.blame:
+            log.write("Blaming " + self.blame_result + "\n")
+            log.write("Optimization to blame: " + self.blame_phase + "\n")
         log.write("\n\n")
         if self.status == self.STATUS_fail_timeout:
             log.write("Generator timeout: " + str(yarpgen_timeout) + " seconds\n")
@@ -338,6 +354,8 @@ class TestRun(object):
         self.status = self.STATUS_not_built
         self.files = []
         self.same_type_fails = []
+        self.blame_phase = ""
+        self.blame_result = "was not run"
 
     # Build test
     def build(self):
@@ -412,7 +430,9 @@ class TestRun(object):
             pass
         elif self.status == self.STATUS_runfail:
             # classify runfail
-            pass
+            # use blame info
+            if len(self.blame_phase) != 0:
+                classification = self.blame_phase.replace(" ", "_")
 
         # Files to save: source files, own files, files from similar fails and
         # log file.
@@ -440,6 +460,9 @@ class TestRun(object):
         tests = [self] + self.same_type_fails
         log.write("Optsets: " + ", ".join(t.optset for t in tests) + "\n")
         log.write("Type: " + self.status_string() + "\n")
+        if self.test.blame:
+            log.write("Blaming " + self.blame_result + "\n")
+            log.write("Optimization to blame: " + self.blame_phase + "\n")
 
         for test in tests:
             log.write("\n\n")
@@ -472,6 +495,41 @@ class TestRun(object):
         log.close()
         return log_name
 # End of TestRun class
+
+# Run blaming in Test or TestRun object.
+# out: new files, blame_phase, blame_result
+def do_blame(test_obj, test_files, good_result, target_to_blame):
+    current_dir = os.getcwd()
+    try:
+        # Prepare sandbox for blaming run
+        os.mkdir("blame")
+        for f in test_files:
+            common.check_and_copy(f, "blame")
+        # Run blaming
+        blame_phase = blame_opt.prepare_env_and_blame(
+            fail_dir = os.path.join(current_dir, "blame"),
+            valid_res = good_result,
+            fail_target = target_to_blame,
+            out_dir = "./blame",
+            lock = None,
+            num = test_obj.proc_num,
+            inplace = True)
+        # Copy resuls back
+        os.chdir(current_dir)
+        common.check_and_copy("blame/Blame_Makefile", ".")
+        common.check_and_copy("blame/log.txt", "./blame.log")
+        test_obj.files.append("Blame_Makefile")
+        test_obj.files.append("blame.log")
+        # interpret results
+        if type(blame_phase) is str:
+            test_obj.blame_phase = blame_phase
+            test_obj.blame_result = "was successul"
+        else:
+            test_obj.blame_result = "has failed"
+    except Exception as e:
+        test_obj.blame_result = "raised an exception"
+        common.log_msg(logging.WARNING, "Exception was raised during blaming: "+ str(e))
+    os.chdir(current_dir)
 
 
 class CmdRun (object):
@@ -705,10 +763,9 @@ def print_online_statistics(lock, stat, targets, task_threads, num_jobs):
 
 
 def gen_test_makefile_and_copy(dest, config_file):
-    test_makefile_location = os.path.abspath(common.yarpgen_home + os.sep + gen_test_makefile.Test_Makefile_name)
-    gen_test_makefile.gen_makefile(test_makefile_location, True, config_file)
-    common.check_and_copy(test_makefile_location, dest)
-    return test_makefile_location
+    test_makefile = os.path.abspath(os.path.join(dest, gen_test_makefile.Test_Makefile_name))
+    gen_test_makefile.gen_makefile(test_makefile, True, config_file)
+    return test_makefile
 
 
 def dump_testing_sets(targets):
@@ -761,7 +818,7 @@ def proccess_seeds(seeds_option_value):
         common.log_msg(logging.INFO, "Note, that in the input seeds list there were "+str(len(seeds)-len(unique_seeds))+" duplicating seeds.", forced_duplication=True)
     return unique_seeds
 
-def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value):
+def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame):
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
@@ -772,7 +829,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     # TODO: need to add some check, but I hope that it is safe
     common.log_msg(logging.DEBUG, "YARPGEN version: " + common.yarpgen_version_str)
 
-    test_makefile_location = gen_test_makefile_and_copy(out_dir, config_file)
+    makefile = gen_test_makefile_and_copy(out_dir, config_file)
 
     dump_testing_sets(targets)
 
@@ -790,7 +847,6 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     common.check_dir_and_create(res_dir)
     for i in range(num_jobs):
         common.check_dir_and_create(process_dir + str(i))
-        common.check_and_copy(test_makefile_location, process_dir + str(i))
 
     lock = multiprocessing.Lock()
     manager_obj = manager()
@@ -805,7 +861,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
 
     task_threads = [0] * num_jobs
     for num in range(num_jobs):
-        task_threads[num] = multiprocessing.Process(target=gen_and_test, args=(num, lock, end_time, task_queue, stat, targets))
+        task_threads[num] = multiprocessing.Process(target=gen_and_test,
+            args=(num, makefile, lock, end_time, task_queue, stat, targets, blame))
         task_threads[num].start()
 
     print_online_statistics(lock, stat, targets, task_threads, num_jobs)
@@ -820,14 +877,22 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     sys.stdout.flush()
 
 
-def gen_and_test(num, lock, end_time, task_queue, stat, targets):
+def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame):
     common.log_msg(logging.DEBUG, "Job #" + str(num))
     os.chdir(process_dir + str(num))
+    work_dir = os.getcwd()
     inf = (end_time == -1) or not (task_queue is None)
 
     while inf or end_time > time.time():
+        # Cleanup before start
+        if os.getcwd() != work_dir:
+            raise
+        common.clean_dir(".")
+        common.check_and_copy(makefile, work_dir)
+
+        # Fetch next seed if seeds were specified
         seed = ""
-        if not task_queue is None:
+        if task_queue is not None:
             try:
                 seed = task_queue.get_nowait()
             except queue.Empty:
@@ -835,7 +900,7 @@ def gen_and_test(num, lock, end_time, task_queue, stat, targets):
 
         # Generate the test.
         # TODO: maybe, it is better to call generator through Makefile?
-        test = Test(stat=stat, seed=seed, proc_num=num)
+        test = Test(stat=stat, seed=seed, proc_num=num, blame=blame)
         if not test.is_ok():
             test.save(lock)
             continue
@@ -885,8 +950,12 @@ def save_test(lock, file_list, compiler_name=None, fail_type=None, classificatio
         common.check_dir_and_create(dest)
         for f in file_list:
             common.check_and_copy(f, dest)
-    except:
+    except Exception as e:
         common.log_msg(logging.ERROR, "Problem when saving test in " + str(dest) + " directory")
+        common.log_msg(logging.ERROR, "Exception type: " + str(type(e)))
+        common.log_msg(logging.ERROR, "Exception args: " + str(e.args))
+        common.log_msg(logging.ERROR, "Exception: " + str(e))
+
     finally:
         lock.release()
 
@@ -941,6 +1010,8 @@ Use specified folder for testing
                              "Seeds may be separated by whitespaces and commas."\
                              "The seed may start with S_ or end with /, i.e. S_12345/ is interpretted as 12345."
                              "File comments may start with #")
+    parser.add_argument("--blame", dest="blame", default=False, action="store_true",
+                        help="Enable optimization triagging for failing tests for supported compilers")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -953,4 +1024,4 @@ Use specified folder for testing
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
-                                  args.config_file, args.seeds_option_value)
+                                  args.config_file, args.seeds_option_value, args.blame)
