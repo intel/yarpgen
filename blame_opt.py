@@ -123,7 +123,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
     return str(cur_opt)
 
 
-def blame(fail_dir, valid_res, fail_target, out_dir, lock, num):
+def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
     blame_str = ""
     blame_opts = compilers_blame_opts[fail_target.specs.name]
     phase_num = 0
@@ -138,31 +138,52 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num):
         return False
 
     gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_str)
-    ret_code, output, err_output, time_expired, elapsed_time = \
+    ret_code, stdout, stderr, time_expired, elapsed_time = \
         common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
 
     opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
                                   compilers_opt_name_cutter[fail_target.specs.name][1])
-    opt_name = opt_name_pattern.findall(str(err_output, "utf-8"))[-1]
+    opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[-1]
     opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][0], "", opt_name)
     opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][1], "", opt_name)
+    real_opt_name = opt_name
     opt_name = opt_name.replace(" ", "_")
 
     common.run_cmd(["make", "-f", blame_test_makefile_name, "clean"], run_gen.compiler_timeout, num)
 
     seed_dir = os.path.basename(os.path.normpath(fail_dir))
-    full_out_path = os.path.join(os.path.join(out_dir, opt_name), seed_dir)
-    common.copy_test_to_out(fail_dir, full_out_path, lock)
-    with common.check_and_open_file(os.path.join(full_out_path, "log.txt"), "a") as log_file:
-        log_file.write("\nBlame opts: " + blame_str + "\n")
+    # Create log files in different places depending on "inplace" switch.
+    if not inplace:
+        full_out_path = os.path.join(os.path.join(out_dir, opt_name), seed_dir)
+        common.copy_test_to_out(fail_dir, full_out_path, lock)
+    else:
+        full_out_path = "."
+
+    # Write to log
+    with open(os.path.join(full_out_path, "log.txt"), "a") as log_file:
+        log_file.write("\nBlaming for " + fail_target.name + " optset was done.\n")
+        log_file.write("Optimization to blame: " + real_opt_name + "\n")
+        log_file.write("Blame opts: " + blame_str + "\n\n")
+        log_file.write("Details of blaming run:\n")
+        log_file.write("=== Compiler log ==================================================\n")
+        log_file.write(str(stdout, "utf-8"))
+        log_file.write("=== Compiler err ==================================================\n")
+        log_file.write(str(stderr, "utf-8"))
+        log_file.write("=== Compiler end ==================================================\n")
+
     common.log_msg(logging.DEBUG, "Done blaming")
-    return True
+
+    # Inplace mode require blaming string to be communicated back to the caller
+    if not inplace:
+        return True
+    else:
+        return real_opt_name
 
 
-def prepare_env_and_blame(fail_dir, valid_res, fail_target, out_dir, lock, num):
+def prepare_env_and_blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace=False):
     common.log_msg(logging.DEBUG, "Blaming target: " + fail_target.name + " | " + fail_target.specs.name)
     os.chdir(fail_dir)
     if fail_target.specs.name not in compilers_blame_opts:
         common.log_msg(logging.DEBUG, "We can't blame " + fail_target.name)
         return False
-    return blame(fail_dir, valid_res, fail_target, out_dir, lock, num)
+    return blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace)
