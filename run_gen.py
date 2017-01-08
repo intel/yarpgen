@@ -530,10 +530,12 @@ def do_blame(test_obj, test_files, good_result, target_to_blame):
             inplace = True)
         # Copy resuls back
         os.chdir(current_dir)
-        common.check_and_copy("blame/Blame_Makefile", ".")
-        common.check_and_copy("blame/log.txt", "./blame.log")
-        test_obj.files.append("Blame_Makefile")
-        test_obj.files.append("blame.log")
+        if os.path.exists("blame/Blame_Makefile"):
+            common.check_and_copy("blame/Blame_Makefile", ".")
+            test_obj.files.append("Blame_Makefile")
+        if os.path.exists("blame/log.txt"):
+            common.check_and_copy("blame/log.txt", "./blame.log")
+            test_obj.files.append("blame.log")
         # interpret results
         if type(blame_phase) is str:
             test_obj.blame_phase = blame_phase
