@@ -27,6 +27,7 @@ import logging
 import multiprocessing
 import multiprocessing.managers
 import os
+import re
 import shutil
 import sys
 import time
@@ -45,6 +46,11 @@ run_timeout = 300
 stat_update_delay = 10
 
 script_start_time = datetime.datetime.now()  # We should init variable, so let's do it this way
+
+known_build_fails = { \
+# clang
+    "SelectionDAGISel": "Assertion `NodeToMatch\-\>getOpcode\(\) != ISD::DELETED_NODE && \"NodeToMatch was removed partway through selection\"'" \
+}
 
 ###############################################################################
 
@@ -427,7 +433,9 @@ class TestRun(object):
         classification = None
         if self.status == self.STATUS_compfail:
             # classify compfail
-            pass
+            res = self.classify_build_fail()
+            if res is not None:
+                classification = res
         elif self.status == self.STATUS_runfail:
             # classify runfail
             # use blame info
@@ -450,6 +458,12 @@ class TestRun(object):
                    fail_type=save_status,
                    classification=classification,
                    test_name="S_"+str(self.test.seed))
+
+    def classify_build_fail(self):
+        for tag, reg_expr in known_build_fails.items():
+            if re.search(reg_expr, str(self.build_stderr, "utf-8")):
+                return tag
+        return None
 
     def build_log(self):
         log_name = "log.txt"
