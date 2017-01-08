@@ -200,7 +200,7 @@ class Test(object):
         if build_fail:
             build_fail.save(lock)
         if run_fail:
-            if self.blame and len(self.successful_test_runs) > 0:
+            if self.blame and len(self.successful_test_runs) > 0 and run_fail.status == TestRun.STATUS_runfail:
                 do_blame(run_fail, self.files, self.successful_test_runs[0].checksum, run_fail.target)
             run_fail.save(lock)
 
