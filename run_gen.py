@@ -29,6 +29,7 @@ import multiprocessing.managers
 import os
 import re
 import shutil
+import stat
 import sys
 import time
 import queue
@@ -39,11 +40,13 @@ import blame_opt
 
 res_dir = "result"
 process_dir = "process_"
+creduce_bin = "creduce"
 
 yarpgen_timeout = 60
 compiler_timeout = 600
 run_timeout = 300
 stat_update_delay = 10
+creduce_timeout = 3600 * 6
 
 script_start_time = datetime.datetime.now()  # We should init variable, so let's do it this way
 
@@ -95,7 +98,7 @@ class Test(object):
     # stat is statistics object
     # seed is optional, if we want to generate some particular seed.
     # proc_num is optinal debug info to track in what process we are running this activity.
-    def __init__(self, stat, seed="", proc_num=-1, blame=False):
+    def __init__(self, stat, seed="", proc_num=-1, blame=False, creduce_makefile=None):
         # Run generator
         yarpgen_run_list = [".." + os.sep + "yarpgen", "-q"]
         if seed:
@@ -123,6 +126,8 @@ class Test(object):
         self.blame = blame
         self.blame_phase = ""
         self.blame_result = "was not run"
+        self.creduce = bool(creduce_makefile)
+        self.creduce_makefile = creduce_makefile
 
         # Update statistics and set the status
         stat.update_yarpgen_duration(datetime.timedelta(seconds=self.elapsed_time))
@@ -141,6 +146,11 @@ class Test(object):
         # Initialize set of test runs
         self.successful_test_runs = []
         self.fail_test_runs = []
+
+        seed_file = open("seed", "w")
+        seed_file.write(self.seed)
+        seed_file.close()
+        common.log_msg(logging.DEBUG, "Process " + str(proc_num) + " has generated seed " + str(seed))
 
     # Check status
     def is_ok(self):
@@ -262,6 +272,10 @@ class Test(object):
         if self.blame:
             do_blame(self, self.files, good_runs[0].checksum, bad_runs[0].target)
 
+        # Run creduce for one of failing optsets
+        if self.creduce:
+            self.do_creduce(good_runs, bad_runs)
+
         # Report
         for run in bad_runs:
             self.stat.update_target_runs(run.optset, out_dif)
@@ -325,6 +339,99 @@ class Test(object):
 
         log.close()
         return log_name
+
+    def do_creduce(self, good_runs, bad_runs):
+        # Pick the fastest non-failing opt-set
+        good_run = None
+        good_time = 0
+        for run in good_runs:
+            if not run.target.specs.name.startswith("ubsan"):
+                continue
+            time = run.build_elapsed_time + run.run_elapsed_time
+            if good_run is None or time < good_time:
+                good_run, good_time = run, time
+
+        if not good_run:
+            # TODO: fix
+            raise
+
+        bad_run = None
+        bad_time = 0
+        for run in bad_runs:
+            time = run.build_elapsed_time + run.run_elapsed_time
+            if bad_run is None or time < bad_time:
+                bad_run, bad_time = run, time
+        common.log_msg(logging.DEBUG, "Running creduce for seed " + self.seed + ": " + \
+                good_run.optset + " vs " + bad_run.optset)
+
+        # Prepare Makefile
+        common.check_and_copy(self.creduce_makefile, ".")
+        creduce_makefile_name = os.path.basename(self.creduce_makefile)
+        self.files.append(creduce_makefile_name)
+
+        # Prepare reduce folder
+        os.mkdir("reduce")
+        for f in self.files:
+            common.check_and_copy(f, "reduce")
+        os.chdir("reduce")
+
+        creduce_makefile_abs_path = os.path.abspath(creduce_makefile_name)
+
+        # Now we need to construct a Makefile and script for passing to creduce.
+        # Need to make sure that -Werror=uninitialized is passed to the compiler.
+        # Recommended flags:
+        #   -O0 -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized
+        test_sh = "#!/bin/bash\n\n"
+        test_sh +="ulimit -t " + str(max(compiler_timeout, run_timeout)) + "\n\n"
+        test_sh +="export TEST_PWD="+os.getcwd()+"\n\n"
+        test_sh +="make -f " + creduce_makefile_abs_path + " " + good_run.optset + " &&\\\n"
+        test_sh +="make -f " + creduce_makefile_abs_path + " run_" + good_run.optset + " > no_opt_out &&\\\n"
+        test_sh +="make -f " + creduce_makefile_abs_path + " " + bad_run.optset + " &&\\\n"
+        test_sh +="make -f " + creduce_makefile_abs_path + " run_" + bad_run.optset + " > opt_out &&\\\n"
+        test_sh +="! diff no_opt_out opt_out"
+        test_sh_file = open("test.sh", "w")
+        test_sh_file.write(test_sh)
+        test_sh_file.close()
+        st = os.stat(test_sh_file.name)
+        os.chmod(test_sh_file.name, st.st_mode | stat.S_IEXEC)
+        common.check_and_copy(test_sh_file.name, "..")
+        self.files.append(test_sh_file.name)
+
+        # Run creduce
+        cr_params_list = ["creduce", "--timing", os.path.abspath(test_sh_file.name), "func.cpp"]
+        cr_cmd = " ".join(str(p) for p in cr_params_list)
+        cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
+            common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
+
+        # Store results and copy them back
+        cr_out = open("creduce_" + bad_run.optset + ".out", "w")
+        cr_out.write(str(cr_stdout, "utf-8"))
+        cr_out.close()
+        common.check_and_copy(cr_out.name, "..")
+        self.files.append(cr_out.name)
+
+        cr_err = open("creduce_" + bad_run.optset + ".err", "w")
+        cr_err.write(str(cr_stderr, "utf-8"))
+        cr_err.close()
+        common.check_and_copy(cr_err.name, "..")
+        self.files.append(cr_err.name)
+
+        cr_log = open("creduce_" + bad_run.optset + ".log", "w")
+        cr_log.write("Return code: " + str(cr_ret_code) + "\n")
+        cr_log.write("Execution time: " + str(cr_elapsed_time) + "\n")
+        cr_log.write("Time limit was exceeded!\n" if cr_is_time_expired else "Time limit was not exceeded\n")
+        cr_log.close()
+        common.check_and_copy(cr_log.name, "..")
+        self.files.append(cr_log.name)
+
+        reduced_file_name = "func_reduced_"+bad_run.optset+".cpp"
+        common.check_and_copy("func.cpp", ".." + os.sep+reduced_file_name)
+        self.files.append(reduced_file_name)
+
+        os.chdir(self.path)
+
+
+
 # End of Test class
 
 # TODO:
@@ -794,6 +901,8 @@ def dump_testing_sets(targets):
 
 def print_compilers_version(targets):
     for i in targets.split():
+        if i not in gen_test_makefile.CompilerSpecs.all_comp_specs:
+            common.print_and_exit("Know nothing about " + i + " target")
         comp_exec_name = gen_test_makefile.CompilerSpecs.all_comp_specs[i].comp_name
         if not common.if_exec_exist(comp_exec_name):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
@@ -801,6 +910,27 @@ def print_compilers_version(targets):
         # TODO: I hope it will work for all compilers
         common.log_msg(logging.DEBUG, str(output.splitlines()[0], "utf-8"))
         gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(str(output.splitlines()[0], "utf-8"))
+
+
+def check_creduce_version():
+    try:
+        ret_code, stdout, stderr, time_expired, elapsed_time = common.run_cmd([creduce_bin, "--help"], yarpgen_timeout, 0)
+        stdout_str = str(stdout, "utf-8")
+        match = re.match("creduce (\d)\.(\d)\.(\d).*-- a C and C\+\+ program reducer", stdout_str)
+        if not match:
+            common.print_and_exit("Can't read creduce version.")
+        major = int(match.group(1))
+        minor = int(match.group(2))
+        patch = int(match.group(3))
+        if major < 2 or (major == 2 and minor < 6):
+            common.log_msg(logging.WARNING, "CReduce version 2.6.0 or later is recommended. "\
+                    "You have version " + str(major) + "." + str(minor) + "." + str(patch))
+
+    except FileNotFoundError as e:
+        common.print_and_exit("CReduce is not found.")
+    except Exception as e:
+        print(str(e))
+        common.print_and_exit("Problem with running CReduce.")
 
 
 def process_seed_line(line):
@@ -834,7 +964,7 @@ def proccess_seeds(seeds_option_value):
         common.log_msg(logging.INFO, "Note, that in the input seeds list there were "+str(len(seeds)-len(unique_seeds))+" duplicating seeds.", forced_duplication=True)
     return unique_seeds
 
-def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame):
+def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame, creduce):
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
@@ -845,7 +975,22 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     # TODO: need to add some check, but I hope that it is safe
     common.log_msg(logging.DEBUG, "YARPGEN version: " + common.yarpgen_version_str)
 
-    makefile = gen_test_makefile_and_copy(out_dir, config_file)
+    # Check creduce version and generate Makefile for creduce
+    creduce_makefile = None
+    if creduce:
+        check_creduce_version()
+        creduce_makefile = os.path.abspath(os.path.join(out_dir, "CReduce_Makefile"))
+        gen_test_makefile.gen_makefile(
+                out_file_name = creduce_makefile,
+                force = True,
+                config_file = config_file,
+                creduce_file = "func.cpp")
+
+    makefile = os.path.abspath(os.path.join(out_dir, gen_test_makefile.Test_Makefile_name))
+    gen_test_makefile.gen_makefile(
+        out_file_name = makefile,
+        force = True,
+        config_file = config_file)
 
     dump_testing_sets(targets)
 
@@ -878,7 +1023,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     task_threads = [0] * num_jobs
     for num in range(num_jobs):
         task_threads[num] = multiprocessing.Process(target=gen_and_test,
-            args=(num, makefile, lock, end_time, task_queue, stat, targets, blame))
+            args=(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile))
         task_threads[num].start()
 
     print_online_statistics(lock, stat, targets, task_threads, num_jobs)
@@ -893,19 +1038,13 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     sys.stdout.flush()
 
 
-def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame):
+def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile):
     common.log_msg(logging.DEBUG, "Job #" + str(num))
     os.chdir(process_dir + str(num))
     work_dir = os.getcwd()
     inf = (end_time == -1) or not (task_queue is None)
 
     while inf or end_time > time.time():
-        # Cleanup before start
-        if os.getcwd() != work_dir:
-            raise
-        common.clean_dir(".")
-        common.check_and_copy(makefile, work_dir)
-
         # Fetch next seed if seeds were specified
         seed = ""
         if task_queue is not None:
@@ -914,9 +1053,16 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
             except queue.Empty:
                 return
 
+        # Cleanup before start
+        if os.getcwd() != work_dir:
+            raise
+        common.clean_dir(".")
+        common.check_and_copy(makefile, work_dir)
+
         # Generate the test.
         # TODO: maybe, it is better to call generator through Makefile?
-        test = Test(stat=stat, seed=seed, proc_num=num, blame=blame)
+        test = Test(stat=stat, seed=seed, proc_num=num, blame=blame,
+                    creduce_makefile=creduce_makefile)
         if not test.is_ok():
             test.save(lock)
             continue
@@ -929,7 +1075,6 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
             if t.specs.name not in targets.split():
                 continue
             target_elapsed_time = 0.0
-#            common.log_msg(logging.DEBUG, "From process #" + str(num) + ": " + str(output, "utf-8"))
 
             test_run = TestRun(test=test, stat=stat, target=t, proc_num=num)
             if not test_run.build():
@@ -993,7 +1138,7 @@ if __name__ == '__main__':
     epilog = '''
 Examples:
 Run testing of gcc and clang with clang sanitizer forever
-        run_gen.py -c "gcc clang ubsan" -t -1
+        run_gen.py -c "gcc clang ubsan_clang" -t -1
 Run testing with debug logging level; save log to specified file
         run_gen.py -v --log-file my_log_file.txt
 Run testing with verbose statistics and save it to specified file
@@ -1006,9 +1151,9 @@ Use specified folder for testing
                         help="Directory, which is used for testing.")
     parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=1,
                         help="Timeout for test system in minutes. -1 means infinity")
-    parser.add_argument("--target", dest="target", default="clang ubsan gcc", type=str,
+    parser.add_argument("--target", dest="target", default="clang ubsan_clang gcc", type=str,
                         help="Targets for testing (see test_sets.txt). By default, possible variants are "
-                             "clang, ubsan and gcc (ubsan is a clang with sanitizer options).")
+                             "clang, ubsan_clang and gcc (ubsan_clang is a clang with sanitizer options).")
     parser.add_argument("-j", dest="num_jobs", default=multiprocessing.cpu_count(), type=int,
                         help='Maximum number of instances to run in parallel. By defaulti, it is set to'
                              ' number of processor in your system')
@@ -1028,6 +1173,8 @@ Use specified folder for testing
                              "File comments may start with #")
     parser.add_argument("--blame", dest="blame", default=False, action="store_true",
                         help="Enable optimization triagging for failing tests for supported compilers")
+    parser.add_argument("--creduce", dest="creduce", default=False, action="store_true",
+                        help="Enable test reduction using CReduce tool")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -1040,4 +1187,4 @@ Use specified folder for testing
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
-                                  args.config_file, args.seeds_option_value, args.blame)
+                                  args.config_file, args.seeds_option_value, args.blame, args.creduce)

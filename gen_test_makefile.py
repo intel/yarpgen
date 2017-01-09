@@ -186,6 +186,11 @@ def read_compiler_specs(config_iter, function, next_section_name=""):
 
 
 def parse_config(file_name):
+    # Before parsing, clean old data
+    CompilerSpecs.all_comp_specs = dict()
+    CompilerTarget.all_targets = []
+
+    # Parse
     config_file = common.check_and_open_file(file_name, "r")
     config = config_file.read().splitlines()
     config_file.close()
@@ -233,11 +238,12 @@ def detect_native_arch():
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None):
+def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None, creduce_file=None):
     # Somebody can prepare test specs and target, so we don't need to parse config file
     if config_file is not None:
         parse_config(config_file)
     output = ""
+    # 1. License
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for license_str in license_file:
         output += "#" + license_str
@@ -248,10 +254,15 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     output += "#If you want to make a permanent changes, you should edit gen_test_makefile.py\n"
     output += "###############################################################################\n\n"
 
+    # 2. Define common variables
     for makefile_variable in Makefile_variable_list:
-        output += makefile_variable.name + "=" + makefile_variable.value + "\n"
+        test_pwd = ""
+        if creduce_file and makefile_variable.name == "CXXFLAGS":
+            test_pwd = " -I$(TEST_PWD)"
+        output += makefile_variable.name + "=" + makefile_variable.value + test_pwd + "\n"
     output += "\n"
 
+    # 3. Define build targets
     for target in CompilerTarget.all_targets:
         if only_target is not None and only_target.name != target.name:
             continue
@@ -266,13 +277,16 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:.cpp=.o))\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
 
-    # Force make to rebuild everything
+    # 4. Force make to rebuild everything
     # TODO: replace with PHONY
     output += "FORCE:\n\n"
     
     for source in sources.value.split():
+        source_prefix = ""
+        if creduce_file and creduce_file != source:
+            source_prefix = "$(TEST_PWD)/"
         source_name = source.split(".")[0]
-        output += "%" + source_name + ".o: " + source + " FORCE\n"
+        output += "%" + source_name + ".o: " + source_prefix + source + " FORCE\n"
         output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<"
         if inject_blame_opt is not None and source_name == "func":
             output += " $(BLAMEOPTS)"
@@ -281,12 +295,13 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     output += "clean:\n"
     output += "\trm *.o *_$(EXECUTABLE)\n\n"
 
+    # 5. Define run targets
     native_arch = detect_native_arch()
     for target in CompilerTarget.all_targets:
         if only_target is not None and only_target.name != target.name:
             continue
         output += "run_" + target.name + ": " + target.name + "_" + executable.value + "\n"
-        output += "\t" 
+        output += "\t@"
         required_sde_arch = define_sde_arch(native_arch, target.arch.sde_arch)
         if required_sde_arch != "":
             output += "sde -" + required_sde_arch + " -- "
@@ -302,6 +317,8 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             common.print_and_exit("File already exists. Use -f if you want to rewrite it.")
     out_file.write(output)
     out_file.close()
+
+
 
 ###############################################################################
 
@@ -323,10 +340,12 @@ if __name__ == '__main__':
                         help="Increase output verbosity")
     parser.add_argument("--log-file", dest="log_file", type=str,
                         help="Logfile")
+    parser.add_argument("--creduce-file", dest="creduce_file", default=None, type=str,
+                        help="Source file to reduce")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
-    gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file)
+    gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file)
