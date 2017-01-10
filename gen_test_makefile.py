@@ -283,10 +283,12 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     
     for source in sources.value.split():
         source_prefix = ""
+        force_str = " FORCE\n"
         if creduce_file and creduce_file != source:
             source_prefix = "$(TEST_PWD)/"
+            force_str = "\n"
         source_name = source.split(".")[0]
-        output += "%" + source_name + ".o: " + source_prefix + source + " FORCE\n"
+        output += "%" + source_name + ".o: " + source_prefix + source + force_str
         output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<"
         if inject_blame_opt is not None and source_name == "func":
             output += " $(BLAMEOPTS)"
