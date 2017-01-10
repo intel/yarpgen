@@ -340,6 +340,44 @@ class Test(object):
         log.close()
         return log_name
 
+    def creduce_performance_hack(self):
+        # 1. Move iostream include to driver.cpp
+        # 2. Remove array, vector and valarray if the are not used
+        init_h = open("init.h")
+        init_h_content = init_h.read()
+        init_h.close()
+        iostream = re.compile("iostream")
+        array    = re.compile("std::array")
+        vector   = re.compile("std::vector")
+        valarray = re.compile("std::valarray")
+
+        remove_iostream = len(iostream.findall(init_h_content)) != 0
+        remove_array = len(array.findall(init_h_content)) == 0
+        remove_vector = len(vector.findall(init_h_content)) == 0
+        remove_valarray = len(valarray.findall(init_h_content)) == 0
+
+        if remove_iostream:
+            driver_cpp = open("driver.cpp")
+            driver_cpp_content = driver_cpp.read()
+            driver_cpp.close()
+            driver_cpp = open("driver.cpp", "w")
+            driver_cpp.write("#include <iostream>\n")
+            driver_cpp.write(driver_cpp_content)
+            driver_cpp.close()
+
+        if remove_iostream or remove_array or remove_vector or remove_valarray:
+            init_h = open("init.h")
+            init_h_content = init_h.readlines()
+            init_h.close()
+            init_h = open("init.h", "w")
+            for l in init_h_content:
+                if not (remove_iostream and re.search("\<iostream\>", l) or \
+                        remove_array and re.search("\<array\>", l) or \
+                        remove_vector and re.search("\<vector\>", l) or \
+                        remove_valarray and re.search("\<valarray\>", l)):
+                    init_h.write(l)
+            init_h.close()
+
     def do_creduce(self, good_runs, bad_runs):
         # Pick the fastest non-failing opt-set
         good_run = None
@@ -374,6 +412,8 @@ class Test(object):
         for f in self.files:
             common.check_and_copy(f, "reduce")
         os.chdir("reduce")
+
+        self.creduce_performance_hack()
 
         creduce_makefile_abs_path = os.path.abspath(creduce_makefile_name)
 
