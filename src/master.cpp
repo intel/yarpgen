@@ -70,11 +70,14 @@ std::string Master::emit_init () {
 
 std::string Master::emit_decl () {
     std::string ret = "";
+    /* TODO: none of it is used currently.
+     * All these headers must be added only when they are really needed.
+     * Parsing these headers is costly for compile time
     ret += "#include <cstdint>\n";
-    ret += "#include <iostream>\n";
     ret += "#include <array>\n";
     ret += "#include <vector>\n";
     ret += "#include <valarray>\n\n";
+    */
 
     ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n\n";
 
@@ -141,6 +144,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 
 std::string Master::emit_main () {
     std::string ret = "";
+    ret += "#include <iostream>\n";
     ret += "#include \"init.h\"\n\n";
     ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
