@@ -125,29 +125,33 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
 
 def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
     blame_str = ""
-    blame_opts = compilers_blame_opts[fail_target.specs.name]
-    phase_num = 0
-    try:
-        for i in blame_opts:
-            blame_str += i
-            blame_str += execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
-            blame_str += " "
-            phase_num += 1
-    except:
-        common.log_msg(logging.ERROR, "Something went wrong while executing bpame_opt.py on " + str(fail_dir))
-        return False
+    stdout = stderr = b""
+    if not re.search("-O0", fail_target.args):
+        blame_opts = compilers_blame_opts[fail_target.specs.name]
+        phase_num = 0
+        try:
+            for i in blame_opts:
+                blame_str += i
+                blame_str += execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
+                blame_str += " "
+                phase_num += 1
+        except:
+            common.log_msg(logging.ERROR, "Something went wrong while executing bpame_opt.py on " + str(fail_dir))
+            return False
 
-    gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_str)
-    ret_code, stdout, stderr, time_expired, elapsed_time = \
-        common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
+        gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_str)
+        ret_code, stdout, stderr, time_expired, elapsed_time = \
+            common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
 
-    opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
-                                  compilers_opt_name_cutter[fail_target.specs.name][1])
-    opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[-1]
-    opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][0], "", opt_name)
-    opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][1], "", opt_name)
-    real_opt_name = opt_name
-    opt_name = opt_name.replace(" ", "_")
+        opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
+                                      compilers_opt_name_cutter[fail_target.specs.name][1])
+        opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[-1]
+        opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][0], "", opt_name)
+        opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][1], "", opt_name)
+        real_opt_name = opt_name
+        opt_name = opt_name.replace(" ", "_")
+    else:
+        real_opt_name = opt_name = "O0_bug"
 
     common.run_cmd(["make", "-f", blame_test_makefile_name, "clean"], run_gen.compiler_timeout, num)
 
