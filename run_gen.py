@@ -46,7 +46,7 @@ yarpgen_timeout = 60
 compiler_timeout = 600
 run_timeout = 300
 stat_update_delay = 10
-creduce_timeout = 3600 * 6
+creduce_timeout = 3600 * 24
 
 script_start_time = datetime.datetime.now()  # We should init variable, so let's do it this way
 
@@ -438,7 +438,7 @@ class Test(object):
         self.files.append(test_sh_file.name)
 
         # Run creduce
-        cr_params_list = ["creduce", "--timing", os.path.abspath(test_sh_file.name), "func.cpp"]
+        cr_params_list = [creduce_bin, "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
         cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
@@ -998,6 +998,7 @@ def proccess_seeds(seeds_option_value):
     else:
         seeds = process_seed_line(seeds_option_value)
     unique_seeds = list(set(seeds))
+    unique_seeds.sort()
     common.log_msg(logging.INFO, "Running generator for "+str(len(unique_seeds))+" seeds. Seed are: ", forced_duplication=True);
     common.log_msg(logging.INFO, unique_seeds, forced_duplication=True)
     if len(unique_seeds) != len(seeds):
@@ -1041,6 +1042,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
         task_queue = multiprocessing.Queue()
         for s in seeds:
             task_queue.put(s)
+        if len(seeds) < num_jobs:
+            num_jobs = len(seeds)
 
     print_compilers_version(targets)
 
