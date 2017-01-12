@@ -224,11 +224,11 @@ def detect_native_arch():
         if not os.path.exists(check_isa_file):
             common.print_and_exit("Can't find " + check_isa_file)
         ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None, 0)
+            common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None)
         if ret_code != 0:
             common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
 
-    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([check_isa_binary], None, 0)
+    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([check_isa_binary], None)
     if ret_code != 0:
         common.print_and_exit("Error while executing " + check_isa_binary)
     native_arch_str = str(output, "utf-8").split()[0]
