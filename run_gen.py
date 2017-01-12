@@ -415,8 +415,6 @@ class Test(object):
 
         self.creduce_performance_hack()
 
-        creduce_makefile_abs_path = os.path.abspath(creduce_makefile_name)
-
         # Now we need to construct a Makefile and script for passing to creduce.
         # Need to make sure that -Werror=uninitialized is passed to the compiler.
         # Recommended flags:
@@ -424,10 +422,10 @@ class Test(object):
         test_sh = "#!/bin/bash\n\n"
         test_sh +="ulimit -t " + str(max(compiler_timeout, run_timeout)) + "\n\n"
         test_sh +="export TEST_PWD="+os.getcwd()+"\n\n"
-        test_sh +="make -f " + creduce_makefile_abs_path + " " + good_run.optset + " &&\\\n"
-        test_sh +="make -f " + creduce_makefile_abs_path + " run_" + good_run.optset + " > no_opt_out &&\\\n"
-        test_sh +="make -f " + creduce_makefile_abs_path + " " + bad_run.optset + " &&\\\n"
-        test_sh +="make -f " + creduce_makefile_abs_path + " run_" + bad_run.optset + " > opt_out &&\\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + good_run.optset + " &&\\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + good_run.optset + " > no_opt_out &&\\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + bad_run.optset + " &&\\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + bad_run.optset + " > opt_out &&\\\n"
         test_sh +="! diff no_opt_out opt_out"
         test_sh_file = open("test.sh", "w")
         test_sh_file.write(test_sh)

@@ -82,7 +82,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         failed_flag = False
         eff = ((start_opt + 1) == cur_opt)  # Earliest fail was found
 
-        common.log_msg(logging.DEBUG, "Trying opt: " + str(start_opt) + "/" + str(cur_opt) + "/" + str(end_opt))
+        common.log_msg(logging.DEBUG, "Trying opt (process " + str(num) + "): " + str(start_opt) + "/" + str(cur_opt) + "/" + str(end_opt))
         gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, inject_str + str(cur_opt))
 
         ret_code, output, err_output, time_expired, elapsed_time = \
@@ -114,10 +114,10 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
                 break
 
         time_to_finish = (eff and failed_flag) or (eff and not failed_flag and (cur_opt == (end_opt - 1)))
-        common.log_msg(logging.DEBUG, "Time to finish: " + str(time_to_finish))
+        common.log_msg(logging.DEBUG, "Time to finish (process " + str(num) + "): " + str(time_to_finish))
 
     if not failed_flag:
-        common.log_msg(logging.DEBUG, "Swapping current and end opt")
+        common.log_msg(logging.DEBUG, "Swapping current and end opt (process " + str(num) + ")")
         cur_opt = end_opt
 
     return str(cur_opt)
