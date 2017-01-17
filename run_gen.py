@@ -148,7 +148,7 @@ class Test(object):
         self.fail_test_runs = []
 
         seed_file = open("seed", "w")
-        seed_file.write(self.seed)
+        seed_file.write(self.seed + "\n")
         seed_file.close()
         common.log_msg(logging.DEBUG, "Process " + str(proc_num) + " has generated seed " + str(seed))
 
@@ -1089,10 +1089,18 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
         # Fetch next seed if seeds were specified
         seed = ""
         if task_queue is not None:
-            try:
-                seed = task_queue.get_nowait()
-            except queue.Empty:
-                return
+            # Python multiprocessing queue may raise empty exception
+            # even for non empty queue, so do several attempts to not loos workers.
+            for i in range(3):
+                try:
+                    seed = task_queue.get_nowait()
+                except queue.Empty:
+                    time.sleep(1/(num+1))
+                    seed = "done"
+                else:
+                    break
+            if seed == "done":
+                break
 
         # Cleanup before start
         if os.getcwd() != work_dir:
@@ -1130,6 +1138,12 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
 
         # Done with running tests, now verify the results.
         test.handle_results(lock)
+
+    # Here we are done with this worker. Make a log entry and leave a marker in work dir.
+    common.log_msg(logging.DEBUG, "Process " + str(num) + " is done working.")
+    seed_file = open("done", "w")
+    seed_file.write("Process " + str(num) + " is done working \n")
+    seed_file.close()
 
 
 # save file_list in [compiler_name]/[fail_type]/[classification]/[test_name]
