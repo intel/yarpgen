@@ -1236,6 +1236,8 @@ Use specified folder for testing
     common.setup_logger(args.log_file, log_level)
 
     stat_log_file = common.wrap_log_file(args.stat_log_file, parser.get_default("stat_log_file"))
+    if len(args.seeds_option_value) != 0:
+        stat_log_file = None
     common.setup_stat_logger(stat_log_file)
 
     script_start_time = datetime.datetime.now()
