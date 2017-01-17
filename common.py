@@ -91,8 +91,9 @@ class StatisticsFileHandler(logging.FileHandler):
 def setup_stat_logger(log_file):
     global stat_logger
     stat_logger = logging.getLogger(stat_logger_name)
-    stat_handler = StatisticsFileHandler(filename=log_file, mode="w", delay=True)
-    stat_logger.addHandler(stat_handler)
+    if log_file is not None:
+        stat_handler = StatisticsFileHandler(filename=log_file, mode="w", delay=True)
+        stat_logger.addHandler(stat_handler)
     stat_logger.setLevel(logging.INFO)
 
 
