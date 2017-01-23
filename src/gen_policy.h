@@ -168,10 +168,12 @@ class GenPolicy {
 
         std::vector<Probability<Node::NodeID>>& get_stmt_gen_prob () { return stmt_gen_prob; }
 
-        void set_min_arith_stmt_num (int _min_arith_stmt_num) { min_arith_stmt_num = _min_arith_stmt_num; }
-        int get_min_arith_stmt_num () { return min_arith_stmt_num; }
-        void set_max_arith_stmt_num (int _max_arith_stmt_num) { max_arith_stmt_num = _max_arith_stmt_num; }
-        int get_max_arith_stmt_num () { return max_arith_stmt_num; }
+        void set_min_scope_stmt_num (int _min_scope_stmt_num) { min_scope_stmt_num = _min_scope_stmt_num; }
+        int get_min_scope_stmt_num () { return min_scope_stmt_num; }
+        void set_max_scope_stmt_num (int _max_scope_stmt_num) { max_scope_stmt_num = _max_scope_stmt_num; }
+        int get_max_scope_stmt_num () { return max_scope_stmt_num; }
+        void set_max_total_stmt_num (int _max_total_stmt_num) { max_total_stmt_num = _max_total_stmt_num; }
+        int get_max_total_stmt_num () { return max_total_stmt_num; }
 
         void set_min_inp_var_num (int _min_inp_var_num) { min_inp_var_num = _min_inp_var_num; }
         int get_min_inp_var_num () { return min_inp_var_num; }
@@ -290,8 +292,9 @@ class GenPolicy {
         bool allow_static_members;
 
         int max_arith_depth;
-        int min_arith_stmt_num;
-        int max_arith_stmt_num;
+        int min_scope_stmt_num;
+        int max_scope_stmt_num;
+        int max_total_stmt_num;
 
         std::vector<Probability<Node::NodeID>> stmt_gen_prob;
 
