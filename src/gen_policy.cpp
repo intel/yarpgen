@@ -25,8 +25,10 @@ int MAX_ALLOWED_INT_TYPES = 3;
 
 int MAX_ARITH_DEPTH = 5;
 
-int MIN_ARITH_STMT_NUM = 5;
-int MAX_ARITH_STMT_NUM = 10;
+int MIN_SCOPE_STMT_NUM = 5;
+int MAX_SCOPE_STMT_NUM = 10;
+
+int MAX_TOTAL_STMT_NUM = 5000;
 
 int MIN_INP_VAR_NUM = 20;
 int MAX_INP_VAR_NUM = 60;
@@ -124,8 +126,10 @@ void GenPolicy::init_from_config () {
 
     max_arith_depth = MAX_ARITH_DEPTH;
 
-    min_arith_stmt_num = MIN_ARITH_STMT_NUM;
-    max_arith_stmt_num = MAX_ARITH_STMT_NUM;
+    min_scope_stmt_num = MIN_SCOPE_STMT_NUM;
+    max_scope_stmt_num = MAX_SCOPE_STMT_NUM;
+
+    max_total_stmt_num = MAX_TOTAL_STMT_NUM;
 
     min_inp_var_num = MIN_INP_VAR_NUM;
     max_inp_var_num = MAX_INP_VAR_NUM;

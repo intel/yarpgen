@@ -21,6 +21,8 @@ limitations under the License.
 
 using namespace rl;
 
+int Stmt::total_stmt_num = 0;
+
 DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
     if (init == NULL)
@@ -39,6 +41,7 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
 }
 
 std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    total_stmt_num++;
     std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
     std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
     std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
@@ -99,8 +102,11 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<Expr>> cse_inp = form_const_inp_from_ctx(ctx);
 
     //TODO: add to gen_policy stmt number
-    int arith_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_arith_stmt_num(), ctx->get_gen_policy()->get_max_arith_stmt_num());
-    for (int i = 0; i < arith_stmt_num; ++i) {
+    int scope_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_scope_stmt_num(), ctx->get_gen_policy()->get_max_scope_stmt_num());
+    for (int i = 0; i < scope_stmt_num; ++i) {
+        if (total_stmt_num >= ctx->get_gen_policy()->get_max_total_stmt_num())
+            break;
+
         GenPolicy::ArithCSEGenID add_cse = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_arith_cse_gen());
         if (add_cse == GenPolicy::ArithCSEGenID::Add &&
            ((ctx->get_gen_policy()->get_cse().size() - 1 < ctx->get_gen_policy()->get_max_cse_num()) ||
@@ -233,6 +239,7 @@ std::string ScopeStmt::emit (std::string offset) {
 }
 
 std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out) {
+    total_stmt_num++;
     //TODO: now it can be only assign. Do we want something more?
     std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
     std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
@@ -259,6 +266,7 @@ IfStmt::IfStmt (std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _if_br, 
 }
 
 std::shared_ptr<IfStmt> IfStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    total_stmt_num++;
     std::shared_ptr<Expr> cond = ArithExpr::generate(ctx, inp);
     bool else_exist = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_else_prob());
     bool cond_taken = IfStmt::count_if_taken(cond);

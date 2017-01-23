@@ -32,6 +32,9 @@ class Context;
 class Stmt : public Node {
     public:
         Stmt (Node::NodeID _id) : Node(_id) {};
+
+    protected:
+        static int total_stmt_num;
 };
 
 class DeclStmt : public Stmt {
