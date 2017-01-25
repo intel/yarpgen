@@ -43,7 +43,7 @@ class Expr : public Node {
 
 class VarUseExpr : public Expr {
     public:
-        VarUseExpr (std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var) {}
+        VarUseExpr (std::shared_ptr<Data> _var);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
         std::string emit (std::string offset = "") { return value->get_name (); }
 
@@ -83,10 +83,7 @@ class TypeCastExpr : public Expr {
 
 class ConstExpr : public Expr {
     public:
-        ConstExpr (AtomicType::ScalarTypedVal _val) :
-                   Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {
-             std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
-        }
+        ConstExpr (AtomicType::ScalarTypedVal _val);
         std::string emit (std::string offset = "");
         static std::shared_ptr<ConstExpr> generate (std::shared_ptr<Context> ctx);
 
@@ -183,10 +180,8 @@ class BinaryExpr : public ArithExpr {
 
 class MemberExpr : public Expr {
     public:
-        MemberExpr (std::shared_ptr<Struct> _struct, uint64_t _identifier) :
-                    Expr(Node::NodeID::MEMBER, _struct), member_expr(NULL), struct_var(_struct), identifier(_identifier) { propagate_type(); propagate_value(); }
-        MemberExpr (std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier) :
-                    Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(NULL), identifier(_identifier) { propagate_type(); propagate_value(); }
+        MemberExpr (std::shared_ptr<Struct> _struct, uint64_t _identifier);
+        MemberExpr (std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
         std::string emit (std::string offset = "");
 

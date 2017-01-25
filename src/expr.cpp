@@ -66,6 +66,9 @@ std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
     }
 }
 
+VarUseExpr::VarUseExpr(std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var) {
+}
+
 AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken) :
                         Expr(Node::NodeID::ASSIGN, _to->get_value()), to(_to), from(_from), taken(_taken) {
     if (to->get_id() != Node::NodeID::VAR_USE && to->get_id() != Node::NodeID::MEMBER) {
@@ -145,6 +148,7 @@ UB TypeCastExpr::propagate_value () {
 }
 
 std::shared_ptr<TypeCastExpr> TypeCastExpr::generate (std::shared_ptr<Context> ctx, std::shared_ptr<Expr> from) {
+    GenPolicy::add_to_complexity(Node::NodeID::TYPE_CAST);
     std::shared_ptr<IntegerType> to_type = IntegerType::generate(ctx);
     return std::make_shared<TypeCastExpr> (from, to_type, false);
 }
@@ -161,6 +165,7 @@ std::string TypeCastExpr::emit (std::string offset) {
 }
 
 std::shared_ptr<ConstExpr> ConstExpr::generate (std::shared_ptr<Context> ctx) {
+    GenPolicy::add_to_complexity(Node::NodeID::CONST);
     std::shared_ptr<IntegerType> int_type = IntegerType::generate (ctx);
     return std::make_shared<ConstExpr>(AtomicType::ScalarTypedVal::generate(ctx, int_type->get_int_type_id()));
 }
@@ -208,6 +213,11 @@ std::string ConstExpr::emit (std::string offset) {
     }
     ret += std::static_pointer_cast<AtomicType>(scalar_val->get_type())->get_suffix ();
     return ret;
+}
+
+ConstExpr::ConstExpr(AtomicType::ScalarTypedVal _val) :
+        Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {
+    std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
 }
 
 std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
@@ -271,7 +281,7 @@ std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::ve
 }
 
 std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
-    //TODO: itsi a stub fortesting. Rewrite it later.
+    //TODO: it is a stub for testing. Rewrite it later.
     GenPolicy new_gen_policy = choose_and_apply_ssp(*(ctx->get_gen_policy()));
     std::shared_ptr<Context> new_ctx = std::make_shared<Context>(*(ctx));
     new_ctx->set_gen_policy(new_gen_policy);
@@ -288,6 +298,14 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
         else if (data_type == GenPolicy::ArithDataID::Inp) {
             int inp_num = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
             ret = inp.at(inp_num);
+            if (ret->get_id() == Node::NodeID::VAR_USE)
+                GenPolicy::add_to_complexity(Node::NodeID::VAR_USE);
+            else if (ret->get_id() == Node::NodeID::MEMBER)
+                GenPolicy::add_to_complexity(Node::NodeID::MEMBER);
+            else {
+                std::cerr << "ERROR: ArithExpr::gen_level: unsupported input data type" << std::endl;
+                exit(-1);
+            }
         }
         else {
             exit (-1);
@@ -316,6 +334,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
 
 
 std::shared_ptr<UnaryExpr> UnaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    GenPolicy::add_to_complexity(Node::NodeID::UNARY);
     UnaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_unary_op());
     std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
     return std::make_shared<UnaryExpr>(op_type, rhs);
@@ -487,6 +506,7 @@ std::string UnaryExpr::emit (std::string offset) {
 }
 
 std::shared_ptr<BinaryExpr> BinaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    GenPolicy::add_to_complexity(Node::NodeID::BINARY);
     BinaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_binary_op());
     std::shared_ptr<Expr> lhs = ArithExpr::gen_level (ctx, inp, par_depth);
     std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
@@ -1025,4 +1045,16 @@ std::string MemberExpr::emit (std::string offset) {
         ret += member_expr->emit() + "." +  member_expr_struct->get_member(identifier)->get_name();
     }
     return ret;
+}
+
+MemberExpr::MemberExpr(std::shared_ptr<Struct> _struct, uint64_t _identifier) :
+        Expr(Node::NodeID::MEMBER, _struct), member_expr(NULL), struct_var(_struct), identifier(_identifier) {
+    propagate_type();
+    propagate_value();
+}
+
+MemberExpr::MemberExpr(std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier) :
+        Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(NULL), identifier(_identifier) {
+    propagate_type();
+    propagate_value();
 }

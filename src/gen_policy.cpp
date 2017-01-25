@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 //////////////////////////////////////////////////////////////////////////////
+#include <map>
+
 #include "gen_policy.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -39,6 +41,7 @@ int MAX_CSE_NUM = 5;
 
 int MAX_IF_DEPTH = 3;
 
+uint64_t MAX_TEST_COMPLEXITY = UINT64_MAX;
 
 int MIN_STRUCT_TYPES_NUM = 0;
 int MAX_STRUCT_TYPES_NUM = 6;
@@ -218,6 +221,8 @@ void GenPolicy::init_from_config () {
 
     max_if_depth = MAX_IF_DEPTH;
 
+    max_test_complexity = MAX_TEST_COMPLEXITY;
+
     default_was_loaded = true;
 }
 
@@ -332,4 +337,28 @@ void GenPolicy::set_modifier (bool value, Type::Mod modifier) {
 
 bool GenPolicy::get_modifier (Type::Mod modifier) {
     return (std::find(allowed_modifiers.begin(), allowed_modifiers.end(), modifier) != allowed_modifiers.end());
+}
+
+// Abstract measure of complexity of execution
+static const std::map<Node::NodeID, uint64_t> NodeComplexity {
+    {Node::NodeID::ASSIGN, 5},
+    {Node::NodeID::BINARY, 10},
+    {Node::NodeID::CONST, 5},
+    {Node::NodeID::TYPE_CAST, 10},
+    {Node::NodeID::UNARY, 5},
+    {Node::NodeID::VAR_USE, 5},
+    {Node::NodeID::MEMBER, 10},
+    {Node::NodeID::MAX_EXPR_ID, UINT64_MAX},
+    {Node::NodeID::MIN_STMT_ID, UINT64_MAX},
+    {Node::NodeID::DECL, 30},
+    {Node::NodeID::EXPR, 20},
+    {Node::NodeID::SCOPE, 5},
+    {Node::NodeID::IF, 50},
+    {Node::NodeID::MAX_STMT_ID, UINT64_MAX}
+};
+
+uint64_t GenPolicy::test_complexity = 0;
+
+void GenPolicy::add_to_complexity(Node::NodeID node_id) {
+    test_complexity += NodeComplexity.at(node_id);
 }
