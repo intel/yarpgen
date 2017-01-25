@@ -254,6 +254,10 @@ class GenPolicy {
         void add_bit_field_prob(Probability<BitFieldID> prob) { bit_field_prob.push_back(prob); }
         void init_from_config();
 
+        static void add_to_complexity(Node::NodeID node_id);
+        void set_max_test_complexity (uint64_t _compl) { max_test_complexity = _compl; }
+        uint64_t get_max_test_complexity () { return max_test_complexity; }
+        static uint64_t  get_test_complexity () { return test_complexity; }
 
     private:
         static bool default_was_loaded;
@@ -320,6 +324,9 @@ class GenPolicy {
 
         std::vector<Probability<bool>> else_prob;
         int max_if_depth;
+
+        static uint64_t test_complexity;
+        uint64_t max_test_complexity;
 };
 
 extern GenPolicy default_gen_policy;
