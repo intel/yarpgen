@@ -37,7 +37,7 @@ limitations under the License.
 using namespace rl;
 
 void printVersion () {
-    std::cout << "yarpgen version 1.0 (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
+    std::cout << "yarpgen version 1.1 (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
 }
 
 extern void self_test();
