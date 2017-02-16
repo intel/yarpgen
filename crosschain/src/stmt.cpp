@@ -207,8 +207,9 @@ std::shared_ptr<rl::Stmt> VectorDeclStmt::getInitStmt() {
         }
 
         std::stringstream ss;
-        ss << var_name << ".resize(" << this->data->dim.back() << ", "
-           << this->data->get_value() << ");";
+        ss << var_name << ".resize(" << this->data->dim.back() << ", ";
+        rl::ConstExpr init_val = rl::ConstExpr(data->get_type_id(), data->get_value());
+        ss << init_val.emit() << ");";
         hdr->add(std::make_shared<rl::StubStmt>(ss.str()));
         return ret;
     }
