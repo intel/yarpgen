@@ -28,6 +28,8 @@ namespace rl {
 class Context;
 class Data;
 
+extern bool mode_64bit;
+
 class Type {
     public:
         enum TypeID {
@@ -417,9 +419,12 @@ class TypeLINT : public IntegerType {
         void init_type () {
             name = "long int";
             suffix = "L";
-            min.val.lint_val = LONG_MIN;;
+            min.val.lint_val = LONG_MIN;
             max.val.lint_val = LONG_MAX;
-            bit_size = sizeof (long int) * CHAR_BIT;
+            if (mode_64bit)
+                bit_size = sizeof (long long int) * CHAR_BIT;
+            else
+                bit_size = sizeof (int) * CHAR_BIT;
             is_signed = true;
         }
 };
@@ -437,7 +442,10 @@ class TypeULINT : public IntegerType {
             suffix = "UL";
             min.val.ulint_val = 0;
             max.val.ulint_val = ULONG_MAX;
-            bit_size = sizeof (unsigned long int) * CHAR_BIT;
+            if (mode_64bit)
+                bit_size = sizeof (unsigned long long int) * CHAR_BIT;
+            else
+                bit_size = sizeof (unsigned int) * CHAR_BIT;
             is_signed = false;
         }
 };
