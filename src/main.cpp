@@ -50,12 +50,12 @@ int main (int argc, char* argv[]) {
     std::string out_dir = "./";
     int c;
     uint64_t seed = 0;
-    static char usage[] = "usage: [-q -v -d <out_dir> -s <seed>\n";
+    static char usage[] = "usage: [-q -v -d <out_dir> -s <seed> -m <bit_mode>]\n";
     bool opt_parse_err = 0;
     bool quiet = false;
     bool print_version = false;
 
-    while ((c = getopt(argc, argv, "qvhrd:s:")) != -1)
+    while ((c = getopt(argc, argv, "qvhrd:s:m:")) != -1)
         switch (c) {
         case 'd':
             out_dir = std::string(optarg);
@@ -69,6 +69,20 @@ int main (int argc, char* argv[]) {
         case 'v':
             print_version = true;
             break;
+        case 'm':
+            {
+                int bit_mode_arg = strtoull(optarg, &pEnd, 10);
+                if (bit_mode_arg == 32)
+                    mode_64bit = false;
+                else if (bit_mode_arg == 64)
+                    mode_64bit = true;
+                else {
+                    std::cerr << "Can't recognize bit mode: -m " << bit_mode_arg << std::endl;
+                    std::cerr << "Possible variants are -m 32 and -m 64" << std::endl;
+                    opt_parse_err = true;
+                }
+                break;
+            }
         case 'h':
         default:
             opt_parse_err = true;

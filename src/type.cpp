@@ -493,10 +493,11 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
     return ret;
 }
 
+bool rl::mode_64bit = true;
+
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal rhs) {
     AtomicType::ScalarTypedVal ret = *this;
 
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
     int64_t s_tmp = 0;
     uint64_t u_tmp = 0;
 
@@ -520,7 +521,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal
             ret.val.uint_val = val.uint_val + rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (!long_eq_long_long) {
+            if (!mode_64bit) {
                 s_tmp = (long long int) val.lint_val + (long long int) rhs.val.lint_val;
                 if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
                     ret.set_ub(SignOvf);
@@ -563,7 +564,6 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal rhs) {
     AtomicType::ScalarTypedVal ret = *this;
 
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
     int64_t s_tmp = 0;
     uint64_t u_tmp = 0;
 
@@ -587,7 +587,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal
             ret.val.uint_val = val.uint_val - rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (!long_eq_long_long) {
+            if (!mode_64bit) {
                 s_tmp = (long long int) val.lint_val - (long long int) rhs.val.lint_val;
                 if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
                     ret.set_ub(SignOvf);
@@ -678,7 +678,6 @@ static bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal rhs) {
     AtomicType::ScalarTypedVal ret = *this;
 
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
     int64_t s_tmp = 0;
 
     switch (int_type_id) {
@@ -705,7 +704,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal
         case IntegerType::IntegerTypeID::LINT:
             if (val.lint_val == LONG_MIN && (long int) rhs.val.lint_val == -1)
                 ret.set_ub(SignOvfMin);
-            else if (!long_eq_long_long) {
+            else if (!mode_64bit) {
                 s_tmp = (long long int) val.lint_val * (long long int) rhs.val.lint_val;
                 if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
                     ret.set_ub(SignOvf);
@@ -1472,8 +1471,6 @@ std::shared_ptr<IntegerType> IntegerType::generate (std::shared_ptr<Context> ctx
 bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::IntegerTypeID b) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     std::shared_ptr<IntegerType> B = std::static_pointer_cast<IntegerType>(init(b));
-    bool int_eq_long = sizeof(int) == sizeof(long int);
-    bool long_eq_long_long =  sizeof(long int) == sizeof(long long int);
     switch (a) {
         case INT:
             return B->get_is_signed();
@@ -1481,26 +1478,26 @@ bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::Integ
             if (B->get_int_type_id() == INT)
                 return false;
             if (B->get_int_type_id() == LINT)
-                return !int_eq_long;
+                return mode_64bit;
             return true;
         case LINT:
             if (!B->get_is_signed())
                 return false;
             if (B->get_int_type_id() == INT)
-                return int_eq_long;
+                return !mode_64bit;
             return true;
         case ULINT:
             switch (B->get_int_type_id()) {
                 case INT:
                     return false;
                 case UINT:
-                    return int_eq_long;
+                    return !mode_64bit;
                 case LINT:
                     return false;
                 case ULINT:
                     return true;
                 case LLINT:
-                    return !long_eq_long_long;
+                    return !mode_64bit;
                 case ULLINT:
                     return true;
                 default:
@@ -1512,7 +1509,7 @@ bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::Integ
                 case UINT:
                    return false;
                 case LINT:
-                    return long_eq_long_long;
+                    return mode_64bit;
                 case ULINT:
                    return false;
                 case LLINT:
@@ -1529,7 +1526,7 @@ bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::Integ
                 case LINT:
                    return false;
                 case ULINT:
-                   return long_eq_long_long;
+                   return mode_64bit;
                 case LLINT:
                    return false;
                 case ULLINT:
