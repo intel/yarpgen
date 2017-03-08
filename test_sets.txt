@@ -38,6 +38,7 @@ clang       | clang++         | -w                                              
 ubsan_clang | clang++         | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized | -march=
 ubsan_gcc   | g++             | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized | -march=
 icc         | icpc            | -w                                                          | -x
+icx         | icpx            | -w                                                          | -march=
 
 Testing sets:
 # Set name - codename for testing set
@@ -74,3 +75,6 @@ icc_knl_no_opt   | icc       | -O0       | MIC-AVX512     | knl
 icc_knl_opt      | icc       | -O3       | MIC-AVX512     | knl
 icc_skx_no_opt   | icc       | -O0       | CORE-AVX512    | skx
 icc_skx_opt      | icc       | -O3       | CORE-AVX512    | skx
+
+icx_no_opt       | icx       | -O0       |                |
+icx_hsw_opt      | icx       | -O3       |                | hsw
