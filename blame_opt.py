@@ -36,9 +36,21 @@ icc_opt_patterns = ["\(\d+\)", "\(\d+\)\s*\n", "DO ANOTHER.*\(\d+\)"]
 icc_opt_name_prefix = "DOING\s*\[\w*\]\s*"
 icc_opt_name_suffix = "\s*\(\d*\)\s*\(last opt\)"
 
-compilers_blame_opts = {"icc": icc_blame_opts}
-compilers_blame_patterns = {"icc": icc_opt_patterns}
-compilers_opt_name_cutter = {"icc": [icc_opt_name_prefix, icc_opt_name_suffix]}
+icx_blame_opts = ["-mllvm -opt-bisect-limit="]
+icx_opt_patterns = ["BISECT: running pass \(\d+\)"]
+icx_opt_name_prefix = "BISECT: running pass \(\d+\) "
+icx_opt_name_suffix = " \(.*\)"
+
+clang_blame_opts = ["-mllvm -opt-bisect-limit="]
+clang_opt_patterns = ["BISECT: running pass \(\d+\)"]
+clang_opt_name_prefix = "BISECT: running pass \(\d+\) "
+clang_opt_name_suffix = " \(.*\)"
+
+compilers_blame_opts = {"icc": icc_blame_opts, "icx": icx_blame_opts, "clang": clang_blame_opts}
+compilers_blame_patterns = {"icc": icc_opt_patterns, "icx": icx_opt_patterns, "clang": clang_opt_patterns}
+compilers_opt_name_cutter = {"icc": [icc_opt_name_prefix, icc_opt_name_suffix], \
+                             "icx": [icx_opt_name_prefix, icx_opt_name_suffix], \
+                             "clang": [clang_opt_name_prefix, clang_opt_name_suffix]}
 
 blame_test_makefile_name = "Blame_Makefile"
 
