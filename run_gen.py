@@ -46,13 +46,22 @@ yarpgen_timeout = 60
 compiler_timeout = 600
 run_timeout = 300
 stat_update_delay = 10
+tmp_cleanup_delay = 3600
 creduce_timeout = 3600 * 24
 
 script_start_time = datetime.datetime.now()  # We should init variable, so let's do it this way
 
 known_build_fails = { \
 # clang
-    "SelectionDAGISel": "Assertion `NodeToMatch\-\>getOpcode\(\) != ISD::DELETED_NODE && \"NodeToMatch was removed partway through selection\"'" \
+    "SelectionDAGISel": "Assertion `NodeToMatch\-\>getOpcode\(\) != ISD::DELETED_NODE && \"NodeToMatch was removed partway through selection\"'", \
+    "replaceAllUses" : "replaceAllUses of value with new value of different type", \
+    "FoldCONCAT_VECTORS" : "Concatenation of vectors with inconsistent value types", \
+    "PromoteIntRes_SETCC" : "Integer type overpromoted", \
+    "Cannot_select_urem" : "Cannot select.*urem", \
+    "Cannot_select_pcmpeq" : "Cannot select.*X86ISD::PCMPEQ", \
+# gcc
+    "compute_live_loop_exits" : "compute_live_loop_exits", \
+    "verify_gimple" : "verify_gimple" \
 }
 
 ###############################################################################
@@ -996,9 +1005,11 @@ def form_statistics(stat, targets, prev_len):
     return stat_str, verbose_stat_str, prev_len
 
 
-def print_online_statistics(lock, stat, targets, task_threads, num_jobs):
+# Print realtime stats and also run tmp cleaner in background.
+def print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_jobs, no_tmp_cln):
     any_alive = True
     prev_len = 0
+    start_time = time.time() - tmp_cleanup_delay
     while any_alive:
         lock.acquire()
         stat_str, verbose_stat_str, prev_len = form_statistics(stat, targets, prev_len)
@@ -1007,11 +1018,15 @@ def print_online_statistics(lock, stat, targets, task_threads, num_jobs):
         sys.stdout.flush()
         lock.release()
 
+        if (time.time() - start_time) > tmp_cleanup_delay and not no_tmp_cln:
+            start_time = time.time()
+            common.run_cmd([os.path.abspath(common.yarpgen_home + os.sep + "tmp_cleaner.sh")])
+
+        time.sleep(stat_update_delay)
+
         any_alive = False
         for num in range(num_jobs):
             any_alive |= task_threads[num].is_alive()
-
-        time.sleep(stat_update_delay)
 
 
 def gen_test_makefile_and_copy(dest, config_file):
@@ -1094,7 +1109,7 @@ def proccess_seeds(seeds_option_value):
         common.log_msg(logging.INFO, "Note, that in the input seeds list there were "+str(len(seeds)-len(unique_seeds))+" duplicating seeds.", forced_duplication=True)
     return unique_seeds
 
-def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame, creduce):
+def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame, creduce, no_tmp_cln):
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
@@ -1158,7 +1173,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
             args=(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile))
         task_threads[num].start()
 
-    print_online_statistics(lock, stat, targets, task_threads, num_jobs)
+    print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_jobs, no_tmp_cln)
 
     sys.stdout.write("\n")
     for i in range(num_jobs):
@@ -1321,6 +1336,8 @@ Use specified folder for testing
                         help="Enable optimization triagging for failing tests for supported compilers")
     parser.add_argument("--creduce", dest="creduce", default=False, action="store_true",
                         help="Enable test reduction using CReduce tool")
+    parser.add_argument("--no-tmp-cleaner", dest="no_tmp_cleaner", default=False, action="store_true",
+                        help="Do not run tmp_cleaner.sh script during the run")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -1335,4 +1352,4 @@ Use specified folder for testing
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
-                                  args.config_file, args.seeds_option_value, args.blame, args.creduce)
+                                  args.config_file, args.seeds_option_value, args.blame, args.creduce, args.no_tmp_cleaner)
