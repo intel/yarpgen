@@ -196,10 +196,16 @@ std::string ConstExpr::emit (std::string offset) {
             ret += std::to_string(scalar_val->get_cur_value().val.uint_val);
             break;
         case IntegerType::IntegerTypeID::LINT:
-            ret += std::to_string(scalar_val->get_cur_value().val.lint_val);
+            if (mode_64bit)
+                ret += std::to_string(scalar_val->get_cur_value().val.lint64_val);
+            else
+                ret += std::to_string(scalar_val->get_cur_value().val.lint32_val);
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret += std::to_string(scalar_val->get_cur_value().val.ulint_val);
+            if (mode_64bit)
+                ret += std::to_string(scalar_val->get_cur_value().val.ulint64_val);
+            else
+                ret += std::to_string(scalar_val->get_cur_value().val.ulint32_val);
             break;
         case IntegerType::IntegerTypeID::LLINT:
             ret += std::to_string(scalar_val->get_cur_value().val.llint_val);

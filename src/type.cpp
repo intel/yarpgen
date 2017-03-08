@@ -22,6 +22,8 @@ limitations under the License.
 
 using namespace rl;
 
+bool rl::mode_64bit = true;
+
 std::string Type::get_name () {
     std::string ret = "";
     ret += is_static ? "static " : "";
@@ -204,10 +206,16 @@ switch (int_type_id) {                                              \
         new_val_memb = val.uint_val;                                \
         break;                                                      \
     case Type::IntegerTypeID::LINT:                                 \
-        new_val_memb = val.lint_val;                                \
+        if (mode_64bit)                                             \
+            new_val_memb = val.lint64_val;                          \
+        else                                                        \
+            new_val_memb = val.lint32_val;                          \
         break;                                                      \
     case Type::IntegerTypeID::ULINT:                                \
-        new_val_memb = val.ulint_val;                               \
+        if (mode_64bit)                                             \
+            new_val_memb = val.ulint64_val;                         \
+        else                                                        \
+            new_val_memb = val.ulint32_val;                         \
         break;                                                      \
     case Type::IntegerTypeID::LLINT:                                \
         new_val_memb = val.llint_val;                               \
@@ -245,10 +253,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerT
             CAST_CASE(new_val.val.uint_val)
             break;
         case Type::IntegerTypeID::LINT:
-            CAST_CASE(new_val.val.lint_val)
+            if (mode_64bit)
+                CAST_CASE(new_val.val.lint64_val)
+            else
+                CAST_CASE(new_val.val.lint32_val)
             break;
         case Type::IntegerTypeID::ULINT:
-            CAST_CASE(new_val.val.ulint_val)
+            if (mode_64bit)
+                CAST_CASE(new_val.val.ulint64_val)
+            else
+                CAST_CASE(new_val.val.ulint32_val)
             break;
         case Type::IntegerTypeID::LLINT:
             CAST_CASE(new_val.val.llint_val)
@@ -270,8 +284,10 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
         case IntegerType::IntegerTypeID::BOOL:
             std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bool is illegal in dec and inc operators in AtomicType::ScalarTypedVal::pre_op" << std::endl;
             exit(-1);
+        //TODO: is it UB if we pre-increment char and short?
         case IntegerType::IntegerTypeID::CHAR:
-            if (val.char_val == CHAR_MAX)
+            if ((val.char_val == CHAR_MAX && add > 0) ||
+                (val.char_val == CHAR_MIN && add < 0))
                 ret.set_ub(UB::SignOvf);
             else
                 ret.val.char_val = val.char_val + add;
@@ -279,7 +295,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
         case IntegerType::IntegerTypeID::UCHAR:
             ret.val.uchar_val = val.uchar_val + add;
         case IntegerType::IntegerTypeID::SHRT:
-            if (val.shrt_val == SHRT_MAX)
+            if ((val.shrt_val == SHRT_MAX && add > 0) ||
+                (val.shrt_val == SHRT_MIN && add < 0))
                 ret.set_ub(UB::SignOvf);
             else
                 ret.val.shrt_val = val.shrt_val + add;
@@ -287,7 +304,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
         case IntegerType::IntegerTypeID::USHRT:
             ret.val.ushrt_val = val.ushrt_val + add;
         case IntegerType::IntegerTypeID::INT:
-            if (val.int_val == INT_MAX)
+            if ((val.int_val == INT_MAX && add > 0) ||
+                (val.int_val == INT_MIN && add < 0))
                 ret.set_ub(UB::SignOvf);
             else
                 ret.val.int_val = val.int_val + add;
@@ -296,16 +314,29 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
             ret.val.uint_val = val.uint_val + add;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (val.lint_val == LONG_MAX)
-                ret.set_ub(UB::SignOvf);
+        {
+            auto lint_pre_op = [add, &ret] (auto src, auto &dest, auto min, auto max) {
+                if ((src == max && add > 0) ||
+                    (src == min && add < 0))
+                    ret.set_ub(UB::SignOvf);
+                else
+                    dest = src + add;
+            };
+            if (mode_64bit)
+                lint_pre_op(val.lint64_val, ret.val.lint64_val, LLONG_MIN, LLONG_MAX);
             else
-                ret.val.lint_val = val.lint_val + add;
+                lint_pre_op(val.lint32_val, ret.val.lint32_val, INT_MIN, INT_MAX);
+        }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = val.ulint_val + add;
+            if (mode_64bit)
+                ret.val.ulint64_val = val.ulint64_val + add;
+            else
+                ret.val.ulint32_val = val.ulint32_val + add;
             break;
         case IntegerType::IntegerTypeID::LLINT:
-            if (val.llint_val == LLONG_MAX)
+            if ((val.llint_val == LLONG_MAX && add > 0) ||
+                (val.llint_val == LLONG_MIN && add < 0))
                 ret.set_ub(UB::SignOvf);
             else
                 ret.val.llint_val = val.llint_val + add;
@@ -319,6 +350,12 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
     }
     return ret;
 }
+
+#define LINT_SINGLE_OPT(op, sign)                                    \
+    if (mode_64bit)                                                  \
+        ret.val.sign##lint64_val = op val.sign##lint64_val;          \
+    else                                                             \
+        ret.val.sign##lint32_val = op val.sign##lint32_val;
 
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
     AtomicType::ScalarTypedVal ret = *this;
@@ -341,13 +378,21 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
             ret.val.uint_val = -val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (val.lint_val == LONG_MIN)
-                ret.set_ub(UB::SignOvf);
+        {
+            auto lint_op_minus = [&ret] (auto src, auto &dest, auto min) {
+                if (src == min)
+                    ret.set_ub(UB::SignOvf);
+                else
+                    dest = -src;
+            };
+            if (mode_64bit)
+                lint_op_minus(val.lint64_val, ret.val.lint64_val, LLONG_MIN);
             else
-                ret.val.lint_val = -val.lint_val;
+                lint_op_minus(val.lint32_val, ret.val.lint32_val, INT_MIN);
+        }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = -val.ulint_val;
+            LINT_SINGLE_OPT(-, u);
             break;
         case IntegerType::IntegerTypeID::LLINT:
             if (val.llint_val == LLONG_MIN)
@@ -381,10 +426,10 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
             ret.val.uint_val = ~val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            ret.val.lint_val = ~val.lint_val;
+            LINT_SINGLE_OPT(~,);
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = ~val.ulint_val;
+            LINT_SINGLE_OPT(~, u);
             break;
         case IntegerType::IntegerTypeID::LLINT:
             ret.val.llint_val = ~val.llint_val;
@@ -413,9 +458,15 @@ uint64_t AtomicType::ScalarTypedVal::get_abs_val () {
         case IntegerType::IntegerTypeID::UINT:
             return val.uint_val;
         case IntegerType::IntegerTypeID::LINT:
-            return std::abs(val.lint_val);
+            if (mode_64bit)
+                return std::abs(val.lint64_val);
+            else
+                return std::abs(val.lint32_val);
         case IntegerType::IntegerTypeID::ULINT:
-            return val.ulint_val;
+            if (mode_64bit)
+                return val.ulint64_val;
+            else
+                return val.ulint32_val;
         case IntegerType::IntegerTypeID::LLINT:
             return std::abs(val.llint_val);
         case IntegerType::IntegerTypeID::ULLINT:
@@ -453,10 +504,16 @@ void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
             val.uint_val = new_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            val.lint_val = new_val;
+            if (mode_64bit)
+                val.lint64_val = new_val;
+            else
+                val.lint32_val = new_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            val.ulint_val = new_val;
+            if (mode_64bit)
+                val.ulint64_val = new_val;
+            else
+                val.ulint32_val = new_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             val.llint_val = new_val;
@@ -493,7 +550,11 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
     return ret;
 }
 
-bool rl::mode_64bit = true;
+#define LINT_DOUBLE_OPT(op, sign)                                                    \
+    if (mode_64bit)                                                                  \
+        ret.val.sign##lint64_val = val.sign##lint64_val op rhs.val.sign##lint64_val; \
+    else                                                                             \
+        ret.val.sign##lint32_val = val.sign##lint32_val op rhs.val.sign##lint32_val;
 
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal rhs) {
     AtomicType::ScalarTypedVal ret = *this;
@@ -521,26 +582,26 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal
             ret.val.uint_val = val.uint_val + rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (!mode_64bit) {
-                s_tmp = (long long int) val.lint_val + (long long int) rhs.val.lint_val;
-                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
-                    ret.set_ub(SignOvf);
-                else
-                    ret.val.lint_val = (long int) s_tmp;
-            }
-            else {
-                uint64_t ua = val.lint_val;
-                uint64_t ub = rhs.val.lint_val;
+            if (mode_64bit) {
+                uint64_t ua = val.lint64_val;
+                uint64_t ub = rhs.val.lint64_val;
                 u_tmp = ua + ub;
-                ua = (ua >> 63) + LONG_MAX;
+                ua = (ua >> 63) + LLONG_MAX;
                 if ((int64_t) ((ua ^ ub) | ~(ub ^ u_tmp)) >= 0)
                     ret.set_ub(SignOvf);
                 else
-                    ret.val.lint_val = (long int) u_tmp;
+                    ret.val.lint64_val = (long long int) u_tmp;
+            }
+            else {
+                s_tmp = (long long int) val.lint32_val + (long long int) rhs.val.lint32_val;
+                if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint32_val = (int) s_tmp;
             }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = val.ulint_val + rhs.val.ulint_val;
+            LINT_DOUBLE_OPT(+, u);
             break;
         case IntegerType::IntegerTypeID::LLINT:
         {
@@ -587,26 +648,26 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal
             ret.val.uint_val = val.uint_val - rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (!mode_64bit) {
-                s_tmp = (long long int) val.lint_val - (long long int) rhs.val.lint_val;
-                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
-                    ret.set_ub(SignOvf);
-                else
-                    ret.val.lint_val = (long int) s_tmp;
-            }
-            else {
-                uint64_t ua = val.lint_val;
-                uint64_t ub = rhs.val.lint_val;
+            if (mode_64bit) {
+                uint64_t ua = val.lint64_val;
+                uint64_t ub = rhs.val.lint64_val;
                 u_tmp = ua - ub;
-                ua = (ua >> 63) + LONG_MAX;
+                ua = (ua >> 63) + LLONG_MAX;
                 if ((int64_t) ((ua ^ ub) & (ua ^ u_tmp)) < 0)
                     ret.set_ub(SignOvf);
                 else
-                    ret.val.lint_val = (long int) u_tmp;
+                    ret.val.lint64_val = (long long int) u_tmp;
+            }
+            else {
+                s_tmp = (long long int) val.lint32_val - (long long int) rhs.val.lint32_val;
+                if (s_tmp < INT_MIN || s_tmp > INT_MAX)
+                    ret.set_ub(SignOvf);
+                else
+                    ret.val.lint32_val = (int) s_tmp;
             }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = val.ulint_val - rhs.val.ulint_val;
+            LINT_DOUBLE_OPT(-, u);
             break;
         case IntegerType::IntegerTypeID::LLINT:
         {
@@ -638,8 +699,7 @@ static bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
         // Operation "-" is undefined for "INT64_MIN", as it causes overflow.
         // But converting INT64_MIN to unsigned type yields the correct result,
         // i.e. it will be positive value -INT64_MIN.
-        // See 6.3.1.3 section in C99 standart for more details (ISPC follows
-        // C standard, unless it's specifically different in the language).
+        // See 6.3.1.3 section in C99 standart for more details
         a_abs = (uint64_t) INT64_MIN;
     else
         a_abs = (a > 0) ? a : -a;
@@ -702,24 +762,22 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal
             ret.val.uint_val = val.uint_val * rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (val.lint_val == LONG_MIN && (long int) rhs.val.lint_val == -1)
-                ret.set_ub(SignOvfMin);
-            else if (!mode_64bit) {
-                s_tmp = (long long int) val.lint_val * (long long int) rhs.val.lint_val;
-                if (s_tmp < LONG_MIN || s_tmp > LONG_MAX)
+            if (mode_64bit) {
+                if (!check_int64_mul(val.lint64_val, rhs.val.lint64_val, &s_tmp))
                     ret.set_ub(SignOvf);
                 else
-                    ret.val.lint_val = (long int) s_tmp;
+                    ret.val.lint64_val = (long long int) s_tmp;
             }
             else {
-                if (!check_int64_mul(val.lint_val, rhs.val.lint_val, &s_tmp))
+                s_tmp = (long long int) val.lint32_val * (long long int) rhs.val.lint32_val;
+                if (s_tmp < INT_MIN || s_tmp > INT_MAX)
                     ret.set_ub(SignOvf);
                 else
-                    ret.val.lint_val = (long int) s_tmp;
+                    ret.val.lint32_val = (int) s_tmp;
             }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            ret.val.ulint_val = val.ulint_val * rhs.val.ulint_val;
+            LINT_DOUBLE_OPT(*, u);
             break;
         case IntegerType::IntegerTypeID::LLINT:
             if ((long long int) val.llint_val == LLONG_MIN && (long long int) rhs.val.llint_val == -1)
@@ -767,22 +825,35 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
             ret.val.uint_val = val.uint_val / rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (rhs.val.lint_val == 0) {
-                ret.set_ub(ZeroDiv);
-                return ret;
-            }
-            if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
-                (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
-                ret.set_ub(SignOvf);
+        {
+            auto lint_op_div = [&ret] (auto lhs, auto rhs, auto &dest, auto min) {
+                if (rhs == 0)
+                    ret.set_ub(ZeroDiv);
+                else if ((lhs == min && rhs == -1) ||
+                         (rhs == min && lhs == -1))
+                    ret.set_ub(SignOvf);
+                else
+                    dest = lhs / rhs;
+            };
+            if (mode_64bit)
+                lint_op_div (val.lint64_val, rhs.val.lint64_val, ret.val.lint64_val, LLONG_MIN);
             else
-                ret.val.lint_val = val.lint_val / rhs.val.lint_val;
+                lint_op_div (val.lint32_val, rhs.val.lint32_val, ret.val.lint32_val, INT_MIN);
+        }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (rhs.val.ulint_val == 0) {
-                ret.set_ub(ZeroDiv);
-                return ret;
-            }
-            ret.val.ulint_val = val.ulint_val / rhs.val.ulint_val;
+        {
+            auto ulint_op_div = [&ret] (auto lhs, auto rhs, auto &dest) {
+                if (rhs == 0)
+                    ret.set_ub(ZeroDiv);
+                else
+                    dest = lhs / rhs;
+            };
+            if (mode_64bit)
+                ulint_op_div(val.ulint64_val, rhs.val.ulint64_val, ret.val.ulint64_val);
+            else
+                ulint_op_div(val.ulint32_val, rhs.val.ulint32_val, ret.val.ulint32_val);
+        }
             break;
         case IntegerType::IntegerTypeID::LLINT:
             if (rhs.val.llint_val == 0) {
@@ -816,7 +887,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator%" << std::endl;
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__
+                      << ": perform propagate_type in AtomicType::ScalarTypedVal::operator%" << std::endl;
             exit(-1);
         case IntegerType::IntegerTypeID::INT:
             if (rhs.val.int_val == 0) {
@@ -836,23 +908,35 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
             }
             ret.val.uint_val = val.uint_val % rhs.val.uint_val;
             break;
-        case IntegerType::IntegerTypeID::LINT:
-            if (rhs.val.lint_val == 0) {
-                ret.set_ub(ZeroDiv);
-                return ret;
-            }
-            if ((val.lint_val == LONG_MIN && rhs.val.lint_val == -1) ||
-                (rhs.val.lint_val == LONG_MIN && val.lint_val == -1))
-                ret.set_ub(SignOvf);
+        case IntegerType::IntegerTypeID::LINT: {
+            auto lint_op_mod = [&ret](auto lhs, auto rhs, auto &dest, auto min) {
+                if (rhs == 0)
+                    ret.set_ub(ZeroDiv);
+                else if ((lhs == min && rhs == -1) ||
+                         (rhs == min && lhs == -1))
+                    ret.set_ub(SignOvf);
+                else
+                    dest = lhs % rhs;
+            };
+            if (mode_64bit)
+                lint_op_mod(val.lint64_val, rhs.val.lint64_val, ret.val.lint64_val, LLONG_MIN);
             else
-                ret.val.lint_val = val.lint_val % rhs.val.lint_val;
+                lint_op_mod(val.lint32_val, rhs.val.lint32_val, ret.val.lint32_val, INT_MIN);
+        }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (rhs.val.ulint_val == 0) {
-                ret.set_ub(ZeroDiv);
-                return ret;
-            }
-            ret.val.ulint_val = val.ulint_val % rhs.val.ulint_val;
+        {
+            auto ulint_op_mod = [&ret] (auto lhs, auto rhs, auto &dest) {
+                if (rhs == 0)
+                    ret.set_ub(ZeroDiv);
+                else
+                    dest = lhs % rhs;
+            };
+            if (mode_64bit)
+                ulint_op_mod(val.ulint64_val, rhs.val.ulint64_val, ret.val.ulint64_val);
+            else
+                ulint_op_mod(val.ulint32_val, rhs.val.ulint32_val, ret.val.ulint32_val);
+        }
             break;
         case IntegerType::IntegerTypeID::LLINT:
             if (rhs.val.llint_val == 0) {
@@ -903,10 +987,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
             ret.val.bool_val = val.uint_val __op__ rhs.val.uint_val;                                \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::LINT:                                                      \
-            ret.val.bool_val = val.lint_val __op__ rhs.val.lint_val;                                \
+            if (mode_64bit)                                                                         \
+                ret.val.bool_val = val.lint64_val __op__ rhs.val.lint64_val;                        \
+            else                                                                                    \
+                ret.val.bool_val = val.lint32_val __op__ rhs.val.lint32_val;                        \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::ULINT:                                                     \
-            ret.val.bool_val = val.ulint_val __op__ rhs.val.ulint_val;                              \
+            if (mode_64bit)                                                                         \
+                ret.val.bool_val = val.ulint64_val __op__ rhs.val.ulint64_val;                      \
+            else                                                                                    \
+                ret.val.bool_val = val.ulint32_val __op__ rhs.val.ulint32_val;                      \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::LLINT:                                                     \
             ret.val.bool_val = val.llint_val __op__ rhs.val.llint_val;                              \
@@ -976,10 +1066,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
             ret.val.uint_val = val.uint_val __op__ rhs.val.uint_val;                                \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::LINT:                                                      \
-            ret.val.lint_val = val.lint_val __op__ rhs.val.lint_val;                                \
+            if (mode_64bit)                                                                         \
+                ret.val.lint64_val = val.lint64_val __op__ rhs.val.lint64_val;                      \
+            else                                                                                    \
+                ret.val.lint32_val = val.lint32_val __op__ rhs.val.lint32_val;                      \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::ULINT:                                                     \
-            ret.val.ulint_val = val.ulint_val __op__ rhs.val.ulint_val;                             \
+            if (mode_64bit)                                                                         \
+                ret.val.ulint64_val = val.ulint64_val __op__ rhs.val.ulint64_val;                   \
+            else                                                                                    \
+                ret.val.ulint32_val = val.ulint32_val __op__ rhs.val.ulint32_val;                   \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::LLINT:                                                     \
             ret.val.llint_val = val.llint_val __op__ rhs.val.llint_val;                             \
@@ -1012,10 +1108,16 @@ switch (rhs.get_int_type_id()) {                                                
         ret_val = lhs_val __op__ rhs.val.uint_val;                              \
         break;                                                                  \
     case IntegerType::IntegerTypeID::LINT:                                      \
-        ret_val = lhs_val __op__ rhs.val.lint_val;                              \
+        if (mode_64bit)                                                         \
+            ret_val = lhs_val __op__ rhs.val.lint64_val;                        \
+        else                                                                    \
+            ret_val = lhs_val __op__ rhs.val.lint32_val;                        \
         break;                                                                  \
     case IntegerType::IntegerTypeID::ULINT:                                     \
-        ret_val = lhs_val __op__ rhs.val.ulint_val;                             \
+        if (mode_64bit)                                                         \
+            ret_val = lhs_val __op__ rhs.val.ulint64_val;                       \
+        else                                                                    \
+            ret_val = lhs_val __op__ rhs.val.ulint32_val;                       \
         break;                                                                  \
     case IntegerType::IntegerTypeID::LLINT:                                     \
         ret_val = lhs_val __op__ rhs.val.llint_val;                             \
@@ -1057,10 +1159,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
             u_lhs = val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            s_lhs = val.lint_val;
+            if (mode_64bit)
+                s_lhs = val.lint64_val;
+            else
+                s_lhs = val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            u_lhs = val.ulint_val;
+            if (mode_64bit)
+                u_lhs = val.ulint64_val;
+            else
+                u_lhs = val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             s_lhs = val.llint_val;
@@ -1086,10 +1194,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
             u_rhs = rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            s_rhs = rhs.val.lint_val;
+            if (mode_64bit)
+                s_rhs = rhs.val.lint64_val;
+            else
+                s_rhs = rhs.val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            u_rhs = rhs.val.ulint_val;
+            if (mode_64bit)
+                u_rhs = rhs.val.ulint64_val;
+            else
+                u_rhs = rhs.val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             s_rhs = rhs.val.llint_val;
@@ -1155,10 +1269,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
             SHFT_CASE(<<, ret.val.uint_val, val.uint_val)
             break;
         case IntegerType::IntegerTypeID::LINT:
-            SHFT_CASE(<<, ret.val.lint_val, val.lint_val)
+            if (mode_64bit)
+                SHFT_CASE(<<, ret.val.lint64_val, val.lint64_val)
+            else
+                SHFT_CASE(<<, ret.val.lint32_val, val.lint32_val)
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            SHFT_CASE(<<, ret.val.ulint_val, val.ulint_val)
+            if (mode_64bit)
+                SHFT_CASE(<<, ret.val.ulint64_val, val.ulint64_val)
+            else
+                SHFT_CASE(<<, ret.val.ulint32_val, val.ulint32_val)
             break;
         case IntegerType::IntegerTypeID::LLINT:
             SHFT_CASE(<<, ret.val.llint_val, val.llint_val)
@@ -1193,10 +1313,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
             u_lhs = val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            s_lhs = val.lint_val;
+            if (mode_64bit)
+                s_lhs = val.lint64_val;
+            else
+                s_lhs = val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            u_lhs = val.ulint_val;
+            if (mode_64bit)
+                u_lhs = val.ulint64_val;
+            else
+                u_lhs = val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             s_lhs = val.llint_val;
@@ -1222,10 +1348,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
             u_rhs = rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            s_rhs = rhs.val.lint_val;
+            if (mode_64bit)
+                s_rhs = rhs.val.lint64_val;
+            else
+                s_rhs = rhs.val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            u_rhs = rhs.val.ulint_val;
+            if (mode_64bit)
+                u_rhs = rhs.val.ulint64_val;
+            else
+                u_rhs = rhs.val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             s_rhs = rhs.val.llint_val;
@@ -1279,10 +1411,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
             SHFT_CASE(>>, ret.val.uint_val, val.uint_val)
             break;
         case IntegerType::IntegerTypeID::LINT:
-            SHFT_CASE(>>, ret.val.lint_val, val.lint_val)
+            if (mode_64bit)
+                SHFT_CASE(>>, ret.val.lint64_val, val.lint64_val)
+            else
+                SHFT_CASE(>>, ret.val.lint32_val, val.lint32_val)
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            SHFT_CASE(>>, ret.val.ulint_val, val.ulint_val)
+            if (mode_64bit)
+                SHFT_CASE(>>, ret.val.ulint64_val, val.ulint64_val)
+            else
+                SHFT_CASE(>>, ret.val.ulint32_val, val.ulint32_val)
             break;
         case IntegerType::IntegerTypeID::LLINT:
             SHFT_CASE(>>, ret.val.llint_val, val.llint_val)
@@ -1341,10 +1479,16 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr
             gen_rand_typed_val(ret.val.uint_val, min.val.uint_val, max.val.uint_val);
             break;
         case AtomicType::LINT:
-            gen_rand_typed_val(ret.val.lint_val, min.val.lint_val, max.val.lint_val);
+            if (mode_64bit)
+                gen_rand_typed_val(ret.val.lint64_val, min.val.lint64_val, max.val.lint64_val);
+            else
+                gen_rand_typed_val(ret.val.lint32_val, min.val.lint32_val, max.val.lint32_val);
             break;
         case AtomicType::ULINT:
-            gen_rand_typed_val(ret.val.ulint_val, min.val.ulint_val, max.val.ulint_val);
+            if (mode_64bit)
+                gen_rand_typed_val(ret.val.ulint64_val, min.val.ulint64_val, max.val.ulint64_val);
+            else
+                gen_rand_typed_val(ret.val.ulint32_val, min.val.ulint32_val, max.val.ulint32_val);
             break;
         case AtomicType::LLINT:
             gen_rand_typed_val(ret.val.llint_val, min.val.llint_val, max.val.llint_val);
@@ -1384,10 +1528,16 @@ std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVa
             out << scalar_typed_val.val.uint_val;
             break;
         case AtomicType::LINT:
-            out << scalar_typed_val.val.lint_val;
+            if (mode_64bit)
+                out << scalar_typed_val.val.lint64_val;
+            else
+                out << scalar_typed_val.val.lint32_val;
             break;
         case AtomicType::ULINT:
-            out << scalar_typed_val.val.ulint_val;
+            if (mode_64bit)
+                out << scalar_typed_val.val.ulint64_val;
+            else
+                out << scalar_typed_val.val.ulint32_val;
             break;
         case AtomicType::LLINT:
             out << scalar_typed_val.val.llint_val;
@@ -1609,12 +1759,24 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
             max.val.uint_val = act_max;
             break;
         case AtomicType::IntegerTypeID::LINT:
-            min.val.lint_val = act_min;
-            max.val.lint_val = (int64_t) act_max;
+            if (mode_64bit) {
+                min.val.lint64_val = act_min;
+                max.val.lint64_val = (int64_t) act_max;
+            }
+            else {
+                min.val.lint32_val = act_min;
+                max.val.lint32_val = (int64_t) act_max;
+            }
             break;
         case AtomicType::IntegerTypeID::ULINT:
-            min.val.ulint_val = 0;
-            max.val.ulint_val = act_max;
+            if (mode_64bit) {
+                min.val.ulint64_val = 0;
+                max.val.ulint64_val = act_max;
+            }
+            else {
+                min.val.ulint32_val = 0;
+                max.val.ulint32_val = act_max;
+            }
             break;
          case AtomicType::IntegerTypeID::LLINT:
             min.val.llint_val = act_min;
@@ -1672,11 +1834,17 @@ void TypeUINT::dbg_dump () {
 }
 
 void TypeLINT::dbg_dump () {
-    std::cout << dbg_dump_helper<long int>(get_name(), get_int_type_id(), min.val.lint_val, max.val.lint_val, bit_size, is_signed) << std::endl;
+    if (mode_64bit)
+        std::cout << dbg_dump_helper<long long int>(get_name(), get_int_type_id(), min.val.lint64_val, max.val.lint64_val, bit_size, is_signed) << std::endl;
+    else
+        std::cout << dbg_dump_helper<int>(get_name(), get_int_type_id(), min.val.lint32_val, max.val.lint32_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeULINT::dbg_dump () {
-    std::cout << dbg_dump_helper<unsigned long int>(get_name(), get_int_type_id(), min.val.ulint_val, max.val.ulint_val, bit_size, is_signed) << std::endl;
+    if (mode_64bit)
+        std::cout << dbg_dump_helper<unsigned long long int>(get_name(), get_int_type_id(), min.val.ulint64_val, max.val.ulint64_val, bit_size, is_signed) << std::endl;
+    else
+        std::cout << dbg_dump_helper<unsigned int>(get_name(), get_int_type_id(), min.val.ulint32_val, max.val.ulint32_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeLLINT::dbg_dump () {
@@ -1722,11 +1890,17 @@ bool BitField::can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned)
             break;
         case IntegerType::IntegerTypeID::LINT:
             val_is_unsig = false;
-            s_val = val.val.lint_val;
+            if (mode_64bit)
+                s_val = val.val.lint64_val;
+            else
+                s_val = val.val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
             val_is_unsig = true;
-            u_val = val.val.ulint_val;
+            if (mode_64bit)
+                u_val = val.val.ulint64_val;
+            else
+                u_val = val.val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             val_is_unsig = false;
@@ -1803,12 +1977,24 @@ void BitField::dbg_dump () {
             ret += "max: " + std::to_string(max.val.uint_val) + "\n";
             break;
         case AtomicType::IntegerTypeID::LINT:
-            ret += "min: " + std::to_string(min.val.lint_val) + "\n";
-            ret += "max: " + std::to_string(max.val.lint_val) + "\n";
+            if (mode_64bit) {
+                ret += "min: " + std::to_string(min.val.lint64_val) + "\n";
+                ret += "max: " + std::to_string(max.val.lint64_val) + "\n";
+            }
+            else {
+                ret += "min: " + std::to_string(min.val.lint32_val) + "\n";
+                ret += "max: " + std::to_string(max.val.lint32_val) + "\n";
+            }
             break;
         case AtomicType::IntegerTypeID::ULINT:
-            ret += "min: " + std::to_string(min.val.ulint_val) + "\n";
-            ret += "max: " + std::to_string(max.val.ulint_val) + "\n";
+            if (mode_64bit) {
+                ret += "min: " + std::to_string(min.val.ulint64_val) + "\n";
+                ret += "max: " + std::to_string(max.val.ulint64_val) + "\n";
+            }
+            else {
+                ret += "min: " + std::to_string(min.val.ulint32_val) + "\n";
+                ret += "max: " + std::to_string(max.val.ulint32_val) + "\n";
+            }
             break;
          case AtomicType::IntegerTypeID::LLINT:
             ret += "min: " + std::to_string(min.val.llint_val) + "\n";
