@@ -159,6 +159,10 @@ def run_cmd(cmd, time_out=None, num=-1):
             log_msg_str = "Running " + str(cmd)
             if num != -1:
                 log_msg_str += " in process " + str(num)
+            if time_out is None:
+                log_msg_str += " without timeout"
+            else:
+                log_msg_str += " with " + str(time_out) + " timeout"
             log_msg(logging.DEBUG, log_msg_str)
             output, err_output = process.communicate(timeout=time_out)
             ret_code = process.poll()
