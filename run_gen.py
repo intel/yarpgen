@@ -185,7 +185,9 @@ class Test(object):
 
     # Save failed runs and verify successul runs
     def handle_results(self, lock):
+        # Handle compfails and runfails.
         self.save_failed(lock)
+        # Handle miscompares.
         self.verify_results(lock)
         if self.status == self.STATUS_ok and len(self.fail_test_runs) == 0:
             self.stat.seed_passed(self.seed)
@@ -214,8 +216,11 @@ class Test(object):
                 raise
 
         if build_fail:
+            if self.creduce:
+                self.do_creduce_buildfail(build_fail)
             build_fail.save(lock)
         if run_fail:
+            # Do blaming if blame switch is passed, there are successful runs and fail is not a timeout.
             if self.blame and len(self.successful_test_runs) > 0 and run_fail.status == TestRun.STATUS_runfail:
                 do_blame(run_fail, self.files, self.successful_test_runs[0].checksum, run_fail.target)
             run_fail.save(lock)
@@ -274,7 +279,7 @@ class Test(object):
 
         # Run creduce for one of failing optsets
         if self.creduce:
-            self.do_creduce(good_runs, bad_runs)
+            self.do_creduce_miscompare(good_runs, bad_runs)
 
         # Report
         for run in bad_runs:
@@ -346,15 +351,21 @@ class Test(object):
         init_h = open("init.h")
         init_h_content = init_h.read()
         init_h.close()
+        func_cpp = open("func.cpp")
+        func_cpp_content = func_cpp.read()
+        func_cpp.close()
         iostream = re.compile("iostream")
         array    = re.compile("std::array")
         vector   = re.compile("std::vector")
         valarray = re.compile("std::valarray")
 
         remove_iostream = len(iostream.findall(init_h_content)) != 0
-        remove_array = len(array.findall(init_h_content)) == 0
-        remove_vector = len(vector.findall(init_h_content)) == 0
-        remove_valarray = len(valarray.findall(init_h_content)) == 0
+        remove_array = len(array.findall(init_h_content)) == 0 and \
+                       len(array.findall(func_cpp_content)) == 0
+        remove_vector = len(vector.findall(init_h_content)) == 0 and \
+                        len(vector.findall(func_cpp_content)) == 0
+        remove_valarray = len(valarray.findall(init_h_content)) == 0 and \
+                          len(valarray.findall(func_cpp_content)) == 0
 
         if remove_iostream:
             driver_cpp = open("driver.cpp")
@@ -378,7 +389,7 @@ class Test(object):
                     init_h.write(l)
             init_h.close()
 
-    def do_creduce(self, good_runs, bad_runs):
+    def do_creduce_miscompare(self, good_runs, bad_runs):
         # Pick the fastest non-failing opt-set
         good_run = None
         good_time = 0
@@ -462,12 +473,92 @@ class Test(object):
         common.check_and_copy(cr_log.name, "..")
         self.files.append(cr_log.name)
 
-        reduced_file_name = "func_reduced_"+bad_run.optset+".cpp"
+        reduced_file_name = "func_reduced_" + bad_run.optset + ".cpp"
         common.check_and_copy("func.cpp", ".." + os.sep+reduced_file_name)
         self.files.append(reduced_file_name)
 
         os.chdir(self.path)
 
+    def do_creduce_buildfail(self, buildfail_run):
+        # Pick a ubsan run.
+        ubsan_run = None
+        ubsan_time = 0
+        for run in self.successful_test_runs:
+            if not run.target.specs.name.startswith("ubsan"):
+                continue
+            time = run.build_elapsed_time + run.run_elapsed_time
+            if ubsan_run is None or time < ubsan_time:
+                ubsan_run, ubsan_time = run, time
+
+        common.log_msg(logging.DEBUG, "Running creduce (compfail) for seed " + self.seed + ": " + \
+                buildfail_run.optset + " with " + (ubsan_run.optset if ubsan_run else "missing ubsan"))
+
+        if not ubsan_run:
+            common.log_msg(logging.DEBUG, "Failed to reduce because of missing good ubsan run: seed " + \
+                self.seed)
+            return
+
+        # Prepare Makefile
+        common.check_and_copy(self.creduce_makefile, ".")
+        creduce_makefile_name = os.path.basename(self.creduce_makefile)
+        self.files.append(creduce_makefile_name)
+
+        # Prepare reduce folder
+        os.mkdir("reduce_compfail")
+        for f in self.files:
+            common.check_and_copy(f, "reduce_compfail")
+        os.chdir("reduce_compfail")
+
+        # Now we need to construct a Makefile and script for passing to creduce.
+        # Need to make sure that -Werror=uninitialized is passed to the compiler.
+        # Recommended flags:
+        #   -O0 -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized
+        test_sh = "#!/bin/bash\n\n"
+        test_sh +="ulimit -t " + str(compiler_timeout) + "\n\n"
+        test_sh +="export TEST_PWD="+os.getcwd()+"\n\n"
+        test_sh +="! make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + buildfail_run.optset + " &&\\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + ubsan_run.optset + " &&\\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + ubsan_run.optset + " \n"
+        test_sh_file = open("test.sh", "w")
+        test_sh_file.write(test_sh)
+        test_sh_file.close()
+        st = os.stat(test_sh_file.name)
+        os.chmod(test_sh_file.name, st.st_mode | stat.S_IEXEC)
+        common.check_and_copy(test_sh_file.name, "..")
+        self.files.append(test_sh_file.name)
+
+        # Run creduce
+        cr_params_list = [creduce_bin, "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
+        cr_cmd = " ".join(str(p) for p in cr_params_list)
+        cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
+            common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
+
+        # Store results and copy them back
+        cr_out = open("creduce_" + buildfail_run.optset + ".out", "w")
+        cr_out.write(str(cr_stdout, "utf-8"))
+        cr_out.close()
+        common.check_and_copy(cr_out.name, "..")
+        self.files.append(cr_out.name)
+
+        cr_err = open("creduce_" + buildfail_run.optset + ".err", "w")
+        cr_err.write(str(cr_stderr, "utf-8"))
+        cr_err.close()
+        common.check_and_copy(cr_err.name, "..")
+        self.files.append(cr_err.name)
+
+        cr_log = open("creduce_" + buildfail_run.optset + ".log", "w")
+        cr_log.write("Return code: " + str(cr_ret_code) + "\n")
+        cr_log.write("Execution time: " + str(cr_elapsed_time) + "\n")
+        cr_log.write("Time limit was exceeded!\n" if cr_is_time_expired else "Time limit was not exceeded\n")
+        cr_log.close()
+        common.check_and_copy(cr_log.name, "..")
+        self.files.append(cr_log.name)
+
+        reduced_file_name = "func_reduced_" + buildfail_run.optset+".cpp"
+        common.check_and_copy("func.cpp", ".." + os.sep + reduced_file_name)
+        self.files.append(reduced_file_name)
+
+        os.chdir(self.path)
 
 
 # End of Test class
