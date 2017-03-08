@@ -25,9 +25,9 @@ else
 endif
 
 CXX=clang++
-CXXFLAGS=-std=c++11 -Wall -Wpedantic -Werror -DBUILD_DATE="\"$(BUILD_DATE)\"" -DBUILD_VERSION="\"$(BUILD_VERSION)\""
+CXXFLAGS=-std=c++14 -Wall -Wpedantic -Werror -DBUILD_DATE="\"$(BUILD_DATE)\"" -DBUILD_VERSION="\"$(BUILD_VERSION)\""
 OPT=-O3
-LDFLAGS=-L./ -std=c++11
+LDFLAGS=-L./ -std=c++14
 LIBSOURCES=type.cpp variable.cpp expr.cpp stmt.cpp gen_policy.cpp sym_table.cpp master.cpp
 SOURCES=main.cpp $(LIBSOURCES) self-test.cpp
 LIBSOURCES_SRC=$(addprefix src/, $(LIBSOURCES))

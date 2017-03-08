@@ -168,8 +168,10 @@ class AtomicType : public Type {
                     unsigned short ushrt_val;
                     int int_val;
                     unsigned int uint_val;
-                    long int lint_val;
-                    unsigned long int ulint_val;
+                    int lint32_val; // for 32-bit mode
+                    unsigned int ulint32_val; // for 32-bit mode
+                    long long int lint64_val; // for 64-bit mode
+                    unsigned long long int ulint64_val; // for 64-bit mode
                     long long int llint_val;
                     unsigned long long int ullint_val;
                 };
@@ -419,12 +421,16 @@ class TypeLINT : public IntegerType {
         void init_type () {
             name = "long int";
             suffix = "L";
-            min.val.lint_val = LONG_MIN;
-            max.val.lint_val = LONG_MAX;
-            if (mode_64bit)
-                bit_size = sizeof (long long int) * CHAR_BIT;
-            else
-                bit_size = sizeof (int) * CHAR_BIT;
+            if (mode_64bit) {
+                bit_size = sizeof(long long int) * CHAR_BIT;
+                min.val.lint64_val = LLONG_MIN;
+                max.val.lint64_val = LLONG_MAX;
+            }
+            else {
+                bit_size = sizeof(int) * CHAR_BIT;
+                min.val.lint32_val = INT_MIN;
+                max.val.lint32_val = INT_MAX;
+            }
             is_signed = true;
         }
 };
@@ -440,12 +446,16 @@ class TypeULINT : public IntegerType {
         void init_type () {
             name = "unsigned long int";
             suffix = "UL";
-            min.val.ulint_val = 0;
-            max.val.ulint_val = ULONG_MAX;
-            if (mode_64bit)
+            if (mode_64bit) {
                 bit_size = sizeof (unsigned long long int) * CHAR_BIT;
-            else
-                bit_size = sizeof (unsigned int) * CHAR_BIT;
+                min.val.ulint64_val = 0;
+                max.val.ulint64_val = ULLONG_MAX;
+            }
+            else {
+                bit_size = sizeof(unsigned int) * CHAR_BIT;
+                min.val.ulint32_val = 0;
+                max.val.ulint32_val = UINT_MAX;
+            }
             is_signed = false;
         }
 };
