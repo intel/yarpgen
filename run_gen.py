@@ -1322,11 +1322,11 @@ Use specified folder for testing
                         default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
                         type=str, help="Configuration file for testing")
     parser.add_argument("--log-file", dest="log_file", type=str,
-                        help="Logfile")
+                        help="Logfile. By default it's name of output dir + .log")
     parser.add_argument("-v", "--verbose", dest="verbose", default=False, action="store_true",
                         help="Increase output verbosity")
     parser.add_argument("--stat-log-file", dest="stat_log_file", default="statistics.log", type=str,
-                        help="Logfile")
+                        help="Logfile for statistics")
     parser.add_argument("--seeds", dest="seeds_option_value", default="", type=str,
                         help="List of generator seeds to run or a file name with the list of seeds. "\
                              "Seeds may be separated by whitespaces and commas."\
@@ -1341,6 +1341,8 @@ Use specified folder for testing
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
+    if args.log_file is None:
+        args.log_file = args.out_dir + ".log"
     common.setup_logger(args.log_file, log_level)
 
     stat_log_file = common.wrap_log_file(args.stat_log_file, parser.get_default("stat_log_file"))
