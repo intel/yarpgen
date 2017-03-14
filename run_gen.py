@@ -1351,6 +1351,7 @@ Use specified folder for testing
     common.setup_stat_logger(stat_log_file)
 
     script_start_time = datetime.datetime.now()
+    common.log_msg(logging.DEBUG, "Command line: " + " ".join(str(p) for p in sys.argv))
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
