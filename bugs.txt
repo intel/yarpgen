@@ -1,4 +1,11 @@
 LLVM:
+32345 - Assertion `Op.getScalarValueSizeInBits() == BitWidth && "Mask size mismatches value type size!"' failed with -O0.
+32340 - Assertion `N->getOpcode() != ISD::DELETED_NODE && "Deleted Node added to Worklist"' failed with -O0
+32329 - Silent failure in X86 DAG->DAG Instruction Selection with -march=skx -O3
+32316 - Assertion `N1.getValueType() == N2.getValueType() && N1.getValueType() == VT && "Binary operator types must match!"' failed with -O1 -march=skx
+32284 - Assertion `Num < NumOperands && "Invalid child # of SDNode!"' failed with -O0 -march=skx.
+32256 - Assertion `!isHReg(DestReg) && "Cannot move between mask and h-reg"' failed with -m32 -O0 -march=skx.
+32241 - Incorrect result with -march=skx -O0 -m32.
 31306 - [AVX-512] Compiler crash: Cannot select: t41: v8i64 = X86ISD::SUBV_BROADCAST
 31045 - Clang fails in insertDAGNode
 31044 - Assertion `Index.getValueType() == MVT::i32 && "Expect to be extending 32-bit registers for use in LEA"' failed
@@ -30,6 +37,9 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+80072 - [7 Regression] ICE in gimple_build_assign_1 with -O3 -march=broadwell/skylake-avx512
+80067 - [6/7 Regression] ICE in fold_comparison with -fsanitize=undefined
+80054 - [7 Regression] ICE in verify_ssa with -O3 -march=broadwell/skylake-avx512
 79399 - GCC fails to compile big source at -O0
 78726 - [5/6 Regression] Incorrect unsigned arithmetic optimization
 78720 - [7 Regression] Illegal instruction in generated code
