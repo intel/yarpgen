@@ -43,7 +43,7 @@ process_dir = "process_"
 creduce_bin = "creduce"
 
 yarpgen_timeout = 60
-compiler_timeout = 600
+compiler_timeout = 1200
 run_timeout = 300
 stat_update_delay = 10
 tmp_cleanup_delay = 3600
@@ -59,6 +59,11 @@ known_build_fails = { \
     "PromoteIntRes_SETCC" : "Integer type overpromoted", \
     "Cannot_select_urem" : "Cannot select.*urem", \
     "Cannot_select_pcmpeq" : "Cannot select.*X86ISD::PCMPEQ", \
+    "Binary_operator_types_must_match": "Binary operator types must match", \
+    "DAGCombiner_AddToWorklist": "Deleted Node added to Worklist", \
+    "SDNode_getOperand": "Invalid child # of SDNode", \
+    "DELETED_NODE_CSEMap": "DELETED_NODE in CSEMap!", \
+    "VerifyScheduledSequence": "The number of nodes scheduled doesn't match the expected number", \
 # gcc
     "compute_live_loop_exits" : "compute_live_loop_exits", \
     "verify_gimple" : "verify_gimple" \
@@ -283,11 +288,11 @@ class Test(object):
                 bad_runs += run
 
         # Run blame triagging for one of failing optsets
-        if self.blame:
+        if self.blame and good_runs:
             do_blame(self, self.files, good_runs[0].checksum, bad_runs[0].target)
 
         # Run creduce for one of failing optsets
-        if self.creduce:
+        if self.creduce and good_runs:
             self.do_creduce_miscompare(good_runs, bad_runs)
 
         # Report
@@ -411,6 +416,8 @@ class Test(object):
 
         if not good_run:
             # TODO: fix
+            common.log_msg(logging.DEBUG, "No good runs found for seed " + self.seed + \
+                    " in process " + self.proc_num)
             raise
 
         bad_run = None
