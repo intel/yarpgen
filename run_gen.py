@@ -922,7 +922,7 @@ def get_testing_speed(seed_num, time_delta):
     return "{:.2f}".format(seed_num / minutes) + " seed/min"
 
 
-def form_statistics(stat, targets, prev_len):
+def form_statistics(stat, targets, prev_len, tasks = None):
     verbose_stat_str = ""
 
     testing_speed = get_testing_speed(stat.get_yarpgen_runs(total), datetime.datetime.now() - script_start_time)
@@ -985,11 +985,18 @@ def form_statistics(stat, targets, prev_len):
         verbose_stat_str += "FAILED SEEDS (" + str(len(seeds_fail)) + "): " + \
                             ", ".join("S_"+s for s in seeds_fail) + "\n"
 
+    active = 0
+    if tasks:
+        for task in tasks:
+            if task.is_alive():
+                active = active + 1
+
     stat_str = '\r'
     stat_str += "time " + strfdelta(datetime.datetime.now() - script_start_time,
                                     "{days} d {hours}:{minutes}:{seconds}") + " | "
     stat_str += "cpu time: " + strfdelta(total_cpu_duration, "{days} d {hours}:{minutes}:{seconds}") + " | "
     stat_str += testing_speed + " | "
+    stat_str += " active " + str(active) + " | "
     stat_str += "seeds/targets: " + str(total_seeds)+"/"+str(total_runs) + " | "
     stat_str += "Errors(g/ct/c/rt/r/d): " + str(total_gen_errors) + "/"
     stat_str += str(total_compfail_timeout) + "/"
@@ -1012,7 +1019,7 @@ def print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_j
     start_time = time.time() - tmp_cleanup_delay
     while any_alive:
         lock.acquire()
-        stat_str, verbose_stat_str, prev_len = form_statistics(stat, targets, prev_len)
+        stat_str, verbose_stat_str, prev_len = form_statistics(stat, targets, prev_len, task_threads)
         common.stat_logger.log(logging.INFO, verbose_stat_str)
         sys.stdout.write(stat_str)
         sys.stdout.flush()
