@@ -21,6 +21,7 @@ find /tmp -name "check*.cpp" -type f -mmin +60 -delete
 find /tmp -name "driver*.cpp" -type f -mmin +60 -delete
 find /tmp -name "driver*.o" -type f -mmin +60 -delete
 find /tmp -name "func*.cpp" -type f -mmin +60 -delete
+find /tmp -name "func*.sh" -type f -mmin +60 -delete
 find /tmp -name "hash*.cpp" -type f -mmin +60 -delete
 find /tmp -name "init*.cpp" -type f -mmin +60 -delete
 find /tmp -name "init*.sh" -type f -mmin +60 -delete
