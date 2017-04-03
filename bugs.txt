@@ -1,4 +1,7 @@
 LLVM:
+32646 - UBSAN binary segfaults on correct UB-free test case.
+32525 - Assertion is hit: "The number of nodes scheduled doesn't match the expected number!"
+32515 - Assertion "DELETED_NODE in CSEMap!" fires a lot with -march=skx
 32345 - Assertion `Op.getScalarValueSizeInBits() == BitWidth && "Mask size mismatches value type size!"' failed with -O0.
 32340 - Assertion `N->getOpcode() != ISD::DELETED_NODE && "Deleted Node added to Worklist"' failed with -O0
 32329 - Silent failure in X86 DAG->DAG Instruction Selection with -march=skx -O3
@@ -37,8 +40,14 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+80403 - UBSAN: compile time crash with "type mismatch in binary expression" message in / and % expr
+80386 - UBSAN: false positive - constant folding and reassosiation before instrumentation
 80362 - [5/6 Regression] gcc miscompiles arithmetic with signed char
+80350 - UBSAN changes code semantics when -fno-sanitize-recover=undefined is used
+80349 - [6/7 Regression] UBSAN: compile time crash with "type mismatch in binary expression" message
+80348 - [6 Regression] UBSAN: compile time crash in ubsan_instrument_division
 80341 - [5/6 Regression] gcc miscompiles division of signed char
+80297 - [6 Regression] Compiler time crash: type mismatch in binary expression
 80072 - [7 Regression] ICE in gimple_build_assign_1 with -O3 -march=broadwell/skylake-avx512
 80067 - [6/7 Regression] ICE in fold_comparison with -fsanitize=undefined
 80054 - [7 Regression] ICE in verify_ssa with -O3 -march=broadwell/skylake-avx512
