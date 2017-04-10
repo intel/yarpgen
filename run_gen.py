@@ -419,8 +419,8 @@ class Test(object):
 
         if not good_run:
             # TODO: fix
-            common.log_msg(logging.DEBUG, "No good runs found for seed " + self.seed + \
-                    " in process " + self.proc_num)
+            common.log_msg(logging.WARNING, "No good runs found for seed " + self.seed + \
+                    " in process " + self.proc_num, True)
             raise
 
         bad_run = None
@@ -513,8 +513,8 @@ class Test(object):
                 buildfail_run.optset + " with " + (ubsan_run.optset if ubsan_run else "missing ubsan"))
 
         if not ubsan_run:
-            common.log_msg(logging.DEBUG, "Failed to reduce because of missing good ubsan run: seed " + \
-                self.seed)
+            common.log_msg(logging.WARNING, "Failed to reduce because of missing good ubsan run: seed " + \
+                self.seed, True)
             return
 
         # Prepare Makefile

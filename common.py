@@ -76,7 +76,7 @@ def log_msg(log_level, message, forced_duplication = False):
     global main_logger
     main_logger.log(log_level, message)
     if __duplicate_err_to_stderr__ and (log_level == logging.ERROR or forced_duplication):
-        sys.stderr.write(str(message) + "\n")
+        sys.stderr.write("\n" + str(message) + "\n")
         sys.stderr.flush()
 
 
