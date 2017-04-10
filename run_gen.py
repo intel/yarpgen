@@ -41,6 +41,7 @@ import blame_opt
 res_dir = "result"
 process_dir = "process_"
 creduce_bin = "creduce"
+creduce_n = 0
 
 yarpgen_timeout = 60
 compiler_timeout = 1200
@@ -466,7 +467,7 @@ class Test(object):
         self.files.append(test_sh_file.name)
 
         # Run creduce
-        cr_params_list = [creduce_bin, "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
+        cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
         cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
@@ -547,7 +548,7 @@ class Test(object):
         self.files.append(test_sh_file.name)
 
         # Run creduce
-        cr_params_list = [creduce_bin, "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
+        cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
         cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
@@ -1351,8 +1352,9 @@ Use specified folder for testing
                              "File comments may start with #")
     parser.add_argument("--blame", dest="blame", default=False, action="store_true",
                         help="Enable optimization triagging for failing tests for supported compilers")
-    parser.add_argument("--creduce", dest="creduce", default=False, action="store_true",
-                        help="Enable test reduction using CReduce tool")
+    parser.add_argument("--creduce", dest="creduce", nargs='?', const=4, type=int, default=False,
+                        help="Enable test reduction using CReduce tool. When given a number, "
+                             "it's used as a number of creduce processes run for a single reduction (default is 4)")
     parser.add_argument("--no-tmp-cleaner", dest="no_tmp_cleaner", default=False, action="store_true",
                         help="Do not run tmp_cleaner.sh script during the run")
     args = parser.parse_args()
@@ -1371,5 +1373,7 @@ Use specified folder for testing
     common.log_msg(logging.DEBUG, "Command line: " + " ".join(str(p) for p in sys.argv))
     common.log_msg(logging.DEBUG, "Start time: " + script_start_time.strftime('%Y/%m/%d %H:%M:%S'))
     common.check_python_version()
+    if args.creduce:
+        creduce_n = args.creduce
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
                                   args.config_file, args.seeds_option_value, args.blame, args.creduce, args.no_tmp_cleaner)
