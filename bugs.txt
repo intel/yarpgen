@@ -37,6 +37,8 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+80362 - [5/6 Regression] gcc miscompiles arithmetic with signed char
+80341 - [5/6 Regression] gcc miscompiles division of signed char
 80072 - [7 Regression] ICE in gimple_build_assign_1 with -O3 -march=broadwell/skylake-avx512
 80067 - [6/7 Regression] ICE in fold_comparison with -fsanitize=undefined
 80054 - [7 Regression] ICE in verify_ssa with -O3 -march=broadwell/skylake-avx512
