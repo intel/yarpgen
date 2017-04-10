@@ -66,7 +66,10 @@ known_build_fails = { \
     "VerifyScheduledSequence": "The number of nodes scheduled doesn't match the expected number", \
 # gcc
     "compute_live_loop_exits" : "compute_live_loop_exits", \
-    "verify_gimple" : "verify_gimple" \
+    "ubsan_instrument_division": "ubsan_instrument_division", \
+    "verify_gimple_assignment": "non-trivial conversion at assignment", \
+    "verify_gimple_shift": "type mismatch in shift expression", \
+    "verify_gimple_binary" : "type mismatch in binary expression" \
 }
 
 ###############################################################################
