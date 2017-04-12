@@ -241,6 +241,8 @@ class Test(object):
             # Do blaming if blame switch is passed, there are successful runs and fail is not a timeout.
             if self.blame and len(self.successful_test_runs) > 0 and run_fail.status == TestRun.STATUS_runfail:
                 do_blame(run_fail, self.files, self.successful_test_runs[0].checksum, run_fail.target)
+            if self.creduce:
+                self.do_creduce_runfail(run_fail)
             run_fail.save(lock)
 
     # Verify the results and if bad results are found, report / save them.
@@ -580,7 +582,91 @@ class Test(object):
 
         os.chdir(self.path)
 
+    def do_creduce_runfail(self, runfail_run):
+        # Pick a ubsan run.
+        ubsan_run = None
+        ubsan_time = 0
+        for run in self.successful_test_runs:
+            if not run.target.specs.name.startswith("ubsan"):
+                continue
+            time = run.build_elapsed_time + run.run_elapsed_time
+            if ubsan_run is None or time < ubsan_time:
+                ubsan_run, ubsan_time = run, time
 
+        common.log_msg(logging.DEBUG, "Running creduce (runfail) for seed " + self.seed + ": " + \
+                runfail_run.optset + " with " + (ubsan_run.optset if ubsan_run else "missing ubsan"))
+
+        if not ubsan_run:
+            common.log_msg(logging.WARNING, "Failed to reduce because of missing good ubsan run: seed " + \
+                self.seed, True)
+            return
+
+        # Prepare Makefile
+        common.check_and_copy(self.creduce_makefile, ".")
+        creduce_makefile_name = os.path.basename(self.creduce_makefile)
+        self.files.append(creduce_makefile_name)
+
+        # Prepare reduce folder
+        os.mkdir("reduce_runfail")
+        for f in self.files:
+            common.check_and_copy(f, "reduce_runfail")
+        os.chdir("reduce_runfail")
+
+        # Now we need to construct a Makefile and script for passing to creduce.
+        # Need to make sure that -Werror=uninitialized is passed to the compiler.
+        # Recommended flags:
+        #   -O0 -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized
+        test_sh = "#!/bin/bash\n\n"
+        test_sh +="ulimit -t " + str(compiler_timeout) + "\n\n"
+        test_sh +="export TEST_PWD="+os.getcwd()+"\n\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + runfail_run.optset + " && \\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + runfail_run.optset + "\n"
+        test_sh +="RETCODE=$?\n"
+        test_sh +="[ $RETCODE -eq " + str(runfail_run.run_ret_code) + " ] && \\\n" 
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + ubsan_run.optset + " && \\\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + ubsan_run.optset + " \n"
+        test_sh_file = open("test.sh", "w")
+        test_sh_file.write(test_sh)
+        test_sh_file.close()
+        st = os.stat(test_sh_file.name)
+        os.chmod(test_sh_file.name, st.st_mode | stat.S_IEXEC)
+        common.check_and_copy(test_sh_file.name, "..")
+        self.files.append(test_sh_file.name)
+
+        # Run creduce
+        cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout", str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name), "func.cpp"]
+        cr_cmd = " ".join(str(p) for p in cr_params_list)
+        cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
+            common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
+
+        # Store results and copy them back
+        cr_out = open("creduce_" + runfail_run.optset + ".out", "w")
+        cr_out.write(str(cr_stdout, "utf-8"))
+        cr_out.close()
+        common.check_and_copy(cr_out.name, "..")
+        self.files.append(cr_out.name)
+
+        cr_err = open("creduce_" + runfail_run.optset + ".err", "w")
+        cr_err.write(str(cr_stderr, "utf-8"))
+        cr_err.close()
+        common.check_and_copy(cr_err.name, "..")
+        self.files.append(cr_err.name)
+
+        cr_log = open("creduce_" + runfail_run.optset + ".log", "w")
+        cr_log.write("Return code: " + str(cr_ret_code) + "\n")
+        cr_log.write("Execution time: " + str(cr_elapsed_time) + "\n")
+        cr_log.write("Time limit was exceeded!\n" if cr_is_time_expired else "Time limit was not exceeded\n")
+        cr_log.close()
+        common.check_and_copy(cr_log.name, "..")
+        self.files.append(cr_log.name)
+
+        reduced_file_name = "func_reduced_" + runfail_run.optset+".cpp"
+        common.check_and_copy("func.cpp", ".." + os.sep + reduced_file_name)
+        self.files.append(reduced_file_name)
+
+        os.chdir(self.path)
+
+    
 # End of Test class
 
 # TODO:
