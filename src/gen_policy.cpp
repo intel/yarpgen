@@ -23,39 +23,39 @@ limitations under the License.
 
 using namespace rl;
 
-int MAX_ALLOWED_INT_TYPES = 3;
+const int MAX_ALLOWED_INT_TYPES = 3;
 
-int MAX_ARITH_DEPTH = 5;
+const int MAX_ARITH_DEPTH = 5;
 
-int MIN_SCOPE_STMT_NUM = 5;
-int MAX_SCOPE_STMT_NUM = 10;
+const int MIN_SCOPE_STMT_NUM = 5;
+const int MAX_SCOPE_STMT_NUM = 10;
 
-int MAX_TOTAL_STMT_NUM = 5000;
+const int MAX_TOTAL_STMT_NUM = 5000;
 
-int MIN_INP_VAR_NUM = 20;
-int MAX_INP_VAR_NUM = 60;
-int MIN_MIX_VAR_NUM = 20;
-int MAX_MIX_VAR_NUM = 60;
+const int MIN_INP_VAR_NUM = 20;
+const int MAX_INP_VAR_NUM = 60;
+const int MIN_MIX_VAR_NUM = 20;
+const int MAX_MIX_VAR_NUM = 60;
 
-int MAX_CSE_NUM = 5;
+const int MAX_CSE_NUM = 5;
 
-int MAX_IF_DEPTH = 3;
+const int MAX_IF_DEPTH = 3;
 
-uint64_t MAX_TEST_COMPLEXITY = UINT64_MAX;
+const uint64_t MAX_TEST_COMPLEXITY = UINT64_MAX;
 
-int MIN_STRUCT_TYPES_NUM = 0;
-int MAX_STRUCT_TYPES_NUM = 6;
-int MIN_INP_STRUCT_NUM = 0;
-int MAX_INP_STRUCT_NUM = 6;
-int MIN_MIX_STRUCT_NUM = 0;
-int MAX_MIX_STRUCT_NUM = 6;
-int MIN_OUT_STRUCT_NUM = 0;
-int MAX_OUT_STRUCT_NUM = 8;
-int MIN_STRUCT_MEMBERS_NUM = 1;
-int MAX_STRUCT_MEMBERS_NUM = 10;
-int MAX_STRUCT_DEPTH = 5;
-int MIN_BIT_FIELD_SIZE = 8;
-int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
+const int MIN_STRUCT_TYPES_NUM = 0;
+const int MAX_STRUCT_TYPES_NUM = 6;
+const int MIN_INP_STRUCT_NUM = 0;
+const int MAX_INP_STRUCT_NUM = 6;
+const int MIN_MIX_STRUCT_NUM = 0;
+const int MAX_MIX_STRUCT_NUM = 6;
+const int MIN_OUT_STRUCT_NUM = 0;
+const int MAX_OUT_STRUCT_NUM = 8;
+const int MIN_STRUCT_MEMBERS_NUM = 1;
+const int MAX_STRUCT_MEMBERS_NUM = 10;
+const int MAX_STRUCT_DEPTH = 5;
+const int MIN_BIT_FIELD_SIZE = 8;
+const int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
 
 ///////////////////////////////////////////////////////////////////////////////
 
