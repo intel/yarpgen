@@ -16,9 +16,10 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "type.h"
-#include "variable.h"
 #include "sym_table.h"
+#include "type.h"
+#include "util.h"
+#include "variable.h"
 
 using namespace rl;
 
@@ -51,8 +52,7 @@ void Struct::allocate_members() {
             }
         }
         else {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::allocate_members" << std::endl;
-            exit(-1);
+            ERROR("unsupported type of struct member (Struct)");
         }
     }
 }
@@ -99,8 +99,7 @@ void Struct::generate_members_init(std::shared_ptr<Context> ctx) {
             std::static_pointer_cast<ScalarVariable>(get_member(i))->set_init_value(init_val);
         }
         else {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in Struct::generate_members_init" << std::endl;
-            exit(-1);
+            ERROR("unsupported type of struct member (Struct)");
         }
     }
 }

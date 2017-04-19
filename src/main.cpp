@@ -16,15 +16,15 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include <getopt.h>
 #include <cstdint>
 #include <iostream>
+#include <getopt.h>
 
+#include "gen_policy.h"
+#include "master.h"
+#include "sym_table.h"
 #include "type.h"
 #include "variable.h"
-#include "sym_table.h"
-#include "master.h"
-#include "gen_policy.h"
 
 #ifndef BUILD_DATE
 #define BUILD_DATE __DATE__

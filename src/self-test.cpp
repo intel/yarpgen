@@ -18,13 +18,13 @@ limitations under the License.
 
 #include <iostream>
 
+#include "expr.h"
+#include "ir_node.h"
+#include "gen_policy.h"
+#include "stmt.h"
+#include "sym_table.h"
 #include "type.h"
 #include "variable.h"
-#include "ir_node.h"
-#include "expr.h"
-#include "stmt.h"
-#include "gen_policy.h"
-#include "sym_table.h"
 
 using namespace rl;
 

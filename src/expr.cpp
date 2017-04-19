@@ -16,12 +16,13 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "type.h"
-#include "variable.h"
-#include "ir_node.h"
 #include "expr.h"
-#include "sym_table.h"
+#include "ir_node.h"
 #include "gen_policy.h"
+#include "sym_table.h"
+#include "type.h"
+#include "util.h"
+#include "variable.h"
 
 using namespace rl;
 
@@ -38,16 +39,14 @@ std::shared_ptr<Data> Expr::get_value () {
             return struct_var;
         }
         case Data::VarClassID::MAX_CLASS_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported Data::VarClassID in Expr::get_value" << std::endl;
-            exit(-1);
+            ERROR("unsupported Data::VarClassID (Expr)");
     }
 }
 
 std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
     std::shared_ptr<Data> _new_value = _expr->get_value();
     if (_new_value->get_class_id() != value->get_class_id()) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": different Data::VarClassID in VarUseExpr::set_value" << std::endl;
-        exit(-1);
+        ERROR("different Data::VarClassID (VarUseExpr)");
     }
     switch (value->get_class_id()) {
         case Data::VarClassID::VAR:
@@ -57,12 +56,10 @@ std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
             break;
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": Struct is unsupported in in VarUseExpr::set_value" << std::endl;
-            exit(-1);
+            ERROR("struct is unsupported (VarUseExpr)");
             break;
         case Data::VarClassID::MAX_CLASS_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported Data::VarClassID in VarUseExpr::set_value" << std::endl;
-            exit(-1);
+            ERROR("unsupported Data::VarClassID (VarUseExpr)");
     }
 }
 
@@ -72,8 +69,7 @@ VarUseExpr::VarUseExpr(std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE,
 AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken) :
                         Expr(Node::NodeID::ASSIGN, _to->get_value()), to(_to), from(_from), taken(_taken) {
     if (to->get_id() != Node::NodeID::VAR_USE && to->get_id() != Node::NodeID::MEMBER) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::AssignExpr" << std::endl;
-        exit(-1);
+        ERROR("can assign only to variable (AssignExpr)");
     }
     propagate_type();
     propagate_value();
@@ -86,8 +82,7 @@ bool AssignExpr::propagate_type () {
             from = std::make_shared<TypeCastExpr>(from, value->get_type(), true);
         }
         else {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": struct are unsupported in AssignExpr::propagate_value" << std::endl;
-            exit(-1);
+            ERROR("struct are unsupported (AssignExpr)");
         }
     return true;
 }
@@ -104,8 +99,7 @@ UB AssignExpr::propagate_value () {
         from = std::static_pointer_cast<MemberExpr>(to)->set_value(from);
     }
     else {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can assign only to variable in AssignExpr::propagate_value" << std::endl;
-        exit(-1);
+        ERROR("can assign only to variable (AssignExpr)");
     }
 
     return NoUB;
@@ -129,8 +123,7 @@ bool TypeCastExpr::propagate_type () {
     if (to_type->get_int_type_id() == Type::IntegerTypeID::MAX_INT_ID ||
         expr->get_value()->get_type()->get_int_type_id() == Type::IntegerTypeID::MAX_INT_ID) {
         //TODO: what about overloaded struct types cast?
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can cast only integer types in TypeCastExpr::propagate_type" << std::endl;
-        exit(-1);
+        ERROR("can cast only integer types (TypeCastExpr)");
     }
     return true;
 }
@@ -138,8 +131,7 @@ bool TypeCastExpr::propagate_type () {
 UB TypeCastExpr::propagate_value () {
     if (expr->get_value()->get_class_id() != Data::VarClassID::VAR) {
         //TODO: what about overloaded struct types cast?
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can cast only integer types in TypeCastExpr::propagate_value" << std::endl;
-        exit(-1);
+        ERROR("can cast only integer types (TypeCastExpr)");
     }
     //TODO: Is it always safe to cast value to ScalarVariable?
     value = std::make_shared<ScalarVariable>("", std::static_pointer_cast<IntegerType>(to_type));
@@ -214,8 +206,7 @@ std::string ConstExpr::emit (std::string offset) {
             ret += std::to_string(scalar_val->get_cur_value().val.ullint_val);
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad int type id in Constexpr::emit" << std::endl;
-            exit(-1);
+            ERROR("bad int type id (Constexpr)");
     }
     ret += std::static_pointer_cast<AtomicType>(scalar_val->get_type())->get_suffix ();
     return ret;
@@ -228,8 +219,7 @@ ConstExpr::ConstExpr(AtomicType::ScalarTypedVal _val) :
 
 std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
     if (arg->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform integral_prom only on ScalarVariable in ArithExpr::integral_prom" << std::endl;
-        exit(-1);
+        ERROR("can perform integral_prom only on ScalarVariable (ArithExpr)");
     }
 
     if (!arg->get_value()->get_type()->get_is_bit_field()) {
@@ -250,8 +240,7 @@ std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
 
 std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
     if (arg->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform conv_to_bool only on ScalarVariable in ArithExpr::conv_to_bool" << std::endl;
-        exit(-1);
+        ERROR("can perform conv_to_bool only on ScalarVariable (ArithExpr)");
     }
 
     if (arg->get_value()->get_type()->get_int_type_id() == IntegerType::IntegerTypeID::BOOL) // can't perform integral promotiom
@@ -309,12 +298,11 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
             else if (ret->get_id() == Node::NodeID::MEMBER)
                 GenPolicy::add_to_complexity(Node::NodeID::MEMBER);
             else {
-                std::cerr << "ERROR: ArithExpr::gen_level: unsupported input data type" << std::endl;
-                exit(-1);
+                ERROR("unsupported input data type (ArithExpr)");
             }
         }
         else {
-            exit (-1);
+            ERROR("Ops (ArithExpr)");
         }
     }
     else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
@@ -331,8 +319,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
         ret = ctx->get_gen_policy()->get_cse().at(cse_num);
     }
     else {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unappropriate node type in ArithExpr::gen_level" << std::endl;
-        exit (-1);
+        ERROR("unappropriate node type (ArithExpr)");
     }
 //    std::cout << ret->emit() << std::endl;
     return ret;
@@ -368,15 +355,13 @@ void UnaryExpr::rebuild (UB ub) {
         case UnaryExpr::BitNot:
             break;
         case UnaryExpr::MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in UnaryExpr::rebuild" << std::endl;
-            exit(-1);
+            ERROR("bad op (UnaryExpr)");
             break;
     }
     propagate_type();
     UB ret_ub = propagate_value();
     if (ret_ub) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": illegal strategy in UnaryExpr::rebuild" << std::endl;
-        exit(-1);
+        ERROR("illegal strategy (UnaryExpr)");
     }
 }
 
@@ -392,15 +377,13 @@ UnaryExpr::UnaryExpr (Op _op, std::shared_ptr<Expr> _arg) :
 
 bool UnaryExpr::propagate_type () {
     if (op == MaxOp || arg == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad args in UnaryExpr::propagate_type" << std::endl;
-        exit(-1);
+        ERROR("bad args (UnaryExpr");
         return false;
     }
 
     //TODO: what about overloadedstruct operators?
     if (arg->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_type only on ScalarVariable in UnaryExpr::propagate_type" << std::endl;
-        exit(-1);
+        ERROR("can perform propagate_type only on ScalarVariable (UnaryExpr)");
     }
 
     switch (op) {
@@ -418,8 +401,7 @@ bool UnaryExpr::propagate_type () {
             arg = conv_to_bool (arg);
             break;
         case MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in UnaryExpr::propagate_type" << std::endl;
-            exit(-1);
+            ERROR("bad op (UnaryExpr)");
             break;
     }
     value = arg->get_value();
@@ -428,15 +410,13 @@ bool UnaryExpr::propagate_type () {
 
 UB UnaryExpr::propagate_value () {
     if (op == MaxOp || arg == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in UnaryExpr::propagate_value" << std::endl;
-        exit(-1);
+        ERROR("bad op (UnaryExpr)");
         return NullPtr;
     }
 
     //TODO: what about overloadedstruct operators?
     if (arg->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_value only on ScalarVariable in UnaryExpr::propagate_value" << std::endl;
-        exit(-1);
+        ERROR("can perform propagate_value only on ScalarVariable (UnaryExpr)");
     }
 
     std::shared_ptr<ScalarVariable> scalar_val = std::static_pointer_cast<ScalarVariable>(arg->get_value());
@@ -465,8 +445,7 @@ UB UnaryExpr::propagate_value () {
             new_val = !scalar_val->get_cur_value();
             break;
         case MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in UnaryExpr::propagate_value" << std::endl;
-            exit(-1);
+            ERROR("bad op (UnaryExpr)");
             break;
     }
 
@@ -499,8 +478,7 @@ std::string UnaryExpr::emit (std::string offset) {
             op_str = "~";
             break;
         case MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in UnaryExpr::emit" << std::endl;
-            exit(-1);
+            ERROR("bad op (UnaryExpr)");
             break;
     }
     std::string ret = "";
@@ -616,7 +594,7 @@ void BinaryExpr::rebuild (UB ub) {
         case BinaryExpr::LogOr:
             break;
         case BinaryExpr::MaxOp:
-            std::cerr << "ArithExprGen::rebuild_binary : invalid Op" << std::endl;
+            ERROR("invalid Op (ArithExprGen)");
             break;
     }
     propagate_type();
@@ -672,15 +650,13 @@ void BinaryExpr::perform_arith_conv () {
 
 bool BinaryExpr::propagate_type () {
     if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad args in BinaryExpr::propagate_type" << std::endl;
-        exit(-1);
+        ERROR("bad args (BinaryExpr)");
     }
 
     //TODO: what about overloaded struct operators?
     if (arg0->get_value()->get_class_id() != Data::VarClassID::VAR ||
         arg1->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_type only on ScalarVariable in BinaryExpr::propagate_type" << std::endl;
-        exit(-1);
+        ERROR("can perform propagate_type only on ScalarVariable (BinaryExpr)");
     }
 
     switch (op) {
@@ -714,8 +690,7 @@ bool BinaryExpr::propagate_type () {
             arg1 = conv_to_bool (arg1);
             break;
         case MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in BinaryExpr::propagate_type" << std::endl;
-            exit(-1);
+            ERROR("bad op (BinaryExpr)");
             break;
     }
     return true;
@@ -723,15 +698,13 @@ bool BinaryExpr::propagate_type () {
 
 UB BinaryExpr::propagate_value () {
     if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad args in BinaryExpr::propagate_value" << std::endl;
-        exit(-1);
+        ERROR("bad args (BinaryExpr)");
     }
 
     //TODO: what about overloaded struct operators?
     if (arg0->get_value()->get_class_id() != Data::VarClassID::VAR ||
         arg1->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can perform propagate_value only on ScalarVariable in BinaryExpr::propagate_value" << std::endl;
-        exit(-1);
+        ERROR("can perform propagate_value only on ScalarVariable (BinaryExpr)");
     }
 
     std::shared_ptr<ScalarVariable> scalar_lhs = std::static_pointer_cast<ScalarVariable>(arg0->get_value());
@@ -807,8 +780,7 @@ UB BinaryExpr::propagate_value () {
             new_val = scalar_lhs->get_cur_value() >> scalar_rhs->get_cur_value();
             break;
         case MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in BinaryExpr::propagate_value" << std::endl;
-            exit(-1);
+            ERROR("bad op (BinaryExpr)");
             break;
     }
 
@@ -893,8 +865,7 @@ std::string BinaryExpr::emit (std::string offset) {
             ret += " || ";
             break;
         case MaxOp:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad op in BinaryExpr::emit" << std::endl;
-            exit(-1);
+            ERROR("bad op (BinaryExpr)");
             break;
         }
         ret += "(" + arg1->emit() + ")";
@@ -903,27 +874,23 @@ std::string BinaryExpr::emit (std::string offset) {
 
 bool MemberExpr::propagate_type () {
     if (struct_var == NULL && member_expr == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad struct_var or member_expr in MemberExpr::propagate_type" << std::endl;
-        exit (-1);
+        ERROR("bad struct_var or member_expr (MemberExpr)");
     }
 
     if (struct_var != NULL) {
         if (struct_var->get_num_of_members() <= identifier) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_type" << std::endl;
-            exit (-1);
+            ERROR("bad identifier (MemberExpr)");
         }
         value = struct_var;
     }
     else {
         std::shared_ptr<Data> member_expr_data = member_expr->get_value();
         if (member_expr_data->get_class_id() != Data::VarClassID::STRUCT) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can take member only from Struct in MemberExpr::propagate_type" << std::endl;
-            exit (-1);
+            ERROR("can take member only from Struct (MemberExpr)");
         }
         std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
         if (member_expr_struct->get_num_of_members() <= identifier) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_type" << std::endl;
-            exit (-1);
+            ERROR("bad identifier (MemberExpr)");
         }
         value = member_expr_struct;
     }
@@ -932,27 +899,23 @@ bool MemberExpr::propagate_type () {
 
 UB MemberExpr::propagate_value () {
     if (struct_var == NULL && member_expr == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad struct_var or member_expr in MemberExpr::propagate_value" << std::endl;
-        exit (-1);
+        ERROR("bad struct_var or member_expr (MemberExpr)");
     }
 
     if (struct_var != NULL) {
         if (struct_var->get_num_of_members() <= identifier) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_value" << std::endl;
-            exit (-1);
+            ERROR("bad identifier (MemberExpr)");
         }
         value = struct_var->get_member(identifier);
     }
     else {
         std::shared_ptr<Data> member_expr_data = member_expr->get_value();
         if (member_expr_data->get_class_id() != Data::VarClassID::STRUCT) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can take member only from Struct in MemberExpr::propagate_value" << std::endl;
-            exit (-1);
+            ERROR("can take member only from Struct (MemberExpr)");
         }
         std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
         if (member_expr_struct->get_num_of_members() <= identifier) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::propagate_value" << std::endl;
-            exit (-1);
+            ERROR("bad identifier (MemberExpr)");
         }
         value = member_expr_struct->get_member(identifier);
     }
@@ -963,14 +926,12 @@ std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
     //TODO: what about struct?
     std::shared_ptr<Data> _new_value = _expr->get_value();
     if (_new_value->get_class_id() != value->get_class_id()) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": different Data::VarClassID in MemberExpr::set_value" << std::endl;
-        exit(-1);
+        ERROR("different Data::VarClassID (MemberExpr)");
     }
     switch (value->get_class_id()) {
         case Data::VarClassID::VAR:
             if (value->get_type()->get_int_type_id() != _new_value->get_type()->get_int_type_id()) {
-                std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can't assign different types in MemberExpr::set_value" << std::endl;
-                exit(-1);
+                ERROR("can't assign different types (MemberExpr)");
             }
             if (value->get_type()->get_is_bit_field())
                 return check_and_set_bit_field(_expr);
@@ -981,20 +942,17 @@ std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
             break;
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": Struct is unsupported in in MemberExpr::set_value" << std::endl;
-            exit(-1);
+            ERROR("Struct is unsupported (MemberExpr)");
             break;
         case Data::VarClassID::MAX_CLASS_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported Data::VarClassID in MemberExpr::set_value" << std::endl;
-            exit(-1);
+            ERROR("unsupported Data::VarClassID (MemberExpr)");
     }
 }
 
 static std::shared_ptr<Expr> change_to_value(std::shared_ptr<Context> ctx, std::shared_ptr<Expr> _expr, AtomicType::ScalarTypedVal to_val) {
     std::shared_ptr<Data> expr_data = _expr->get_value();
     if (expr_data->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": only variables are supported in change_to_value" << std::endl;
-        exit(-1);
+        ERROR("only variables are supported");
     }
     AtomicType::ScalarTypedVal value = std::static_pointer_cast<ScalarVariable>(expr_data)->get_cur_value();
     std::shared_ptr<ConstExpr> const_expr = std::make_shared<ConstExpr>(value);
@@ -1026,27 +984,23 @@ std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr>
 std::string MemberExpr::emit (std::string offset) {
     std::string ret = offset;
     if (struct_var == NULL && member_expr == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad struct_var or member_expr in MemberExpr::emit" << std::endl;
-        exit (-1);
+        ERROR("bad struct_var or member_expr (MemberExpr)");
     }
 
     if (struct_var != NULL) {
         if (struct_var->get_num_of_members() <= identifier) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::emit" << std::endl;
-            exit (-1);
+            ERROR("bad identifier (MemberExpr)");
         }
         ret += struct_var->get_name() + "." + struct_var->get_member(identifier)->get_name();
     }
     else {
         std::shared_ptr<Data> member_expr_data = member_expr->get_value();
         if (member_expr_data->get_class_id() != Data::VarClassID::STRUCT) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can take member only from Struct in MemberExpr::emit" << std::endl;
-            exit (-1);
+            ERROR("can take member only from Struct (MemberExpr)");
         }
         std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
         if (member_expr_struct->get_num_of_members() <= identifier) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad identifier in MemberExpr::emit" << std::endl;
-            exit (-1);
+            ERROR("bad identifier (MemberExpr)");
         }
         ret += member_expr->emit() + "." +  member_expr_struct->get_member(identifier)->get_name();
     }
