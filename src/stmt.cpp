@@ -101,25 +101,26 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<Expr>> cse_inp = form_const_inp_from_ctx(ctx);
 
     //TODO: add to gen_policy stmt number
-    int scope_stmt_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_scope_stmt_num(), ctx->get_gen_policy()->get_max_scope_stmt_num());
+    auto p = ctx->get_gen_policy();
+    int scope_stmt_num = rand_val_gen->get_rand_value<int>(p->get_min_scope_stmt_num(), p->get_max_scope_stmt_num());
     for (int i = 0; i < scope_stmt_num; ++i) {
-        if (total_stmt_num >= ctx->get_gen_policy()->get_max_total_stmt_num())
+        if (total_stmt_num >= p->get_max_total_stmt_num())
             //TODO: Can we somehow eliminate compiler timeout with the help of this?
-            //GenPolicy::get_test_complexity() >= ctx->get_gen_policy()->get_max_test_complexity())
+            //GenPolicy::get_test_complexity() >= p->get_max_test_complexity())
             break;
 
-        GenPolicy::ArithCSEGenID add_cse = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_arith_cse_gen());
+        GenPolicy::ArithCSEGenID add_cse = rand_val_gen->get_rand_id(p->get_arith_cse_gen());
         if (add_cse == GenPolicy::ArithCSEGenID::Add &&
-           ((ctx->get_gen_policy()->get_cse().size() - 1 < ctx->get_gen_policy()->get_max_cse_num()) ||
-            (ctx->get_gen_policy()->get_cse().size() == 0))) {
-            ctx->get_gen_policy()->add_cse(ArithExpr::generate(ctx, cse_inp));
+           ((p->get_cse().size() - 1 < p->get_max_cse_num()) ||
+            (p->get_cse().size() == 0))) {
+            p->add_cse(ArithExpr::generate(ctx, cse_inp));
         }
 
-        Node::NodeID gen_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_stmt_gen_prob());
+        Node::NodeID gen_id = rand_val_gen->get_rand_id(p->get_stmt_gen_prob());
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
-            GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_out_data_type_prob());
+            GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(p->get_out_data_type_prob());
             std::shared_ptr<Expr> assign_lhs = NULL;
             if (use_mix) {
                 if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
@@ -145,14 +146,14 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
             }
             ret->add_stmt(ExprStmt::generate(ctx, inp, assign_lhs));
         }
-        else if (gen_id == Node::NodeID::DECL || (ctx->get_if_depth() == ctx->get_gen_policy()->get_max_if_depth())) {
-            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::DECL, true), inp);
+        else if (gen_id == Node::NodeID::DECL || (ctx->get_if_depth() == p->get_max_if_depth())) {
+            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(std::make_shared<Context>(*(p), ctx, Node::NodeID::DECL, true), inp);
             std::shared_ptr<ScalarVariable> tmp_var = std::static_pointer_cast<ScalarVariable>(tmp_decl->get_data());
             inp.push_back(std::make_shared<VarUseExpr>(tmp_var));
             ret->add_stmt(tmp_decl);
         }
         else if (gen_id == Node::NodeID::IF) {
-            ret->add_stmt(IfStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::IF, true), inp));
+            ret->add_stmt(IfStmt::generate(std::make_shared<Context>(*(p), ctx, Node::NodeID::IF, true), inp));
         }
 
     }
@@ -188,7 +189,8 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr
 }
 
 void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
-    int inp_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_var_num(), ctx->get_gen_policy()->get_max_inp_var_num());
+    auto p = ctx->get_gen_policy();
+    int inp_var_num = rand_val_gen->get_rand_value<int>(p->get_min_inp_var_num(), p->get_max_inp_var_num());
     std::shared_ptr<Context> const_ctx = std::make_shared<Context>(*(ctx));
     GenPolicy const_gen_policy = *(const_ctx->get_gen_policy());
     const_gen_policy.set_allow_const(true);
@@ -197,12 +199,12 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
     //TODO: add to gen_policy
-    int mix_var_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_var_num(), ctx->get_gen_policy()->get_max_mix_var_num());
+    int mix_var_num = rand_val_gen->get_rand_value<int>(p->get_min_mix_var_num(), p->get_max_mix_var_num());
     for (int i = 0; i < mix_var_num; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
-    int struct_types_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_types_num(), ctx->get_gen_policy()->get_max_struct_types_num());
+    int struct_types_num = rand_val_gen->get_rand_value<int>(p->get_min_struct_types_num(), p->get_max_struct_types_num());
     if (struct_types_num == 0)
         return;
 
@@ -214,17 +216,17 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         ctx->get_extern_mix_sym_table()->add_struct_type(struct_type);
     }
 
-    int inp_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_inp_struct_num(), ctx->get_gen_policy()->get_max_inp_struct_num());
+    int inp_struct_num = rand_val_gen->get_rand_value<int>(p->get_min_inp_struct_num(), p->get_max_inp_struct_num());
     for (int i = 0; i < inp_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
         ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(const_ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
     }
-    int mix_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_mix_struct_num(), ctx->get_gen_policy()->get_max_mix_struct_num());
+    int mix_struct_num = rand_val_gen->get_rand_value<int>(p->get_min_mix_struct_num(), p->get_max_mix_struct_num());
     for (int i = 0; i < mix_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
         ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
     }
-    int out_struct_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_out_struct_num(), ctx->get_gen_policy()->get_max_out_struct_num());
+    int out_struct_num = rand_val_gen->get_rand_value<int>(p->get_min_out_struct_num(), p->get_max_out_struct_num());
     for (int i = 0; i < out_struct_num; ++i) {
         int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
         ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
