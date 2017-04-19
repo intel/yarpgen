@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "stmt.h"
 #include "sym_table.h"
+#include "util.h"
 
 using namespace rl;
 
@@ -28,12 +29,10 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
     if (init == NULL)
         return;
     if (data->get_class_id() != Data::VarClassID::VAR || init->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can init only ScalarVariable in DeclStmt::DeclStmt" << std::endl;
-        exit(-1);
+        ERROR("can init only ScalarVariable in (DeclStmt)");
     }
     if (is_extern) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": init of extern var in DeclStmt::DeclStmt" << std::endl;
-        exit(-1);
+        ERROR("init of extern var (DeclStmt)");
     }
     std::shared_ptr<ScalarVariable> data_var = std::static_pointer_cast<ScalarVariable>(data);
     std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
@@ -48,8 +47,7 @@ std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx, std:
     std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
     std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
     if (ctx->get_parent_ctx() == NULL || ctx->get_parent_ctx()->get_local_sym_table() == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": no par_ctx or local_sym_table in DeclStmt::generate" << std::endl;
-        exit(-1);
+        ERROR("no par_ctx or local_sym_table (DeclStmt)");
     }
     ctx->get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
     return ret;
@@ -72,8 +70,7 @@ std::string DeclStmt::emit (std::string offset) {
         case Type::Mod::NTHG:
             break;
         case Type::Mod::MAX_MOD:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad modifier in DeclStmt::emit" << std::endl;
-            exit(-1);
+            ERROR("bad modifier (DeclStmt)");
             break;
     }
     ret += data->get_type()->get_simple_name() + " " + data->get_name();
@@ -81,12 +78,10 @@ std::string DeclStmt::emit (std::string offset) {
         ret += " __attribute__((aligned(" + std::to_string(data->get_type()->get_align()) + ")))";
     if (init != NULL) {
         if (data->get_class_id() == Data::VarClassID::STRUCT) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": emit init of struct in DeclStmt::emit" << std::endl;
-            exit(-1);
+            ERROR("emit init of struct (DeclStmt)");
         }
         if (is_extern) {
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": init of extern var in DeclStmt::emit" << std::endl;
-            exit(-1);
+            ERROR("init of extern var (DeclStmt)");
         }
         ret += " = " + init->emit();
     }
@@ -258,8 +253,7 @@ std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std:
 bool IfStmt::count_if_taken (std::shared_ptr<Expr> cond) {
     std::shared_ptr<TypeCastExpr> cond_to_bool = std::make_shared<TypeCastExpr> (cond, IntegerType::init(Type::IntegerTypeID::BOOL), true);
     if (cond_to_bool->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bad class id in IfStmt::count_if_taken" << std::endl;
-        exit(-1);
+        ERROR("bad class id (IfStmt)");
     }
     std::shared_ptr<ScalarVariable> cond_var = std::static_pointer_cast<ScalarVariable> (cond_to_bool->get_value());
     return cond_var->get_cur_value().val.bool_val;
@@ -268,8 +262,7 @@ bool IfStmt::count_if_taken (std::shared_ptr<Expr> cond) {
 IfStmt::IfStmt (std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _if_br, std::shared_ptr<ScopeStmt> _else_br) :
                 Stmt(Node::NodeID::IF), cond(_cond), if_branch(_if_br), else_branch(_else_br) {
     if (cond == NULL || if_branch == NULL) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": if branchescan't be empty in IfStmt::IfStmt" << std::endl;
-        exit(-1);
+        ERROR("if branchescan't be empty (IfStmt)");
     }
     taken = count_if_taken(cond);
 }

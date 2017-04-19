@@ -16,8 +16,9 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "type.h"
 #include "sym_table.h"
+#include "type.h"
+#include "util.h"
 #include "variable.h"
 
 using namespace rl;
@@ -40,8 +41,7 @@ std::string Type::get_name () {
         case Mod::NTHG:
             break;
         case Mod::MAX_MOD:
-            std::cerr << "ERROR in Type::get_name: bad modifier" << std::endl;
-            exit(-1);
+            ERROR("bad modifier (Type)");
             break;
     }
     ret += name;
@@ -58,8 +58,7 @@ StructType::StructMember::StructMember (std::shared_ptr<Type> _type, std::string
     else if (type->is_struct_type())
         data = std::make_shared<Struct>(name, std::static_pointer_cast<StructType>(type));
     else {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported data type in StructType::StructMember::StructMember" << std::endl;
-        exit(-1);
+        ERROR("unsupported data type (StructType)");
     }
 }
 
@@ -224,9 +223,8 @@ switch (int_type_id) {                                              \
         new_val_memb = val.ullint_val;                              \
         break;                                                      \
     case Type::IntegerTypeID::MAX_INT_ID:                           \
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in AtomicType::ScalarTypedVal::cast_type" << std::endl;\
-        exit(-1);                                                   \
-} 
+        ERROR("unsupported int type (AtomicType::ScalarTypedVal)"); \
+}
 
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerTypeID to_type_id) {
     ScalarTypedVal new_val = ScalarTypedVal (to_type_id);
@@ -270,9 +268,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerT
         case Type::IntegerTypeID::ULLINT:
             CAST_CASE(new_val.val.ullint_val)
             break;
-        case Type::IntegerTypeID::MAX_INT_ID:                           \
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in AtomicType::ScalarTypedVal::cast_type" << std::endl;
-            exit(-1);
+        case Type::IntegerTypeID::MAX_INT_ID:
+            ERROR("unsupported int type (AtomicType::ScalarTypedVal)");
     }
     return new_val;
 }
@@ -282,8 +279,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
     int add = inc ? 1 : -1;
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": bool is illegal in dec and inc operators in AtomicType::ScalarTypedVal::pre_op" << std::endl;
-            exit(-1);
+            ERROR("bool is illegal in dec and inc operators (AtomicType::ScalarTypedVal)");
         //TODO: is it UB if we pre-increment char and short?
         case IntegerType::IntegerTypeID::CHAR:
             if ((val.char_val == CHAR_MAX && add > 0) ||
@@ -345,8 +341,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
             ret.val.ullint_val = val.ullint_val + add;
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::pre_op" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
     }
     return ret;
 }
@@ -366,8 +361,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             if (val.int_val == INT_MIN)
                 ret.set_ub(UB::SignOvf);
@@ -417,8 +411,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator~" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             ret.val.int_val = ~val.int_val;
             break;
@@ -472,12 +465,10 @@ uint64_t AtomicType::ScalarTypedVal::get_abs_val () {
         case IntegerType::IntegerTypeID::ULLINT:
             return val.ullint_val;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::get_abs_val" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
     }
     // TODO: add unreachable macro to the project.
-    std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << "reachin unreachable code in AtomicType::ScalarTypedVal::get_abs_val" << std::endl;
-    exit(-1);
+    ERROR("reaching unreachable code (AtomicType::ScalarTypedVal)");
 }
 
 void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
@@ -522,8 +513,7 @@ void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
             val.ullint_val = new_val;
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::set_abs_val" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
     }
 }
 
@@ -544,8 +534,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
         case IntegerType::IntegerTypeID::LLINT:
         case IntegerType::IntegerTypeID::ULLINT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator!" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
     }
     return ret;
 }
@@ -569,8 +558,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator+" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_tmp = (long long int) val.int_val + (long long int) rhs.val.int_val;
             if (s_tmp < INT_MIN || s_tmp > INT_MAX)
@@ -635,8 +623,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator-" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_tmp = (long long int) val.int_val - (long long int) rhs.val.int_val;
             if (s_tmp < INT_MIN || s_tmp > INT_MAX)
@@ -747,8 +734,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator*" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_tmp = (long long int) val.int_val * (long long int) rhs.val.int_val;
             if ((int) val.int_val == INT_MIN && (int) rhs.val.int_val == -1)
@@ -804,8 +790,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator/" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             if (rhs.val.int_val == 0) {
                 ret.set_ub(ZeroDiv);
@@ -887,9 +872,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__
-                      << ": perform propagate_type in AtomicType::ScalarTypedVal::operator%" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             if (rhs.val.int_val == 0) {
                 ret.set_ub(ZeroDiv);
@@ -1005,8 +988,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
             ret.val.bool_val = val.ullint_val __op__ rhs.val.ullint_val;                            \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator"#__op__ << std::endl;\
-            exit(-1);                                                                               \
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");                           \
     }                                                                                               \
     return ret;                                                                                     \
 }
@@ -1037,8 +1019,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
         case IntegerType::IntegerTypeID::LLINT:                                                     \
         case IntegerType::IntegerTypeID::ULLINT:                                                    \
         case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator"#__op__ << std::endl;\
-            exit(-1);                                                                               \
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");                           \
     }                                                                                               \
     return ret;                                                                                     \
 }
@@ -1057,8 +1038,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
         case IntegerType::IntegerTypeID::SHRT:                                                      \
         case IntegerType::IntegerTypeID::USHRT:                                                     \
         case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator"#__op__ << std::endl;\
-            exit(-1);                                                                               \
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");                           \
         case IntegerType::IntegerTypeID::INT:                                                       \
             ret.val.int_val = val.int_val __op__ rhs.val.int_val;                                   \
             break;                                                                                  \
@@ -1099,8 +1079,7 @@ switch (rhs.get_int_type_id()) {                                                
     case IntegerType::IntegerTypeID::SHRT:                                      \
     case IntegerType::IntegerTypeID::USHRT:                                     \
     case IntegerType::IntegerTypeID::MAX_INT_ID:                                \
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator__op__" << std::endl;\
-        exit(-1);                                                               \
+        ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");           \
     case IntegerType::IntegerTypeID::INT:                                       \
         ret_val = lhs_val __op__ rhs.val.int_val;                               \
         break;                                                                  \
@@ -1150,8 +1129,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator<<" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_lhs = val.int_val;
             break;
@@ -1185,8 +1163,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator<<" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_rhs = rhs.val.int_val;
             break;
@@ -1260,8 +1237,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator<<" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             SHFT_CASE(<<, ret.val.int_val, val.int_val)
             break;
@@ -1304,8 +1280,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator>>" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_lhs = val.int_val;
             break;
@@ -1339,8 +1314,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator<<" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_rhs = rhs.val.int_val;
             break;
@@ -1402,8 +1376,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": perform propagate_type in AtomicType::ScalarTypedVal::operator>>" << std::endl;
-            exit(-1);
+            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             SHFT_CASE(>>, ret.val.int_val, val.int_val)
             break;
@@ -1452,8 +1425,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr
 
 AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, AtomicType::ScalarTypedVal min, AtomicType::ScalarTypedVal max) {
     if (min.get_int_type_id() != max.get_int_type_id()) {
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": int type of min and int type of max ared different in AtomicType::ScalarTypedVal::generate" << std::endl;
-        exit(-1);
+        ERROR("int type of min and int type of max are different (AtomicType::ScalarTypedVal)");
     }
     AtomicType::ScalarTypedVal ret(min.get_int_type_id());
     switch(min.get_int_type_id()) {
@@ -1497,8 +1469,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr
             gen_rand_typed_val(ret.val.ullint_val, min.val.ullint_val, max.val.ullint_val);
             break;
         case AtomicType::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in AtomicType::ScalarTypedVal::generate" << std::endl;
-            exit(-1);
+            ERROR("unsupported type of struct member (AtomicType::ScalarTypedVal)");
             break;
     }
     return ret;
@@ -1546,8 +1517,7 @@ std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVa
             out << scalar_typed_val.val.ullint_val;
             break;
         case AtomicType::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported type of struct member in operator<<" << std::endl;
-            exit(-1);
+            ERROR("unsupported type of struct member");
             break;
     }
     return out;
@@ -1651,23 +1621,23 @@ bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::Integ
                 case ULLINT:
                     return true;
                 default:
-                    std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
+                    ERROR("ULINT");
             }
         case LLINT:
             switch (B->get_int_type_id()) {
                 case INT:
                 case UINT:
-                   return false;
+                    return false;
                 case LINT:
                     return mode_64bit;
                 case ULINT:
-                   return false;
+                    return false;
                 case LLINT:
                     return true;
                 case ULLINT:
-                   return false;
+                    return false;
                 default:
-                    std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
+                    ERROR("LLINT");
             }
         case ULLINT:
             switch (B->get_int_type_id()) {
@@ -1682,10 +1652,10 @@ bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::Integ
                 case ULLINT:
                     return true;
                 default:
-                    std::cerr << "ERROR: Type::can_repr_value in case ULINT" << std::endl;
+                    ERROR("ULLINT");
             }
         default:
-            std::cerr << "ERROR: Type::can_repr_value" << std::endl;
+            ERROR("Some types are not covered (IntegerType)");
             return false;
     }
 }
@@ -1703,7 +1673,7 @@ AtomicType::IntegerTypeID IntegerType::get_corr_unsig (AtomicType::IntegerTypeID
         case ULLINT:
             return ULLINT;
         default:
-            std::cerr << "ERROR: Type::get_corr_unsig" << std::endl;
+            ERROR("Some types are not covered (IntegerType)");
             return MAX_INT_ID;
     }
 }
@@ -1787,8 +1757,7 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
             max.val.ullint_val = act_max;
             break;
         case MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in BitField" << std::endl;
-            exit(-1);
+            ERROR("unsupported int type (BitField)");
             break;
     }
 }
@@ -1911,8 +1880,7 @@ bool BitField::can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned)
             u_val = val.val.ullint_val;
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in BitField" << std::endl;
-            exit(-1);
+            ERROR("unsupported int type (BitField)");
     }
 
     int64_t s_min = 0;
@@ -2005,8 +1973,7 @@ void BitField::dbg_dump () {
             ret += "max: " + std::to_string(max.val.ullint_val) + "\n";
             break;
         case MAX_INT_ID:
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": unsupported int type in BitField" << std::endl;
-            exit(-1);
+            ERROR("unsupported int type (BitField)");
             break;
     }
     ret += "bit_size: " + std::to_string(bit_size) + "\n";
