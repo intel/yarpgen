@@ -26,7 +26,7 @@ int Stmt::total_stmt_num = 0;
 
 DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
-    if (init == NULL)
+    if (init == nullptr)
         return;
     if (data->get_class_id() != Data::VarClassID::VAR || init->get_value()->get_class_id() != Data::VarClassID::VAR) {
         ERROR("can init only ScalarVariable in (DeclStmt)");
@@ -46,7 +46,7 @@ std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx, std:
     std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
     std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
     std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
-    if (ctx->get_parent_ctx() == NULL || ctx->get_parent_ctx()->get_local_sym_table() == NULL) {
+    if (ctx->get_parent_ctx() == nullptr || ctx->get_parent_ctx()->get_local_sym_table() == nullptr) {
         ERROR("no par_ctx or local_sym_table (DeclStmt)");
     }
     ctx->get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
@@ -76,7 +76,7 @@ std::string DeclStmt::emit (std::string offset) {
     ret += data->get_type()->get_simple_name() + " " + data->get_name();
     if (data->get_type()->get_align() != 0 && is_extern) // TODO: Should we set __attribute__ to non-extern variable?
         ret += " __attribute__((aligned(" + std::to_string(data->get_type()->get_align()) + ")))";
-    if (init != NULL) {
+    if (init != nullptr) {
         if (data->get_class_id() == Data::VarClassID::STRUCT) {
             ERROR("emit init of struct (DeclStmt)");
         }
@@ -92,7 +92,7 @@ std::string DeclStmt::emit (std::string offset) {
 std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     GenPolicy::add_to_complexity(Node::NodeID::SCOPE);
 
-    if (ctx->get_parent_ctx() == NULL)
+    if (ctx->get_parent_ctx() == nullptr)
         form_extern_sym_table(ctx);
 
     std::shared_ptr<ScopeStmt> ret = std::make_shared<ScopeStmt>();
@@ -121,7 +121,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
             //TODO: add to gen_policy
             bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
             GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(p->get_out_data_type_prob());
-            std::shared_ptr<Expr> assign_lhs = NULL;
+            std::shared_ptr<Expr> assign_lhs = nullptr;
             if (use_mix) {
                 if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
                     int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
@@ -180,7 +180,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr
     for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
         ret.push_back(std::make_shared<VarUseExpr> (i));
     }
-    if (ctx->get_parent_ctx() != NULL)
+    if (ctx->get_parent_ctx() != nullptr)
         ret = form_inp_from_ctx(ctx->get_parent_ctx());
     //TODO: add struct members
     for (auto i : ctx->get_local_sym_table()->get_variables())
@@ -263,7 +263,7 @@ bool IfStmt::count_if_taken (std::shared_ptr<Expr> cond) {
 
 IfStmt::IfStmt (std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _if_br, std::shared_ptr<ScopeStmt> _else_br) :
                 Stmt(Node::NodeID::IF), cond(_cond), if_branch(_if_br), else_branch(_else_br) {
-    if (cond == NULL || if_branch == NULL) {
+    if (cond == nullptr || if_branch == nullptr) {
         ERROR("if branchescan't be empty (IfStmt)");
     }
     taken = count_if_taken(cond);
@@ -276,7 +276,7 @@ std::shared_ptr<IfStmt> IfStmt::generate (std::shared_ptr<Context> ctx, std::vec
     bool else_exist = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_else_prob());
     bool cond_taken = IfStmt::count_if_taken(cond);
     std::shared_ptr<ScopeStmt> then_br = ScopeStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::SCOPE, cond_taken));
-    std::shared_ptr<ScopeStmt> else_br = NULL;
+    std::shared_ptr<ScopeStmt> else_br = nullptr;
     if (else_exist)
         else_br = ScopeStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::SCOPE, !cond_taken));
     return std::make_shared<IfStmt>(cond, then_br, else_br);
@@ -286,7 +286,7 @@ std::string IfStmt::emit (std::string offset) {
     std::string ret = offset;
     ret += "if (" + cond->emit() + ")\n";
     ret += if_branch->emit(offset);
-    if (else_branch != NULL) {
+    if (else_branch != nullptr) {
         ret += offset + "else\n";
         ret += else_branch->emit(offset);
     }

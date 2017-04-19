@@ -167,7 +167,7 @@ void self_test () {
     std::cout << "\n====================="<< std::endl;
 
     GenPolicy gen_policy;
-    Context ctx_var (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, true);
+    Context ctx_var (gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
     ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
     std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
 

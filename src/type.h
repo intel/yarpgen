@@ -145,7 +145,7 @@ class StructType : public Type {
 
 enum UB {
     NoUB,
-    NullPtr, // NULL ptr dereferencing
+    NullPtr, // nullptr ptr dereferencing
     SignOvf, // Signed overflow
     SignOvfMin, // Special case of signed overflow: INT_MIN * (-1)
     ZeroDiv, // FPE

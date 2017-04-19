@@ -59,7 +59,7 @@ void Struct::allocate_members() {
 
 std::shared_ptr<Data> Struct::get_member (unsigned int num) {
     if (num >= members.size())
-        return NULL;
+        return nullptr;
     else
         return members.at(num);
 }

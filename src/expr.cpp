@@ -114,7 +114,7 @@ std::string AssignExpr::emit (std::string offset) {
 }
 
 TypeCastExpr::TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit) :
-              Expr(Node::NodeID::TYPE_CAST, NULL), expr(_expr), to_type(_type), is_implicit(_is_implicit) {
+              Expr(Node::NodeID::TYPE_CAST, nullptr), expr(_expr), to_type(_type), is_implicit(_is_implicit) {
     propagate_type();
     propagate_value();
 }
@@ -284,7 +284,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     new_ctx->set_gen_policy(new_gen_policy);
 
     GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (p->get_arith_leaves());
-    std::shared_ptr<Expr> ret = NULL;
+    std::shared_ptr<Expr> ret = nullptr;
 
     if (node_type == GenPolicy::ArithLeafID::Data || par_depth == p->get_max_arith_depth() ||
        (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0)) {
@@ -378,7 +378,7 @@ UnaryExpr::UnaryExpr (Op _op, std::shared_ptr<Expr> _arg) :
 }
 
 bool UnaryExpr::propagate_type () {
-    if (op == MaxOp || arg == NULL) {
+    if (op == MaxOp || arg == nullptr) {
         ERROR("bad args (UnaryExpr");
         return false;
     }
@@ -411,7 +411,7 @@ bool UnaryExpr::propagate_type () {
 }
 
 UB UnaryExpr::propagate_value () {
-    if (op == MaxOp || arg == NULL) {
+    if (op == MaxOp || arg == nullptr) {
         ERROR("bad op (UnaryExpr)");
         return NullPtr;
     }
@@ -506,7 +506,7 @@ std::shared_ptr<BinaryExpr> BinaryExpr::generate (std::shared_ptr<Context> ctx, 
 }
 
 BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
-                        ArithExpr(Node::NodeID::BINARY, NULL), op(_op), arg0(lhs), arg1(rhs) {
+                        ArithExpr(Node::NodeID::BINARY, nullptr), op(_op), arg0(lhs), arg1(rhs) {
     propagate_type();
     UB ret_ub = propagate_value();
     if (ret_ub != NoUB) {
@@ -651,7 +651,7 @@ void BinaryExpr::perform_arith_conv () {
 }
 
 bool BinaryExpr::propagate_type () {
-    if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
+    if (op == MaxOp || arg0 == nullptr || arg1 == nullptr) {
         ERROR("bad args (BinaryExpr)");
     }
 
@@ -699,7 +699,7 @@ bool BinaryExpr::propagate_type () {
 }
 
 UB BinaryExpr::propagate_value () {
-    if (op == MaxOp || arg0 == NULL || arg1 == NULL) {
+    if (op == MaxOp || arg0 == nullptr || arg1 == nullptr) {
         ERROR("bad args (BinaryExpr)");
     }
 
@@ -875,11 +875,11 @@ std::string BinaryExpr::emit (std::string offset) {
 }
 
 bool MemberExpr::propagate_type () {
-    if (struct_var == NULL && member_expr == NULL) {
+    if (struct_var == nullptr && member_expr == nullptr) {
         ERROR("bad struct_var or member_expr (MemberExpr)");
     }
 
-    if (struct_var != NULL) {
+    if (struct_var != nullptr) {
         if (struct_var->get_num_of_members() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
@@ -900,11 +900,11 @@ bool MemberExpr::propagate_type () {
 }
 
 UB MemberExpr::propagate_value () {
-    if (struct_var == NULL && member_expr == NULL) {
+    if (struct_var == nullptr && member_expr == nullptr) {
         ERROR("bad struct_var or member_expr (MemberExpr)");
     }
 
-    if (struct_var != NULL) {
+    if (struct_var != nullptr) {
         if (struct_var->get_num_of_members() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
@@ -973,7 +973,7 @@ std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr>
     }
     //TODO: it is a stub. We need to change it
     GenPolicy gen_policy;
-    Context ctx_var (gen_policy, NULL, Node::NodeID::MAX_STMT_ID, true);
+    Context ctx_var (gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
     ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
     std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
     AtomicType::ScalarTypedVal to_value = AtomicType::ScalarTypedVal::generate(ctx, bit_field->get_min(), bit_field->get_max());
@@ -985,11 +985,11 @@ std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr>
 
 std::string MemberExpr::emit (std::string offset) {
     std::string ret = offset;
-    if (struct_var == NULL && member_expr == NULL) {
+    if (struct_var == nullptr && member_expr == nullptr) {
         ERROR("bad struct_var or member_expr (MemberExpr)");
     }
 
-    if (struct_var != NULL) {
+    if (struct_var != nullptr) {
         if (struct_var->get_num_of_members() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
@@ -1010,13 +1010,13 @@ std::string MemberExpr::emit (std::string offset) {
 }
 
 MemberExpr::MemberExpr(std::shared_ptr<Struct> _struct, uint64_t _identifier) :
-        Expr(Node::NodeID::MEMBER, _struct), member_expr(NULL), struct_var(_struct), identifier(_identifier) {
+        Expr(Node::NodeID::MEMBER, _struct), member_expr(nullptr), struct_var(_struct), identifier(_identifier) {
     propagate_type();
     propagate_value();
 }
 
 MemberExpr::MemberExpr(std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier) :
-        Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(NULL), identifier(_identifier) {
+        Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(nullptr), identifier(_identifier) {
     propagate_type();
     propagate_value();
 }
