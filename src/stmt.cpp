@@ -119,10 +119,10 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
-            GenPolicy::OutDataTypeID out_rata_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_out_data_type_prob());
+            GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_out_data_type_prob());
             std::shared_ptr<Expr> assign_lhs = NULL;
             if (use_mix) {
-                if (out_rata_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
+                if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
                     int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
                     assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
                 }
@@ -132,7 +132,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                 }
             }
             else {
-                if (out_rata_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_out_sym_table()->get_avail_members().size() == 0) {
+                if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_out_sym_table()->get_avail_members().size() == 0) {
                     std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
                     ctx->get_extern_out_sym_table()->add_variable (out_var);
                     assign_lhs = std::make_shared<VarUseExpr>(out_var);

@@ -77,13 +77,13 @@ AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, 
 
 bool AssignExpr::propagate_type () {
     //TODO:StructType check for struct assignment
-        if (value->get_class_id() == Data::VarClassID::VAR &&
-            from->get_value()->get_class_id() == Data::VarClassID::VAR) {
-            from = std::make_shared<TypeCastExpr>(from, value->get_type(), true);
-        }
-        else {
-            ERROR("struct are unsupported (AssignExpr)");
-        }
+    if (value->get_class_id() == Data::VarClassID::VAR &&
+        from->get_value()->get_class_id() == Data::VarClassID::VAR) {
+        from = std::make_shared<TypeCastExpr>(from, value->get_type(), true);
+    }
+    else {
+        ERROR("struct are unsupported (AssignExpr)");
+    }
     return true;
 }
 
