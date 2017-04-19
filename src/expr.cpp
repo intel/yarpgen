@@ -165,45 +165,46 @@ std::shared_ptr<ConstExpr> ConstExpr::generate (std::shared_ptr<Context> ctx) {
 std::string ConstExpr::emit (std::string offset) {
     std::string ret = offset;
     std::shared_ptr<ScalarVariable> scalar_val = std::static_pointer_cast<ScalarVariable>(value);
+    auto val = scalar_val->get_cur_value().val;
     switch (scalar_val->get_type()->get_int_type_id()) {
         case IntegerType::IntegerTypeID::BOOL:
-            ret += std::to_string(scalar_val->get_cur_value().val.bool_val);
+            ret += std::to_string(val.bool_val);
             break;
         case IntegerType::IntegerTypeID::CHAR:
-            ret += std::to_string(scalar_val->get_cur_value().val.char_val);
+            ret += std::to_string(val.char_val);
             break;
         case IntegerType::IntegerTypeID::UCHAR:
-            ret += std::to_string(scalar_val->get_cur_value().val.uchar_val);
+            ret += std::to_string(val.uchar_val);
             break;
         case IntegerType::IntegerTypeID::SHRT:
-            ret += std::to_string(scalar_val->get_cur_value().val.shrt_val);
+            ret += std::to_string(val.shrt_val);
             break;
         case IntegerType::IntegerTypeID::USHRT:
-            ret += std::to_string(scalar_val->get_cur_value().val.ushrt_val);
+            ret += std::to_string(val.ushrt_val);
             break;
         case IntegerType::IntegerTypeID::INT:
-            ret += std::to_string(scalar_val->get_cur_value().val.int_val);
+            ret += std::to_string(val.int_val);
             break;
         case IntegerType::IntegerTypeID::UINT:
-            ret += std::to_string(scalar_val->get_cur_value().val.uint_val);
+            ret += std::to_string(val.uint_val);
             break;
         case IntegerType::IntegerTypeID::LINT:
             if (mode_64bit)
-                ret += std::to_string(scalar_val->get_cur_value().val.lint64_val);
+                ret += std::to_string(val.lint64_val);
             else
-                ret += std::to_string(scalar_val->get_cur_value().val.lint32_val);
+                ret += std::to_string(val.lint32_val);
             break;
         case IntegerType::IntegerTypeID::ULINT:
             if (mode_64bit)
-                ret += std::to_string(scalar_val->get_cur_value().val.ulint64_val);
+                ret += std::to_string(val.ulint64_val);
             else
-                ret += std::to_string(scalar_val->get_cur_value().val.ulint32_val);
+                ret += std::to_string(val.ulint32_val);
             break;
         case IntegerType::IntegerTypeID::LLINT:
-            ret += std::to_string(scalar_val->get_cur_value().val.llint_val);
+            ret += std::to_string(val.llint_val);
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            ret += std::to_string(scalar_val->get_cur_value().val.ullint_val);
+            ret += std::to_string(val.ullint_val);
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
             ERROR("bad int type id (Constexpr)");
@@ -276,17 +277,18 @@ std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::ve
 }
 
 std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    auto p = ctx->get_gen_policy();
     //TODO: it is a stub for testing. Rewrite it later.
-    GenPolicy new_gen_policy = choose_and_apply_ssp(*(ctx->get_gen_policy()));
+    GenPolicy new_gen_policy = choose_and_apply_ssp(*(p));
     std::shared_ptr<Context> new_ctx = std::make_shared<Context>(*(ctx));
     new_ctx->set_gen_policy(new_gen_policy);
 
-    GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (ctx->get_gen_policy()->get_arith_leaves());
+    GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (p->get_arith_leaves());
     std::shared_ptr<Expr> ret = NULL;
 
-    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == ctx->get_gen_policy()->get_max_arith_depth() ||
-       (node_type == GenPolicy::ArithLeafID::CSE && ctx->get_gen_policy()->get_cse().size() == 0)) {
-        GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (ctx->get_gen_policy()->get_arith_data_distr());
+    if (node_type == GenPolicy::ArithLeafID::Data || par_depth == p->get_max_arith_depth() ||
+       (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0)) {
+        GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (p->get_arith_data_distr());
         if (data_type == GenPolicy::ArithDataID::Const || inp.size() == 0) {
             ret = ConstExpr::generate(new_ctx);
         }
@@ -315,8 +317,8 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
         ret = TypeCastExpr::generate(new_ctx, ArithExpr::gen_level(new_ctx, inp, par_depth + 1));
     }
     else if (node_type == GenPolicy::ArithLeafID::CSE) {
-        int cse_num = rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_cse().size() - 1);
-        ret = ctx->get_gen_policy()->get_cse().at(cse_num);
+        int cse_num = rand_val_gen->get_rand_value<int>(0, p->get_cse().size() - 1);
+        ret = p->get_cse().at(cse_num);
     }
     else {
         ERROR("unappropriate node type (ArithExpr)");

@@ -116,40 +116,41 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx) 
 }
 
 std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types) {
-    Type::Mod primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
+    auto p = ctx->get_gen_policy();
+    Type::Mod primary_mod = p->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_modifiers().size() - 1));
 
     bool primary_static_spec = false;
     //TODO: add distr to gen_policy
-    if (ctx->get_gen_policy()->get_allow_static_var())
+    if (p->get_allow_static_var())
         primary_static_spec = rand_val_gen->get_rand_value<int>(0, 1);
     else
         primary_static_spec = false;
 
-    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(p->get_allowed_int_types());
     //TODO: what about align?
     std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_mod, primary_static_spec, 0);
 
     std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(rand_val_gen->get_struct_type_name());
-    int struct_member_num = rand_val_gen->get_rand_value<int>(ctx->get_gen_policy()->get_min_struct_members_num(), ctx->get_gen_policy()->get_max_struct_members_num());
+    int struct_member_num = rand_val_gen->get_rand_value<int>(p->get_min_struct_members_num(), p->get_max_struct_members_num());
     int member_num = 0;
     for (int i = 0; i < struct_member_num; ++i) {
-        if (ctx->get_gen_policy()->get_allow_mix_mod_in_struct()) {
-            primary_mod = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));;
+        if (p->get_allow_mix_mod_in_struct()) {
+            primary_mod = p->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_modifiers().size() - 1));;
         }
 
-        if (ctx->get_gen_policy()->get_allow_mix_static_in_struct()) {
-            primary_static_spec = ctx->get_gen_policy()->get_allow_static_members() ? rand_val_gen->get_rand_value<int>(0, 1) : false;
+        if (p->get_allow_mix_static_in_struct()) {
+            primary_static_spec = p->get_allow_static_members() ? rand_val_gen->get_rand_value<int>(0, 1) : false;
         }
 
-        if (ctx->get_gen_policy()->get_allow_mix_types_in_struct()) {
-            Data::VarClassID member_class = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_member_class_prob());
+        if (p->get_allow_mix_types_in_struct()) {
+            Data::VarClassID member_class = rand_val_gen->get_rand_id(p->get_member_class_prob());
             bool add_substruct = false;
             int substruct_type_idx = 0;
             std::shared_ptr<StructType> substruct_type = NULL;
-            if (member_class == Data::VarClassID::STRUCT && ctx->get_gen_policy()->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
+            if (member_class == Data::VarClassID::STRUCT && p->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
                 substruct_type_idx = rand_val_gen->get_rand_value<int>(0, nested_struct_types.size() - 1);
                 substruct_type = nested_struct_types.at(substruct_type_idx);
-                if (substruct_type->get_nest_depth() + 1 == ctx->get_gen_policy()->get_max_struct_depth()) {
+                if (substruct_type->get_nest_depth() + 1 == p->get_max_struct_depth()) {
                     add_substruct = false;
                 }
                 else {
@@ -160,7 +161,7 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
                 primary_type = std::make_shared<StructType>(*substruct_type);
             }
             else {
-                GenPolicy::BitFieldID bit_field_dis = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_bit_field_prob());
+                GenPolicy::BitFieldID bit_field_dis = rand_val_gen->get_rand_id(p->get_bit_field_prob());
                 if (bit_field_dis == GenPolicy::BitFieldID::UNNAMED) {
                     struct_type->add_shadow_member(BitField::generate(ctx, true));
                     continue;
