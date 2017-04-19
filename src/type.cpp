@@ -50,7 +50,7 @@ std::string Type::get_name () {
     return ret;
 }
 
-StructType::StructMember::StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name), data(NULL) {
+StructType::StructMember::StructMember (std::shared_ptr<Type> _type, std::string _name) : type(_type), name(_name), data(nullptr) {
     if (!type->get_is_static())
         return;
     if (type->is_int_type())
@@ -74,7 +74,7 @@ void StructType::add_member (std::shared_ptr<Type> _type, std::string _name) {
 
 std::shared_ptr<StructType::StructMember> StructType::get_member (unsigned int num) {
     if (num >= members.size())
-        return NULL;
+        return nullptr;
     else
         return members.at(num);
 }
@@ -146,7 +146,7 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
             Data::VarClassID member_class = rand_val_gen->get_rand_id(p->get_member_class_prob());
             bool add_substruct = false;
             int substruct_type_idx = 0;
-            std::shared_ptr<StructType> substruct_type = NULL;
+            std::shared_ptr<StructType> substruct_type = nullptr;
             if (member_class == Data::VarClassID::STRUCT && p->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
                 substruct_type_idx = rand_val_gen->get_rand_value<int>(0, nested_struct_types.size() - 1);
                 substruct_type = nested_struct_types.at(substruct_type_idx);
@@ -1525,7 +1525,7 @@ std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVa
 }
 
 std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id) {
-    std::shared_ptr<IntegerType> ret (NULL);
+    std::shared_ptr<IntegerType> ret (nullptr);
     switch (_type_id) {
         case AtomicType::IntegerTypeID::BOOL:
             ret = std::make_shared<TypeBOOL> (TypeBOOL());

@@ -25,7 +25,7 @@ using namespace rl;
 
 void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {
     structs.push_back(_struct);
-    form_struct_member_expr(NULL, _struct);
+    form_struct_member_expr(nullptr, _struct);
 }
 
 void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, bool ignore_const) {
@@ -33,7 +33,7 @@ void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_me
         GenPolicy gen_policy;
         if (rand_val_gen->get_rand_id(gen_policy.get_member_use_prob())) {
             std::shared_ptr<MemberExpr> member_expr;
-            if (parent_memb_expr != NULL)
+            if (parent_memb_expr != nullptr)
                 member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
             else
                 member_expr = std::make_shared<MemberExpr>(struct_var, j);
@@ -56,7 +56,7 @@ void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_me
 std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
     std::string ret = "";
     for (auto i : variable) {
-        DeclStmt decl (i, NULL, true);
+        DeclStmt decl (i, nullptr, true);
         ret += offset + decl.emit() + "\n";
     }
     return ret;
@@ -92,7 +92,7 @@ std::string SymbolTable::emit_struct_type_def (std::string offset) {
 std::string SymbolTable::emit_struct_def (std::string offset) {
     std::string ret = "";
     for (auto i : structs) {
-        DeclStmt decl (i, NULL, false);
+        DeclStmt decl (i, nullptr, false);
         ret += offset + decl.emit() + "\n";
     }
     return ret;
@@ -101,7 +101,7 @@ std::string SymbolTable::emit_struct_def (std::string offset) {
 std::string SymbolTable::emit_struct_extern_decl (std::string offset) {
     std::string ret = "";
     for (auto i : structs) {
-        DeclStmt decl (i, NULL, true);
+        DeclStmt decl (i, nullptr, true);
         ret += offset + decl.emit() + "\n";
     }
     return ret;
@@ -110,7 +110,7 @@ std::string SymbolTable::emit_struct_extern_decl (std::string offset) {
 std::string SymbolTable::emit_struct_init (std::string offset) {
     std::string ret = "";
     for (auto i : structs) {
-        ret += emit_single_struct_init(NULL, i, offset);
+        ret += emit_single_struct_init(nullptr, i, offset);
     }
     return ret;
 }
@@ -119,7 +119,7 @@ std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> pa
     std::string ret = "";
     for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
-        if  (parent_memb_expr != NULL)
+        if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
         else
             member_expr = std::make_shared<MemberExpr>(struct_var, j);
@@ -139,7 +139,7 @@ std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> pa
 std::string SymbolTable::emit_struct_check (std::string offset) {
     std::string ret = "";
     for (auto i : structs) {
-        ret += emit_single_struct_check(NULL, i, offset);
+        ret += emit_single_struct_check(nullptr, i, offset);
     }
     return ret;
 }
@@ -148,7 +148,7 @@ std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> p
     std::string ret = "";
     for (int j = 0; j < struct_var->get_num_of_members(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
-        if  (parent_memb_expr != NULL)
+        if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
         else
             member_expr = std::make_shared<MemberExpr>(struct_var, j);
@@ -178,7 +178,7 @@ Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx, N
     self_stmt_id = _self_stmt_id;
     taken = _taken;
 
-    if (parent_ctx != NULL) {
+    if (parent_ctx != nullptr) {
         extern_inp_sym_table = parent_ctx->get_extern_inp_sym_table ();
         extern_out_sym_table = parent_ctx->get_extern_out_sym_table ();
         extern_mix_sym_table = parent_ctx->get_extern_mix_sym_table();
