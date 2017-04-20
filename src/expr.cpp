@@ -880,7 +880,7 @@ bool MemberExpr::propagate_type () {
     }
 
     if (struct_var != nullptr) {
-        if (struct_var->get_num_of_members() <= identifier) {
+        if (struct_var->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
         value = struct_var;
@@ -891,7 +891,7 @@ bool MemberExpr::propagate_type () {
             ERROR("can take member only from Struct (MemberExpr)");
         }
         std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
-        if (member_expr_struct->get_num_of_members() <= identifier) {
+        if (member_expr_struct->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
         value = member_expr_struct;
@@ -905,7 +905,7 @@ UB MemberExpr::propagate_value () {
     }
 
     if (struct_var != nullptr) {
-        if (struct_var->get_num_of_members() <= identifier) {
+        if (struct_var->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
         value = struct_var->get_member(identifier);
@@ -916,7 +916,7 @@ UB MemberExpr::propagate_value () {
             ERROR("can take member only from Struct (MemberExpr)");
         }
         std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
-        if (member_expr_struct->get_num_of_members() <= identifier) {
+        if (member_expr_struct->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
         value = member_expr_struct->get_member(identifier);
@@ -990,7 +990,7 @@ std::string MemberExpr::emit (std::string offset) {
     }
 
     if (struct_var != nullptr) {
-        if (struct_var->get_num_of_members() <= identifier) {
+        if (struct_var->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
         ret += struct_var->get_name() + "." + struct_var->get_member(identifier)->get_name();
@@ -1001,7 +1001,7 @@ std::string MemberExpr::emit (std::string offset) {
             ERROR("can take member only from Struct (MemberExpr)");
         }
         std::shared_ptr<Struct> member_expr_struct = std::static_pointer_cast<Struct>(member_expr_data);
-        if (member_expr_struct->get_num_of_members() <= identifier) {
+        if (member_expr_struct->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
         ret += member_expr->emit() + "." +  member_expr_struct->get_member(identifier)->get_name();

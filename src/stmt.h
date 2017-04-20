@@ -34,7 +34,7 @@ class Stmt : public Node {
         Stmt (Node::NodeID _id) : Node(_id) {};
 
     protected:
-        static int total_stmt_num;
+        static int total_stmt_count;
 };
 
 class DeclStmt : public Stmt {

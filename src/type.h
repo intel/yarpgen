@@ -125,8 +125,8 @@ class StructType : public Type {
         void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); shadow_members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
         void add_shadow_member (std::shared_ptr<Type> _type) { shadow_members.push_back(std::make_shared<StructMember>(_type, "")); }
-        uint64_t get_num_of_members () { return members.size(); }
-        uint64_t get_num_of_shadow_members () { return shadow_members.size(); }
+        uint64_t get_member_count () { return members.size(); }
+        uint64_t get_shadow_member_count () { return shadow_members.size(); }
         uint64_t get_nest_depth () { return nest_depth; }
         std::shared_ptr<StructMember> get_member (unsigned int num);
         std::string get_definition (std::string offset = "");

@@ -27,32 +27,32 @@ const int MAX_ALLOWED_INT_TYPES = 3;
 
 const int MAX_ARITH_DEPTH = 5;
 
-const int MIN_SCOPE_STMT_NUM = 5;
-const int MAX_SCOPE_STMT_NUM = 10;
+const int MIN_SCOPE_STMT_COUNT = 5;
+const int MAX_SCOPE_STMT_COUNT = 10;
 
-const int MAX_TOTAL_STMT_NUM = 5000;
+const int MAX_TOTAL_STMT_COUNT = 5000;
 
-const int MIN_INP_VAR_NUM = 20;
-const int MAX_INP_VAR_NUM = 60;
-const int MIN_MIX_VAR_NUM = 20;
-const int MAX_MIX_VAR_NUM = 60;
+const int MIN_INP_VAR_COUNT = 20;
+const int MAX_INP_VAR_COUNT = 60;
+const int MIN_MIX_VAR_COUNT = 20;
+const int MAX_MIX_VAR_COUNT = 60;
 
-const int MAX_CSE_NUM = 5;
+const int MAX_CSE_COUNT = 5;
 
 const int MAX_IF_DEPTH = 3;
 
 const uint64_t MAX_TEST_COMPLEXITY = UINT64_MAX;
 
-const int MIN_STRUCT_TYPES_NUM = 0;
-const int MAX_STRUCT_TYPES_NUM = 6;
-const int MIN_INP_STRUCT_NUM = 0;
-const int MAX_INP_STRUCT_NUM = 6;
-const int MIN_MIX_STRUCT_NUM = 0;
-const int MAX_MIX_STRUCT_NUM = 6;
-const int MIN_OUT_STRUCT_NUM = 0;
-const int MAX_OUT_STRUCT_NUM = 8;
-const int MIN_STRUCT_MEMBERS_NUM = 1;
-const int MAX_STRUCT_MEMBERS_NUM = 10;
+const int MIN_STRUCT_TYPES_COUNT = 0;
+const int MAX_STRUCT_TYPES_COUNT = 6;
+const int MIN_INP_STRUCT_COUNT = 0;
+const int MAX_INP_STRUCT_COUNT = 6;
+const int MIN_MIX_STRUCT_COUNT = 0;
+const int MAX_MIX_STRUCT_COUNT = 6;
+const int MIN_OUT_STRUCT_COUNT = 0;
+const int MAX_OUT_STRUCT_COUNT = 8;
+const int MIN_STRUCT_MEMBER_COUNT = 1;
+const int MAX_STRUCT_MEMBER_COUNT = 10;
 const int MAX_STRUCT_DEPTH = 5;
 const int MIN_BIT_FIELD_SIZE = 8;
 const int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
@@ -60,9 +60,9 @@ const int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different res
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> rl::rand_val_gen;
-uint64_t RandValGen::struct_type_num = 0;
-uint64_t RandValGen::scalar_var_num = 0;
-uint64_t RandValGen::struct_var_num = 0;
+uint64_t RandValGen::struct_type_count = 0;
+uint64_t RandValGen::scalar_var_count = 0;
+uint64_t RandValGen::struct_var_count = 0;
 
 RandValGen::RandValGen (uint64_t _seed) {
     if (_seed != 0) {
@@ -96,16 +96,16 @@ void GenPolicy::init_from_config () {
     allow_static_members = true;
 
     allow_struct = true;
-    min_struct_types_num = MIN_STRUCT_TYPES_NUM;
-    max_struct_types_num = MAX_STRUCT_TYPES_NUM;
-    min_inp_struct_num = MIN_INP_STRUCT_NUM;
-    max_inp_struct_num = MAX_INP_STRUCT_NUM;
-    min_mix_struct_num = MIN_MIX_STRUCT_NUM;
-    max_mix_struct_num = MAX_MIX_STRUCT_NUM;
-    min_out_struct_num = MIN_OUT_STRUCT_NUM;
-    max_out_struct_num = MAX_OUT_STRUCT_NUM;
-    min_struct_members_num = MIN_STRUCT_MEMBERS_NUM;
-    max_struct_members_num = MAX_STRUCT_MEMBERS_NUM;
+    min_struct_type_count = MIN_STRUCT_TYPES_COUNT;
+    max_struct_type_count = MAX_STRUCT_TYPES_COUNT;
+    min_inp_struct_count = MIN_INP_STRUCT_COUNT;
+    max_inp_struct_count = MAX_INP_STRUCT_COUNT;
+    min_mix_struct_count = MIN_MIX_STRUCT_COUNT;
+    max_mix_struct_count = MAX_MIX_STRUCT_COUNT;
+    min_out_struct_count = MIN_OUT_STRUCT_COUNT;
+    max_out_struct_count = MAX_OUT_STRUCT_COUNT;
+    min_struct_member_count = MIN_STRUCT_MEMBER_COUNT;
+    max_struct_member_count = MAX_STRUCT_MEMBER_COUNT;
     allow_mix_mod_in_struct = false;
     allow_mix_static_in_struct = true;
     allow_mix_types_in_struct = true;
@@ -129,17 +129,17 @@ void GenPolicy::init_from_config () {
 
     max_arith_depth = MAX_ARITH_DEPTH;
 
-    min_scope_stmt_num = MIN_SCOPE_STMT_NUM;
-    max_scope_stmt_num = MAX_SCOPE_STMT_NUM;
+    min_scope_stmt_count = MIN_SCOPE_STMT_COUNT;
+    max_scope_stmt_count = MAX_SCOPE_STMT_COUNT;
 
-    max_total_stmt_num = MAX_TOTAL_STMT_NUM;
+    max_total_stmt_count = MAX_TOTAL_STMT_COUNT;
 
-    min_inp_var_num = MIN_INP_VAR_NUM;
-    max_inp_var_num = MAX_INP_VAR_NUM;
-    min_mix_var_num = MIN_MIX_VAR_NUM;
-    max_mix_var_num = MAX_MIX_VAR_NUM;
+    min_inp_var_count = MIN_INP_VAR_COUNT;
+    max_inp_var_count = MAX_INP_VAR_COUNT;
+    min_mix_var_count = MIN_MIX_VAR_COUNT;
+    max_mix_var_count = MAX_MIX_VAR_COUNT;
 
-    max_cse_num = MAX_CSE_NUM;
+    max_cse_count = MAX_CSE_COUNT;
 
     for (int i = UnaryExpr::Op::Plus; i < UnaryExpr::Op::MaxOp; ++i) {
         Probability<UnaryExpr::Op> prob ((UnaryExpr::Op) i, 10);

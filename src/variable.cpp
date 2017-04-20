@@ -26,7 +26,7 @@ using namespace rl;
 void Struct::allocate_members() {
     std::shared_ptr<StructType> struct_type = std::static_pointer_cast<StructType>(type);
     // TODO: struct member can be not only integer
-    for (int i = 0; i < struct_type->get_num_of_members(); ++i) {
+    for (int i = 0; i < struct_type->get_member_count(); ++i) {
         std::shared_ptr<StructType::StructMember> cur_member = struct_type->get_member(i);
         if (cur_member->get_type()->is_int_type()) {
             if (struct_type->get_member(i)->get_type()->get_is_static()) {
@@ -89,7 +89,7 @@ std::shared_ptr<Struct> Struct::generate (std::shared_ptr<Context> ctx, std::sha
 }
 
 void Struct::generate_members_init(std::shared_ptr<Context> ctx) {
-    for (int i = 0; i < get_num_of_members(); ++i) {
+    for (int i = 0; i < get_member_count(); ++i) {
         if (get_member(i)->get_type()->is_struct_type()) {
             std::static_pointer_cast<Struct>(get_member(i))->generate_members_init(ctx);
         }
