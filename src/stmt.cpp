@@ -172,6 +172,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_const_inp_from_ctx (std::shar
     return ret;
 }
 
+// TODO: we create multiple entry for variables from extern_sym_tables
 std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<Expr>> ret = form_const_inp_from_ctx (ctx);
     for (auto i : ctx->get_extern_mix_sym_table()->get_avail_members()) {

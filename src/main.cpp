@@ -37,6 +37,10 @@ limitations under the License.
 using namespace rl;
 
 void printVersion () {
+    // Yarpgen version supposed to be changed every time the generation algorithm is changed,
+    // so version+seed should unambiguously correcpond to generated test.
+    // TODO: with more extra parameters taken into account, like target platform properties,
+    // limits, generation policies, and output languge, we may want to encode all this in the seed.
     std::cout << "yarpgen version 1.1 (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
 }
 
