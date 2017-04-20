@@ -51,7 +51,7 @@ class Struct : public Data {
     public:
         Struct (std::string _name, std::shared_ptr<StructType> _type) :
                 Data(_name, _type, Data::VarClassID::STRUCT) { allocate_members(); }
-        uint64_t get_num_of_members () { return members.size(); }
+        uint64_t get_member_count () { return members.size(); }
         std::shared_ptr<Data> get_member (unsigned int num);
         void dbg_dump ();
         //TODO: stub for modifiers, cause now they are inside type.

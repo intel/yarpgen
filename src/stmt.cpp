@@ -22,7 +22,7 @@ limitations under the License.
 
 using namespace rl;
 
-int Stmt::total_stmt_num = 0;
+int Stmt::total_stmt_count = 0;
 
 DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
@@ -40,7 +40,7 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
 }
 
 std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
-    total_stmt_num++;
+    total_stmt_count++;
     GenPolicy::add_to_complexity(Node::NodeID::DECL);
 
     std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
@@ -102,16 +102,16 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
 
     //TODO: add to gen_policy stmt number
     auto p = ctx->get_gen_policy();
-    int scope_stmt_num = rand_val_gen->get_rand_value<int>(p->get_min_scope_stmt_num(), p->get_max_scope_stmt_num());
-    for (int i = 0; i < scope_stmt_num; ++i) {
-        if (total_stmt_num >= p->get_max_total_stmt_num())
+    int scope_stmt_count = rand_val_gen->get_rand_value<int>(p->get_min_scope_stmt_count(), p->get_max_scope_stmt_count());
+    for (int i = 0; i < scope_stmt_count; ++i) {
+        if (total_stmt_count >= p->get_max_total_stmt_count())
             //TODO: Can we somehow eliminate compiler timeout with the help of this?
             //GenPolicy::get_test_complexity() >= p->get_max_test_complexity())
             break;
 
         GenPolicy::ArithCSEGenID add_cse = rand_val_gen->get_rand_id(p->get_arith_cse_gen());
         if (add_cse == GenPolicy::ArithCSEGenID::Add &&
-           ((p->get_cse().size() - 1 < p->get_max_cse_num()) ||
+           ((p->get_cse().size() - 1 < p->get_max_cse_count()) ||
             (p->get_cse().size() == 0))) {
             p->add_cse(ArithExpr::generate(ctx, cse_inp));
         }
@@ -190,25 +190,25 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::form_inp_from_ctx (std::shared_ptr
 
 void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     auto p = ctx->get_gen_policy();
-    int inp_var_num = rand_val_gen->get_rand_value<int>(p->get_min_inp_var_num(), p->get_max_inp_var_num());
+    int inp_var_count = rand_val_gen->get_rand_value<int>(p->get_min_inp_var_count(), p->get_max_inp_var_count());
     std::shared_ptr<Context> const_ctx = std::make_shared<Context>(*(ctx));
     GenPolicy const_gen_policy = *(const_ctx->get_gen_policy());
     const_gen_policy.set_allow_const(true);
     const_ctx->set_gen_policy(const_gen_policy);
-    for (int i = 0; i < inp_var_num; ++i) {
+    for (int i = 0; i < inp_var_count; ++i) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
     //TODO: add to gen_policy
-    int mix_var_num = rand_val_gen->get_rand_value<int>(p->get_min_mix_var_num(), p->get_max_mix_var_num());
-    for (int i = 0; i < mix_var_num; ++i) {
+    int mix_var_count = rand_val_gen->get_rand_value<int>(p->get_min_mix_var_count(), p->get_max_mix_var_count());
+    for (int i = 0; i < mix_var_count; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
-    int struct_types_num = rand_val_gen->get_rand_value<int>(p->get_min_struct_types_num(), p->get_max_struct_types_num());
-    if (struct_types_num == 0)
+    int struct_type_count = rand_val_gen->get_rand_value<int>(p->get_min_struct_type_count(), p->get_max_struct_type_count());
+    if (struct_type_count == 0)
         return;
 
-    for (int i = 0; i < struct_types_num; ++i) {
+    for (int i = 0; i < struct_type_count; ++i) {
         //TODO: Maybe we should create one container for all struct types? And should they all be equal?
         std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types());
         ctx->get_extern_inp_sym_table()->add_struct_type(struct_type);
@@ -216,19 +216,19 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         ctx->get_extern_mix_sym_table()->add_struct_type(struct_type);
     }
 
-    int inp_struct_num = rand_val_gen->get_rand_value<int>(p->get_min_inp_struct_num(), p->get_max_inp_struct_num());
-    for (int i = 0; i < inp_struct_num; ++i) {
-        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+    int inp_struct_count = rand_val_gen->get_rand_value<int>(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
+    for (int i = 0; i < inp_struct_count; ++i) {
+        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_type_count - 1);
         ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(const_ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
     }
-    int mix_struct_num = rand_val_gen->get_rand_value<int>(p->get_min_mix_struct_num(), p->get_max_mix_struct_num());
-    for (int i = 0; i < mix_struct_num; ++i) {
-        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+    int mix_struct_count = rand_val_gen->get_rand_value<int>(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
+    for (int i = 0; i < mix_struct_count; ++i) {
+        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_type_count - 1);
         ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
     }
-    int out_struct_num = rand_val_gen->get_rand_value<int>(p->get_min_out_struct_num(), p->get_max_out_struct_num());
-    for (int i = 0; i < out_struct_num; ++i) {
-        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_types_num - 1);
+    int out_struct_count = rand_val_gen->get_rand_value<int>(p->get_min_out_struct_count(), p->get_max_out_struct_count());
+    for (int i = 0; i < out_struct_count; ++i) {
+        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_type_count - 1);
         ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
     }
 }
@@ -242,7 +242,7 @@ std::string ScopeStmt::emit (std::string offset) {
 }
 
 std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out) {
-    total_stmt_num++;
+    total_stmt_count++;
     GenPolicy::add_to_complexity(Node::NodeID::EXPR);
 
     //TODO: now it can be only assign. Do we want something more?
@@ -270,7 +270,7 @@ IfStmt::IfStmt (std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _if_br, 
 }
 
 std::shared_ptr<IfStmt> IfStmt::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
-    total_stmt_num++;
+    total_stmt_count++;
     GenPolicy::add_to_complexity(Node::NodeID::IF);
     std::shared_ptr<Expr> cond = ArithExpr::generate(ctx, inp);
     bool else_exist = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_else_prob());

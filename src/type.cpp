@@ -131,9 +131,9 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
     std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_mod, primary_static_spec, 0);
 
     std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(rand_val_gen->get_struct_type_name());
-    int struct_member_num = rand_val_gen->get_rand_value<int>(p->get_min_struct_members_num(), p->get_max_struct_members_num());
-    int member_num = 0;
-    for (int i = 0; i < struct_member_num; ++i) {
+    int struct_member_count = rand_val_gen->get_rand_value<int>(p->get_min_struct_member_count(), p->get_max_struct_member_count());
+    int member_count = 0;
+    for (int i = 0; i < struct_member_count; ++i) {
         if (p->get_allow_mix_mod_in_struct()) {
             primary_mod = p->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_modifiers().size() - 1));;
         }
@@ -176,7 +176,7 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
         }
         primary_type->set_modifier(primary_mod);
         primary_type->set_is_static(primary_static_spec);
-        struct_type->add_member(primary_type, "member_" + std::to_string(rand_val_gen->get_struct_type_num()) + "_" + std::to_string(member_num++));
+        struct_type->add_member(primary_type, "member_" + std::to_string(rand_val_gen->get_struct_type_count()) + "_" + std::to_string(member_count++));
     }
     return struct_type;
 }
