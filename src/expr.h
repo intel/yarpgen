@@ -29,6 +29,7 @@ namespace rl {
 class Context;
 class GenPolicy;
 
+// Abstract class, serves as common ancestor for all expressions.
 class Expr : public Node {
     public:
         Expr (Node::NodeID _id, std::shared_ptr<Data> _value) : Node(_id), value(_value) {}
@@ -36,11 +37,20 @@ class Expr : public Node {
         std::shared_ptr<Data> get_value ();
 
     protected:
+        // This function does type conversions required by standard (implicit cast, integral promotion or
+        // usual arithmetic conversions) to existing child nodes.
+        // As a result, it inserts required TypeCastExpr between existing child nodes and current node.
         virtual bool propagate_type () = 0;
+        // This function calculates value of current node, based on its child nodes.
+        // Also it detects UB and eliminates it (for more information, see rebuild() method in inherited classes).
+        // It requires propagate_type() to be called first.
         virtual UB propagate_value () = 0;
         std::shared_ptr<Data> value;
 };
 
+// Variable Use expression provides access to variable.
+// Any interaction with a variable (access to its value) in generated test is represented with this class.
+// For example, assignment to the variable may use VarUseExpr as lhs.
 class VarUseExpr : public Expr {
     public:
         VarUseExpr (std::shared_ptr<Data> _var);
@@ -52,6 +62,10 @@ class VarUseExpr : public Expr {
         UB propagate_value () { return NoUB; }
 };
 
+// Assignment expression represents assignment of one expression to another.
+// Its constructor replaces implicit cast (cast rhs to the type of lhs) with TypeCastExpr node and
+// updates value of lhs (only if this assignment is evaluated in test).
+// E.g.: lhs_expr = rhs_expr
 class AssignExpr : public Expr {
     public:
         AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken = true);
@@ -61,11 +75,18 @@ class AssignExpr : public Expr {
         bool propagate_type ();
         UB propagate_value ();
 
+        // Destination (can be only VarUseExpr or MemberExpr).
         std::shared_ptr<Expr> to;
+        // Rhs part of assignment expression.
         std::shared_ptr<Expr> from;
+        // Taken indicates whether expression is evaluated and lhs value should be updated.
         bool taken;
 };
 
+// Type Cast expression represents implicit and explicit type casts.
+// The creator of TypeCastExpr should make the decision about its kind (implicit or explicit)
+// and pass it to constructor. All of implicit casts should be represented with this class.
+// E.g.: (to_type) expr;
 class TypeCastExpr : public Expr {
     public:
         TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit = false);
@@ -78,9 +99,13 @@ class TypeCastExpr : public Expr {
 
         std::shared_ptr<Expr> expr;
         std::shared_ptr<Type> to_type;
+        // This flag indicates if this conversion is implicit or not.
+        // I.e. if it's implicit and omitted - the program behavior won't change.
         bool is_implicit;
 };
 
+// Constant expression represents constant values
+// E.g.: 123ULL
 class ConstExpr : public Expr {
     public:
         ConstExpr (AtomicType::ScalarTypedVal _val);
@@ -92,6 +117,9 @@ class ConstExpr : public Expr {
         UB propagate_value () { return NoUB; }
 };
 
+// Arithmetic expression abstract class, serves as common ancestor for unary/binary expressions.
+// We construct expression tree, using top-down approach.
+// After that in bottom-up direction we propagate types and values (if we detect UB, we eliminate it).
 class ArithExpr : public Expr {
     public:
         ArithExpr(Node::NodeID _node_id, std::shared_ptr<Data> _val) : Expr(_node_id, _val) {}
@@ -107,6 +135,8 @@ class ArithExpr : public Expr {
         std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
 };
 
+// Unary expression represents all unary operators
+// E.g.: +lhs_expr;
 class UnaryExpr : public ArithExpr {
     public:
         enum Op {
@@ -128,12 +158,15 @@ class UnaryExpr : public ArithExpr {
     private:
         bool propagate_type ();
         UB propagate_value ();
+        // This function eliminates UB. It changes operator to complimentary.
         void rebuild (UB ub);
 
         Op op;
         std::shared_ptr<Expr> arg;
 };
 
+// Binary expression - represents all binary operators
+// E.g.: lhs_expr + rhs_expr;
 class BinaryExpr : public ArithExpr {
     public:
         enum Op {
@@ -171,6 +204,7 @@ class BinaryExpr : public ArithExpr {
         bool propagate_type ();
         UB propagate_value ();
         void perform_arith_conv ();
+        // This function eliminates UB. It changes operator to complimentary or inserts new nodes.
         void rebuild (UB ub);
 
         Op op;
@@ -178,6 +212,8 @@ class BinaryExpr : public ArithExpr {
         std::shared_ptr<Expr> arg1;
 };
 
+// Member expression - provides access to members of struct variable
+// E.g.: struct_obj.member_1
 class MemberExpr : public Expr {
     public:
         MemberExpr (std::shared_ptr<Struct> _struct, uint64_t _identifier);
