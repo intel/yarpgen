@@ -83,8 +83,8 @@ class ScopeStmt : public Stmt {
         static std::shared_ptr<ScopeStmt> generate (std::shared_ptr<Context> ctx);
 
     private:
-        static std::vector<std::shared_ptr<Expr>> form_const_inp_from_ctx (std::shared_ptr<Context> ctx);
-        static std::vector<std::shared_ptr<Expr>> form_inp_from_ctx (std::shared_ptr<Context> ctx);
+        static std::vector<std::shared_ptr<Expr>> extract_inp_from_ctx(std::shared_ptr<Context> ctx);
+        static std::vector<std::shared_ptr<Expr>> extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx);
         static void form_extern_sym_table(std::shared_ptr<Context> ctx);
         std::vector<std::shared_ptr<Stmt>> scope;
 };

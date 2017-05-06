@@ -29,7 +29,7 @@ namespace yarpgen {
 class Context;
 class GenPolicy;
 
-// Abstract class, serves as common ancestor for all expressions.
+// Abstract class, serves as a common ancestor for all expressions.
 class Expr : public Node {
     public:
         Expr (Node::NodeID _id, std::shared_ptr<Data> _value) : Node(_id), value(_value) {}
@@ -37,20 +37,22 @@ class Expr : public Node {
         std::shared_ptr<Data> get_value ();
 
     protected:
-        // This function does type conversions required by standard (implicit cast, integral promotion or
-        // usual arithmetic conversions) to existing child nodes.
-        // As a result, it inserts required TypeCastExpr between existing child nodes and current node.
+        // This function does type conversions required by the language standard (implicit cast,
+        // integral promotion or usual arithmetic conversions) to existing child nodes.
+        // As a result, it inserts required TypeCastExpr between existing child nodes and
+        // current node.
         virtual bool propagate_type () = 0;
+
         // This function calculates value of current node, based on its child nodes.
-        // Also it detects UB and eliminates it (for more information, see rebuild() method in inherited classes).
-        // It requires propagate_type() to be called first.
+        // Also it detects UB and eliminates it (for more information, see rebuild() method
+        // in inherited classes). It requires propagate_type() to be called first.
         virtual UB propagate_value () = 0;
         std::shared_ptr<Data> value;
 };
 
 // Variable Use expression provides access to variable.
-// Any interaction with a variable (access to its value) in generated test is represented with this class.
-// For example, assignment to the variable may use VarUseExpr as lhs.
+// Any interaction with a variable (access to its value) in generated test is represented
+// by this class. For example, assignment to the variable may use VarUseExpr as lhs.
 class VarUseExpr : public Expr {
     public:
         VarUseExpr (std::shared_ptr<Data> _var);
@@ -64,7 +66,7 @@ class VarUseExpr : public Expr {
 
 // Assignment expression represents assignment of one expression to another.
 // Its constructor replaces implicit cast (cast rhs to the type of lhs) with TypeCastExpr node and
-// updates value of lhs (only if this assignment is evaluated in test).
+// updates value of lhs (only if this assignment is evaluated in the test, i.e. "taken" is true).
 // E.g.: lhs_expr = rhs_expr
 class AssignExpr : public Expr {
     public:
@@ -85,7 +87,7 @@ class AssignExpr : public Expr {
 
 // Type Cast expression represents implicit and explicit type casts.
 // The creator of TypeCastExpr should make the decision about its kind (implicit or explicit)
-// and pass it to constructor. All of implicit casts should be represented with this class.
+// and pass it to constructor. All of implicit casts should be represented by this class.
 // E.g.: (to_type) expr;
 class TypeCastExpr : public Expr {
     public:
@@ -106,6 +108,8 @@ class TypeCastExpr : public Expr {
 
 // Constant expression represents constant values
 // E.g.: 123ULL
+// TODO: should we play around with different representation of constants? I.e. decimal,
+// hex, octal, with and without C++14 style apostrophes, etc.
 class ConstExpr : public Expr {
     public:
         ConstExpr (AtomicType::ScalarTypedVal _val);
@@ -126,9 +130,13 @@ class ArithExpr : public Expr {
         static std::shared_ptr<Expr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     protected:
+        // This function chooses one of ArithSSP::ConstUse patterns and combines old_gen_policy with it
         static GenPolicy choose_and_apply_ssp_const_use (GenPolicy old_gen_policy);
+        // This function chooses one of ArithSSP::SimilarOp patterns and combines old_gen_policy with it
         static GenPolicy choose_and_apply_ssp_similar_op (GenPolicy old_gen_policy);
+        // Bridge to choose_and_apply_ssp_const_use and choose_and_apply_ssp_similar_op. This function combines both of them.
         static GenPolicy choose_and_apply_ssp (GenPolicy old_gen_policy);
+        // Top-level recursive function for expression tree generation
         static std::shared_ptr<Expr> gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
         std::shared_ptr<Expr> integral_prom (std::shared_ptr<Expr> arg);
