@@ -225,7 +225,7 @@ std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
 
     if (!arg->get_value()->get_type()->get_is_bit_field()) {
         //[conv.prom]
-        if (arg->get_value()->get_type()->get_int_type_id() >= IntegerType::IntegerTypeID::INT) // can't perform integral promotiom
+        if (arg->get_value()->get_type()->get_int_type_id() >= IntegerType::IntegerTypeID::INT) // can't perform integral promotion
             return arg;
         return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::INT), true);
     }
@@ -276,22 +276,30 @@ std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::ve
     return gen_level(ctx, inp, 0);
 }
 
+// Top-level recursive function for expression tree generation.
 std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
     auto p = ctx->get_gen_policy();
     //TODO: it is a stub for testing. Rewrite it later.
+    // Pick random pattern for single statement and apply it to gen_policy. Update Context with new gen_policy.
     GenPolicy new_gen_policy = choose_and_apply_ssp(*(p));
     std::shared_ptr<Context> new_ctx = std::make_shared<Context>(*(ctx));
     new_ctx->set_gen_policy(new_gen_policy);
 
+    // Pick random ID of the node being create.
     GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (p->get_arith_leaves());
     std::shared_ptr<Expr> ret = nullptr;
 
+    // If we want to use any Data, we've reached expression tree depth limit,
+    // or we want to use CSE but don't have any, we fall into this branch.
     if (node_type == GenPolicy::ArithLeafID::Data || par_depth == p->get_max_arith_depth() ||
        (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0)) {
+        // Pick random Data ID.
         GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (p->get_arith_data_distr());
+        // If we want to use Const or don't have any input VarUseExpr / MemberExpr, we fall into this branch.
         if (data_type == GenPolicy::ArithDataID::Const || inp.size() == 0) {
             ret = ConstExpr::generate(new_ctx);
         }
+        // Branch for input VarUseExpr / MemberExpr
         else if (data_type == GenPolicy::ArithDataID::Inp) {
             int inp_num = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
             ret = inp.at(inp_num);
@@ -307,15 +315,20 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
             ERROR("Ops (ArithExpr)");
         }
     }
-    else if (node_type == GenPolicy::ArithLeafID::Unary) { // Unary expr
+    // All of the following branches implement direct or indirect recursion, calling ArithExpr::gen_level
+    // Unary expr
+    else if (node_type == GenPolicy::ArithLeafID::Unary) {
         ret = UnaryExpr::generate(new_ctx, inp, par_depth + 1);
     }
-    else if (node_type == GenPolicy::ArithLeafID::Binary) { // Binary expr
+    // Binary expr
+    else if (node_type == GenPolicy::ArithLeafID::Binary) {
         ret = BinaryExpr::generate(new_ctx, inp, par_depth + 1);
     }
-    else if (node_type == GenPolicy::ArithLeafID::TypeCast) { // TypeCast expr
+    // TypeCast expr
+    else if (node_type == GenPolicy::ArithLeafID::TypeCast) {
         ret = TypeCastExpr::generate(new_ctx, ArithExpr::gen_level(new_ctx, inp, par_depth + 1));
     }
+    // Use existing CSE
     else if (node_type == GenPolicy::ArithLeafID::CSE) {
         int cse_num = rand_val_gen->get_rand_value<int>(0, p->get_cse().size() - 1);
         ret = p->get_cse().at(cse_num);
@@ -456,6 +469,9 @@ UB UnaryExpr::propagate_value () {
     return new_val.get_ub();
 }
 
+// This function rebuilds Unary expression in case of UB.
+// The main idea is to replace operator by its complementary operator.
+// This trick always works for unary operations.
 std::string UnaryExpr::emit (std::string offset) {
     std::string op_str = offset;
     switch (op) {
@@ -523,7 +539,12 @@ static uint64_t msb(uint64_t x) {
     return ret;
 }
 
+// This function rebuilds Binary expression in case of UB.
+// The main idea is to replace operator by its complementary operator.
+// This works pretty well in most cases.
+// If it doesn't work, we insert child nodes to change operands.
 void BinaryExpr::rebuild (UB ub) {
+    //TODO: We should implement more rebuild strategies (e.g. regenerate node)
     switch (op) {
         case BinaryExpr::Add:
             op = Sub;
@@ -544,17 +565,21 @@ void BinaryExpr::rebuild (UB ub) {
             else
                op = Sub;
             break;
+        // Shift operators are tricky.
         case BinaryExpr::Shr:
         case BinaryExpr::Shl:
-            //TODO: We should rewrite it later. It is awfull
+            //TODO: We should rewrite it later. It is awful.
             if ((ub == UB::ShiftRhsNeg) || (ub == UB::ShiftRhsLarge)) {
                 std::shared_ptr<Expr> lhs = arg0;
                 std::shared_ptr<Expr> rhs = arg1;
+                // First of all, we need to find maximum value which can be used as rhs.
                 std::shared_ptr<IntegerType> lhs_int_type = std::static_pointer_cast<IntegerType>(lhs->get_value()->get_type());
                 uint64_t max_sht_val = lhs_int_type->get_bit_size();
                 if ((op == Shl) && (lhs_int_type->get_is_signed()) && (ub == UB::ShiftRhsLarge))
                     max_sht_val -= msb((uint64_t)std::static_pointer_cast<ScalarVariable>(lhs->get_value())->get_cur_value().get_abs_val());
+                // Second, we randomly choose value between 0 and maximum rhs value.
                 uint64_t const_val = rand_val_gen->get_rand_value<int>(0, max_sht_val);
+                // Third, we combine chosen value with existing rhs
                 uint64_t rhs_abs_val = std::static_pointer_cast<ScalarVariable>(rhs->get_value())->get_cur_value().get_abs_val();
                 std::shared_ptr<IntegerType> rhs_int_type = std::static_pointer_cast<IntegerType>(rhs->get_value()->get_type());
                 if (ub == UB::ShiftRhsNeg) {
@@ -565,15 +590,18 @@ void BinaryExpr::rebuild (UB ub) {
                     const_val = rhs_abs_val - const_val;
                 }
 
+                // And finally we insert new child node with corresponding additive operator
                 AtomicType::ScalarTypedVal const_ins_val (rhs_int_type->get_int_type_id());
                 const_ins_val.set_abs_val (const_val);
                 std::shared_ptr<ConstExpr> const_ins = std::make_shared<ConstExpr>(const_ins_val);
                 if (ub == UB::ShiftRhsNeg)
                     arg1 = std::make_shared<BinaryExpr>(Add, arg1, const_ins);
-                else
+                else // UB::ShiftRhsLarge
                     arg1 = std::make_shared<BinaryExpr>(Sub, arg1, const_ins);
             }
+            // UB::NegShift
             else {
+                // It is simple - we always add MAX value to existing lhs
                 std::shared_ptr<Expr> lhs = arg0;
                 std::shared_ptr<IntegerType> lhs_int_type = std::static_pointer_cast<IntegerType>(lhs->get_value()->get_type());
                 uint64_t const_val = lhs_int_type->get_max().get_abs_val();

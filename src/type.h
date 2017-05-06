@@ -30,14 +30,17 @@ class Data;
 
 extern bool mode_64bit;
 
+// Abstract class, serves as a common ancestor for all types.
 class Type {
     public:
+        // ID for top-level Type kind
         enum TypeID {
             ATOMIC_TYPE,
             STRUCT_TYPE,
             MAX_TYPE_ID
         };
 
+        // DB: in C++ it's called CV-qualifiers.
         enum Mod {
             NTHG,
             VOLAT,
@@ -46,12 +49,17 @@ class Type {
             MAX_MOD
         };
 
+        // DB: Why the name is "atomic"? It's a bit confusing.
+        // What about "basic" or "fundamental"?
         enum AtomicTypeID {
             Integer, FP, Max_AtomicTypeID
         };
 
         enum IntegerTypeID {
             BOOL,
+            // Note, char and signed char types are not distinguished,
+            // though they are distinguished in C++ standard and char may
+            // map to unsigned char in some implementations. By "CHAR" we assume "signed char"
             CHAR,
             UCHAR,
             SHRT,
@@ -68,13 +76,13 @@ class Type {
         Type (TypeID _id) : modifier(Mod::NTHG), is_static(false), align(0), id (_id) {}
         Type (TypeID _id, Mod _modifier, bool _is_static, uint64_t _align) :
               modifier (_modifier), is_static (_is_static), align (_align), id (_id) {}
+
+        // Getters and setters for general Type properties
         Type::TypeID get_type_id () { return id; }
         virtual AtomicTypeID get_atomic_type_id () { return Max_AtomicTypeID; }
         virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
         virtual bool get_is_signed() { return false; }
         virtual bool get_is_bit_field() { return false; }
-        std::string get_name ();
-        std::string get_simple_name () { return name; }
         void set_modifier (Mod _modifier) { modifier = _modifier; }
         Mod get_modifier () { return modifier; }
         void set_is_static (bool _is_static) { is_static = _is_static; }
@@ -82,12 +90,18 @@ class Type {
         void set_align (uint64_t _align) { align = _align; }
         uint64_t get_align () { return align; }
 
+        // We assume static storage duration, cv-qualifier and alignment as a part of Type's full name
+        std::string get_name ();
+        std::string get_simple_name () { return name; }
+
+        // Utility functions, which allows quickly determine Type kind
         virtual bool is_atomic_type() { return false; }
         virtual bool is_ptr_type() { return false; }
         virtual bool is_int_type() { return false; }
         virtual bool is_fp_type() { return false; }
         virtual bool is_struct_type() { return false; }
 
+        // Pure virtual function, used for debug purposes
         virtual void dbg_dump() = 0;
 
     protected:
@@ -100,8 +114,10 @@ class Type {
         TypeID id;
 };
 
+// Class which represents structures
 class StructType : public Type {
     public:
+        // Class which represents member of a structure, including bit-fields
         //TODO: add generator?
         struct StructMember {
             public:
@@ -121,6 +137,9 @@ class StructType : public Type {
         StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = _name; }
         StructType (std::string _name, Mod _modifier, bool _is_static, uint64_t _align) :
                     Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = _name; }
+        bool is_struct_type() { return true; }
+
+        // Getters and setters for StructType properties
         //TODO: it should handle nest_depth change
         void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); shadow_members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
@@ -129,10 +148,15 @@ class StructType : public Type {
         uint64_t get_shadow_member_count () { return shadow_members.size(); }
         uint64_t get_nest_depth () { return nest_depth; }
         std::shared_ptr<StructMember> get_member (unsigned int num);
+
+
         std::string get_definition (std::string offset = "");
+        // It returns an out-of-line definition for all static members of the structure
         std::string get_static_memb_def (std::string offset = "");
-        bool is_struct_type() { return true; }
+
         void dbg_dump();
+
+        // Randomly generate StructType
         static std::shared_ptr<StructType> generate (std::shared_ptr<Context> ctx);
         static std::shared_ptr<StructType> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types);
 
@@ -143,6 +167,7 @@ class StructType : public Type {
         uint64_t nest_depth;
 };
 
+// ID for all handled Undefined Behaviour
 enum UB {
     NoUB,
     NullPtr, // nullptr ptr dereferencing
@@ -156,8 +181,10 @@ enum UB {
     MaxUB
 };
 
+// Common ancestor for all builtin types.
 class AtomicType : public Type {
     public:
+        // We need something to link together Type and Value (it should be consistent with Type).
         class ScalarTypedVal {
             public:
                 union Val {
@@ -179,17 +206,21 @@ class AtomicType : public Type {
                 ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id(_int_type_id), res_of_ub(NoUB) { val.ullint_val = 0; }
                 ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id, UB _res_of_ub) : int_type_id (_int_type_id), res_of_ub(_res_of_ub)  { val.ullint_val = 0; }
                 Type::IntegerTypeID get_int_type_id () const { return int_type_id; }
+
+                // Utility functions for UB
                 UB get_ub () { return res_of_ub; }
                 void set_ub (UB _ub) { res_of_ub = _ub; }
                 bool has_ub () { return res_of_ub != NoUB; }
 
+                // Interface to value through uint64_t
                 //TODO: it is a stub for shift rebuild. Can we do it better?
                 uint64_t get_abs_val ();
                 void set_abs_val (uint64_t new_val);
 
+                // Functions which implements UB detection and semantics of all operators
                 ScalarTypedVal cast_type (Type::IntegerTypeID to_type_id);
-                ScalarTypedVal operator++ (int) { return pre_op(true ); } // Postfix, but uzed also as prefix
-                ScalarTypedVal operator-- (int) { return pre_op(false); }// Postfix, but uzed also as prefix
+                ScalarTypedVal operator++ (int) { return pre_op(true ); } // Postfix, but used also as prefix
+                ScalarTypedVal operator-- (int) { return pre_op(false); }// Postfix, but used also as prefix
                 ScalarTypedVal operator- ();
                 ScalarTypedVal operator~ ();
                 ScalarTypedVal operator! ();
@@ -213,28 +244,35 @@ class AtomicType : public Type {
                 ScalarTypedVal operator<< (ScalarTypedVal rhs);
                 ScalarTypedVal operator>> (ScalarTypedVal rhs);
 
+                // Randomly generate ScalarTypedVal
                 static ScalarTypedVal generate (std::shared_ptr<Context> ctx, AtomicType::IntegerTypeID _int_type_id);
                 static ScalarTypedVal generate (std::shared_ptr<Context> ctx, ScalarTypedVal min, ScalarTypedVal max);
 
+                // The value itself
                 Val val;
 
             private:
+                // Common fuction for all pre-increment and post-increment operators
                 ScalarTypedVal pre_op (bool inc);
 
                 AtomicType::IntegerTypeID int_type_id;
+                // If we can use the value or it was obtained from operation with UB
                 UB res_of_ub;
         };
 
         AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE), bit_size (0), suffix(""), atomic_id (at_id) {}
         AtomicType (AtomicTypeID at_id, Mod _modifier, bool _is_static, uint64_t _align) :
                     Type (Type::ATOMIC_TYPE, _modifier, _is_static, _align), bit_size (0), suffix(""), atomic_id (at_id) {}
+        bool is_atomic_type() { return true; }
+
+        // Getters for AtomicType properties
         AtomicTypeID get_atomic_type_id () { return atomic_id; }
         uint64_t get_bit_size () { return bit_size; }
         std::string get_suffix () { return suffix; }
-        bool is_atomic_type() { return true; }
 
     protected:
         unsigned int bit_size;
+        // Suffix for integer literals
         std::string suffix;
 
     private:
@@ -243,25 +281,36 @@ class AtomicType : public Type {
 
 std::ostream& operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val);
 
+// Class which serves as common ancestor for all standard integer types, bool and bit-fields
 class IntegerType : public AtomicType {
     public:
         IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
         IntegerType (IntegerTypeID it_id, Mod _modifier, bool _is_static, uint64_t _align) :
                      AtomicType (AtomicTypeID::Integer, _modifier, _is_static, _align),
                      is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
-        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id);
-        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
+        bool is_int_type() { return true; }
+
+        // Getters for IntegerType properties
         IntegerTypeID get_int_type_id () { return int_type_id; }
-        static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type B can represent all of the values of the type A
-        static AtomicType::IntegerTypeID get_corr_unsig (AtomicType::IntegerTypeID _type_id);
         bool get_is_signed () { return is_signed; }
         AtomicType::ScalarTypedVal get_min () { return min; }
         AtomicType::ScalarTypedVal get_max () { return max; }
-        bool is_int_type() { return true; }
+
+        // This utility functions take IntegerTypeID and return shared pointer to corresponding type
+        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id);
+        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
+
+        // If type A can represent all the values of type B
+        static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type B can represent all of the values of the type A
+        // Returns corresponding unsigned type
+        static AtomicType::IntegerTypeID get_corr_unsig (AtomicType::IntegerTypeID _type_id);
+
+        // Randomly generate IntegerType (except bit-fields)
         static std::shared_ptr<IntegerType> generate (std::shared_ptr<Context> ctx);
 
     protected:
         bool is_signed;
+        // Minimum and maximum value, which can fit in type
         AtomicType::ScalarTypedVal min;
         AtomicType::ScalarTypedVal max;
 
@@ -269,21 +318,32 @@ class IntegerType : public AtomicType {
         IntegerTypeID int_type_id;
 };
 
+// Class which represents bit-field
 class BitField : public IntegerType {
     public:
         BitField (IntegerTypeID it_id, uint64_t _bit_size) : IntegerType(it_id) { init_type(it_id, _bit_size); }
         BitField (IntegerTypeID it_id, uint64_t _bit_size, Mod _modifier) : IntegerType(it_id, _modifier, false, 0) { init_type(it_id, _bit_size); }
+
+        // Getters of BitField properties
         bool get_is_bit_field() { return true; }
-        static bool can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned);
         uint64_t get_bit_field_width() { return bit_field_width; }
+
+        // If all values of the bit-field can fit in signed/unsigned int
+        static bool can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned);
+
+        // Randomly generate BitField
         static std::shared_ptr<BitField> generate (std::shared_ptr<Context> ctx, bool is_unnamed = false);
+
         void dbg_dump ();
 
     private:
+        // Common initializer functions, used in constructors
         void init_type(IntegerTypeID it_id, uint64_t _bit_size);
         uint64_t bit_field_width;
 };
 
+// Following classes represents standard integer types and bool
+// TODO: maybe all this classes should be singletons?
 class TypeBOOL : public IntegerType {
     public:
         TypeBOOL () : IntegerType(AtomicType::IntegerTypeID::BOOL) { init_type (); }
