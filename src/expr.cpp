@@ -189,13 +189,13 @@ std::string ConstExpr::emit (std::string offset) {
             ret += std::to_string(val.uint_val);
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 ret += std::to_string(val.lint64_val);
             else
                 ret += std::to_string(val.lint32_val);
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 ret += std::to_string(val.ulint64_val);
             else
                 ret += std::to_string(val.ulint32_val);

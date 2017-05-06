@@ -28,13 +28,13 @@ CXX=clang++
 CXXFLAGS=-std=c++14 -Wall -Wpedantic -Werror -DBUILD_DATE="\"$(BUILD_DATE)\"" -DBUILD_VERSION="\"$(BUILD_VERSION)\""
 OPT=-O3
 LDFLAGS=-L./ -std=c++14
-LIBSOURCES=type.cpp variable.cpp expr.cpp stmt.cpp gen_policy.cpp sym_table.cpp master.cpp
+LIBSOURCES=type.cpp variable.cpp expr.cpp stmt.cpp gen_policy.cpp sym_table.cpp master.cpp options.cpp
 SOURCES=main.cpp $(LIBSOURCES) self-test.cpp
 LIBSOURCES_SRC=$(addprefix src/, $(LIBSOURCES))
 SOURCES_SRC=$(addprefix src/, $(SOURCES))
 LIBOBJS=$(addprefix objs/, $(LIBSOURCES:.cpp=.o))
 OBJS=$(addprefix objs/, $(SOURCES:.cpp=.o))
-HEADERS=type.h variable.h ir_node.h expr.h stmt.h gen_policy.h sym_table.h master.h
+HEADERS=type.h variable.h ir_node.h expr.h stmt.h gen_policy.h sym_table.h master.h options.h
 HEADERS_SRC=$(addprefix src/, $(HEADERS))
 EXECUTABLE=yarpgen
 

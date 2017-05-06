@@ -22,13 +22,12 @@ limitations under the License.
 #include <climits>
 #include <memory>
 #include <vector>
+#include "options.h"
 
 namespace yarpgen {
 
 class Context;
 class Data;
-
-extern bool mode_64bit;
 
 // Abstract class, serves as a common ancestor for all types.
 class Type {
@@ -480,7 +479,7 @@ class TypeLINT : public IntegerType {
         void init_type () {
             name = "long int";
             suffix = "L";
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 bit_size = sizeof(long long int) * CHAR_BIT;
                 min.val.lint64_val = LLONG_MIN;
                 max.val.lint64_val = LLONG_MAX;
@@ -505,7 +504,7 @@ class TypeULINT : public IntegerType {
         void init_type () {
             name = "unsigned long int";
             suffix = "UL";
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 bit_size = sizeof (unsigned long long int) * CHAR_BIT;
                 min.val.ulint64_val = 0;
                 max.val.ulint64_val = ULLONG_MAX;
