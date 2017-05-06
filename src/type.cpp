@@ -16,14 +16,14 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include "type.h"
+#include "options.h"
 #include "sym_table.h"
 #include "type.h"
 #include "util.h"
 #include "variable.h"
 
 using namespace yarpgen;
-
-bool yarpgen::mode_64bit = true;
 
 std::string Type::get_name () {
     std::string ret = "";
@@ -207,13 +207,13 @@ switch (int_type_id) {                                              \
         new_val_memb = val.uint_val;                                \
         break;                                                      \
     case Type::IntegerTypeID::LINT:                                 \
-        if (mode_64bit)                                             \
+        if (options->mode_64bit)                                    \
             new_val_memb = val.lint64_val;                          \
         else                                                        \
             new_val_memb = val.lint32_val;                          \
         break;                                                      \
     case Type::IntegerTypeID::ULINT:                                \
-        if (mode_64bit)                                             \
+        if (options->mode_64bit)                                    \
             new_val_memb = val.ulint64_val;                         \
         else                                                        \
             new_val_memb = val.ulint32_val;                         \
@@ -253,13 +253,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::cast_type (Type::Intege
             CAST_CASE(new_val.val.uint_val)
             break;
         case Type::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 CAST_CASE(new_val.val.lint64_val)
             else
                 CAST_CASE(new_val.val.lint32_val)
             break;
         case Type::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 CAST_CASE(new_val.val.ulint64_val)
             else
                 CAST_CASE(new_val.val.ulint32_val)
@@ -320,14 +320,14 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::pre_op (bool inc) { // 
                 else
                     dest = src + add;
             };
-            if (mode_64bit)
+            if (options->mode_64bit)
                 lint_pre_op(val.lint64_val, ret.val.lint64_val, LLONG_MIN, LLONG_MAX);
             else
                 lint_pre_op(val.lint32_val, ret.val.lint32_val, INT_MIN, INT_MAX);
         }
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 ret.val.ulint64_val = val.ulint64_val + add;
             else
                 ret.val.ulint32_val = val.ulint32_val + add;
@@ -349,7 +349,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::pre_op (bool inc) { // 
 }
 
 #define LINT_SINGLE_OPT(op, sign)                                    \
-    if (mode_64bit)                                                  \
+    if (options->mode_64bit)                                         \
         ret.val.sign##lint64_val = op val.sign##lint64_val;          \
     else                                                             \
         ret.val.sign##lint32_val = op val.sign##lint32_val;
@@ -381,7 +381,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator- () {
                 else
                     dest = -src;
             };
-            if (mode_64bit)
+            if (options->mode_64bit)
                 lint_op_minus(val.lint64_val, ret.val.lint64_val, LLONG_MIN);
             else
                 lint_op_minus(val.lint32_val, ret.val.lint32_val, INT_MIN);
@@ -453,12 +453,12 @@ uint64_t BuiltinType::ScalarTypedVal::get_abs_val () {
         case IntegerType::IntegerTypeID::UINT:
             return val.uint_val;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 return std::abs(val.lint64_val);
             else
                 return std::abs(val.lint32_val);
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 return val.ulint64_val;
             else
                 return val.ulint32_val;
@@ -497,13 +497,13 @@ void BuiltinType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
             val.uint_val = new_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 val.lint64_val = new_val;
             else
                 val.lint32_val = new_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 val.ulint64_val = new_val;
             else
                 val.ulint32_val = new_val;
@@ -542,7 +542,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator! () {
 }
 
 #define LINT_DOUBLE_OPT(op, sign)                                                    \
-    if (mode_64bit)                                                                  \
+    if (options->mode_64bit)                                                         \
         ret.val.sign##lint64_val = val.sign##lint64_val op rhs.val.sign##lint64_val; \
     else                                                                             \
         ret.val.sign##lint32_val = val.sign##lint32_val op rhs.val.sign##lint32_val;
@@ -572,7 +572,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator+ (ScalarTypedV
             ret.val.uint_val = val.uint_val + rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 uint64_t ua = val.lint64_val;
                 uint64_t ub = rhs.val.lint64_val;
                 u_tmp = ua + ub;
@@ -637,7 +637,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator- (ScalarTypedV
             ret.val.uint_val = val.uint_val - rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 uint64_t ua = val.lint64_val;
                 uint64_t ub = rhs.val.lint64_val;
                 u_tmp = ua - ub;
@@ -750,7 +750,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator* (ScalarTypedV
             ret.val.uint_val = val.uint_val * rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 if (!check_int64_mul(val.lint64_val, rhs.val.lint64_val, &s_tmp))
                     ret.set_ub(SignOvf);
                 else
@@ -822,7 +822,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator/ (ScalarTypedV
                 else
                     dest = lhs / rhs;
             };
-            if (mode_64bit)
+            if (options->mode_64bit)
                 lint_op_div (val.lint64_val, rhs.val.lint64_val, ret.val.lint64_val, LLONG_MIN);
             else
                 lint_op_div (val.lint32_val, rhs.val.lint32_val, ret.val.lint32_val, INT_MIN);
@@ -836,7 +836,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator/ (ScalarTypedV
                 else
                     dest = lhs / rhs;
             };
-            if (mode_64bit)
+            if (options->mode_64bit)
                 ulint_op_div(val.ulint64_val, rhs.val.ulint64_val, ret.val.ulint64_val);
             else
                 ulint_op_div(val.ulint32_val, rhs.val.ulint32_val, ret.val.ulint32_val);
@@ -903,7 +903,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator% (ScalarTypedV
                 else
                     dest = lhs % rhs;
             };
-            if (mode_64bit)
+            if (options->mode_64bit)
                 lint_op_mod(val.lint64_val, rhs.val.lint64_val, ret.val.lint64_val, LLONG_MIN);
             else
                 lint_op_mod(val.lint32_val, rhs.val.lint32_val, ret.val.lint32_val, INT_MIN);
@@ -917,7 +917,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator% (ScalarTypedV
                 else
                     dest = lhs % rhs;
             };
-            if (mode_64bit)
+            if (options->mode_64bit)
                 ulint_op_mod(val.ulint64_val, rhs.val.ulint64_val, ret.val.ulint64_val);
             else
                 ulint_op_mod(val.ulint32_val, rhs.val.ulint32_val, ret.val.ulint32_val);
@@ -972,13 +972,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (Scalar
             ret.val.bool_val = val.uint_val __op__ rhs.val.uint_val;                                \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::LINT:                                                      \
-            if (mode_64bit)                                                                         \
+            if (options->mode_64bit)                                                                \
                 ret.val.bool_val = val.lint64_val __op__ rhs.val.lint64_val;                        \
             else                                                                                    \
                 ret.val.bool_val = val.lint32_val __op__ rhs.val.lint32_val;                        \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::ULINT:                                                     \
-            if (mode_64bit)                                                                         \
+            if (options->mode_64bit)                                                                \
                 ret.val.bool_val = val.ulint64_val __op__ rhs.val.ulint64_val;                      \
             else                                                                                    \
                 ret.val.bool_val = val.ulint32_val __op__ rhs.val.ulint32_val;                      \
@@ -1048,13 +1048,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (Scalar
             ret.val.uint_val = val.uint_val __op__ rhs.val.uint_val;                                \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::LINT:                                                      \
-            if (mode_64bit)                                                                         \
+            if (options->mode_64bit)                                                                \
                 ret.val.lint64_val = val.lint64_val __op__ rhs.val.lint64_val;                      \
             else                                                                                    \
                 ret.val.lint32_val = val.lint32_val __op__ rhs.val.lint32_val;                      \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::ULINT:                                                     \
-            if (mode_64bit)                                                                         \
+            if (options->mode_64bit)                                                                \
                 ret.val.ulint64_val = val.ulint64_val __op__ rhs.val.ulint64_val;                   \
             else                                                                                    \
                 ret.val.ulint32_val = val.ulint32_val __op__ rhs.val.ulint32_val;                   \
@@ -1089,13 +1089,13 @@ switch (rhs.get_int_type_id()) {                                                
         ret_val = lhs_val __op__ rhs.val.uint_val;                              \
         break;                                                                  \
     case IntegerType::IntegerTypeID::LINT:                                      \
-        if (mode_64bit)                                                         \
+        if (options->mode_64bit)                                                \
             ret_val = lhs_val __op__ rhs.val.lint64_val;                        \
         else                                                                    \
             ret_val = lhs_val __op__ rhs.val.lint32_val;                        \
         break;                                                                  \
     case IntegerType::IntegerTypeID::ULINT:                                     \
-        if (mode_64bit)                                                         \
+        if (options->mode_64bit)                                                \
             ret_val = lhs_val __op__ rhs.val.ulint64_val;                       \
         else                                                                    \
             ret_val = lhs_val __op__ rhs.val.ulint32_val;                       \
@@ -1139,13 +1139,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
             u_lhs = val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 s_lhs = val.lint64_val;
             else
                 s_lhs = val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 u_lhs = val.ulint64_val;
             else
                 u_lhs = val.ulint32_val;
@@ -1173,13 +1173,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
             u_rhs = rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 s_rhs = rhs.val.lint64_val;
             else
                 s_rhs = rhs.val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 u_rhs = rhs.val.ulint64_val;
             else
                 u_rhs = rhs.val.ulint32_val;
@@ -1247,13 +1247,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
             SHFT_CASE(<<, ret.val.uint_val, val.uint_val)
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 SHFT_CASE(<<, ret.val.lint64_val, val.lint64_val)
             else
                 SHFT_CASE(<<, ret.val.lint32_val, val.lint32_val)
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 SHFT_CASE(<<, ret.val.ulint64_val, val.ulint64_val)
             else
                 SHFT_CASE(<<, ret.val.ulint32_val, val.ulint32_val)
@@ -1290,13 +1290,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
             u_lhs = val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 s_lhs = val.lint64_val;
             else
                 s_lhs = val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 u_lhs = val.ulint64_val;
             else
                 u_lhs = val.ulint32_val;
@@ -1324,13 +1324,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
             u_rhs = rhs.val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 s_rhs = rhs.val.lint64_val;
             else
                 s_rhs = rhs.val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 u_rhs = rhs.val.ulint64_val;
             else
                 u_rhs = rhs.val.ulint32_val;
@@ -1386,13 +1386,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
             SHFT_CASE(>>, ret.val.uint_val, val.uint_val)
             break;
         case IntegerType::IntegerTypeID::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 SHFT_CASE(>>, ret.val.lint64_val, val.lint64_val)
             else
                 SHFT_CASE(>>, ret.val.lint32_val, val.lint32_val)
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 SHFT_CASE(>>, ret.val.ulint64_val, val.ulint64_val)
             else
                 SHFT_CASE(>>, ret.val.ulint32_val, val.ulint32_val)
@@ -1453,13 +1453,13 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::generate (std::shared_p
             gen_rand_typed_val(ret.val.uint_val, min.val.uint_val, max.val.uint_val);
             break;
         case BuiltinType::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 gen_rand_typed_val(ret.val.lint64_val, min.val.lint64_val, max.val.lint64_val);
             else
                 gen_rand_typed_val(ret.val.lint32_val, min.val.lint32_val, max.val.lint32_val);
             break;
         case BuiltinType::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 gen_rand_typed_val(ret.val.ulint64_val, min.val.ulint64_val, max.val.ulint64_val);
             else
                 gen_rand_typed_val(ret.val.ulint32_val, min.val.ulint32_val, max.val.ulint32_val);
@@ -1501,13 +1501,13 @@ std::ostream& yarpgen::operator<< (std::ostream &out, const BuiltinType::ScalarT
             out << scalar_typed_val.val.uint_val;
             break;
         case BuiltinType::LINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 out << scalar_typed_val.val.lint64_val;
             else
                 out << scalar_typed_val.val.lint32_val;
             break;
         case BuiltinType::ULINT:
-            if (mode_64bit)
+            if (options->mode_64bit)
                 out << scalar_typed_val.val.ulint64_val;
             else
                 out << scalar_typed_val.val.ulint32_val;
@@ -1601,26 +1601,26 @@ bool IntegerType::can_repr_value (BuiltinType::IntegerTypeID a, BuiltinType::Int
             if (B->get_int_type_id() == INT)
                 return false;
             if (B->get_int_type_id() == LINT)
-                return mode_64bit;
+                return options->mode_64bit;
             return true;
         case LINT:
             if (!B->get_is_signed())
                 return false;
             if (B->get_int_type_id() == INT)
-                return !mode_64bit;
+                return !options->mode_64bit;
             return true;
         case ULINT:
             switch (B->get_int_type_id()) {
                 case INT:
                     return false;
                 case UINT:
-                    return !mode_64bit;
+                    return !options->mode_64bit;
                 case LINT:
                     return false;
                 case ULINT:
                     return true;
                 case LLINT:
-                    return !mode_64bit;
+                    return !options->mode_64bit;
                 case ULLINT:
                     return true;
                 default:
@@ -1632,7 +1632,7 @@ bool IntegerType::can_repr_value (BuiltinType::IntegerTypeID a, BuiltinType::Int
                 case UINT:
                     return false;
                 case LINT:
-                    return mode_64bit;
+                    return options->mode_64bit;
                 case ULINT:
                     return false;
                 case LLINT:
@@ -1649,7 +1649,7 @@ bool IntegerType::can_repr_value (BuiltinType::IntegerTypeID a, BuiltinType::Int
                 case LINT:
                    return false;
                 case ULINT:
-                   return mode_64bit;
+                   return options->mode_64bit;
                 case LLINT:
                    return false;
                 case ULLINT:
@@ -1732,7 +1732,7 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
             max.val.uint_val = act_max;
             break;
         case BuiltinType::IntegerTypeID::LINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 min.val.lint64_val = act_min;
                 max.val.lint64_val = (int64_t) act_max;
             }
@@ -1742,7 +1742,7 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
             }
             break;
         case BuiltinType::IntegerTypeID::ULINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 min.val.ulint64_val = 0;
                 max.val.ulint64_val = act_max;
             }
@@ -1806,14 +1806,14 @@ void TypeUINT::dbg_dump () {
 }
 
 void TypeLINT::dbg_dump () {
-    if (mode_64bit)
+    if (options->mode_64bit)
         std::cout << dbg_dump_helper<long long int>(get_name(), get_int_type_id(), min.val.lint64_val, max.val.lint64_val, bit_size, is_signed) << std::endl;
     else
         std::cout << dbg_dump_helper<int>(get_name(), get_int_type_id(), min.val.lint32_val, max.val.lint32_val, bit_size, is_signed) << std::endl;
 }
 
 void TypeULINT::dbg_dump () {
-    if (mode_64bit)
+    if (options->mode_64bit)
         std::cout << dbg_dump_helper<unsigned long long int>(get_name(), get_int_type_id(), min.val.ulint64_val, max.val.ulint64_val, bit_size, is_signed) << std::endl;
     else
         std::cout << dbg_dump_helper<unsigned int>(get_name(), get_int_type_id(), min.val.ulint32_val, max.val.ulint32_val, bit_size, is_signed) << std::endl;
@@ -1863,14 +1863,14 @@ bool BitField::can_fit_in_int (BuiltinType::ScalarTypedVal val, bool is_unsigned
             break;
         case IntegerType::IntegerTypeID::LINT:
             val_is_unsig = false;
-            if (mode_64bit)
+            if (options->mode_64bit)
                 s_val = val.val.lint64_val;
             else
                 s_val = val.val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
             val_is_unsig = true;
-            if (mode_64bit)
+            if (options->mode_64bit)
                 u_val = val.val.ulint64_val;
             else
                 u_val = val.val.ulint32_val;
@@ -1949,7 +1949,7 @@ void BitField::dbg_dump () {
             ret += "max: " + std::to_string(max.val.uint_val) + "\n";
             break;
         case BuiltinType::IntegerTypeID::LINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 ret += "min: " + std::to_string(min.val.lint64_val) + "\n";
                 ret += "max: " + std::to_string(max.val.lint64_val) + "\n";
             }
@@ -1959,7 +1959,7 @@ void BitField::dbg_dump () {
             }
             break;
         case BuiltinType::IntegerTypeID::ULINT:
-            if (mode_64bit) {
+            if (options->mode_64bit) {
                 ret += "min: " + std::to_string(min.val.ulint64_val) + "\n";
                 ret += "max: " + std::to_string(max.val.ulint64_val) + "\n";
             }
