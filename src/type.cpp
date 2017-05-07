@@ -21,9 +21,9 @@ limitations under the License.
 #include "util.h"
 #include "variable.h"
 
-using namespace rl;
+using namespace yarpgen;
 
-bool rl::mode_64bit = true;
+bool yarpgen::mode_64bit = true;
 
 std::string Type::get_name () {
     std::string ret = "";
@@ -1476,7 +1476,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr
     return ret;
 }
 
-std::ostream& rl::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {
+std::ostream& yarpgen::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {
     switch(scalar_typed_val.get_int_type_id()) {
         case AtomicType::BOOL:
             out << scalar_typed_val.val.bool_val;

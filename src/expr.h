@@ -24,7 +24,7 @@ limitations under the License.
 #include "variable.h"
 #include "ir_node.h"
 
-namespace rl {
+namespace yarpgen {
 
 class Context;
 class GenPolicy;

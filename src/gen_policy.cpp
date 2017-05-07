@@ -21,7 +21,7 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-using namespace rl;
+using namespace yarpgen;
 
 const int MAX_ALLOWED_INT_TYPES = 3;
 
@@ -59,7 +59,7 @@ const int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different res
 
 ///////////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<RandValGen> rl::rand_val_gen;
+std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
 uint64_t RandValGen::struct_type_count = 0;
 uint64_t RandValGen::scalar_var_count = 0;
 uint64_t RandValGen::struct_var_count = 0;
@@ -79,7 +79,7 @@ RandValGen::RandValGen (uint64_t _seed) {
 ///////////////////////////////////////////////////////////////////////////////
 
 bool GenPolicy::default_was_loaded = false;
-GenPolicy rl::default_gen_policy;
+GenPolicy yarpgen::default_gen_policy;
 
 GenPolicy::GenPolicy () {
     if (default_was_loaded)

@@ -34,7 +34,7 @@ limitations under the License.
 #define BUILD_VERSION ""
 #endif
 
-using namespace rl;
+using namespace yarpgen;
 
 void printVersion () {
     // Yarpgen version supposed to be changed every time the generation algorithm is changed,

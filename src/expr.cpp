@@ -24,7 +24,7 @@ limitations under the License.
 #include "util.h"
 #include "variable.h"
 
-using namespace rl;
+using namespace yarpgen;
 
 std::shared_ptr<Data> Expr::get_value () {
     switch (value->get_class_id()) {

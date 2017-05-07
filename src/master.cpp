@@ -20,7 +20,7 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-using namespace rl;
+using namespace yarpgen;
 
 Master::Master (std::string _out_folder) {
     out_folder = _out_folder;

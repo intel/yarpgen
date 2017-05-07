@@ -23,7 +23,7 @@ limitations under the License.
 #include "type.h"
 #include "variable.h"
 
-namespace rl {
+namespace yarpgen {
 
 class Node {
     public:

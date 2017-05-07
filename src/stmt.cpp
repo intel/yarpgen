@@ -20,7 +20,7 @@ limitations under the License.
 #include "sym_table.h"
 #include "util.h"
 
-using namespace rl;
+using namespace yarpgen;
 
 int Stmt::total_stmt_count = 0;
 
