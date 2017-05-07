@@ -244,9 +244,13 @@ std::shared_ptr<Expr> ArithExpr::conv_to_bool (std::shared_ptr<Expr> arg) {
         ERROR("can perform conv_to_bool only on ScalarVariable (ArithExpr)");
     }
 
-    if (arg->get_value()->get_type()->get_int_type_id() == IntegerType::IntegerTypeID::BOOL) // can't perform integral promotiom
+    IntegerType::IntegerTypeID to_type = IntegerType::IntegerTypeID::BOOL;
+    if (options->is_c())
+        to_type = IntegerType::IntegerTypeID::INT;
+
+    if (arg->get_value()->get_type()->get_int_type_id() == to_type) // can't perform integral promotion
         return arg;
-    return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::BOOL), true);
+    return std::make_shared<TypeCastExpr>(arg, IntegerType::init(to_type), true);
 }
 
 GenPolicy ArithExpr::choose_and_apply_ssp_const_use (GenPolicy old_gen_policy) {

@@ -45,6 +45,15 @@ void Master::write_file (std::string of_name, std::string data) {
     out_file.close ();
 }
 
+static std::string get_file_ext () {
+    if (options->is_c())
+        return "c";
+    else if (options->is_cxx())
+        return "cpp";
+    std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can't detect language subset" << std::endl;
+    exit(-1);
+}
+
 std::string Master::emit_init () {
     std::string ret = "";
     ret += "#include \"init.h\"\n\n";
@@ -64,7 +73,7 @@ std::string Master::emit_init () {
     ret += extern_out_sym_table->emit_struct_init ("    ");
     ret += "}";
 
-    write_file("init.cpp", ret);
+    write_file("init." + get_file_ext(), ret);
     return ret;
 }
 
@@ -79,7 +88,7 @@ std::string Master::emit_decl () {
     ret += "#include <valarray>\n\n";
     */
 
-    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v);\n\n";
+    ret += "void hash(unsigned long long int *seed, unsigned long long int const v);\n\n";
 
     ret += extern_inp_sym_table->emit_variable_extern_decl() + "\n\n";
     ret += extern_mix_sym_table->emit_variable_extern_decl() + "\n\n";
@@ -100,16 +109,15 @@ std::string Master::emit_func () {
     ret += "void foo () {\n";
     ret += program->emit();
     ret += "}";
-    write_file("func.cpp", ret);
+    write_file("func." + get_file_ext(), ret);
     return ret;
 }
 
 std::string Master::emit_hash () {
-    std::string ret = "#include <functional>\n";
-    ret += "void hash(unsigned long long int &seed, unsigned long long int const &v) {\n";
-    ret += "    seed ^= v + 0x9e3779b9 + (seed<<6) + (seed>>2);\n";
+    std::string ret = "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
+    ret += "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
     ret += "}\n";
-    write_file("hash.cpp", ret);
+    write_file("hash." + get_file_ext(), ret);
     return ret;
 }
 
@@ -138,13 +146,13 @@ std::string Master::emit_check () { // TODO: rewrite with IR
 
     ret += "    return seed;\n";
     ret += "}";
-    write_file("check.cpp", ret);
+    write_file("check." + get_file_ext(), ret);
     return ret;
 }
 
 std::string Master::emit_main () {
     std::string ret = "";
-    ret += "#include <iostream>\n";
+    ret += "#include <stdio.h>\n";
     ret += "#include \"init.h\"\n\n";
     ret += "extern void init ();\n";
     ret += "extern void foo ();\n";
@@ -152,10 +160,10 @@ std::string Master::emit_main () {
     ret += "int main () {\n";
     ret += "    init ();\n";
     ret += "    foo ();\n";
-    ret += "    std::cout << checksum () << std::endl;\n";
+    ret += "    printf(\"%llu\\n\", checksum ());";
     ret += "    return 0;\n";
     ret += "}";
-    write_file("driver.cpp", ret);
+    write_file("driver." + get_file_ext(), ret);
     return ret;
 }
 
