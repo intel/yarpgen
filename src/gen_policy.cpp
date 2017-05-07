@@ -93,7 +93,14 @@ void GenPolicy::init_from_config () {
     allowed_cv_qual.push_back (Type::CV_Qual::NTHG);
 
     allow_static_var = false;
-    allow_static_members = true;
+    if (options->is_c())
+        allow_static_members = false;
+    else if (options->is_cxx())
+        allow_static_members = true;
+    else {
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can't detect language subset" << std::endl;
+        exit(-1);
+    }
 
     allow_struct = true;
     min_struct_type_count = MIN_STRUCT_TYPES_COUNT;
@@ -317,6 +324,8 @@ void GenPolicy::rand_init_allowed_int_types () {
     int gen_types = 0;
     while (gen_types < num_of_allowed_int_types) {
         IntegerType::IntegerTypeID type = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_value<int>(0, IntegerType::IntegerTypeID::MAX_INT_ID - 1);
+        if (type == IntegerType::IntegerTypeID::BOOL && options->is_c())
+            continue;
         if (std::find(tmp_allowed_int_types.begin(), tmp_allowed_int_types.end(), type) == tmp_allowed_int_types.end()) {
             tmp_allowed_int_types.push_back (type);
             gen_types++;

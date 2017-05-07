@@ -16,6 +16,7 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include <cassert>
 #include "type.h"
 #include "options.h"
 #include "sym_table.h"
@@ -88,11 +89,19 @@ std::string StructType::StructMember::get_definition (std::string offset) {
 
 std::string StructType::get_definition (std::string offset) {
     std::string ret = "";
-    ret+= "struct " + name + " {\n";
+    if (options->is_c())
+        ret += "typedef ";
+    ret += "struct ";
+    if (options->is_cxx())
+        ret += name;
+    ret += " {\n";
     for (auto i : shadow_members) {
         ret += i->get_definition(offset + "    ") + ";\n";
     }
-    ret += "};\n";
+    ret += "}";
+    if (options->is_c())
+        ret += " " + name;
+    ret += ";\n";
     return ret;
 }
 
@@ -163,6 +172,19 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
             }
             else {
                 GenPolicy::BitFieldID bit_field_dis = rand_val_gen->get_rand_id(p->get_bit_field_prob());
+                // In C, bit-field may be declared with a type other than unsigned int or signed int
+                // only with "J.5.8 Extended bit-field types"
+                if (options->is_c()) {
+                    auto search_allowed_bit_filed_type = [] (Probability<IntegerType::IntegerTypeID> prob) {
+                        return prob.get_id() == IntegerType::IntegerTypeID::INT ||
+                               prob.get_id() == IntegerType::IntegerTypeID::UINT;
+                    };
+                    auto search_res = std::find_if(p->get_allowed_int_types().begin(),
+                                                   p->get_allowed_int_types().end(),
+                                                   search_allowed_bit_filed_type);
+                    if (search_res == p->get_allowed_int_types().end())
+                        bit_field_dis = GenPolicy::BitFieldID::MAX_BIT_FIELD_ID;
+                }
                 if (bit_field_dis == GenPolicy::BitFieldID::UNNAMED) {
                     struct_type->add_shadow_member(BitField::generate(ctx, true));
                     continue;
@@ -520,16 +542,25 @@ void BuiltinType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
 }
 
 BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator! () {
-    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(Type::IntegerTypeID::BOOL);
+    Type::IntegerTypeID ret_type_id = Type::IntegerTypeID::BOOL;
+    if (options->is_c())
+        ret_type_id = Type::IntegerTypeID::INT;
+    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(ret_type_id);
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
-            ret.val.bool_val = !val.bool_val;
-            break;
+            if (options->is_cxx()) {
+                ret.val.bool_val = !val.bool_val;
+                break;
+            }
+        case IntegerType::IntegerTypeID::INT:
+            if (options->is_c()) {
+                ret.val.int_val = !val.int_val;
+                break;
+            }
         case IntegerType::IntegerTypeID::CHAR:
         case IntegerType::IntegerTypeID::UCHAR:
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
-        case IntegerType::IntegerTypeID::INT:
         case IntegerType::IntegerTypeID::UINT:
         case IntegerType::IntegerTypeID::LINT:
         case IntegerType::IntegerTypeID::ULINT:
@@ -1004,17 +1035,26 @@ ScalarTypedValCmpOp(!=)
 
 #define ScalarTypedValLogOp(__op__)                                                                 \
 BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {     \
-    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(Type::IntegerTypeID::BOOL);       \
+    Type::IntegerTypeID ret_type_id = Type::IntegerTypeID::BOOL;                                    \
+    if (options->is_c())                                                                            \
+        ret_type_id = Type::IntegerTypeID::INT;                                                     \
+    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(ret_type_id);                     \
                                                                                                     \
     switch (int_type_id) {                                                                          \
         case IntegerType::IntegerTypeID::BOOL:                                                      \
-            ret.val.bool_val = val.int_val __op__ rhs.val.int_val;                                  \
-            break;                                                                                  \
+            if (options->is_cxx()) {                                                                \
+                ret.val.bool_val = val.bool_val __op__ rhs.val.bool_val;                            \
+                break;                                                                              \
+            }                                                                                       \
+        case IntegerType::IntegerTypeID::INT:                                                       \
+            if (options->is_c()) {                                                                  \
+                ret.val.int_val = val.int_val __op__ rhs.val.int_val;                               \
+                break;                                                                              \
+            }                                                                                       \
         case IntegerType::IntegerTypeID::CHAR:                                                      \
         case IntegerType::IntegerTypeID::UCHAR:                                                     \
         case IntegerType::IntegerTypeID::SHRT:                                                      \
         case IntegerType::IntegerTypeID::USHRT:                                                     \
-        case IntegerType::IntegerTypeID::INT:                                                       \
         case IntegerType::IntegerTypeID::UINT:                                                      \
         case IntegerType::IntegerTypeID::LINT:                                                      \
         case IntegerType::IntegerTypeID::ULINT:                                                     \
@@ -1027,6 +1067,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (Scalar
 }
 
 ScalarTypedValLogOp(&&)
+
 ScalarTypedValLogOp(||)
 
 #define ScalarTypedValBitOp(__op__)                                                                 \
@@ -1830,13 +1871,34 @@ void TypeULLINT::dbg_dump () {
 std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool is_unnamed) {
     Type::CV_Qual cv_qual = ctx->get_gen_policy()->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
                                                                                                                  ctx->get_gen_policy()->get_allowed_cv_qual().size() - 1));
-    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id;
+    if (options->is_cxx())
+        int_type_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
+    // In C without "J.5.8 Extended bit-field types" bit-filed can have only signed/unsigned int type
+    if (options->is_c()) {
+        auto search_allowed_bit_filed_type = [] (Probability<IntegerType::IntegerTypeID> prob) {
+            return prob.get_id() == IntegerType::IntegerTypeID::INT ||
+                   prob.get_id() == IntegerType::IntegerTypeID::UINT;
+        };
+        auto search_res = std::find_if(ctx->get_gen_policy()->get_allowed_int_types().begin(),
+                                       ctx->get_gen_policy()->get_allowed_int_types().end(),
+                                       search_allowed_bit_filed_type);
+        assert(search_res != ctx->get_gen_policy()->get_allowed_int_types().end() &&
+               "In C without \"J.5.8 Extended bit-field types\" bit-filed can have only signed/unsigned int type");
+        int_type_id = search_res->get_id();
+    }
     std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
-    uint64_t min_bit_size = is_unnamed ? 0 : (tmp_int_type->get_bit_size() / ctx->get_gen_policy()->get_min_bit_field_size());
-    //TODO: it cause different result for LLVM and GCC. See pr70733
+
+    uint64_t min_bit_size = is_unnamed ? 0 : (std::min(tmp_int_type->get_bit_size(), ctx->get_gen_policy()->get_min_bit_field_size()));
+
+    //TODO: it cause different result for LLVM and GCC, so we limit max_bit_size to int bitsize. See pr70733
 //    uint64_t max_bit_size = tmp_int_type->get_bit_size() * ctx->get_gen_policy()->get_max_bit_field_size();
-     std::shared_ptr<IntegerType> int_type = IntegerType::init(Type::IntegerTypeID::INT);
+    std::shared_ptr<IntegerType> int_type = IntegerType::init(Type::IntegerTypeID::INT);
     uint64_t max_bit_size = int_type->get_bit_size();
+
+    // C doesn't allows bit-fields bigger than its base type + pr70733
+    if(options->is_c())
+        max_bit_size = std::min(tmp_int_type->get_bit_size(), int_type->get_bit_size());
 
     uint64_t bit_size = rand_val_gen->get_rand_value<uint64_t>(min_bit_size, max_bit_size);
     return std::make_shared<BitField>(int_type_id, bit_size, cv_qual);

@@ -19,6 +19,8 @@ limitations under the License.
 #include <cstdint>
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
+#include <cassert>
 
 #include "gen_policy.h"
 #include "master.h"
@@ -51,6 +53,7 @@ bool option_starts_with (char* option, const char* test) {
     return !strncmp(option, test, strlen(test));
 }
 
+// This function prints out optional error_message, help and exits
 void print_usage_and_exit (std::string error_msg = "") {
     int exit_code = 0;
     if (error_msg != "") {
@@ -64,8 +67,14 @@ void print_usage_and_exit (std::string error_msg = "") {
     std::cout << "\t-v, --version             Print yarpgen version\n";
     std::cout << "\t-d, -out-dir=<out-dir>    Output directory\n";
     std::cout << "\t-s, -seed=<seed>          Predefined seed\n";
-    std::cout << "\t-m, -bit-mode=<32/64>     Output tests' bit mode\n";
-    std::cout << "\t-std=<standard>           Output tests' language standard\n";
+    std::cout << "\t-m, -bit-mode=<32/64>     Generated test's bit mode\n";
+    std::cout << "\t-std=<standard>           Generated test's language standard\n";
+    auto search_for_default_std = [] (const std::pair<std::string, Options::StandardID> &pair) {
+        return pair.second == options->standard_id;
+    };
+    auto search_res = std::find_if(Options::str_to_standard.begin(), Options::str_to_standard.end(), search_for_default_std);
+    assert(search_res != Options::str_to_standard.end() && "Can't match default standard_id and string");
+    std::cout << "\t\t\t\t  Default: " << search_res->first << "\n";
     std::string all_standatds = "\t\t\t\t  Possible variants are:";
     for (const auto &iter : Options::str_to_standard)
         all_standatds += " " + iter.first + ",";
@@ -74,6 +83,7 @@ void print_usage_and_exit (std::string error_msg = "") {
     exit (exit_code);
 }
 
+// This function handles command-line options in form of "-short_arg <value>" and performs action(<value>)
 bool parse_short_args (int argc, int &argv_iter, char** &argv, std::string short_arg,
                        std::function<void(char*)> action, std::string error_msg) {
     if (!strcmp(argv[argv_iter], short_arg.c_str())) {
@@ -87,6 +97,7 @@ bool parse_short_args (int argc, int &argv_iter, char** &argv, std::string short
     return false;
 }
 
+// This function handles command-line options in form of "-long_arg=<value>" and performs action(<value>)
 bool parse_long_args (int &argv_iter, char** &argv, std::string long_arg,
                       std::function<void(char*)> action, std::string error_msg) {
     if (option_starts_with(argv[argv_iter], (long_arg + "=").c_str())) {
@@ -108,17 +119,18 @@ bool parse_long_and_short_args (int argc, int &argv_iter, char** &argv, std::str
 }
 
 int main (int argc, char* argv[128]) {
+    options = new Options;
     uint64_t seed = 0;
     std::string out_dir = "./";
     bool quiet = false;
-    options = new Options;
 
     // Utility functions. They are necessary for copy-paste reduction. They perform main actions during option parsing.
-
+    // Detects output directory
     auto out_dir_action = [&out_dir] (std::string arg) {
         out_dir = arg;
     };
 
+    // Detects predefined seed
     auto seed_action = [&seed] (std::string arg) {
         size_t *pEnd = nullptr;
         try {
@@ -129,6 +141,7 @@ int main (int argc, char* argv[128]) {
         }
     };
 
+    // Detects YARPGen bit_mode
     auto bit_mode_action = [] (std::string arg) {
         size_t *pEnd = nullptr;
         try {
@@ -145,6 +158,7 @@ int main (int argc, char* argv[128]) {
         }
     };
 
+    // Detects desired language standard
     auto standard_action = [] (std::string arg) {
         std::string search_str = arg;
         auto search_res = Options::str_to_standard.find(search_str);
@@ -155,7 +169,7 @@ int main (int argc, char* argv[128]) {
         }
     };
 
-    // Main options parsing loop
+    // Main loop for parsing command-line options
     for (int i = 0; i < argc; ++i) {
         if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "-h")) {
             print_usage_and_exit();
@@ -168,7 +182,7 @@ int main (int argc, char* argv[128]) {
             quiet = true;
         }
         else if (parse_long_args(i, argv, "-std", standard_action,
-                            "Can't recognize language standard:")) {}
+                                 "Can't recognize language standard:")) {}
         else if (parse_long_and_short_args(argc, i, argv, "-d", "-out-dir", out_dir_action,
                                            "Output directory wasn't specified.")) {}
         else if (parse_long_and_short_args(argc, i, argv, "-s", "-seed", seed_action,

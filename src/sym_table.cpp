@@ -156,7 +156,7 @@ std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> p
         if (struct_var->get_member(j)->get_type()->is_struct_type())
             ret += emit_single_struct_check(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)), offset);
         else
-            ret += offset + "hash(seed, " + member_expr->emit() + ");\n";
+            ret += offset + "hash(&seed, " + member_expr->emit() + ");\n";
     }
     return ret;
 }
@@ -164,7 +164,7 @@ std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> p
 std::string SymbolTable::emit_variable_check (std::string offset) {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
-        ret += offset + "hash(seed, " + (*i)->get_name() + ");\n";
+        ret += offset + "hash(&seed, " + (*i)->get_name() + ");\n";
     }
     return ret;
 }
