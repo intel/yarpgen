@@ -21,7 +21,7 @@ limitations under the License.
 #include "util.h"
 #include "variable.h"
 
-using namespace rl;
+using namespace yarpgen;
 
 void Struct::allocate_members() {
     std::shared_ptr<StructType> struct_type = std::static_pointer_cast<StructType>(type);

@@ -25,7 +25,7 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace rl {
+namespace yarpgen {
 
 // This class serves as a driver to generation process.
 // First of all, you should initialize global variable rand_val_gen with seed (see RandValGen).

@@ -26,7 +26,7 @@ limitations under the License.
 #include "type.h"
 #include "variable.h"
 
-using namespace rl;
+using namespace yarpgen;
 
 void self_test () {
     std::cout << "SELFTEST" << std::endl;

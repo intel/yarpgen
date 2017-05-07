@@ -23,7 +23,7 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
-namespace rl {
+namespace yarpgen {
 
 class Context;
 class Data;

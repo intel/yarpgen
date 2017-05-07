@@ -25,7 +25,7 @@ limitations under the License.
 #include "ir_node.h"
 #include "expr.h"
 
-namespace rl {
+namespace yarpgen {
 
 class Context;
 

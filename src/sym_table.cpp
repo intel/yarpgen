@@ -20,7 +20,7 @@ limitations under the License.
 
 #include "sym_table.h"
 
-using namespace rl;
+using namespace yarpgen;
 
 
 void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {

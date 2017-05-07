@@ -20,7 +20,7 @@ limitations under the License.
 
 #include "type.h"
 
-namespace rl {
+namespace yarpgen {
 
 class Context;
 

@@ -25,7 +25,7 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace rl {
+namespace yarpgen {
 
 class SymbolTable {
     public:

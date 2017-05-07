@@ -29,7 +29,7 @@ limitations under the License.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace rl {
+namespace yarpgen {
 
 // This class links together id (for example, type of unary operator) and its probability.
 // Usually it is used in the form of std::vector<Probability<id>> and defines all possible variants
