@@ -89,8 +89,8 @@ def recheck(num, lock, task_queue, failed_queue, passed_queue, target, out_dir):
             task_queue.task_done()
             common.log_msg(logging.DEBUG, "#" + str(num) + " test directory: " + str(test_dir))
             abs_test_dir = os.path.join(cwd_save, test_dir)
-            common.check_and_copy(os.path.join(cwd_save, gen_test_makefile.Test_Makefile_name),
-                                  os.path.join(abs_test_dir, gen_test_makefile.Test_Makefile_name))
+            common.check_and_copy(os.path.join(os.path.join(cwd_save, out_dir), gen_test_makefile.Test_Makefile_name),
+                                  os.path.join(abs_test_dir,               gen_test_makefile.Test_Makefile_name))
             os.chdir(os.path.join(cwd_save, abs_test_dir))
 
             valid_res = None
@@ -145,8 +145,13 @@ if __name__ == '__main__':
 
     description = 'Script for rechecking of compiler errors'
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", "--input-dir", dest="input_dir", type=str, required=True,
-                        help="Input directory for re-checking")
+
+    requiredNamed = parser.add_argument_group('required named arguments')
+    requiredNamed.add_argument('-std', dest="std_str", default=None, type=str, required=True,
+                               help='Language standard. Possible variants are ' + str(list(gen_test_makefile.StrToStdId))[1:-1])
+    requiredNamed.add_argument("-i", "--input-dir", dest="input_dir", type=str, required=True,
+                               help="Input directory for re-checking")
+
     parser.add_argument("-o", "--output-dir", dest="out_dir", default="re-checked", type=str,
                         help="Output directory with relevant fails")
     parser.add_argument("--config-file", dest="config_file",
@@ -168,4 +173,5 @@ if __name__ == '__main__':
     common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
+    gen_test_makefile.set_standard(args.std_str)
     prepare_env_and_recheck(args.input_dir, args.out_dir, args.target, args.num_jobs, args.config_file)
