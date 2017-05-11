@@ -20,6 +20,8 @@
 ###############################################################################
 
 import argparse
+import collections
+import enum
 import logging
 import os
 import sys
@@ -34,7 +36,7 @@ default_test_sets_file_name = "test_sets.txt"
 
 default_config_file = "test_sets.txt"
 comp_specs_line = "Compiler specs:"
-spec_list_len = 4
+spec_list_len = 5
 test_sets_line = "Testing sets:"
 set_list_len = 5
 
@@ -51,13 +53,17 @@ class MakefileVariable:
 # I can't use build-in dictionary, because variables should be ordered
 Makefile_variable_list = []
 
-cxx_flags = MakefileVariable("CXXFLAGS", "-std=c++11")
+cxx_flags = MakefileVariable("CXXFLAGS", "")
 Makefile_variable_list.append(cxx_flags)
 
-ld_flags = MakefileVariable("LDFLAGS", "-std=c++11")
+ld_flags = MakefileVariable("LDFLAGS", "")
 Makefile_variable_list.append(ld_flags)
 
-sources = MakefileVariable("SOURCES", "init.cpp driver.cpp func.cpp check.cpp hash.cpp")
+std_flags = MakefileVariable("STDFLAGS", "-std=")
+Makefile_variable_list.append(std_flags)
+
+# File extension will be set later to match selected language standard in adjust_sources_to_standard()
+sources = MakefileVariable("SOURCES", "init driver func check hash")
 Makefile_variable_list.append(sources)
 
 headers = MakefileVariable("HEADERS", "init.h")
@@ -66,6 +72,69 @@ Makefile_variable_list.append(headers)
 executable = MakefileVariable("EXECUTABLE", "out")
 Makefile_variable_list.append(executable)
 # Makefile_variable_list.append(Makefile_variable("",""))
+
+###############################################################################
+# Section for language standards
+@enum.unique
+class StdID(enum.IntEnum):
+    # Better to use enum.auto, but it is available only since python3.6
+    C99 = 0
+    C11 = 1
+    MAX_C_ID = 2
+    CXX98 = 3
+    CXX03 = 4
+    CXX11 = 5
+    CXX14 = 6
+    CXX17 = 7
+    MAX_CXX_ID = 8
+
+    def is_c (self):
+        return StdID.C99.value <= self.value < StdID.MAX_C_ID.value
+
+    def is_cxx (self):
+        return StdID.CXX98.value <= self.value < StdID.MAX_CXX_ID.value
+
+    ''' Enum doesn't allow to use '++' in names, so we need this function. '''
+    @staticmethod
+    def get_pretty_std_name (std_id):
+        if std_id.is_c():
+            return std_id.name.replace("C", "c")
+        if std_id.is_cxx():
+            return std_id.name.replace("CXX", "c++")
+
+''' Easy way to convert string to StdID '''
+StrToStdId = collections.OrderedDict()
+for i in StdID:
+    if not i.name.startswith("MAX"):
+        StrToStdId[StdID.get_pretty_std_name(i)] = i
+
+selected_standard = None
+
+def get_file_ext():
+    if selected_standard.is_c():
+        return ".c"
+    if selected_standard.is_cxx():
+        return ".cpp"
+    return None
+
+def adjust_sources_to_standard():
+    sources.value = re.sub("\s+|$", get_file_ext() + " ", sources.value)
+
+def set_standard (std_str):
+    global selected_standard
+    selected_standard = StrToStdId[std_str]
+    std_flags.value += StdID.get_pretty_std_name(selected_standard)
+    adjust_sources_to_standard()
+
+def get_standard ():
+    global selected_standard
+    return StdID.get_pretty_std_name(selected_standard)
+
+def check_if_std_defined ():
+    if selected_standard is None or \
+       selected_standard == StdID.MAX_C_ID or \
+       selected_standard == StdID.MAX_CXX_ID:
+        common.print_and_exit("Language standard wasn't selected!")
 
 ###############################################################################
 # Section for sde
@@ -112,9 +181,10 @@ def define_sde_arch(native, target):
 class CompilerSpecs (object):
     all_comp_specs = dict()
 
-    def __init__(self, name, exec_name, common_args, arch_prefix):
+    def __init__(self, name, cxx_exec_name, c_exec_name, common_args, arch_prefix):
         self.name = name
-        self.comp_name = exec_name
+        self.comp_cxx_name = cxx_exec_name
+        self.comp_c_name = c_exec_name
         self.common_args = common_args
         self.arch_prefix = arch_prefix
         self.version = "unknown"
@@ -159,7 +229,7 @@ def check_config_list(config_list, fixed_len, message):
 def add_specs(spec_list):
     spec_list = check_config_list(spec_list, spec_list_len, "Error in spec string, check it: ")
     try:
-        CompilerSpecs(spec_list[0], spec_list[1], spec_list[2], spec_list[3])
+        CompilerSpecs(spec_list[0], spec_list[1], spec_list[2], spec_list[3], spec_list[4])
         common.log_msg(logging.DEBUG, "Finished adding compiler spec")
     except KeyError:
         common.print_and_exit("Can't find key!")
@@ -213,7 +283,7 @@ def detect_native_arch():
 
     sys_compiler = ""
     for key in CompilerSpecs.all_comp_specs:
-        exec_name = CompilerSpecs.all_comp_specs[key].comp_name
+        exec_name = CompilerSpecs.all_comp_specs[key].comp_cxx_name
         if common.if_exec_exist(exec_name):
             sys_compiler = exec_name
             break
@@ -240,6 +310,7 @@ def detect_native_arch():
 
 def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None, creduce_file=None):
     # Somebody can prepare test specs and target, so we don't need to parse config file
+    check_if_std_defined()
     if config_file is not None:
         parse_config(config_file)
     output = ""
@@ -266,7 +337,12 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     for target in CompilerTarget.all_targets:
         if only_target is not None and only_target.name != target.name:
             continue
-        output += target.name + ": " + "COMPILER=" + target.specs.comp_name + "\n"
+        compiler_name = None
+        if selected_standard.is_c():
+            compiler_name = target.specs.comp_c_name
+        if selected_standard.is_cxx():
+            compiler_name = target.specs.comp_cxx_name
+        output += target.name + ": " + "COMPILER=" + compiler_name + "\n"
         output += target.name + ": " + "OPTFLAGS=" + target.args
         if target.arch.comp_name != "":
             output += " " + target.specs.arch_prefix + target.arch.comp_name
@@ -274,8 +350,8 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         if inject_blame_opt is not None:
             output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
-        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:.cpp=.o))\n"
-        output += "\t" + "$(COMPILER) $(LDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n" 
+        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"
+        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
 
     # 4. Force make to rebuild everything
     # TODO: replace with PHONY
@@ -289,7 +365,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             force_str = "\n"
         source_name = source.split(".")[0]
         output += "%" + source_name + ".o: " + source_prefix + source + force_str
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(OPTFLAGS) -o $@ -c $<"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $@ -c $<"
         if inject_blame_opt is not None and source_name == "func":
             output += " $(BLAMEOPTS)"
         output += "\n\n"
@@ -321,7 +397,6 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     out_file.close()
 
 
-
 ###############################################################################
 
 if __name__ == '__main__':
@@ -331,6 +406,11 @@ if __name__ == '__main__':
 
     description = 'Generator of Test_Makefiles.'
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    requiredNamed = parser.add_argument_group('required named arguments')
+    requiredNamed.add_argument('-std', dest="std_str", default=None, type=str, required=True,
+                               help='Language standard. Possible variants are ' + str(list(StrToStdId))[1:-1])
+
     parser.add_argument("--config-file", dest="config_file",
                         default=os.path.join(common.yarpgen_home, default_test_sets_file_name), type=str,
                         help="Configuration file for testing")
@@ -350,4 +430,5 @@ if __name__ == '__main__':
     common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
+    set_standard(args.std_str)
     gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file)
