@@ -40,13 +40,13 @@ class Type {
             MAX_TYPE_ID
         };
 
-        // DB: in C++ it's called CV-qualifiers.
-        enum Mod {
+        // CV-qualifiers.
+        enum CV_Qual {
             NTHG,
             VOLAT,
             CONST,
             CONST_VOLAT,
-            MAX_MOD
+            MAX_CV_QUAL
         };
 
         // DB: Why the name is "atomic"? It's a bit confusing.
@@ -73,9 +73,9 @@ class Type {
             MAX_INT_ID,
         };
 
-        Type (TypeID _id) : modifier(Mod::NTHG), is_static(false), align(0), id (_id) {}
-        Type (TypeID _id, Mod _modifier, bool _is_static, uint64_t _align) :
-              modifier (_modifier), is_static (_is_static), align (_align), id (_id) {}
+        Type (TypeID _id) : cv_qual(CV_Qual::NTHG), is_static(false), align(0), id (_id) {}
+        Type (TypeID _id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+              cv_qual (_cv_qual), is_static (_is_static), align (_align), id (_id) {}
 
         // Getters and setters for general Type properties
         Type::TypeID get_type_id () { return id; }
@@ -83,8 +83,8 @@ class Type {
         virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
         virtual bool get_is_signed() { return false; }
         virtual bool get_is_bit_field() { return false; }
-        void set_modifier (Mod _modifier) { modifier = _modifier; }
-        Mod get_modifier () { return modifier; }
+        void set_cv_qual (CV_Qual _cv_qual) { cv_qual = _cv_qual; }
+        CV_Qual get_cv_qual () { return cv_qual; }
         void set_is_static (bool _is_static) { is_static = _is_static; }
         bool get_is_static () { return is_static; }
         void set_align (uint64_t _align) { align = _align; }
@@ -106,7 +106,7 @@ class Type {
 
     protected:
         std::string name;
-        Mod modifier;
+        CV_Qual cv_qual;
         bool is_static;
         uint64_t align;
 
@@ -135,8 +135,8 @@ class StructType : public Type {
         };
 
         StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = _name; }
-        StructType (std::string _name, Mod _modifier, bool _is_static, uint64_t _align) :
-                    Type (Type::STRUCT_TYPE, _modifier, _is_static, _align), nest_depth(0) { name = _name; }
+        StructType (std::string _name, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                    Type (Type::STRUCT_TYPE, _cv_qual, _is_static, _align), nest_depth(0) { name = _name; }
         bool is_struct_type() { return true; }
 
         // Getters and setters for StructType properties
@@ -261,8 +261,8 @@ class AtomicType : public Type {
         };
 
         AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE), bit_size (0), suffix(""), atomic_id (at_id) {}
-        AtomicType (AtomicTypeID at_id, Mod _modifier, bool _is_static, uint64_t _align) :
-                    Type (Type::ATOMIC_TYPE, _modifier, _is_static, _align), bit_size (0), suffix(""), atomic_id (at_id) {}
+        AtomicType (AtomicTypeID at_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                    Type (Type::ATOMIC_TYPE, _cv_qual, _is_static, _align), bit_size (0), suffix(""), atomic_id (at_id) {}
         bool is_atomic_type() { return true; }
 
         // Getters for AtomicType properties
@@ -285,8 +285,8 @@ std::ostream& operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &s
 class IntegerType : public AtomicType {
     public:
         IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
-        IntegerType (IntegerTypeID it_id, Mod _modifier, bool _is_static, uint64_t _align) :
-                     AtomicType (AtomicTypeID::Integer, _modifier, _is_static, _align),
+        IntegerType (IntegerTypeID it_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                     AtomicType (AtomicTypeID::Integer, _cv_qual, _is_static, _align),
                      is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
         bool is_int_type() { return true; }
 
@@ -298,7 +298,7 @@ class IntegerType : public AtomicType {
 
         // This utility functions take IntegerTypeID and return shared pointer to corresponding type
         static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id);
-        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, Mod _modifier, bool _is_static, uint64_t _align);
+        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align);
 
         // If type A can represent all the values of type B
         static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type B can represent all of the values of the type A
@@ -322,7 +322,7 @@ class IntegerType : public AtomicType {
 class BitField : public IntegerType {
     public:
         BitField (IntegerTypeID it_id, uint64_t _bit_size) : IntegerType(it_id) { init_type(it_id, _bit_size); }
-        BitField (IntegerTypeID it_id, uint64_t _bit_size, Mod _modifier) : IntegerType(it_id, _modifier, false, 0) { init_type(it_id, _bit_size); }
+        BitField (IntegerTypeID it_id, uint64_t _bit_size, CV_Qual _cv_qual) : IntegerType(it_id, _cv_qual, false, 0) { init_type(it_id, _bit_size); }
 
         // Getters of BitField properties
         bool get_is_bit_field() { return true; }
@@ -347,8 +347,8 @@ class BitField : public IntegerType {
 class TypeBOOL : public IntegerType {
     public:
         TypeBOOL () : IntegerType(AtomicType::IntegerTypeID::BOOL) { init_type (); }
-        TypeBOOL (Mod _modifier, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::BOOL, _modifier, _is_static, _align) { init_type (); }
+        TypeBOOL (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                  IntegerType(AtomicType::IntegerTypeID::BOOL, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -365,8 +365,8 @@ class TypeBOOL : public IntegerType {
 class TypeCHAR : public IntegerType {
     public:
         TypeCHAR () : IntegerType(AtomicType::IntegerTypeID::CHAR) { init_type (); }
-        TypeCHAR (Mod _modifier, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::CHAR, _modifier, _is_static, _align) { init_type (); }
+        TypeCHAR (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                  IntegerType(AtomicType::IntegerTypeID::CHAR, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -383,8 +383,8 @@ class TypeCHAR : public IntegerType {
 class TypeUCHAR : public IntegerType {
     public:
         TypeUCHAR () : IntegerType(AtomicType::IntegerTypeID::UCHAR) { init_type (); }
-        TypeUCHAR (Mod _modifier, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::UCHAR, _modifier, _is_static, _align) { init_type (); }
+        TypeUCHAR (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                   IntegerType(AtomicType::IntegerTypeID::UCHAR, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -401,8 +401,8 @@ class TypeUCHAR : public IntegerType {
 class TypeSHRT : public IntegerType {
     public:
         TypeSHRT () : IntegerType(AtomicType::IntegerTypeID::SHRT) { init_type (); }
-        TypeSHRT (Mod _modifier, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::SHRT, _modifier, _is_static, _align) { init_type (); }
+        TypeSHRT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                  IntegerType(AtomicType::IntegerTypeID::SHRT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -419,8 +419,8 @@ class TypeSHRT : public IntegerType {
 class TypeUSHRT : public IntegerType {
     public:
         TypeUSHRT () : IntegerType(AtomicType::IntegerTypeID::USHRT) { init_type (); }
-        TypeUSHRT (Mod _modifier, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::USHRT, _modifier, _is_static, _align) { init_type (); }
+        TypeUSHRT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                   IntegerType(AtomicType::IntegerTypeID::USHRT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -437,8 +437,8 @@ class TypeUSHRT : public IntegerType {
 class TypeINT : public IntegerType {
     public:
         TypeINT () : IntegerType(AtomicType::IntegerTypeID::INT) { init_type (); }
-        TypeINT (Mod _modifier, bool _is_static, uint64_t _align) :
-                 IntegerType(AtomicType::IntegerTypeID::INT, _modifier, _is_static, _align) { init_type (); }
+        TypeINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                 IntegerType(AtomicType::IntegerTypeID::INT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -455,8 +455,8 @@ class TypeINT : public IntegerType {
 class TypeUINT : public IntegerType {
     public:
         TypeUINT () : IntegerType(AtomicType::IntegerTypeID::UINT) { init_type (); }
-        TypeUINT (Mod _modifier, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::UINT, _modifier, _is_static, _align) { init_type (); }
+        TypeUINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                  IntegerType(AtomicType::IntegerTypeID::UINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -473,8 +473,8 @@ class TypeUINT : public IntegerType {
 class TypeLINT : public IntegerType {
     public:
         TypeLINT () : IntegerType(AtomicType::IntegerTypeID::LINT) { init_type (); }
-        TypeLINT (Mod _modifier, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::LINT, _modifier, _is_static, _align) { init_type (); }
+        TypeLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                  IntegerType(AtomicType::IntegerTypeID::LINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -498,8 +498,8 @@ class TypeLINT : public IntegerType {
 class TypeULINT : public IntegerType {
     public:
         TypeULINT () : IntegerType(AtomicType::IntegerTypeID::ULINT) { init_type (); }
-        TypeULINT (Mod _modifier, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::ULINT, _modifier, _is_static, _align) { init_type (); }
+        TypeULINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                   IntegerType(AtomicType::IntegerTypeID::ULINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -523,8 +523,8 @@ class TypeULINT : public IntegerType {
 class TypeLLINT : public IntegerType {
     public:
         TypeLLINT () : IntegerType(AtomicType::IntegerTypeID::LLINT) { init_type (); }
-        TypeLLINT (Mod _modifier, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::LLINT, _modifier, _is_static, _align) { init_type (); }
+        TypeLLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                   IntegerType(AtomicType::IntegerTypeID::LLINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -541,8 +541,8 @@ class TypeLLINT : public IntegerType {
 class TypeULLINT : public IntegerType {
     public:
         TypeULLINT () : IntegerType(AtomicType::IntegerTypeID::ULLINT) { init_type (); }
-        TypeULLINT (Mod _modifier, bool _is_static, uint64_t _align) :
-                    IntegerType(AtomicType::IntegerTypeID::ULLINT, _modifier, _is_static, _align) { init_type (); }
+        TypeULLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                    IntegerType(AtomicType::IntegerTypeID::ULLINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:

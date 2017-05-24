@@ -68,7 +68,7 @@ void Struct::dbg_dump () {
     std::cout << "type ";
     type->dbg_dump();
     std::cout << "name: " << name << std::endl;
-    std::cout << "modifier: " << type->get_modifier() << std::endl;
+    std::cout << "cv_qual: " << type->get_cv_qual() << std::endl;
     std::cout << "members ";
     for (auto i : members) {
         i->dbg_dump();
@@ -118,7 +118,7 @@ void ScalarVariable::dbg_dump () {
     std::cout << "type ";
     type->dbg_dump();
     std::cout << "name: " << name << std::endl;
-    std::cout << "modifier: " << type->get_modifier() << std::endl;
+    std::cout << "cv_qual: " << type->get_cv_qual() << std::endl;
     std::cout << "init_value: " << init_val << std::endl;
     std::cout << "was_changed " << was_changed << std::endl;
     std::cout << "cur_value: " << cur_val << std::endl;

@@ -90,7 +90,7 @@ void GenPolicy::init_from_config () {
     num_of_allowed_int_types = MAX_ALLOWED_INT_TYPES;
     rand_init_allowed_int_types();
 
-    allowed_modifiers.push_back (Type::Mod::NTHG);
+    allowed_cv_qual.push_back (Type::CV_Qual::NTHG);
 
     allow_static_var = false;
     allow_static_members = true;
@@ -106,7 +106,7 @@ void GenPolicy::init_from_config () {
     max_out_struct_count = MAX_OUT_STRUCT_COUNT;
     min_struct_member_count = MIN_STRUCT_MEMBER_COUNT;
     max_struct_member_count = MAX_STRUCT_MEMBER_COUNT;
-    allow_mix_mod_in_struct = false;
+    allow_mix_cv_qual_in_struct = false;
     allow_mix_static_in_struct = true;
     allow_mix_types_in_struct = true;
     member_use_prob.push_back(Probability<bool>(true, 80));
@@ -328,15 +328,15 @@ void GenPolicy::rand_init_allowed_int_types () {
     }
 }
 
-void GenPolicy::set_modifier (bool value, Type::Mod modifier) {
+void GenPolicy::set_cv_qual(bool value, Type::CV_Qual cv_qual) {
     if (value)
-        allowed_modifiers.push_back (modifier);
+        allowed_cv_qual.push_back (cv_qual);
     else
-        allowed_modifiers.erase (std::remove (allowed_modifiers.begin(), allowed_modifiers.end(), modifier), allowed_modifiers.end());
+        allowed_cv_qual.erase (std::remove (allowed_cv_qual.begin(), allowed_cv_qual.end(), cv_qual), allowed_cv_qual.end());
 }
 
-bool GenPolicy::get_modifier (Type::Mod modifier) {
-    return (std::find(allowed_modifiers.begin(), allowed_modifiers.end(), modifier) != allowed_modifiers.end());
+bool GenPolicy::get_cv_qual(Type::CV_Qual cv_qual) {
+    return (std::find(allowed_cv_qual.begin(), allowed_cv_qual.end(), cv_qual) != allowed_cv_qual.end());
 }
 
 // Abstract measure of complexity of execution

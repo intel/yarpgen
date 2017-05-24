@@ -35,7 +35,7 @@ void self_test () {
     bool_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    std::shared_ptr<IntegerType> int_type = IntegerType::init(AtomicType::IntegerTypeID::INT, AtomicType::Mod::CONST, true, 32);
+    std::shared_ptr<IntegerType> int_type = IntegerType::init(AtomicType::IntegerTypeID::INT, AtomicType::CV_Qual::CONST, true, 32);
     int_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
@@ -78,7 +78,7 @@ void self_test () {
     bool_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    std::shared_ptr<IntegerType> lint_type = IntegerType::init(AtomicType::IntegerTypeID::LINT, AtomicType::Mod::VOLAT, false, 0);
+    std::shared_ptr<IntegerType> lint_type = IntegerType::init(AtomicType::IntegerTypeID::LINT, AtomicType::CV_Qual::VOLAT, false, 0);
     lint_type->dbg_dump();
 
     std::shared_ptr<ScalarVariable> lint_val = std::make_shared<ScalarVariable>("li", lint_type);
