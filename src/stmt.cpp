@@ -59,20 +59,20 @@ std::string DeclStmt::emit (std::string offset) {
     std::string ret = offset;
     ret += data->get_type()->get_is_static() && !is_extern ? "static " : "";
     ret += is_extern ? "extern " : "";
-    switch (data->get_type()->get_modifier()) {
-        case Type::Mod::VOLAT:
+    switch (data->get_type()->get_cv_qual()) {
+        case Type::CV_Qual::VOLAT:
             ret += "volatile ";
             break;
-        case Type::Mod::CONST:
+        case Type::CV_Qual::CONST:
             ret += "const ";
             break;
-        case Type::Mod::CONST_VOLAT:
+        case Type::CV_Qual::CONST_VOLAT:
             ret += "const volatile ";
             break;
-        case Type::Mod::NTHG:
+        case Type::CV_Qual::NTHG:
             break;
-        case Type::Mod::MAX_MOD:
-            ERROR("bad modifier (DeclStmt)");
+        case Type::CV_Qual::MAX_CV_QUAL:
+            ERROR("bad cv_qual (DeclStmt)");
             break;
     }
     ret += data->get_type()->get_simple_name() + " " + data->get_name();
@@ -214,7 +214,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_and_mix_from_ctx(std::
 // This function initially fills extern symbol table with inp and mix variables. It also creates type structs definitions.
 void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     auto p = ctx->get_gen_policy();
-    // Allow const modifier in gen_policy, pass it to new Context
+    // Allow const cv-qualifier in gen_policy, pass it to new Context
     std::shared_ptr<Context> const_ctx = std::make_shared<Context>(*(ctx));
     GenPolicy const_gen_policy = *(const_ctx->get_gen_policy());
     const_gen_policy.set_allow_const(true);

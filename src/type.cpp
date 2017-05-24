@@ -28,20 +28,20 @@ bool yarpgen::mode_64bit = true;
 std::string Type::get_name () {
     std::string ret = "";
     ret += is_static ? "static " : "";
-    switch (modifier) {
-        case Mod::VOLAT:
+    switch (cv_qual) {
+        case CV_Qual::VOLAT:
             ret += "volatile ";
             break;
-        case Mod::CONST:
+        case CV_Qual::CONST:
             ret += "const ";
             break;
-        case Mod::CONST_VOLAT:
+        case CV_Qual::CONST_VOLAT:
             ret += "const volatile ";
             break;
-        case Mod::NTHG:
+        case CV_Qual::NTHG:
             break;
-        case Mod::MAX_MOD:
-            ERROR("bad modifier (Type)");
+        case CV_Qual::MAX_CV_QUAL:
+            ERROR("bad cv_qual (Type)");
             break;
     }
     ret += name;
@@ -117,7 +117,8 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx) 
 
 std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types) {
     auto p = ctx->get_gen_policy();
-    Type::Mod primary_mod = p->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_modifiers().size() - 1));
+    Type::CV_Qual primary_cv_qual = p->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
+                                                                                                p->get_allowed_cv_qual().size() - 1));
 
     bool primary_static_spec = false;
     //TODO: add distr to gen_policy
@@ -128,14 +129,14 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
 
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(p->get_allowed_int_types());
     //TODO: what about align?
-    std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_mod, primary_static_spec, 0);
+    std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_cv_qual, primary_static_spec, 0);
 
     std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(rand_val_gen->get_struct_type_name());
     int struct_member_count = rand_val_gen->get_rand_value<int>(p->get_min_struct_member_count(), p->get_max_struct_member_count());
     int member_count = 0;
     for (int i = 0; i < struct_member_count; ++i) {
-        if (p->get_allow_mix_mod_in_struct()) {
-            primary_mod = p->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_modifiers().size() - 1));;
+        if (p->get_allow_mix_cv_qual_in_struct()) {
+            primary_cv_qual = p->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_cv_qual().size() - 1));;
         }
 
         if (p->get_allow_mix_static_in_struct()) {
@@ -174,7 +175,7 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
                     primary_type = IntegerType::generate(ctx);
             }
         }
-        primary_type->set_modifier(primary_mod);
+        primary_type->set_cv_qual(primary_cv_qual);
         primary_type->set_is_static(primary_static_spec);
         struct_type->add_member(primary_type, "member_" + std::to_string(rand_val_gen->get_struct_type_count()) + "_" + std::to_string(member_count++));
     }
@@ -1566,16 +1567,17 @@ std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_
     return ret;
 }
 
-std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id, Type::Mod _modifier, bool _is_static, uint64_t _align) {
+std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id, Type::CV_Qual _cv_qual, bool _is_static, uint64_t _align) {
     std::shared_ptr<IntegerType> ret = IntegerType::init (_type_id);
-    ret->set_modifier(_modifier);
+    ret->set_cv_qual(_cv_qual);
     ret->set_is_static(_is_static);
     ret->set_align(_align);
     return ret;
 }
 
 std::shared_ptr<IntegerType> IntegerType::generate (std::shared_ptr<Context> ctx) {
-    Type::Mod modifier = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
+    Type::CV_Qual cv_qual = ctx->get_gen_policy()->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
+                                                                                                                 ctx->get_gen_policy()->get_allowed_cv_qual().size() - 1));
 
     bool specifier = false;
     if (ctx->get_gen_policy()->get_allow_static_var())
@@ -1585,7 +1587,7 @@ std::shared_ptr<IntegerType> IntegerType::generate (std::shared_ptr<Context> ctx
     //TODO: what about align?
 
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
-    return IntegerType::init(int_type_id, modifier, specifier, 0);
+    return IntegerType::init(int_type_id, cv_qual, specifier, 0);
 }
 
 
@@ -1826,7 +1828,8 @@ void TypeULLINT::dbg_dump () {
 }
 
 std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool is_unnamed) {
-    Type::Mod modifier = ctx->get_gen_policy()->get_allowed_modifiers().at(rand_val_gen->get_rand_value<int>(0, ctx->get_gen_policy()->get_allowed_modifiers().size() - 1));
+    Type::CV_Qual cv_qual = ctx->get_gen_policy()->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
+                                                                                                                 ctx->get_gen_policy()->get_allowed_cv_qual().size() - 1));
     IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
     uint64_t min_bit_size = is_unnamed ? 0 : (tmp_int_type->get_bit_size() / ctx->get_gen_policy()->get_min_bit_field_size());
@@ -1836,7 +1839,7 @@ std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool
     uint64_t max_bit_size = int_type->get_bit_size();
 
     uint64_t bit_size = rand_val_gen->get_rand_value<uint64_t>(min_bit_size, max_bit_size);
-    return std::make_shared<BitField>(int_type_id, bit_size, modifier);
+    return std::make_shared<BitField>(int_type_id, bit_size, cv_qual);
 }
 
 bool BitField::can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned) {

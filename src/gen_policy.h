@@ -194,22 +194,23 @@ class GenPolicy {
         std::vector<Probability<IntegerType::IntegerTypeID>>& get_allowed_int_types () { return allowed_int_types; }
         void add_allowed_int_type (Probability<IntegerType::IntegerTypeID> allowed_int_type) { allowed_int_types.push_back(allowed_int_type); }
 
-        // Modifiers section - defines available modifiers (nothing, const, volatile, const volatile)
+        // cv-qualifiers section - defines available cv-qualifiers (nothing, const, volatile, const volatile)
         // TODO: Add check for options compability? Should allow_volatile + allow_const be equal to allow_const_volatile?
-        void set_allow_volatile (bool _allow_volatile) { set_modifier (_allow_volatile, Type::Mod::VOLAT); }
-        bool get_allow_volatile () { return get_modifier (Type::Mod::VOLAT); }
-        void set_allow_const (bool _allow_const) { set_modifier (_allow_const, Type::Mod::CONST); }
-        bool get_allow_const () { return get_modifier (Type::Mod::CONST); }
-        void set_allow_const_volatile (bool _allow_const_volatile) { set_modifier (_allow_const_volatile, Type::Mod::CONST_VOLAT); }
-        bool get_allow_const_volatile () { return get_modifier (Type::Mod::CONST_VOLAT); }
-        std::vector<Type::Mod>& get_allowed_modifiers () { return allowed_modifiers; }
+        void set_allow_volatile (bool _allow_volatile) { set_cv_qual(_allow_volatile, Type::CV_Qual::VOLAT); }
+        bool get_allow_volatile () { return get_cv_qual(Type::CV_Qual::VOLAT); }
+        void set_allow_const (bool _allow_const) { set_cv_qual(_allow_const, Type::CV_Qual::CONST); }
+        bool get_allow_const () { return get_cv_qual(Type::CV_Qual::CONST); }
+        void set_allow_const_volatile (bool _allow_const_volatile) {
+            set_cv_qual(_allow_const_volatile, Type::CV_Qual::CONST_VOLAT); }
+        bool get_allow_const_volatile () { return get_cv_qual(Type::CV_Qual::CONST_VOLAT); }
+        std::vector<Type::CV_Qual>& get_allowed_cv_qual() { return allowed_cv_qual; }
 
         // Static specifier section
         void set_allow_static_var (bool _allow_static_var) { allow_static_var = _allow_static_var; }
         bool get_allow_static_var () { return allow_static_var; }
 
         // Struct section - defines everything, related to struct types: their total number, range for number of members,
-        // trigger for modifiers and specifiers of members, range for depth of nested struct types,
+        // trigger for cv-qualifiers and specifiers of members, range for depth of nested struct types,
         // distribution of bit fields properties ...
         void set_allow_struct (bool _allow_struct) { allow_struct = _allow_struct; }
         bool get_allow_struct () { return allow_struct; }
@@ -222,8 +223,8 @@ class GenPolicy {
         uint64_t get_min_struct_member_count () { return min_struct_member_count; }
         void set_max_struct_member_count (uint64_t _max_struct_member_count) { max_struct_member_count = _max_struct_member_count; }
         uint64_t get_max_struct_member_count () { return max_struct_member_count; }
-        void set_allow_mix_mod_in_struct (bool mix) { allow_mix_mod_in_struct = mix; }
-        bool get_allow_mix_mod_in_struct () { return allow_mix_mod_in_struct; }
+        void set_allow_mix_cv_qual_in_struct(bool mix) { allow_mix_cv_qual_in_struct = mix; }
+        bool get_allow_mix_cv_qual_in_struct() { return allow_mix_cv_qual_in_struct; }
         void set_allow_static_members (bool _allow_static_members) { allow_static_members = _allow_static_members; }
         bool get_allow_static_members () { return allow_static_members; }
         void set_allow_mix_static_in_struct (bool mix) { allow_mix_static_in_struct = mix; }
@@ -316,10 +317,10 @@ class GenPolicy {
         int num_of_allowed_int_types;
         std::vector<Probability<IntegerType::IntegerTypeID>> allowed_int_types;
 
-        // Modifiers
-        void set_modifier (bool value, Type::Mod modifier);
-        bool get_modifier (Type::Mod modifier);
-        std::vector<Type::Mod> allowed_modifiers;
+        // cv-qualifiers
+        void set_cv_qual(bool value, Type::CV_Qual cv_qual);
+        bool get_cv_qual(Type::CV_Qual cv_qual);
+        std::vector<Type::CV_Qual> allowed_cv_qual;
 
         // Static specifier
         bool allow_static_var;
@@ -330,7 +331,7 @@ class GenPolicy {
         uint64_t max_struct_type_count;
         uint64_t min_struct_member_count;
         uint64_t max_struct_member_count;
-        bool allow_mix_mod_in_struct;
+        bool allow_mix_cv_qual_in_struct;
         bool allow_mix_static_in_struct;
         bool allow_mix_types_in_struct;
         bool allow_static_members;
