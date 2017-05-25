@@ -68,22 +68,22 @@ class ScalarVariable : public Data {
     public:
         ScalarVariable (std::string _name, std::shared_ptr<IntegerType> _type);
         //TODO: add check for type id in Type and Value
-        void set_init_value (AtomicType::ScalarTypedVal _init_val) {init_val = cur_val = _init_val; was_changed = false; }
-        void set_cur_value (AtomicType::ScalarTypedVal _val) { cur_val = _val; was_changed = true; }
-        void set_max (AtomicType::ScalarTypedVal _max) { max = _max; }
-        void set_min (AtomicType::ScalarTypedVal _min) { min = _min; }
-        AtomicType::ScalarTypedVal get_init_value () { return init_val; }
-        AtomicType::ScalarTypedVal get_cur_value () { return cur_val; }
-        AtomicType::ScalarTypedVal get_max () { return max; }
-        AtomicType::ScalarTypedVal get_min () { return min; }
+        void set_init_value (BuiltinType::ScalarTypedVal _init_val) {init_val = cur_val = _init_val; was_changed = false; }
+        void set_cur_value (BuiltinType::ScalarTypedVal _val) { cur_val = _val; was_changed = true; }
+        void set_max (BuiltinType::ScalarTypedVal _max) { max = _max; }
+        void set_min (BuiltinType::ScalarTypedVal _min) { min = _min; }
+        BuiltinType::ScalarTypedVal get_init_value () { return init_val; }
+        BuiltinType::ScalarTypedVal get_cur_value () { return cur_val; }
+        BuiltinType::ScalarTypedVal get_max () { return max; }
+        BuiltinType::ScalarTypedVal get_min () { return min; }
         void dbg_dump ();
         static std::shared_ptr<ScalarVariable> generate(std::shared_ptr<Context> ctx);
 
     private:
-        AtomicType::ScalarTypedVal min;
-        AtomicType::ScalarTypedVal max;
-        AtomicType::ScalarTypedVal init_val;
-        AtomicType::ScalarTypedVal cur_val;
+        BuiltinType::ScalarTypedVal min;
+        BuiltinType::ScalarTypedVal max;
+        BuiltinType::ScalarTypedVal init_val;
+        BuiltinType::ScalarTypedVal cur_val;
         bool was_changed;
 };
 }

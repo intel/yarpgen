@@ -122,7 +122,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     std::shared_ptr<ScalarVariable> seed = std::make_shared<ScalarVariable>("seed", IntegerType::init(Type::IntegerTypeID::ULLINT));
     std::shared_ptr<VarUseExpr> seed_use = std::make_shared<VarUseExpr>(seed);
 
-    AtomicType::ScalarTypedVal zero_init (IntegerType::IntegerTypeID::ULLINT);
+    BuiltinType::ScalarTypedVal zero_init (IntegerType::IntegerTypeID::ULLINT);
     zero_init.val.ullint_val = 0;
     std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr> (zero_init);
 

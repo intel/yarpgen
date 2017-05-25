@@ -159,7 +159,7 @@ std::string TypeCastExpr::emit (std::string offset) {
 std::shared_ptr<ConstExpr> ConstExpr::generate (std::shared_ptr<Context> ctx) {
     GenPolicy::add_to_complexity(Node::NodeID::CONST);
     std::shared_ptr<IntegerType> int_type = IntegerType::generate (ctx);
-    return std::make_shared<ConstExpr>(AtomicType::ScalarTypedVal::generate(ctx, int_type->get_int_type_id()));
+    return std::make_shared<ConstExpr>(BuiltinType::ScalarTypedVal::generate(ctx, int_type->get_int_type_id()));
 }
 
 std::string ConstExpr::emit (std::string offset) {
@@ -209,11 +209,11 @@ std::string ConstExpr::emit (std::string offset) {
         case IntegerType::IntegerTypeID::MAX_INT_ID:
             ERROR("bad int type id (Constexpr)");
     }
-    ret += std::static_pointer_cast<AtomicType>(scalar_val->get_type())->get_suffix ();
+    ret += std::static_pointer_cast<BuiltinType>(scalar_val->get_type())->get_suffix ();
     return ret;
 }
 
-ConstExpr::ConstExpr(AtomicType::ScalarTypedVal _val) :
+ConstExpr::ConstExpr(BuiltinType::ScalarTypedVal _val) :
         Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {
     std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
 }
@@ -230,7 +230,7 @@ std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
         return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::INT), true);
     }
     else {
-        AtomicType::ScalarTypedVal val = std::static_pointer_cast<ScalarVariable>(arg->get_value())->get_cur_value();
+        BuiltinType::ScalarTypedVal val = std::static_pointer_cast<ScalarVariable>(arg->get_value())->get_cur_value();
         if (BitField::can_fit_in_int(val, false))
             return std::make_shared<TypeCastExpr>(arg, IntegerType::init(Type::IntegerTypeID::INT), true);
         if (BitField::can_fit_in_int(val, true))
@@ -436,7 +436,7 @@ UB UnaryExpr::propagate_value () {
 
     std::shared_ptr<ScalarVariable> scalar_val = std::static_pointer_cast<ScalarVariable>(arg->get_value());
 
-    AtomicType::ScalarTypedVal new_val (scalar_val->get_type()->get_int_type_id());
+    BuiltinType::ScalarTypedVal new_val (scalar_val->get_type()->get_int_type_id());
 
     switch (op) {
         case PreInc:
@@ -591,7 +591,7 @@ void BinaryExpr::rebuild (UB ub) {
                 }
 
                 // And finally we insert new child node with corresponding additive operator
-                AtomicType::ScalarTypedVal const_ins_val (rhs_int_type->get_int_type_id());
+                BuiltinType::ScalarTypedVal const_ins_val (rhs_int_type->get_int_type_id());
                 const_ins_val.set_abs_val (const_val);
                 std::shared_ptr<ConstExpr> const_ins = std::make_shared<ConstExpr>(const_ins_val);
                 if (ub == UB::ShiftRhsNeg)
@@ -605,7 +605,7 @@ void BinaryExpr::rebuild (UB ub) {
                 std::shared_ptr<Expr> lhs = arg0;
                 std::shared_ptr<IntegerType> lhs_int_type = std::static_pointer_cast<IntegerType>(lhs->get_value()->get_type());
                 uint64_t const_val = lhs_int_type->get_max().get_abs_val();
-                AtomicType::ScalarTypedVal const_ins_val(lhs_int_type->get_int_type_id());
+                BuiltinType::ScalarTypedVal const_ins_val(lhs_int_type->get_int_type_id());
                 const_ins_val.set_abs_val (const_val);
                 std::shared_ptr<ConstExpr> const_ins = std::make_shared<ConstExpr>(const_ins_val);
                 arg0 = std::make_shared<BinaryExpr>(Add, arg0, const_ins);
@@ -739,7 +739,7 @@ UB BinaryExpr::propagate_value () {
 
     std::shared_ptr<ScalarVariable> scalar_lhs = std::static_pointer_cast<ScalarVariable>(arg0->get_value());
     std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
-    AtomicType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
+    BuiltinType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
 
 
 /*
@@ -979,12 +979,12 @@ std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
     }
 }
 
-static std::shared_ptr<Expr> change_to_value(std::shared_ptr<Context> ctx, std::shared_ptr<Expr> _expr, AtomicType::ScalarTypedVal to_val) {
+static std::shared_ptr<Expr> change_to_value(std::shared_ptr<Context> ctx, std::shared_ptr<Expr> _expr, BuiltinType::ScalarTypedVal to_val) {
     std::shared_ptr<Data> expr_data = _expr->get_value();
     if (expr_data->get_class_id() != Data::VarClassID::VAR) {
         ERROR("only variables are supported");
     }
-    AtomicType::ScalarTypedVal value = std::static_pointer_cast<ScalarVariable>(expr_data)->get_cur_value();
+    BuiltinType::ScalarTypedVal value = std::static_pointer_cast<ScalarVariable>(expr_data)->get_cur_value();
     std::shared_ptr<ConstExpr> const_expr = std::make_shared<ConstExpr>(value);
     std::shared_ptr<Expr> to_zero =  std::make_shared<BinaryExpr>(BinaryExpr::Op::Sub, _expr, const_expr);
     std::shared_ptr<ConstExpr> to_val_const_expr = std::make_shared<ConstExpr>(to_val);
@@ -992,9 +992,9 @@ static std::shared_ptr<Expr> change_to_value(std::shared_ptr<Context> ctx, std::
 }
 
 std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr> _expr) {
-    AtomicType::ScalarTypedVal new_val = std::static_pointer_cast<ScalarVariable>(_expr->get_value())->get_cur_value();
+    BuiltinType::ScalarTypedVal new_val = std::static_pointer_cast<ScalarVariable>(_expr->get_value())->get_cur_value();
     std::shared_ptr<BitField> bit_field = std::static_pointer_cast<BitField>(value->get_type());
-    AtomicType::ScalarTypedVal ovf_cmp_val = (bit_field->get_min() > new_val) || (bit_field->get_max() < new_val);
+    BuiltinType::ScalarTypedVal ovf_cmp_val = (bit_field->get_min() > new_val) || (bit_field->get_max() < new_val);
     if (!ovf_cmp_val.val.bool_val) {
         std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(new_val);
         return _expr;
@@ -1004,7 +1004,7 @@ std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr>
     Context ctx_var (gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
     ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
     std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
-    AtomicType::ScalarTypedVal to_value = AtomicType::ScalarTypedVal::generate(ctx, bit_field->get_min(), bit_field->get_max());
+    BuiltinType::ScalarTypedVal to_value = BuiltinType::ScalarTypedVal::generate(ctx, bit_field->get_min(), bit_field->get_max());
     std::shared_ptr<Expr> ret = change_to_value(ctx, _expr, to_value);
 
     std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(ret->get_value())->get_cur_value());

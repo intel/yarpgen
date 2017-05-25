@@ -35,7 +35,7 @@ class Type {
     public:
         // ID for top-level Type kind
         enum TypeID {
-            ATOMIC_TYPE,
+            BUILTIN_TYPE,
             STRUCT_TYPE,
             MAX_TYPE_ID
         };
@@ -49,10 +49,9 @@ class Type {
             MAX_CV_QUAL
         };
 
-        // DB: Why the name is "atomic"? It's a bit confusing.
-        // What about "basic" or "fundamental"?
-        enum AtomicTypeID {
-            Integer, FP, Max_AtomicTypeID
+        // ID for builtin types (in C terminology they "atomic", in C++ they are "fundamental" types)
+        enum BuiltinTypeID {
+            Integer, FP, Max_BuiltinTypeID
         };
 
         enum IntegerTypeID {
@@ -79,7 +78,7 @@ class Type {
 
         // Getters and setters for general Type properties
         Type::TypeID get_type_id () { return id; }
-        virtual AtomicTypeID get_atomic_type_id () { return Max_AtomicTypeID; }
+        virtual BuiltinTypeID get_builtin_type_id() { return Max_BuiltinTypeID; }
         virtual IntegerTypeID get_int_type_id () { return MAX_INT_ID; }
         virtual bool get_is_signed() { return false; }
         virtual bool get_is_bit_field() { return false; }
@@ -95,7 +94,7 @@ class Type {
         std::string get_simple_name () { return name; }
 
         // Utility functions, which allows quickly determine Type kind
-        virtual bool is_atomic_type() { return false; }
+        virtual bool is_builtin_type() { return false; }
         virtual bool is_ptr_type() { return false; }
         virtual bool is_int_type() { return false; }
         virtual bool is_fp_type() { return false; }
@@ -182,7 +181,7 @@ enum UB {
 };
 
 // Common ancestor for all builtin types.
-class AtomicType : public Type {
+class BuiltinType : public Type {
     public:
         // We need something to link together Type and Value (it should be consistent with Type).
         class ScalarTypedVal {
@@ -203,8 +202,8 @@ class AtomicType : public Type {
                     unsigned long long int ullint_val;
                 };
 
-                ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id) : int_type_id(_int_type_id), res_of_ub(NoUB) { val.ullint_val = 0; }
-                ScalarTypedVal (AtomicType::IntegerTypeID _int_type_id, UB _res_of_ub) : int_type_id (_int_type_id), res_of_ub(_res_of_ub)  { val.ullint_val = 0; }
+                ScalarTypedVal (BuiltinType::IntegerTypeID _int_type_id) : int_type_id(_int_type_id), res_of_ub(NoUB) { val.ullint_val = 0; }
+                ScalarTypedVal (BuiltinType::IntegerTypeID _int_type_id, UB _res_of_ub) : int_type_id (_int_type_id), res_of_ub(_res_of_ub)  { val.ullint_val = 0; }
                 Type::IntegerTypeID get_int_type_id () const { return int_type_id; }
 
                 // Utility functions for UB
@@ -245,7 +244,7 @@ class AtomicType : public Type {
                 ScalarTypedVal operator>> (ScalarTypedVal rhs);
 
                 // Randomly generate ScalarTypedVal
-                static ScalarTypedVal generate (std::shared_ptr<Context> ctx, AtomicType::IntegerTypeID _int_type_id);
+                static ScalarTypedVal generate (std::shared_ptr<Context> ctx, BuiltinType::IntegerTypeID _int_type_id);
                 static ScalarTypedVal generate (std::shared_ptr<Context> ctx, ScalarTypedVal min, ScalarTypedVal max);
 
                 // The value itself
@@ -255,18 +254,18 @@ class AtomicType : public Type {
                 // Common fuction for all pre-increment and post-increment operators
                 ScalarTypedVal pre_op (bool inc);
 
-                AtomicType::IntegerTypeID int_type_id;
+                BuiltinType::IntegerTypeID int_type_id;
                 // If we can use the value or it was obtained from operation with UB
                 UB res_of_ub;
         };
 
-        AtomicType (AtomicTypeID at_id) : Type (Type::ATOMIC_TYPE), bit_size (0), suffix(""), atomic_id (at_id) {}
-        AtomicType (AtomicTypeID at_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                    Type (Type::ATOMIC_TYPE, _cv_qual, _is_static, _align), bit_size (0), suffix(""), atomic_id (at_id) {}
-        bool is_atomic_type() { return true; }
+        BuiltinType (BuiltinTypeID _builtin_id) : Type (Type::BUILTIN_TYPE), bit_size (0), suffix(""), builtin_id (_builtin_id) {}
+        BuiltinType (BuiltinTypeID _builtin_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+                    Type (Type::BUILTIN_TYPE, _cv_qual, _is_static, _align), bit_size (0), suffix(""), builtin_id (_builtin_id) {}
+        bool is_builtin_type() { return true; }
 
-        // Getters for AtomicType properties
-        AtomicTypeID get_atomic_type_id () { return atomic_id; }
+        // Getters for BuiltinType properties
+        BuiltinTypeID get_builtin_type_id() { return builtin_id; }
         uint64_t get_bit_size () { return bit_size; }
         std::string get_suffix () { return suffix; }
 
@@ -276,34 +275,34 @@ class AtomicType : public Type {
         std::string suffix;
 
     private:
-        AtomicTypeID atomic_id;
+        BuiltinTypeID builtin_id;
 };
 
-std::ostream& operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val);
+std::ostream& operator<< (std::ostream &out, const BuiltinType::ScalarTypedVal &scalar_typed_val);
 
 // Class which serves as common ancestor for all standard integer types, bool and bit-fields
-class IntegerType : public AtomicType {
+class IntegerType : public BuiltinType {
     public:
-        IntegerType (IntegerTypeID it_id) : AtomicType (AtomicTypeID::Integer), is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
+        IntegerType (IntegerTypeID it_id) : BuiltinType (BuiltinTypeID::Integer), is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
         IntegerType (IntegerTypeID it_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                     AtomicType (AtomicTypeID::Integer, _cv_qual, _is_static, _align),
+                     BuiltinType (BuiltinTypeID::Integer, _cv_qual, _is_static, _align),
                      is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
         bool is_int_type() { return true; }
 
         // Getters for IntegerType properties
         IntegerTypeID get_int_type_id () { return int_type_id; }
         bool get_is_signed () { return is_signed; }
-        AtomicType::ScalarTypedVal get_min () { return min; }
-        AtomicType::ScalarTypedVal get_max () { return max; }
+        BuiltinType::ScalarTypedVal get_min () { return min; }
+        BuiltinType::ScalarTypedVal get_max () { return max; }
 
         // This utility functions take IntegerTypeID and return shared pointer to corresponding type
-        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id);
-        static std::shared_ptr<IntegerType> init (AtomicType::IntegerTypeID _type_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align);
+        static std::shared_ptr<IntegerType> init (BuiltinType::IntegerTypeID _type_id);
+        static std::shared_ptr<IntegerType> init (BuiltinType::IntegerTypeID _type_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align);
 
         // If type A can represent all the values of type B
-        static bool can_repr_value (AtomicType::IntegerTypeID A, AtomicType::IntegerTypeID B); // if type B can represent all of the values of the type A
+        static bool can_repr_value (BuiltinType::IntegerTypeID A, BuiltinType::IntegerTypeID B); // if type B can represent all of the values of the type A
         // Returns corresponding unsigned type
-        static AtomicType::IntegerTypeID get_corr_unsig (AtomicType::IntegerTypeID _type_id);
+        static BuiltinType::IntegerTypeID get_corr_unsig (BuiltinType::IntegerTypeID _type_id);
 
         // Randomly generate IntegerType (except bit-fields)
         static std::shared_ptr<IntegerType> generate (std::shared_ptr<Context> ctx);
@@ -311,8 +310,8 @@ class IntegerType : public AtomicType {
     protected:
         bool is_signed;
         // Minimum and maximum value, which can fit in type
-        AtomicType::ScalarTypedVal min;
-        AtomicType::ScalarTypedVal max;
+        BuiltinType::ScalarTypedVal min;
+        BuiltinType::ScalarTypedVal max;
 
     private:
         IntegerTypeID int_type_id;
@@ -329,7 +328,7 @@ class BitField : public IntegerType {
         uint64_t get_bit_field_width() { return bit_field_width; }
 
         // If all values of the bit-field can fit in signed/unsigned int
-        static bool can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned);
+        static bool can_fit_in_int (BuiltinType::ScalarTypedVal val, bool is_unsigned);
 
         // Randomly generate BitField
         static std::shared_ptr<BitField> generate (std::shared_ptr<Context> ctx, bool is_unnamed = false);
@@ -346,9 +345,9 @@ class BitField : public IntegerType {
 // TODO: maybe all this classes should be singletons?
 class TypeBOOL : public IntegerType {
     public:
-        TypeBOOL () : IntegerType(AtomicType::IntegerTypeID::BOOL) { init_type (); }
+        TypeBOOL () : IntegerType(BuiltinType::IntegerTypeID::BOOL) { init_type (); }
         TypeBOOL (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::BOOL, _cv_qual, _is_static, _align) { init_type (); }
+                  IntegerType(BuiltinType::IntegerTypeID::BOOL, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -364,9 +363,9 @@ class TypeBOOL : public IntegerType {
 
 class TypeCHAR : public IntegerType {
     public:
-        TypeCHAR () : IntegerType(AtomicType::IntegerTypeID::CHAR) { init_type (); }
+        TypeCHAR () : IntegerType(BuiltinType::IntegerTypeID::CHAR) { init_type (); }
         TypeCHAR (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::CHAR, _cv_qual, _is_static, _align) { init_type (); }
+                  IntegerType(BuiltinType::IntegerTypeID::CHAR, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -382,9 +381,9 @@ class TypeCHAR : public IntegerType {
 
 class TypeUCHAR : public IntegerType {
     public:
-        TypeUCHAR () : IntegerType(AtomicType::IntegerTypeID::UCHAR) { init_type (); }
+        TypeUCHAR () : IntegerType(BuiltinType::IntegerTypeID::UCHAR) { init_type (); }
         TypeUCHAR (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::UCHAR, _cv_qual, _is_static, _align) { init_type (); }
+                   IntegerType(BuiltinType::IntegerTypeID::UCHAR, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -400,9 +399,9 @@ class TypeUCHAR : public IntegerType {
 
 class TypeSHRT : public IntegerType {
     public:
-        TypeSHRT () : IntegerType(AtomicType::IntegerTypeID::SHRT) { init_type (); }
+        TypeSHRT () : IntegerType(BuiltinType::IntegerTypeID::SHRT) { init_type (); }
         TypeSHRT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::SHRT, _cv_qual, _is_static, _align) { init_type (); }
+                  IntegerType(BuiltinType::IntegerTypeID::SHRT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -418,9 +417,9 @@ class TypeSHRT : public IntegerType {
 
 class TypeUSHRT : public IntegerType {
     public:
-        TypeUSHRT () : IntegerType(AtomicType::IntegerTypeID::USHRT) { init_type (); }
+        TypeUSHRT () : IntegerType(BuiltinType::IntegerTypeID::USHRT) { init_type (); }
         TypeUSHRT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::USHRT, _cv_qual, _is_static, _align) { init_type (); }
+                   IntegerType(BuiltinType::IntegerTypeID::USHRT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -436,9 +435,9 @@ class TypeUSHRT : public IntegerType {
 
 class TypeINT : public IntegerType {
     public:
-        TypeINT () : IntegerType(AtomicType::IntegerTypeID::INT) { init_type (); }
+        TypeINT () : IntegerType(BuiltinType::IntegerTypeID::INT) { init_type (); }
         TypeINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                 IntegerType(AtomicType::IntegerTypeID::INT, _cv_qual, _is_static, _align) { init_type (); }
+                 IntegerType(BuiltinType::IntegerTypeID::INT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -454,9 +453,9 @@ class TypeINT : public IntegerType {
 
 class TypeUINT : public IntegerType {
     public:
-        TypeUINT () : IntegerType(AtomicType::IntegerTypeID::UINT) { init_type (); }
+        TypeUINT () : IntegerType(BuiltinType::IntegerTypeID::UINT) { init_type (); }
         TypeUINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::UINT, _cv_qual, _is_static, _align) { init_type (); }
+                  IntegerType(BuiltinType::IntegerTypeID::UINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -472,9 +471,9 @@ class TypeUINT : public IntegerType {
 
 class TypeLINT : public IntegerType {
     public:
-        TypeLINT () : IntegerType(AtomicType::IntegerTypeID::LINT) { init_type (); }
+        TypeLINT () : IntegerType(BuiltinType::IntegerTypeID::LINT) { init_type (); }
         TypeLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                  IntegerType(AtomicType::IntegerTypeID::LINT, _cv_qual, _is_static, _align) { init_type (); }
+                  IntegerType(BuiltinType::IntegerTypeID::LINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -497,9 +496,9 @@ class TypeLINT : public IntegerType {
 
 class TypeULINT : public IntegerType {
     public:
-        TypeULINT () : IntegerType(AtomicType::IntegerTypeID::ULINT) { init_type (); }
+        TypeULINT () : IntegerType(BuiltinType::IntegerTypeID::ULINT) { init_type (); }
         TypeULINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::ULINT, _cv_qual, _is_static, _align) { init_type (); }
+                   IntegerType(BuiltinType::IntegerTypeID::ULINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -522,9 +521,9 @@ class TypeULINT : public IntegerType {
 
 class TypeLLINT : public IntegerType {
     public:
-        TypeLLINT () : IntegerType(AtomicType::IntegerTypeID::LLINT) { init_type (); }
+        TypeLLINT () : IntegerType(BuiltinType::IntegerTypeID::LLINT) { init_type (); }
         TypeLLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                   IntegerType(AtomicType::IntegerTypeID::LLINT, _cv_qual, _is_static, _align) { init_type (); }
+                   IntegerType(BuiltinType::IntegerTypeID::LLINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
@@ -540,9 +539,9 @@ class TypeLLINT : public IntegerType {
 
 class TypeULLINT : public IntegerType {
     public:
-        TypeULLINT () : IntegerType(AtomicType::IntegerTypeID::ULLINT) { init_type (); }
+        TypeULLINT () : IntegerType(BuiltinType::IntegerTypeID::ULLINT) { init_type (); }
         TypeULLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
-                    IntegerType(AtomicType::IntegerTypeID::ULLINT, _cv_qual, _is_static, _align) { init_type (); }
+                    IntegerType(BuiltinType::IntegerTypeID::ULLINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
     private:
