@@ -95,7 +95,7 @@ void Struct::generate_members_init(std::shared_ptr<Context> ctx) {
         }
         else if (get_member(i)->get_type()->is_int_type()) {
             std::shared_ptr<IntegerType> member_type = std::static_pointer_cast<IntegerType>(get_member(i)->get_type());
-            AtomicType::ScalarTypedVal init_val = AtomicType::ScalarTypedVal::generate(ctx, member_type->get_min(), member_type->get_max());
+            BuiltinType::ScalarTypedVal init_val = BuiltinType::ScalarTypedVal::generate(ctx, member_type->get_min(), member_type->get_max());
             std::static_pointer_cast<ScalarVariable>(get_member(i))->set_init_value(init_val);
         }
         else {
@@ -128,6 +128,6 @@ void ScalarVariable::dbg_dump () {
 
 std::shared_ptr<ScalarVariable> ScalarVariable::generate(std::shared_ptr<Context> ctx) {
     std::shared_ptr<ScalarVariable> ret = std::make_shared<ScalarVariable> (rand_val_gen->get_scalar_var_name(), IntegerType::generate(ctx));
-    ret->set_init_value(AtomicType::ScalarTypedVal::generate(ctx, ret->get_type()->get_int_type_id()));
+    ret->set_init_value(BuiltinType::ScalarTypedVal::generate(ctx, ret->get_type()->get_int_type_id()));
     return ret;
 }

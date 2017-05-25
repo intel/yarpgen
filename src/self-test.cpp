@@ -31,11 +31,11 @@ using namespace yarpgen;
 void self_test () {
     std::cout << "SELFTEST" << std::endl;
 /*
-    std::shared_ptr<IntegerType> bool_type = IntegerType::init(AtomicType::IntegerTypeID::BOOL);
+    std::shared_ptr<IntegerType> bool_type = IntegerType::init(BuiltinType::IntegerTypeID::BOOL);
     bool_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    std::shared_ptr<IntegerType> int_type = IntegerType::init(AtomicType::IntegerTypeID::INT, AtomicType::CV_Qual::CONST, true, 32);
+    std::shared_ptr<IntegerType> int_type = IntegerType::init(BuiltinType::IntegerTypeID::INT, BuiltinType::CV_Qual::CONST, true, 32);
     int_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
@@ -78,7 +78,7 @@ void self_test () {
     bool_val->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    std::shared_ptr<IntegerType> lint_type = IntegerType::init(AtomicType::IntegerTypeID::LINT, AtomicType::CV_Qual::VOLAT, false, 0);
+    std::shared_ptr<IntegerType> lint_type = IntegerType::init(BuiltinType::IntegerTypeID::LINT, BuiltinType::CV_Qual::VOLAT, false, 0);
     lint_type->dbg_dump();
 
     std::shared_ptr<ScalarVariable> lint_val = std::make_shared<ScalarVariable>("li", lint_type);
@@ -88,7 +88,7 @@ void self_test () {
     std::cout << "lint_use " << lint_use->emit() << std::endl;
 
 
-    AtomicType::ScalarTypedVal char_const_val (Type::IntegerTypeID::CHAR);
+    BuiltinType::ScalarTypedVal char_const_val (Type::IntegerTypeID::CHAR);
     std::shared_ptr<ConstExpr> char_const = std::make_shared<ConstExpr>(char_const_val);
     std::shared_ptr<AssignExpr> lint_char = std::make_shared<AssignExpr>(lint_use, char_const);
     std::cout << "int_bool " << lint_char->emit() << std::endl;
@@ -144,7 +144,7 @@ void self_test () {
     std::cout << "taken: " << IfStmt::count_if_taken(unary_bit_not) << std::endl;
     std::cout << "\n====================="<< std::endl;
 
-    std::shared_ptr<IntegerType> llint_type = IntegerType::init(AtomicType::IntegerTypeID::LLINT);
+    std::shared_ptr<IntegerType> llint_type = IntegerType::init(BuiltinType::IntegerTypeID::LLINT);
 
     std::shared_ptr<ScalarVariable> if_val = std::make_shared<ScalarVariable>("if_val", llint_type);
     std::shared_ptr<VarUseExpr> if_val_use = std::make_shared<VarUseExpr>(if_val);
@@ -188,7 +188,7 @@ void self_test () {
     rand_par_struct_type->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    AtomicType::ScalarTypedVal rand_val = AtomicType::ScalarTypedVal::generate(ctx, Type::IntegerTypeID::SHRT);
+    BuiltinType::ScalarTypedVal rand_val = BuiltinType::ScalarTypedVal::generate(ctx, Type::IntegerTypeID::SHRT);
     std::cout << "rand_val: " << rand_val << std::endl;
     std::cout << "\n====================="<< std::endl;
 
@@ -313,7 +313,7 @@ void self_test () {
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct0->get_member(0))->get_member(0))->get_cur_value() << std::endl;
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct1->get_member(0))->get_member(0))->get_cur_value() << std::endl;
 
-    AtomicType::ScalarTypedVal char_const_val (Type::IntegerTypeID::INT);
+    BuiltinType::ScalarTypedVal char_const_val (Type::IntegerTypeID::INT);
     char_const_val.val.int_val = 100;
     std::shared_ptr<ConstExpr> char_const = std::make_shared<ConstExpr>(char_const_val);
     std::shared_ptr<MemberExpr> mem_expr0 = std::make_shared<MemberExpr>(struct0, 0);

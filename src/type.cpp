@@ -225,10 +225,10 @@ switch (int_type_id) {                                              \
         new_val_memb = val.ullint_val;                              \
         break;                                                      \
     case Type::IntegerTypeID::MAX_INT_ID:                           \
-        ERROR("unsupported int type (AtomicType::ScalarTypedVal)"); \
+        ERROR("unsupported int type (BuiltinType::ScalarTypedVal)");\
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerTypeID to_type_id) {
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::cast_type (Type::IntegerTypeID to_type_id) {
     ScalarTypedVal new_val = ScalarTypedVal (to_type_id);
     switch (to_type_id) {
         case Type::IntegerTypeID::BOOL:
@@ -271,17 +271,17 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::cast_type (Type::IntegerT
             CAST_CASE(new_val.val.ullint_val)
             break;
         case Type::IntegerTypeID::MAX_INT_ID:
-            ERROR("unsupported int type (AtomicType::ScalarTypedVal)");
+            ERROR("unsupported int type (BuiltinType::ScalarTypedVal)");
     }
     return new_val;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Prefix
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::pre_op (bool inc) { // Prefix
+    BuiltinType::ScalarTypedVal ret = *this;
     int add = inc ? 1 : -1;
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
-            ERROR("bool is illegal in dec and inc operators (AtomicType::ScalarTypedVal)");
+            ERROR("bool is illegal in dec and inc operators (BuiltinType::ScalarTypedVal)");
         //TODO: is it UB if we pre-increment char and short?
         case IntegerType::IntegerTypeID::CHAR:
             if ((val.char_val == CHAR_MAX && add > 0) ||
@@ -343,7 +343,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
             ret.val.ullint_val = val.ullint_val + add;
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
     }
     return ret;
 }
@@ -354,8 +354,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::pre_op (bool inc) { // Pr
     else                                                             \
         ret.val.sign##lint32_val = op val.sign##lint32_val;
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator- () {
+    BuiltinType::ScalarTypedVal ret = *this;
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -363,7 +363,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             if (val.int_val == INT_MIN)
                 ret.set_ub(UB::SignOvf);
@@ -404,8 +404,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- () {
 
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator~ () {
+    BuiltinType::ScalarTypedVal ret = *this;
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -413,7 +413,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             ret.val.int_val = ~val.int_val;
             break;
@@ -436,7 +436,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator~ () {
     return ret;
 }
 
-uint64_t AtomicType::ScalarTypedVal::get_abs_val () {
+uint64_t BuiltinType::ScalarTypedVal::get_abs_val () {
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
             return val.bool_val;
@@ -467,13 +467,13 @@ uint64_t AtomicType::ScalarTypedVal::get_abs_val () {
         case IntegerType::IntegerTypeID::ULLINT:
             return val.ullint_val;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
     }
     // TODO: add unreachable macro to the project.
-    ERROR("reaching unreachable code (AtomicType::ScalarTypedVal)");
+    ERROR("reaching unreachable code (BuiltinType::ScalarTypedVal)");
 }
 
-void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
+void BuiltinType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
             val.bool_val = new_val;
@@ -515,12 +515,12 @@ void AtomicType::ScalarTypedVal::set_abs_val (uint64_t new_val) {
             val.ullint_val = new_val;
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
     }
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
-    AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator! () {
+    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(Type::IntegerTypeID::BOOL);
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
             ret.val.bool_val = !val.bool_val;
@@ -536,7 +536,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
         case IntegerType::IntegerTypeID::LLINT:
         case IntegerType::IntegerTypeID::ULLINT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
     }
     return ret;
 }
@@ -547,8 +547,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator! () {
     else                                                                             \
         ret.val.sign##lint32_val = val.sign##lint32_val op rhs.val.sign##lint32_val;
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator+ (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_tmp = 0;
     uint64_t u_tmp = 0;
@@ -560,7 +560,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_tmp = (long long int) val.int_val + (long long int) rhs.val.int_val;
             if (s_tmp < INT_MIN || s_tmp > INT_MAX)
@@ -612,8 +612,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator+ (ScalarTypedVal
     return ret;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator- (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_tmp = 0;
     uint64_t u_tmp = 0;
@@ -625,7 +625,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator- (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_tmp = (long long int) val.int_val - (long long int) rhs.val.int_val;
             if (s_tmp < INT_MIN || s_tmp > INT_MAX)
@@ -724,8 +724,8 @@ static bool check_int64_mul (int64_t a, int64_t b, int64_t* res) {
     return true;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator* (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_tmp = 0;
 
@@ -736,7 +736,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_tmp = (long long int) val.int_val * (long long int) rhs.val.int_val;
             if ((int) val.int_val == INT_MIN && (int) rhs.val.int_val == -1)
@@ -782,8 +782,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator* (ScalarTypedVal
     return ret;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator/ (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
@@ -792,7 +792,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             if (rhs.val.int_val == 0) {
                 ret.set_ub(ZeroDiv);
@@ -864,8 +864,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator/ (ScalarTypedVal
     return ret;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator% (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
@@ -874,7 +874,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             if (rhs.val.int_val == 0) {
                 ret.set_ub(ZeroDiv);
@@ -946,8 +946,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator% (ScalarTypedVal
 }
 
 #define ScalarTypedValCmpOp(__op__)                                                                 \
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {       \
-    AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);         \
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {     \
+    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(Type::IntegerTypeID::BOOL);       \
                                                                                                     \
     switch (int_type_id) {                                                                          \
         case IntegerType::IntegerTypeID::BOOL:                                                      \
@@ -990,7 +990,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
             ret.val.bool_val = val.ullint_val __op__ rhs.val.ullint_val;                            \
             break;                                                                                  \
         case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");                           \
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");                          \
     }                                                                                               \
     return ret;                                                                                     \
 }
@@ -1003,8 +1003,8 @@ ScalarTypedValCmpOp(==)
 ScalarTypedValCmpOp(!=)
 
 #define ScalarTypedValLogOp(__op__)                                                                 \
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {       \
-    AtomicType::ScalarTypedVal ret = AtomicType::ScalarTypedVal(Type::IntegerTypeID::BOOL);         \
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {     \
+    BuiltinType::ScalarTypedVal ret = BuiltinType::ScalarTypedVal(Type::IntegerTypeID::BOOL);       \
                                                                                                     \
     switch (int_type_id) {                                                                          \
         case IntegerType::IntegerTypeID::BOOL:                                                      \
@@ -1021,7 +1021,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
         case IntegerType::IntegerTypeID::LLINT:                                                     \
         case IntegerType::IntegerTypeID::ULLINT:                                                    \
         case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");                           \
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");                          \
     }                                                                                               \
     return ret;                                                                                     \
 }
@@ -1030,8 +1030,8 @@ ScalarTypedValLogOp(&&)
 ScalarTypedValLogOp(||)
 
 #define ScalarTypedValBitOp(__op__)                                                                 \
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {       \
-    AtomicType::ScalarTypedVal ret = *this;                                                         \
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator __op__ (ScalarTypedVal rhs) {     \
+    BuiltinType::ScalarTypedVal ret = *this;                                                        \
                                                                                                     \
     switch (int_type_id) {                                                                          \
         case IntegerType::IntegerTypeID::BOOL:                                                      \
@@ -1040,7 +1040,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator __op__ (ScalarTy
         case IntegerType::IntegerTypeID::SHRT:                                                      \
         case IntegerType::IntegerTypeID::USHRT:                                                     \
         case IntegerType::IntegerTypeID::MAX_INT_ID:                                                \
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");                           \
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");                          \
         case IntegerType::IntegerTypeID::INT:                                                       \
             ret.val.int_val = val.int_val __op__ rhs.val.int_val;                                   \
             break;                                                                                  \
@@ -1081,7 +1081,7 @@ switch (rhs.get_int_type_id()) {                                                
     case IntegerType::IntegerTypeID::SHRT:                                      \
     case IntegerType::IntegerTypeID::USHRT:                                     \
     case IntegerType::IntegerTypeID::MAX_INT_ID:                                \
-        ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");           \
+        ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");          \
     case IntegerType::IntegerTypeID::INT:                                       \
         ret_val = lhs_val __op__ rhs.val.int_val;                               \
         break;                                                                  \
@@ -1117,8 +1117,8 @@ static uint64_t msb(uint64_t x) {
     return ret;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_lhs = 0;
     int64_t u_lhs = 0;
@@ -1131,7 +1131,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_lhs = val.int_val;
             break;
@@ -1165,7 +1165,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_rhs = rhs.val.int_val;
             break;
@@ -1239,7 +1239,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             SHFT_CASE(<<, ret.val.int_val, val.int_val)
             break;
@@ -1268,8 +1268,8 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator<< (ScalarTypedVa
     return ret;
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVal rhs) {
-    AtomicType::ScalarTypedVal ret = *this;
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTypedVal rhs) {
+    BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_lhs = 0;
     int64_t u_lhs = 0;
@@ -1282,7 +1282,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_lhs = val.int_val;
             break;
@@ -1316,7 +1316,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             s_rhs = rhs.val.int_val;
             break;
@@ -1378,7 +1378,7 @@ AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::operator>> (ScalarTypedVa
         case IntegerType::IntegerTypeID::SHRT:
         case IntegerType::IntegerTypeID::USHRT:
         case IntegerType::IntegerTypeID::MAX_INT_ID:
-            ERROR("perform propagate_type (AtomicType::ScalarTypedVal)");
+            ERROR("perform propagate_type (BuiltinType::ScalarTypedVal)");
         case IntegerType::IntegerTypeID::INT:
             SHFT_CASE(>>, ret.val.int_val, val.int_val)
             break;
@@ -1418,147 +1418,147 @@ void gen_rand_typed_val<bool> (bool& ret, bool& min, bool& max) {
 }
 
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, AtomicType::IntegerTypeID _int_type_id) {
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, BuiltinType::IntegerTypeID _int_type_id) {
     std::shared_ptr<IntegerType> tmp_type = IntegerType::init (_int_type_id);
-    AtomicType::ScalarTypedVal min = tmp_type->get_min();
-    AtomicType::ScalarTypedVal max = tmp_type->get_max();
+    BuiltinType::ScalarTypedVal min = tmp_type->get_min();
+    BuiltinType::ScalarTypedVal max = tmp_type->get_max();
     return generate(ctx, min, max);
 }
 
-AtomicType::ScalarTypedVal AtomicType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, AtomicType::ScalarTypedVal min, AtomicType::ScalarTypedVal max) {
+BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, BuiltinType::ScalarTypedVal min, BuiltinType::ScalarTypedVal max) {
     if (min.get_int_type_id() != max.get_int_type_id()) {
-        ERROR("int type of min and int type of max are different (AtomicType::ScalarTypedVal)");
+        ERROR("int type of min and int type of max are different (BuiltinType::ScalarTypedVal)");
     }
-    AtomicType::ScalarTypedVal ret(min.get_int_type_id());
+    BuiltinType::ScalarTypedVal ret(min.get_int_type_id());
     switch(min.get_int_type_id()) {
-        case AtomicType::BOOL:
+        case BuiltinType::BOOL:
             gen_rand_typed_val(ret.val.bool_val, min.val.bool_val, max.val.bool_val);
             break;
-        case AtomicType::CHAR:
+        case BuiltinType::CHAR:
             gen_rand_typed_val(ret.val.char_val, min.val.char_val, max.val.char_val);
             break;
-        case AtomicType::UCHAR:
+        case BuiltinType::UCHAR:
             gen_rand_typed_val(ret.val.uchar_val, min.val.uchar_val, max.val.uchar_val);
             break;
-        case AtomicType::SHRT:
+        case BuiltinType::SHRT:
             gen_rand_typed_val(ret.val.shrt_val, min.val.shrt_val, max.val.shrt_val);
             break;
-        case AtomicType::USHRT:
+        case BuiltinType::USHRT:
             gen_rand_typed_val(ret.val.ushrt_val, min.val.ushrt_val, max.val.ushrt_val);
             break;
-        case AtomicType::INT:
+        case BuiltinType::INT:
             gen_rand_typed_val(ret.val.int_val, min.val.int_val, max.val.int_val);
             break;
-        case AtomicType::UINT:
+        case BuiltinType::UINT:
             gen_rand_typed_val(ret.val.uint_val, min.val.uint_val, max.val.uint_val);
             break;
-        case AtomicType::LINT:
+        case BuiltinType::LINT:
             if (mode_64bit)
                 gen_rand_typed_val(ret.val.lint64_val, min.val.lint64_val, max.val.lint64_val);
             else
                 gen_rand_typed_val(ret.val.lint32_val, min.val.lint32_val, max.val.lint32_val);
             break;
-        case AtomicType::ULINT:
+        case BuiltinType::ULINT:
             if (mode_64bit)
                 gen_rand_typed_val(ret.val.ulint64_val, min.val.ulint64_val, max.val.ulint64_val);
             else
                 gen_rand_typed_val(ret.val.ulint32_val, min.val.ulint32_val, max.val.ulint32_val);
             break;
-        case AtomicType::LLINT:
+        case BuiltinType::LLINT:
             gen_rand_typed_val(ret.val.llint_val, min.val.llint_val, max.val.llint_val);
             break;
-        case AtomicType::ULLINT:
+        case BuiltinType::ULLINT:
             gen_rand_typed_val(ret.val.ullint_val, min.val.ullint_val, max.val.ullint_val);
             break;
-        case AtomicType::MAX_INT_ID:
-            ERROR("unsupported type of struct member (AtomicType::ScalarTypedVal)");
+        case BuiltinType::MAX_INT_ID:
+            ERROR("unsupported type of struct member (BuiltinType::ScalarTypedVal)");
             break;
     }
     return ret;
 }
 
-std::ostream& yarpgen::operator<< (std::ostream &out, const AtomicType::ScalarTypedVal &scalar_typed_val) {
+std::ostream& yarpgen::operator<< (std::ostream &out, const BuiltinType::ScalarTypedVal &scalar_typed_val) {
     switch(scalar_typed_val.get_int_type_id()) {
-        case AtomicType::BOOL:
+        case BuiltinType::BOOL:
             out << scalar_typed_val.val.bool_val;
             break;
-        case AtomicType::CHAR:
+        case BuiltinType::CHAR:
             out << scalar_typed_val.val.char_val;
             break;
-        case AtomicType::UCHAR:
+        case BuiltinType::UCHAR:
             out << scalar_typed_val.val.uchar_val;
             break;
-        case AtomicType::SHRT:
+        case BuiltinType::SHRT:
             out << scalar_typed_val.val.shrt_val;
             break;
-        case AtomicType::USHRT:
+        case BuiltinType::USHRT:
             out << scalar_typed_val.val.ushrt_val;
             break;
-        case AtomicType::INT:
+        case BuiltinType::INT:
             out << scalar_typed_val.val.int_val;
             break;
-        case AtomicType::UINT:
+        case BuiltinType::UINT:
             out << scalar_typed_val.val.uint_val;
             break;
-        case AtomicType::LINT:
+        case BuiltinType::LINT:
             if (mode_64bit)
                 out << scalar_typed_val.val.lint64_val;
             else
                 out << scalar_typed_val.val.lint32_val;
             break;
-        case AtomicType::ULINT:
+        case BuiltinType::ULINT:
             if (mode_64bit)
                 out << scalar_typed_val.val.ulint64_val;
             else
                 out << scalar_typed_val.val.ulint32_val;
             break;
-        case AtomicType::LLINT:
+        case BuiltinType::LLINT:
             out << scalar_typed_val.val.llint_val;
             break;
-        case AtomicType::ULLINT:
+        case BuiltinType::ULLINT:
             out << scalar_typed_val.val.ullint_val;
             break;
-        case AtomicType::MAX_INT_ID:
+        case BuiltinType::MAX_INT_ID:
             ERROR("unsupported type of struct member");
             break;
     }
     return out;
 }
 
-std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id) {
+std::shared_ptr<IntegerType> IntegerType::init (BuiltinType::IntegerTypeID _type_id) {
     std::shared_ptr<IntegerType> ret (nullptr);
     switch (_type_id) {
-        case AtomicType::IntegerTypeID::BOOL:
+        case BuiltinType::IntegerTypeID::BOOL:
             ret = std::make_shared<TypeBOOL> (TypeBOOL());
             break;
-        case AtomicType::IntegerTypeID::CHAR:
+        case BuiltinType::IntegerTypeID::CHAR:
             ret = std::make_shared<TypeCHAR> (TypeCHAR());
             break;
-        case AtomicType::IntegerTypeID::UCHAR:
+        case BuiltinType::IntegerTypeID::UCHAR:
             ret = std::make_shared<TypeUCHAR> (TypeUCHAR());
             break;
-        case AtomicType::IntegerTypeID::SHRT:
+        case BuiltinType::IntegerTypeID::SHRT:
             ret = std::make_shared<TypeSHRT> (TypeSHRT());
             break;
-        case AtomicType::IntegerTypeID::USHRT:
+        case BuiltinType::IntegerTypeID::USHRT:
             ret = std::make_shared<TypeUSHRT> (TypeUSHRT());
             break;
-        case AtomicType::IntegerTypeID::INT:
+        case BuiltinType::IntegerTypeID::INT:
             ret = std::make_shared<TypeINT> (TypeINT());
             break;
-        case AtomicType::IntegerTypeID::UINT:
+        case BuiltinType::IntegerTypeID::UINT:
             ret = std::make_shared<TypeUINT> (TypeUINT());
             break;
-        case AtomicType::IntegerTypeID::LINT:
+        case BuiltinType::IntegerTypeID::LINT:
             ret = std::make_shared<TypeLINT> (TypeLINT());
             break;
-        case AtomicType::IntegerTypeID::ULINT:
+        case BuiltinType::IntegerTypeID::ULINT:
             ret = std::make_shared<TypeULINT> (TypeULINT());
             break;
-         case AtomicType::IntegerTypeID::LLINT:
+         case BuiltinType::IntegerTypeID::LLINT:
             ret = std::make_shared<TypeLLINT> (TypeLLINT());
             break;
-         case AtomicType::IntegerTypeID::ULLINT:
+         case BuiltinType::IntegerTypeID::ULLINT:
             ret = std::make_shared<TypeULLINT> (TypeULLINT());
             break;
         case MAX_INT_ID:
@@ -1567,7 +1567,7 @@ std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_
     return ret;
 }
 
-std::shared_ptr<IntegerType> IntegerType::init (AtomicType::IntegerTypeID _type_id, Type::CV_Qual _cv_qual, bool _is_static, uint64_t _align) {
+std::shared_ptr<IntegerType> IntegerType::init (BuiltinType::IntegerTypeID _type_id, Type::CV_Qual _cv_qual, bool _is_static, uint64_t _align) {
     std::shared_ptr<IntegerType> ret = IntegerType::init (_type_id);
     ret->set_cv_qual(_cv_qual);
     ret->set_is_static(_is_static);
@@ -1591,7 +1591,7 @@ std::shared_ptr<IntegerType> IntegerType::generate (std::shared_ptr<Context> ctx
 }
 
 
-bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::IntegerTypeID b) {
+bool IntegerType::can_repr_value (BuiltinType::IntegerTypeID a, BuiltinType::IntegerTypeID b) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     std::shared_ptr<IntegerType> B = std::static_pointer_cast<IntegerType>(init(b));
     switch (a) {
@@ -1663,7 +1663,7 @@ bool IntegerType::can_repr_value (AtomicType::IntegerTypeID a, AtomicType::Integ
     }
 }
 
-AtomicType::IntegerTypeID IntegerType::get_corr_unsig (AtomicType::IntegerTypeID _type_id) {
+BuiltinType::IntegerTypeID IntegerType::get_corr_unsig (BuiltinType::IntegerTypeID _type_id) {
     // This function is used for different conversion rules, so it can be called only after integral promotion
     switch (_type_id) {
         case INT:
@@ -1703,35 +1703,35 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
     int64_t act_min = -((int64_t) act_max) - 1;
 
     switch (it_id) {
-        case AtomicType::IntegerTypeID::BOOL:
+        case BuiltinType::IntegerTypeID::BOOL:
             min.val.bool_val = false;
             max.val.bool_val = true;
             break;
-        case AtomicType::IntegerTypeID::CHAR:
+        case BuiltinType::IntegerTypeID::CHAR:
             min.val.char_val = act_min;
             max.val.char_val = (int64_t) act_max;
             break;
-        case AtomicType::IntegerTypeID::UCHAR:
+        case BuiltinType::IntegerTypeID::UCHAR:
             min.val.uchar_val = 0;
             max.val.uchar_val = act_max;
             break;
-        case AtomicType::IntegerTypeID::SHRT:
+        case BuiltinType::IntegerTypeID::SHRT:
             min.val.shrt_val = act_min;
             max.val.shrt_val = (int64_t) act_max;
             break;
-        case AtomicType::IntegerTypeID::USHRT:
+        case BuiltinType::IntegerTypeID::USHRT:
             min.val.ushrt_val = 0;
             max.val.ushrt_val = act_max;
             break;
-        case AtomicType::IntegerTypeID::INT:
+        case BuiltinType::IntegerTypeID::INT:
             min.val.int_val = act_min;
             max.val.int_val = (int64_t) act_max;
             break;
-        case AtomicType::IntegerTypeID::UINT:
+        case BuiltinType::IntegerTypeID::UINT:
             min.val.uint_val = 0;
             max.val.uint_val = act_max;
             break;
-        case AtomicType::IntegerTypeID::LINT:
+        case BuiltinType::IntegerTypeID::LINT:
             if (mode_64bit) {
                 min.val.lint64_val = act_min;
                 max.val.lint64_val = (int64_t) act_max;
@@ -1741,7 +1741,7 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
                 max.val.lint32_val = (int64_t) act_max;
             }
             break;
-        case AtomicType::IntegerTypeID::ULINT:
+        case BuiltinType::IntegerTypeID::ULINT:
             if (mode_64bit) {
                 min.val.ulint64_val = 0;
                 max.val.ulint64_val = act_max;
@@ -1751,11 +1751,11 @@ void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
                 max.val.ulint32_val = act_max;
             }
             break;
-         case AtomicType::IntegerTypeID::LLINT:
+         case BuiltinType::IntegerTypeID::LLINT:
             min.val.llint_val = act_min;
             max.val.llint_val = (int64_t) act_max;
             break;
-         case AtomicType::IntegerTypeID::ULLINT:
+         case BuiltinType::IntegerTypeID::ULLINT:
             min.val.ullint_val = 0;
             max.val.ullint_val = act_max;
             break;
@@ -1842,7 +1842,7 @@ std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool
     return std::make_shared<BitField>(int_type_id, bit_size, cv_qual);
 }
 
-bool BitField::can_fit_in_int (AtomicType::ScalarTypedVal val, bool is_unsigned) {
+bool BitField::can_fit_in_int (BuiltinType::ScalarTypedVal val, bool is_unsigned) {
     std::shared_ptr<IntegerType> tmp_type = IntegerType::init(is_unsigned ? Type::IntegerTypeID::UINT : Type::IntegerTypeID::INT);
     bool val_is_unsig = false;
     int64_t s_val = 0;
@@ -1920,35 +1920,35 @@ void BitField::dbg_dump () {
     ret += "name: " + name + "\n";
     ret += "int_type_id: " + std::to_string(get_int_type_id()) + "\n";
     switch (get_int_type_id()) {
-        case AtomicType::IntegerTypeID::BOOL:
+        case BuiltinType::IntegerTypeID::BOOL:
             ret += "min: " + std::to_string(min.val.bool_val) + "\n";
             ret += "max: " + std::to_string(max.val.bool_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::CHAR:
+        case BuiltinType::IntegerTypeID::CHAR:
             ret += "min: " + std::to_string(min.val.char_val) + "\n";
             ret += "max: " + std::to_string(max.val.char_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::UCHAR:
+        case BuiltinType::IntegerTypeID::UCHAR:
             ret += "min: " + std::to_string(min.val.uchar_val) + "\n";
             ret += "max: " + std::to_string(max.val.uchar_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::SHRT:
+        case BuiltinType::IntegerTypeID::SHRT:
             ret += "min: " + std::to_string(min.val.shrt_val) + "\n";
             ret += "max: " + std::to_string(max.val.shrt_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::USHRT:
+        case BuiltinType::IntegerTypeID::USHRT:
             ret += "min: " + std::to_string(min.val.ushrt_val) + "\n";
             ret += "max: " + std::to_string(max.val.ushrt_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::INT:
+        case BuiltinType::IntegerTypeID::INT:
             ret += "min: " + std::to_string(min.val.int_val) + "\n";
             ret += "max: " + std::to_string(max.val.int_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::UINT:
+        case BuiltinType::IntegerTypeID::UINT:
             ret += "min: " + std::to_string(min.val.uint_val) + "\n";
             ret += "max: " + std::to_string(max.val.uint_val) + "\n";
             break;
-        case AtomicType::IntegerTypeID::LINT:
+        case BuiltinType::IntegerTypeID::LINT:
             if (mode_64bit) {
                 ret += "min: " + std::to_string(min.val.lint64_val) + "\n";
                 ret += "max: " + std::to_string(max.val.lint64_val) + "\n";
@@ -1958,7 +1958,7 @@ void BitField::dbg_dump () {
                 ret += "max: " + std::to_string(max.val.lint32_val) + "\n";
             }
             break;
-        case AtomicType::IntegerTypeID::ULINT:
+        case BuiltinType::IntegerTypeID::ULINT:
             if (mode_64bit) {
                 ret += "min: " + std::to_string(min.val.ulint64_val) + "\n";
                 ret += "max: " + std::to_string(max.val.ulint64_val) + "\n";
@@ -1968,11 +1968,11 @@ void BitField::dbg_dump () {
                 ret += "max: " + std::to_string(max.val.ulint32_val) + "\n";
             }
             break;
-         case AtomicType::IntegerTypeID::LLINT:
+         case BuiltinType::IntegerTypeID::LLINT:
             ret += "min: " + std::to_string(min.val.llint_val) + "\n";
             ret += "max: " + std::to_string(max.val.llint_val) + "\n";
             break;
-         case AtomicType::IntegerTypeID::ULLINT:
+         case BuiltinType::IntegerTypeID::ULLINT:
             ret += "min: " + std::to_string(min.val.ullint_val) + "\n";
             ret += "max: " + std::to_string(max.val.ullint_val) + "\n";
             break;
