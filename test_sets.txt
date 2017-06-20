@@ -29,7 +29,7 @@ Compiler specs:
 # Arch prefix - prefix for specifying different architectures (it will be concatenated with Compiler arch value)
 
 # Spec name | C++ executable name | C executable name | Common arguments                                            | Arch prefix
-gcc         | g++                 |  gcc              | -w                                                          | -march=
+gcc         | g++                 | gcc               | -w -fpermissive                                             | -march=
 clang       | clang++             | clang             | -w                                                          | -march=
 # Ubsan is clang or gcc with sanitizer options. It is used for generator check.
 # If you want to use sanitizer with -m32, please make sure that you pass "-rtlib=compiler-rt -lgcc_s" options if you are using clang.
@@ -37,7 +37,7 @@ clang       | clang++             | clang             | -w                      
 # See https://bugs.llvm.org//show_bug.cgi?id=16404 for more information
 # Note that -fpermissive optiuon for gcc is required to allow reduction of ubsan_gcc fails.
 # Otherwise result of reducion is empty program.
-ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized | -march=
+ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized -Werror=implicitly-unsigned-literal | -march=
 ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized -fpermissive | -march=
 icc         | icpc                | icc               | -w                                                          | -x
 icx         | icpx                | icx               | -w                                                          | -march=
