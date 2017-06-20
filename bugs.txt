@@ -1,4 +1,8 @@
 LLVM:
+33442 - UBSAN: right shift by negative value is not caught for some values
+33133 - UBSan misses check for "negative_value << 0"
+32894 - ICE: "Cannot replace uses of with self" in llvm::SelectionDAG::ReplaceAllUsesWith
+32830 - Clang produces incorrect code with -O2 and higher
 32646 - UBSAN binary segfaults on correct UB-free test case.
 32525 - Assertion is hit: "The number of nodes scheduled doesn't match the expected number!"
 32515 - Assertion "DELETED_NODE in CSEMap!" fires a lot with -march=skx
@@ -40,6 +44,15 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+81097 - UBSAN: false positive for not existing negation operator and a bogus message
+81088 - UBSAN: false positive as a result of reassosiation
+81065 - UBSAN: false positive as a result of distribution involving different types
+80932 - UBSAN: false positive as a result of distribution: c1*(c2*v1-c3*v2)=>c1*c2*v1-c1*c3*v2
+80875 - [7 Regression] UBSAN: compile time crash in fold_binary_loc at fold-const.c:9817
+80800 - UBSAN: yet another false positive
+80620 - [8 Regression] gcc produces wrong code with -O3
+80597 - [8 Regression] internal compiler error: in compute_inline_parameters, at ipa-inline-analysis.c:3126
+80536 - [6/7/8 Regression] UBSAN: compile time segfault
 80403 - UBSAN: compile time crash with "type mismatch in binary expression" message in / and % expr
 80386 - UBSAN: false positive - constant folding and reassosiation before instrumentation
 80362 - [5/6 Regression] gcc miscompiles arithmetic with signed char
