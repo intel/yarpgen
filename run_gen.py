@@ -620,9 +620,14 @@ class Test(object):
         test_sh +="ulimit -t " + str(compiler_timeout) + "\n\n"
         test_sh +="export TEST_PWD="+os.getcwd()+"\n\n"
         test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + runfail_run.optset + " && \\\n"
-        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + runfail_run.optset + "\n"
+        test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + runfail_run.optset + " 2>err.log\n"
         test_sh +="RETCODE=$?\n"
-        test_sh +="[ $RETCODE -eq " + str(runfail_run.run_ret_code) + " ] && \\\n" 
+        test_sh +="[ $RETCODE -eq " + str(runfail_run.run_ret_code) + " ] && \\\n"
+        # it's "temporary" (until LLVM bug 33133 is fixed).
+        # This is needed when reduceing gcc_ubsan problem. Without this check we have good chances to reduce to the code
+        # snipent, which contains left shift of negative value (caught by gcc ubsan, but not clang ubsan).
+        test_sh +="! grep \"left shift of negative value\" err.log && \\\n"
+        
         test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + ubsan_run.optset + " && \\\n"
         test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + ubsan_run.optset + " \n"
         test_sh_file = open("test.sh", "w")
