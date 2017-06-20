@@ -427,7 +427,7 @@ class Test(object):
         if not good_run:
             # TODO: fix
             common.log_msg(logging.WARNING, "No good runs found for seed " + self.seed + \
-                    " in process " + self.proc_num, True)
+                    " in process " + str(self.proc_num), True)
             raise
 
         bad_run = None
