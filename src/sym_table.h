@@ -39,11 +39,11 @@ class SymbolTable {
         void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
         void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
 
-        std::vector<std::shared_ptr<ScalarVariable>>& get_variables () { return variable; }
-        std::vector<std::shared_ptr<StructType>>& get_struct_types () { return struct_type; }
-        std::vector<std::shared_ptr<Struct>>& get_structs () { return structs; }
-        std::vector<std::shared_ptr<MemberExpr>>& get_avail_members() { return avail_members; }
-        std::vector<std::shared_ptr<MemberExpr>>& get_avail_const_members() { return avail_const_members; }
+        auto& get_variables () { return variable; }
+        auto& get_struct_types () { return struct_type; }
+        auto& get_structs () { return structs; }
+        auto& get_avail_members() { return avail_members; }
+        auto& get_avail_const_members() { return avail_const_members; }
         void del_avail_member(int idx) { avail_members.erase(avail_members.begin() + idx); }
 
         std::string emit_variable_extern_decl (std::string offset = "");
@@ -74,21 +74,21 @@ class Context {
         Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx, Node::NodeID _self_stmt_id, bool _taken);
 
         void set_gen_policy (GenPolicy _gen_policy) { gen_policy = std::make_shared<GenPolicy>(_gen_policy); }
-        std::shared_ptr<GenPolicy> get_gen_policy () { return gen_policy; }
+        auto get_gen_policy () { return gen_policy; }
         int get_depth () { return depth; }
         int get_if_depth () { return if_depth; }
-        Node::NodeID get_self_stmt_id () { return self_stmt_id; }
+        auto get_self_stmt_id () { return self_stmt_id; }
         bool get_taken () { return taken; }
-        void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> _extern_inp_sym_table) { extern_inp_sym_table = _extern_inp_sym_table; }
-        std::shared_ptr<SymbolTable> get_extern_inp_sym_table () { return extern_inp_sym_table; }
-        void set_extern_out_sym_table (std::shared_ptr<SymbolTable> _extern_out_sym_table) { extern_out_sym_table = _extern_out_sym_table; }
-        std::shared_ptr<SymbolTable> get_extern_out_sym_table () { return extern_out_sym_table; }
-        void set_extern_mix_sym_table (std::shared_ptr<SymbolTable> _extern_mix_sym_table) { extern_mix_sym_table = _extern_mix_sym_table; }
-        std::shared_ptr<SymbolTable> get_extern_mix_sym_table () { return extern_mix_sym_table; }
+        void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> st) { extern_inp_sym_table = st; }
+        auto get_extern_inp_sym_table () { return extern_inp_sym_table; }
+        void set_extern_out_sym_table (std::shared_ptr<SymbolTable> st) { extern_out_sym_table = st; }
+        auto get_extern_out_sym_table () { return extern_out_sym_table; }
+        void set_extern_mix_sym_table (std::shared_ptr<SymbolTable> st) { extern_mix_sym_table = st; }
+        auto get_extern_mix_sym_table () { return extern_mix_sym_table; }
 
-        std::shared_ptr<SymbolTable> get_local_sym_table () { return local_sym_table; }
+        auto get_local_sym_table () { return local_sym_table; }
         void set_local_sym_table (std::shared_ptr<SymbolTable> _lst) { local_sym_table = _lst; }
-        std::shared_ptr<Context> get_parent_ctx () { return parent_ctx; }
+        auto get_parent_ctx () { return parent_ctx; }
 
     private:
         std::shared_ptr<GenPolicy> gen_policy;
