@@ -16,11 +16,12 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include <cstdint>
-#include <iostream>
-#include <cstring>
-#include <cstdlib>
 #include <cassert>
+#include <cstring>
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <iostream>
 
 #include "gen_policy.h"
 #include "master.h"

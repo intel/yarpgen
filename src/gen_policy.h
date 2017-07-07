@@ -17,10 +17,10 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <random>
 #include <algorithm>
 #include <iostream>
 #include <memory>
+#include <random>
 
 #include "type.h"
 #include "variable.h"

@@ -20,9 +20,9 @@ limitations under the License.
 
 #include <vector>
 
+#include "ir_node.h"
 #include "type.h"
 #include "variable.h"
-#include "ir_node.h"
 
 namespace yarpgen {
 
