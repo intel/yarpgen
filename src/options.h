@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <map>
+#include <string>
 
 namespace yarpgen {
 
