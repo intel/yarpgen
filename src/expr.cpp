@@ -162,54 +162,64 @@ std::shared_ptr<ConstExpr> ConstExpr::generate (std::shared_ptr<Context> ctx) {
     return std::make_shared<ConstExpr>(BuiltinType::ScalarTypedVal::generate(ctx, int_type->get_int_type_id()));
 }
 
+template <typename T>
+std::string ConstExpr::to_string(T T_val, T min, std::string suffix) {
+    if (!std::static_pointer_cast<ScalarVariable>(value)->get_type()->get_is_signed())
+        return std::to_string(T_val) + suffix;
+    if (T_val != min)
+        return std::to_string(T_val) + suffix;
+    return "(" + std::to_string(min + 1) + suffix + " - 1" + suffix + ")";
+}
+
 std::string ConstExpr::emit (std::string offset) {
     std::string ret = offset;
     std::shared_ptr<ScalarVariable> scalar_val = std::static_pointer_cast<ScalarVariable>(value);
+    std::shared_ptr<IntegerType> int_type = std::static_pointer_cast<IntegerType>(scalar_val->get_type());
+    std::string suffix = std::static_pointer_cast<BuiltinType>(scalar_val->get_type())->get_suffix ();
     auto val = scalar_val->get_cur_value().val;
     switch (scalar_val->get_type()->get_int_type_id()) {
         case IntegerType::IntegerTypeID::BOOL:
-            ret += std::to_string(val.bool_val);
+            ret += val.bool_val ? "true" : "false";
             break;
         case IntegerType::IntegerTypeID::CHAR:
-            ret += std::to_string(val.char_val);
+            ret += to_string(val.char_val, int_type->get_min().val.char_val, suffix);
             break;
         case IntegerType::IntegerTypeID::UCHAR:
-            ret += std::to_string(val.uchar_val);
+            ret += to_string(val.uchar_val, int_type->get_min().val.uchar_val, suffix);
             break;
         case IntegerType::IntegerTypeID::SHRT:
-            ret += std::to_string(val.shrt_val);
+            ret += to_string(val.shrt_val, int_type->get_min().val.shrt_val, suffix);
             break;
         case IntegerType::IntegerTypeID::USHRT:
-            ret += std::to_string(val.ushrt_val);
+            ret += to_string(val.ushrt_val, int_type->get_min().val.ushrt_val, suffix);
             break;
         case IntegerType::IntegerTypeID::INT:
-            ret += std::to_string(val.int_val);
+            ret += to_string(val.int_val, int_type->get_min().val.int_val, suffix);
             break;
         case IntegerType::IntegerTypeID::UINT:
-            ret += std::to_string(val.uint_val);
+            ret += to_string(val.uint_val, int_type->get_min().val.uint_val, suffix);
             break;
         case IntegerType::IntegerTypeID::LINT:
             if (options->mode_64bit)
-                ret += std::to_string(val.lint64_val);
+                ret += to_string(val.lint64_val, int_type->get_min().val.lint64_val, suffix);
             else
-                ret += std::to_string(val.lint32_val);
+                ret += to_string(val.lint32_val, int_type->get_min().val.lint32_val, suffix);
             break;
         case IntegerType::IntegerTypeID::ULINT:
             if (options->mode_64bit)
-                ret += std::to_string(val.ulint64_val);
+                ret += to_string(val.ulint64_val, int_type->get_min().val.ulint64_val, suffix);
             else
-                ret += std::to_string(val.ulint32_val);
+                ret += to_string(val.ulint32_val, int_type->get_min().val.ulint32_val, suffix);
             break;
         case IntegerType::IntegerTypeID::LLINT:
-            ret += std::to_string(val.llint_val);
+            ret += to_string(val.llint_val, int_type->get_min().val.llint_val, suffix);
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            ret += std::to_string(val.ullint_val);
+            ret += to_string(val.ullint_val, int_type->get_min().val.ullint_val, suffix);
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
             ERROR("bad int type id (Constexpr)");
     }
-    ret += std::static_pointer_cast<BuiltinType>(scalar_val->get_type())->get_suffix ();
     return ret;
 }
 
