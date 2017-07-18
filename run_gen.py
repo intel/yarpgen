@@ -1434,9 +1434,8 @@ Use specified folder for testing
     '''
     parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=CustomFormatter)
 
-    requiredNamed = parser.add_argument_group('required named arguments')
-    requiredNamed.add_argument('-std', dest="std_str", default=None, type=str, required=True,
-                               help='Language standard. Possible variants are ' + str(list(gen_test_makefile.StrToStdId))[1:-1])
+    parser.add_argument('--std', dest="std_str", default="c++11", type=str,
+                        help='Language standard. Possible variants are ' + str(list(gen_test_makefile.StrToStdId))[1:-1])
 
     parser.add_argument("-o", "--output", dest="out_dir", default="testing", type=str,
                         help="Directory, which is used for testing.")

@@ -65,10 +65,10 @@ void print_usage_and_exit (std::string error_msg = "") {
     std::cout << "usage: yarpgen\n";
     std::cout << "\t-q                        Quiet mode\n";
     std::cout << "\t-v, --version             Print yarpgen version\n";
-    std::cout << "\t-d, -out-dir=<out-dir>    Output directory\n";
-    std::cout << "\t-s, -seed=<seed>          Predefined seed\n";
-    std::cout << "\t-m, -bit-mode=<32/64>     Generated test's bit mode\n";
-    std::cout << "\t-std=<standard>           Generated test's language standard\n";
+    std::cout << "\t-d, --out-dir=<out-dir>   Output directory\n";
+    std::cout << "\t-s, --seed=<seed>         Predefined seed\n";
+    std::cout << "\t-m, --bit-mode=<32/64>    Generated test's bit mode\n";
+    std::cout << "\t--std=<standard>          Generated test's language standard\n";
     auto search_for_default_std = [] (const std::pair<std::string, Options::StandardID> &pair) {
         return pair.second == options->standard_id;
     };
@@ -97,7 +97,7 @@ bool parse_short_args (int argc, int &argv_iter, char** &argv, std::string short
     return false;
 }
 
-// This function handles command-line options in form of "-long_arg=<value>" and performs action(<value>)
+// This function handles command-line options in form of "--long_arg=<value>" and performs action(<value>)
 bool parse_long_args (int &argv_iter, char** &argv, std::string long_arg,
                       std::function<void(char*)> action, std::string error_msg) {
     if (option_starts_with(argv[argv_iter], (long_arg + "=").c_str())) {
@@ -165,29 +165,29 @@ int main (int argc, char* argv[128]) {
         if (search_res != Options::str_to_standard.end())
             options->standard_id = search_res->second;
         else {
-            print_usage_and_exit("Can't recognize language standard: -std=" + search_str + "\n");
+            print_usage_and_exit("Can't recognize language standard: --std=" + search_str + "\n");
         }
     };
 
     // Main loop for parsing command-line options
     for (int i = 0; i < argc; ++i) {
-        if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "-h")) {
+        if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
             print_usage_and_exit();
         }
-        else if (!strcmp(argv[i], "-version") || !strcmp(argv[i], "-v")) {
+        else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-v")) {
             printVersion();
             exit(0);
         }
         else if (!strcmp(argv[i], "-q")) {
             quiet = true;
         }
-        else if (parse_long_args(i, argv, "-std", standard_action,
+        else if (parse_long_args(i, argv, "--std", standard_action,
                                  "Can't recognize language standard:")) {}
-        else if (parse_long_and_short_args(argc, i, argv, "-d", "-out-dir", out_dir_action,
+        else if (parse_long_and_short_args(argc, i, argv, "-d", "--out-dir", out_dir_action,
                                            "Output directory wasn't specified.")) {}
-        else if (parse_long_and_short_args(argc, i, argv, "-s", "-seed", seed_action,
+        else if (parse_long_and_short_args(argc, i, argv, "-s", "--seed", seed_action,
                                            "Seed wasn't specified.")) {}
-        else if (parse_long_and_short_args(argc, i, argv, "-m", "-bit-mode", bit_mode_action,
+        else if (parse_long_and_short_args(argc, i, argv, "-m", "--bit-mode", bit_mode_action,
                                            "Can't recognize bit mode:")) {}
         else if (argv[i][0] == '-') {
             print_usage_and_exit("Unknown option: " + std::string(argv[i]));

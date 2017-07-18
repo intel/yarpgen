@@ -147,11 +147,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     requiredNamed = parser.add_argument_group('required named arguments')
-    requiredNamed.add_argument('-std', dest="std_str", default=None, type=str, required=True,
-                               help='Language standard. Possible variants are ' + str(list(gen_test_makefile.StrToStdId))[1:-1])
     requiredNamed.add_argument("-i", "--input-dir", dest="input_dir", type=str, required=True,
                                help="Input directory for re-checking")
 
+    parser.add_argument('--std', dest="std_str", default="c++11", type=str,
+                        help='Language standard. Possible variants are ' + str(list(gen_test_makefile.StrToStdId))[1:-1])
     parser.add_argument("-o", "--output-dir", dest="out_dir", default="re-checked", type=str,
                         help="Output directory with relevant fails")
     parser.add_argument("--config-file", dest="config_file",

@@ -407,9 +407,8 @@ if __name__ == '__main__':
     description = 'Generator of Test_Makefiles.'
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    requiredNamed = parser.add_argument_group('required named arguments')
-    requiredNamed.add_argument('-std', dest="std_str", default=None, type=str, required=True,
-                               help='Language standard. Possible variants are ' + str(list(StrToStdId))[1:-1])
+    parser.add_argument('--std', dest="std_str", default="c++11", type=str,
+                        help='Language standard. Possible variants are ' + str(list(StrToStdId))[1:-1])
 
     parser.add_argument("--config-file", dest="config_file",
                         default=os.path.join(common.yarpgen_home, default_test_sets_file_name), type=str,
