@@ -34,7 +34,7 @@ struct Options {
     // This map matchs StandardIDs to string literals for them
     static const std::map<std::string, StandardID> str_to_standard;
 
-    Options() : standard_id(CXX14), mode_64bit(true) {}
+    Options() : standard_id(CXX11), mode_64bit(true) {}
     bool is_c ();
     bool is_cxx ();
     bool is_opencl ();
