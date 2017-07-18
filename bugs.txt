@@ -1,4 +1,9 @@
 LLVM:
+33828 - Crash in X86DAGToDAGISel::RunSDNodeXForm: "getConstant with a uint64_t value that doesn't fit in the type!"
+33765 - Replacing instructions in instcombine violates dominance relation
+33695 - Bit-Tracking Dead Code Elimination (BDCE) fails to invalidate nsw/nuw after transforms
+33608 - infinite loop in CodeGenPrepare::runOnFunction()
+33560 - "Cannot emit physreg copy instruction" at lib/Target/X86/X86InstrInfo.cpp:6707
 33442 - UBSAN: right shift by negative value is not caught for some values
 33133 - UBSan misses check for "negative_value << 0"
 32894 - ICE: "Cannot replace uses of with self" in llvm::SelectionDAG::ReplaceAllUsesWith
@@ -44,6 +49,12 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+81423 - [6/7/8 Regression] Wrong code at -O2
+81403 - [8 Regression] wrong code at -O3
+81387 - UBSAN consumes too much memory at -O2
+81281 - [6/7/8 Regression] UBSAN: false positive, dropped promotion to long type.
+81162 - [8 Regression] UBSAN switch triggers incorrect optimization in SLSR
+81148 - UBSAN: two more false positives
 81097 - UBSAN: false positive for not existing negation operator and a bogus message
 81088 - UBSAN: false positive as a result of reassosiation
 81065 - UBSAN: false positive as a result of distribution involving different types
