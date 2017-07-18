@@ -73,6 +73,9 @@ executable = MakefileVariable("EXECUTABLE", "out")
 Makefile_variable_list.append(executable)
 # Makefile_variable_list.append(Makefile_variable("",""))
 
+clang_stat_options = MakefileVariable("STATFLAGS", "")
+Makefile_variable_list.append(clang_stat_options)
+
 ###############################################################################
 # Section for language standards
 @enum.unique
@@ -308,12 +311,14 @@ def detect_native_arch():
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None, creduce_file=None):
+def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None,
+                 creduce_file=None, stat_targets=None):
     # Somebody can prepare test specs and target, so we don't need to parse config file
     check_if_std_defined()
     if config_file is not None:
         parse_config(config_file)
     output = ""
+    stat_targets = list(set(stat_targets))
     # 1. License
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for license_str in license_file:
@@ -349,9 +354,19 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += "\n"
         if inject_blame_opt is not None:
             output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
+        #TODO: one day we can decide to use gcc also.
+        if stat_targets is not None:
+            for stat_target in stat_targets:
+                if target.name == stat_target and "clang" in target.specs.name:
+                    output += target.name + ": " + clang_stat_options.name + "=" + \
+                              "-save-stats -Xclang -print-stats" + "\n"
+                    stat_targets.remove(stat_target)
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
         output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
+
+    if len(stat_targets) != 0:
+        common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets))
 
     # 4. Force make to rebuild everything
     # TODO: replace with PHONY
@@ -366,8 +381,10 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         source_name = source.split(".")[0]
         output += "%" + source_name + ".o: " + source_prefix + source + force_str
         output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $@ -c $<"
-        if inject_blame_opt is not None and source_name == "func":
-            output += " $(BLAMEOPTS)"
+        if source_name == "func":
+            output += " $(STATFLAGS) "
+            if inject_blame_opt is not None:
+                output += " $(BLAMEOPTS) "
         output += "\n\n"
 
     output += "clean:\n"
@@ -424,6 +441,8 @@ if __name__ == '__main__':
                         help="Logfile")
     parser.add_argument("--creduce-file", dest="creduce_file", default=None, type=str,
                         help="Source file to reduce")
+    parser.add_argument("--collect-stat", dest="collect_stat", default="", type=str,
+                        help="List of testing sets for statistics collection")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -431,4 +450,5 @@ if __name__ == '__main__':
 
     common.check_python_version()
     set_standard(args.std_str)
-    gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file)
+    gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file,
+                 stat_targets=args.collect_stat.split())
