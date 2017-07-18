@@ -117,6 +117,8 @@ class ConstExpr : public Expr {
         static std::shared_ptr<ConstExpr> generate (std::shared_ptr<Context> ctx);
 
     private:
+        template <typename T>
+        std::string to_string(T T_val, T min, std::string suffix);
         bool propagate_type () { return true; }
         UB propagate_value () { return NoUB; }
 };
