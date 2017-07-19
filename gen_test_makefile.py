@@ -39,6 +39,8 @@ comp_specs_line = "Compiler specs:"
 spec_list_len = 5
 test_sets_line = "Testing sets:"
 set_list_len = 5
+stats_capt_opt_line = "Options for statistics' capture:"
+stats_capt_opt_list_len = 2
 
 ###############################################################################
 # Section for Test_Makefile parameters
@@ -73,8 +75,8 @@ executable = MakefileVariable("EXECUTABLE", "out")
 Makefile_variable_list.append(executable)
 # Makefile_variable_list.append(Makefile_variable("",""))
 
-clang_stat_options = MakefileVariable("STATFLAGS", "")
-Makefile_variable_list.append(clang_stat_options)
+stat_options = MakefileVariable("STATFLAGS", "")
+Makefile_variable_list.append(stat_options)
 
 ###############################################################################
 # Section for language standards
@@ -214,8 +216,23 @@ class CompilerTarget (object):
         CompilerTarget.all_targets.append(self)
 
 
+class StatisticsOptions (object):
+    all_stats_options = dict()
+
+    def __init__(self, spec, options):
+        self.options = options
+        StatisticsOptions.all_stats_options[spec.name] = self
+
+    @staticmethod
+    def get_options(spec):
+        try:
+            return StatisticsOptions.all_stats_options[spec.name].options
+        except KeyError:
+            common.print_and_exit("Can't find key!")
+
 ###############################################################################
 # Section for config parser
+
 
 def skip_line(line):
     return line.startswith("#") or re.match(r'^\s*$', line)
@@ -248,6 +265,16 @@ def add_sets(set_list):
         common.print_and_exit("Can't find key!")
 
 
+def add_stats_options(stats_opt_list):
+    stats_opt_list = check_config_list(stats_opt_list, stats_capt_opt_list_len,
+                                       "Error in stats options string, check it: ")
+    try:
+        StatisticsOptions(CompilerSpecs.all_comp_specs[stats_opt_list[0]], stats_opt_list[1])
+        common.log_msg(logging.DEBUG, "Finished adding stats option string")
+    except KeyError:
+        common.print_and_exit("Can't find key!")
+
+
 def read_compiler_specs(config_iter, function, next_section_name=""):
     for config_line in config_iter:
         if skip_line(config_line):
@@ -275,7 +302,8 @@ def parse_config(file_name):
             continue
         if config_line.startswith(comp_specs_line):
             read_compiler_specs(config_iter, add_specs, test_sets_line)
-            read_compiler_specs(config_iter, add_sets)
+            read_compiler_specs(config_iter, add_sets, stats_capt_opt_line)
+            read_compiler_specs(config_iter, add_stats_options)
 
 ###############################################################################
 
@@ -357,9 +385,9 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         #TODO: one day we can decide to use gcc also.
         if stat_targets is not None:
             for stat_target in stat_targets:
-                if target.name == stat_target and "clang" in target.specs.name:
-                    output += target.name + ": " + clang_stat_options.name + "=" + \
-                              "-save-stats -Xclang -print-stats" + "\n"
+                if target.name == stat_target:
+                    output += target.name + ": " + stat_options.name + "=" + \
+                              StatisticsOptions.get_options(target.specs) + "\n"
                     stat_targets.remove(stat_target)
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
         output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"

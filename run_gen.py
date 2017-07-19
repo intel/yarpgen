@@ -96,9 +96,10 @@ out_dif = "different_output"
 
 
 class StatsParser(object):
-    #TODO: one day we may decide to add gcc also
+    """All parsers should return obtained data in form of list of tuples:
+       [(opt_name#1, value#1), (opt_name#2, value#2),...]"""
     @staticmethod
-    def parse_opt_stats_file(inp_file_name):
+    def parse_clang_opt_stats_file(inp_file_name):
         common.log_msg(logging.DEBUG, "Parsing optimization statistics file: " + inp_file_name)
         inp_file = common.check_and_open_file(inp_file_name, 'r')
         result = []
@@ -118,7 +119,7 @@ class StatsParser(object):
         return result
 
     @staticmethod
-    def parse_stmt_stats_file(inp_str):
+    def parse_clang_stmt_stats_file(inp_str):
         common.log_msg(logging.DEBUG, "Parsing statement statistics")
         inp_str_list = inp_str.split("\n")
         result = []
@@ -781,10 +782,13 @@ class TestRun(object):
             self.status = self.STATUS_not_run
 
         if self.parse_stats:
-            opt_stats = StatsParser.parse_opt_stats_file("func.stats")
-            self.stat.add_opt_stats(opt_stats)
-            stmt_stats = StatsParser.parse_stmt_stats_file(str(self.build_stderr, "utf-8"))
-            self.stat.add_stmt_stats(stmt_stats)
+            opt_stats = None
+            stmt_stats = None
+            if "clang" in self.target.specs.name:
+                opt_stats = StatsParser.parse_clang_opt_stats_file("func.stats")
+                stmt_stats = StatsParser.parse_clang_stmt_stats_file(str(self.build_stderr, "utf-8"))
+            self.stat.add_stats(opt_stats, self.optset, StatsVault.opt_stats_id)
+            self.stat.add_stats(stmt_stats, self.optset, StatsVault.stmt_stats_id)
 
         # update file list
         expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", "out"]
@@ -1018,51 +1022,54 @@ class CmdRun (object):
         return self.name
 
 
-class Opt_stats_vault(object):
-    def __init__(self):
-        self.opt_stats = {}
-        self.opt_stats_num = 0
-        self.stmt_stats = {}
-        self.stmt_stats_num = 0
+class StatsVault(object):
+    opt_stats_id = 0
+    stmt_stats_id = 1
 
-    def add_opt_stats(self, opt_stats):
-        for i in opt_stats:
+    @staticmethod
+    def id_to_str(id):
+        return "opt_stats" if id == StatsVault.opt_stats_id else "stmt_stats"
+
+    def __init__(self, target_name):
+        self.target_name = target_name
+        self.stats = dict()
+        self.stats[StatsVault.opt_stats_id] = {}
+        self.stats[StatsVault.stmt_stats_id] = {}
+        self.stats_num = dict()
+        self.stats_num[StatsVault.opt_stats_id] = 0
+        self.stats_num[StatsVault.stmt_stats_id] = 0
+
+    def add_stats(self, new_stats, id):
+        for i in new_stats:
             name, value = i
-            if name not in self.opt_stats:
-                self.opt_stats[name] = 0
-            self.opt_stats[name] += value
-        self.opt_stats_num += 1
+            if name not in self.stats[id]:
+                self.stats[id][name] = 0
+            self.stats[id][name] += value
+        self.stats_num[id] += 1
 
-    def get_opt_stats(self):
-        output = "Parsed opt_stats: " + str(self.opt_stats_num) + "\n"
-        for i in self.opt_stats:
-            output += str(i) + " : " + str(self.opt_stats[i]) + "\n"
+    def get_stats(self, id):
+        output = "Parsed " + StatsVault.id_to_str(id) + " stats: " + str(self.stats_num[id]) + "\n"
+        for i in self.stats[id]:
+            output += "\t" + str(i) + " : " + str(self.stats[id][i]) + "\n"
         return output
 
-    def add_stmt_stats(self, stmt_stats):
-        for i in stmt_stats:
-            name, value = i
-            if name not in self.stmt_stats:
-                self.stmt_stats[name] = 0
-            self.stmt_stats[name] += value
-        self.stmt_stats_num += 1
+    def is_stats_collected(self):
+        return True if self.stats_num[StatsVault.opt_stats_id] != 0 and \
+                       self.stats_num[StatsVault.stmt_stats_id] \
+               else False
 
-    def get_stmt_stats(self):
-        output = "Parsed stmt_stats: " + str(self.stmt_stats_num) + "\n"
-        for i in self.stmt_stats:
-            output += str(i) + " : " + str(self.stmt_stats[i]) + "\n"
-        return output
 
 class Statistics (object):
     def __init__(self):
         self.yarpgen_runs = CmdRun("yarpgen")
         self.target_runs = {}
+        self.stats_vault = {}
         # TODO: we create objects for every target, but we can choose less in arguments
         for i in gen_test_makefile.CompilerTarget.all_targets:
             self.target_runs[i.name] = CmdRun(i.name)
+            self.stats_vault[i.name] = StatsVault(i.name)
         self.seeds_pass = None
         self.seeds_fail = None
-        self.stats_vault = Opt_stats_vault()
 
     def update_yarpgen_runs(self, tag):
         self.yarpgen_runs.update(tag)
@@ -1108,17 +1115,15 @@ class Statistics (object):
         if not self.seeds_fail is None:
             self.seeds_fail.append(seed)
 
-    def add_opt_stats(self, opt_stats):
-        self.stats_vault.add_opt_stats(opt_stats)
+    def add_stats(self, opt_stats, target_name, id):
+        if opt_stats is not None:
+            self.stats_vault[target_name].add_stats(opt_stats, id)
 
-    def get_opt_stats(self):
-        return self.stats_vault.get_opt_stats()
+    def get_stats(self, target_name, id):
+        return self.stats_vault[target_name].get_stats(id)
 
-    def add_stmt_stats(self, stmt_stats):
-        self.stats_vault.add_stmt_stats(stmt_stats)
-
-    def get_stmt_stats(self):
-        return self.stats_vault.get_stmt_stats()
+    def is_stat_collected(self, target_name):
+        return self.stats_vault[target_name].is_stats_collected()
 
 MyManager.register("Statistics", Statistics)
 
@@ -1198,10 +1203,15 @@ def form_statistics(stat, targets, prev_len, tasks = None):
         verbose_stat_str += "FAILED SEEDS (" + str(len(seeds_fail)) + "): " + \
                             ", ".join("S_"+s for s in seeds_fail) + "\n"
 
-    verbose_stat_str += "Optimization statistics: \n"
-    verbose_stat_str += stat.get_opt_stats() + "\n"
-    verbose_stat_str += "Statement statistics: \n"
-    verbose_stat_str += stat.get_stmt_stats() + "\n"
+    for i in gen_test_makefile.CompilerTarget.all_targets:
+        if stat.is_stat_collected(i.name):
+            verbose_stat_str += "\n=================================\n"
+            verbose_stat_str += "Statistics for " + i.name + "\n"
+            verbose_stat_str += "Optimization statistics: \n"
+            verbose_stat_str += stat.get_stats(i.name, StatsVault.opt_stats_id) + "\n\n"
+            verbose_stat_str += "Statement statistics: \n"
+            verbose_stat_str += stat.get_stats(i.name, StatsVault.stmt_stats_id) + "\n"
+    verbose_stat_str += "\n=================================\n"
 
     active = 0
     if tasks:
