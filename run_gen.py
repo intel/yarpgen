@@ -65,12 +65,17 @@ known_build_fails = { \
     "SDNode_getOperand": "Invalid child # of SDNode", \
     "DELETED_NODE_CSEMap": "DELETED_NODE in CSEMap!", \
     "VerifyScheduledSequence": "The number of nodes scheduled doesn't match the expected number", \
+    "physreg_copy": "Cannot emit physreg copy instruction", \
 # gcc
     "compute_live_loop_exits" : "compute_live_loop_exits", \
     "ubsan_instrument_division": "ubsan_instrument_division", \
     "verify_gimple_assignment": "non-trivial conversion at assignment", \
     "verify_gimple_shift": "type mismatch in shift expression", \
-    "verify_gimple_binary" : "type mismatch in binary expression" \
+    "verify_gimple_binary": "type mismatch in binary expression", \
+    "REG_BR_PROB": "REG_BR_PROB does not match", \
+# problem with available memory
+    "memory_problem": "std::bad_alloc", \
+    "memory_problem": "Cannot allocate memory" \
 }
 
 ###############################################################################
