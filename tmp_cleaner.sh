@@ -17,16 +17,18 @@
 #
 ###############################################################################
 
-find /tmp -name "check*.cpp" -type f -mmin +60 -delete
-find /tmp -name "driver*.cpp" -type f -mmin +60 -delete
-find /tmp -name "driver*.o" -type f -mmin +60 -delete
-find /tmp -name "func*.cpp" -type f -mmin +60 -delete
-find /tmp -name "func*.sh" -type f -mmin +60 -delete
-find /tmp -name "hash*.cpp" -type f -mmin +60 -delete
-find /tmp -name "init*.cpp" -type f -mmin +60 -delete
-find /tmp -name "init*.sh" -type f -mmin +60 -delete
-find /tmp -name "iccdash*" -type f -mmin +60 -delete
-find /tmp -name "iccdummy*" -type f -mmin +60 -delete
-find /tmp -name "iccgccdash*" -type f -mmin +60 -delete
-find /tmp -name "icclibgcc*" -type f -mmin +60 -delete
+current_user=`whoami`
+find /tmp -user $current_user -name "check*.cpp" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "driver*.cpp" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "driver*.o" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "func*.cpp" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "func*.sh" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "hash*.cpp" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "init*.cpp" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "init*.sh" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "iccdash*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "iccdummy*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "iccgccdash*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "icclibgcc*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "tmp*" -type f -mmin +60 -delete
 echo "tmp_cleaner was run" >> cleaner.log
