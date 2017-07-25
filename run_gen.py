@@ -94,6 +94,49 @@ compfail = "compfail"
 compfail_timeout = "compfail_timeout"
 out_dif = "different_output"
 
+
+class StatsParser(object):
+    """All parsers should return obtained data in form of list of tuples:
+       [(opt_name#1, value#1), (opt_name#2, value#2),...]"""
+    @staticmethod
+    def parse_clang_opt_stats_file(inp_file_name):
+        common.log_msg(logging.DEBUG, "Parsing optimization statistics file: " + inp_file_name)
+        inp_file = common.check_and_open_file(inp_file_name, 'r')
+        result = []
+        for i in inp_file:
+            if ": " in i:
+                opt_stats_line = i.lstrip()
+                opt_stats_line = opt_stats_line.replace("\"", "")
+                opt_stats_line = opt_stats_line.replace(",", "")
+                opt_stats_line = opt_stats_line.replace(":", "")
+                opt_stats_list = opt_stats_line.split()
+
+                opt_name = opt_stats_list[0]
+                opt_value = int(opt_stats_list[1])
+                result.append((opt_name, opt_value))
+        common.log_msg(logging.DEBUG, "Finished parsing of optimization statistics file: " + inp_file_name)
+        inp_file.close()
+        return result
+
+    @staticmethod
+    def parse_clang_stmt_stats_file(inp_str):
+        common.log_msg(logging.DEBUG, "Parsing statement statistics")
+        inp_str_list = inp_str.split("\n")
+        result = []
+        for i in range(len(inp_str_list)):
+            if inp_str_list[i] == "*** Stmt/Expr Stats:":
+                i += 1
+                while not inp_str_list[i].startswith("Total bytes"):
+                    stmt_stat_str = inp_str_list[i].lstrip().split()
+                    stmt_stat_name = stmt_stat_str[1][:-1]
+                    stmtstat_value = int(stmt_stat_str[0])
+                    result.append((stmt_stat_name, stmtstat_value))
+                    i += 1
+
+        common.log_msg(logging.DEBUG, "Finished parsing statement statistics")
+        return result
+
+
 # class representing the test
 class Test(object):
     # list of files
@@ -708,7 +751,7 @@ class TestRun(object):
     STATUS_ok = 7
     STATUS_miscompare = 8
 
-    def __init__(self, test, stat, target, proc_num=-1):
+    def __init__(self, test, stat, target, proc_num=-1, parse_stats=False):
         self.test = test
         self.stat = stat
         self.target = target
@@ -719,6 +762,7 @@ class TestRun(object):
         self.same_type_fails = []
         self.blame_phase = ""
         self.blame_result = "was not run"
+        self.parse_stats = parse_stats
 
     # Build test
     def build(self):
@@ -736,8 +780,20 @@ class TestRun(object):
             self.status = self.STATUS_compfail
         else:
             self.status = self.STATUS_not_run
+
+        if self.parse_stats:
+            opt_stats = None
+            stmt_stats = None
+            if "clang" in self.target.specs.name:
+                opt_stats = StatsParser.parse_clang_opt_stats_file("func.stats")
+                stmt_stats = StatsParser.parse_clang_stmt_stats_file(str(self.build_stderr, "utf-8"))
+            self.stat.add_stats(opt_stats, self.optset, StatsVault.opt_stats_id)
+            self.stat.add_stats(stmt_stats, self.optset, StatsVault.stmt_stats_id)
+
         # update file list
         expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", "out"]
+        if self.parse_stats:
+            expected_files.append("func.stats")
         expected_files = [ self.optset + "_" + e for e in expected_files ]
         for f in expected_files:
             if os.path.isfile(f):
@@ -966,13 +1022,52 @@ class CmdRun (object):
         return self.name
 
 
+class StatsVault(object):
+    opt_stats_id = 0
+    stmt_stats_id = 1
+
+    @staticmethod
+    def id_to_str(id):
+        return "opt_stats" if id == StatsVault.opt_stats_id else "stmt_stats"
+
+    def __init__(self, target_name):
+        self.target_name = target_name
+        self.stats = dict()
+        self.stats[StatsVault.opt_stats_id] = {}
+        self.stats[StatsVault.stmt_stats_id] = {}
+        self.stats_num = dict()
+        self.stats_num[StatsVault.opt_stats_id] = 0
+        self.stats_num[StatsVault.stmt_stats_id] = 0
+
+    def add_stats(self, new_stats, id):
+        for i in new_stats:
+            name, value = i
+            if name not in self.stats[id]:
+                self.stats[id][name] = 0
+            self.stats[id][name] += value
+        self.stats_num[id] += 1
+
+    def get_stats(self, id):
+        output = "Parsed " + StatsVault.id_to_str(id) + " stats: " + str(self.stats_num[id]) + "\n"
+        for i in self.stats[id]:
+            output += "\t" + str(i) + " : " + str(self.stats[id][i]) + "\n"
+        return output
+
+    def is_stats_collected(self):
+        return True if self.stats_num[StatsVault.opt_stats_id] != 0 and \
+                       self.stats_num[StatsVault.stmt_stats_id] \
+               else False
+
+
 class Statistics (object):
     def __init__(self):
         self.yarpgen_runs = CmdRun("yarpgen")
         self.target_runs = {}
+        self.stats_vault = {}
         # TODO: we create objects for every target, but we can choose less in arguments
         for i in gen_test_makefile.CompilerTarget.all_targets:
             self.target_runs[i.name] = CmdRun(i.name)
+            self.stats_vault[i.name] = StatsVault(i.name)
         self.seeds_pass = None
         self.seeds_fail = None
 
@@ -1019,6 +1114,16 @@ class Statistics (object):
     def seed_failed(self, seed):
         if not self.seeds_fail is None:
             self.seeds_fail.append(seed)
+
+    def add_stats(self, opt_stats, target_name, id):
+        if opt_stats is not None:
+            self.stats_vault[target_name].add_stats(opt_stats, id)
+
+    def get_stats(self, target_name, id):
+        return self.stats_vault[target_name].get_stats(id)
+
+    def is_stat_collected(self, target_name):
+        return self.stats_vault[target_name].is_stats_collected()
 
 MyManager.register("Statistics", Statistics)
 
@@ -1097,6 +1202,16 @@ def form_statistics(stat, targets, prev_len, tasks = None):
                             ", ".join("S_"+s for s in seeds_pass) + "\n"
         verbose_stat_str += "FAILED SEEDS (" + str(len(seeds_fail)) + "): " + \
                             ", ".join("S_"+s for s in seeds_fail) + "\n"
+
+    for i in gen_test_makefile.CompilerTarget.all_targets:
+        if stat.is_stat_collected(i.name):
+            verbose_stat_str += "\n=================================\n"
+            verbose_stat_str += "Statistics for " + i.name + "\n"
+            verbose_stat_str += "Optimization statistics: \n"
+            verbose_stat_str += stat.get_stats(i.name, StatsVault.opt_stats_id) + "\n\n"
+            verbose_stat_str += "Statement statistics: \n"
+            verbose_stat_str += stat.get_stats(i.name, StatsVault.stmt_stats_id) + "\n"
+    verbose_stat_str += "\n=================================\n"
 
     active = 0
     if tasks:
@@ -1233,7 +1348,8 @@ def proccess_seeds(seeds_option_value):
         common.log_msg(logging.INFO, "Note, that in the input seeds list there were "+str(len(seeds)-len(unique_seeds))+" duplicating seeds.", forced_duplication=True)
     return unique_seeds
 
-def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame, creduce, no_tmp_cln):
+def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame, creduce,
+                                  no_tmp_cln, collect_stat):
     gen_test_makefile.check_if_std_defined()
     common.check_dir_and_create(out_dir)
 
@@ -1260,7 +1376,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     gen_test_makefile.gen_makefile(
         out_file_name = makefile,
         force = True,
-        config_file = config_file)
+        config_file = config_file,
+        stat_targets=collect_stat.split())
 
     dump_testing_sets(targets)
 
@@ -1295,7 +1412,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     task_threads = [0] * num_jobs
     for num in range(num_jobs):
         task_threads[num] = multiprocessing.Process(target=gen_and_test,
-            args=(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile))
+                                                    args=(num, makefile, lock, end_time, task_queue, stat, targets,
+                                                          blame, creduce_makefile, collect_stat.split()))
         task_threads[num].start()
 
     print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_jobs, no_tmp_cln)
@@ -1310,7 +1428,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     sys.stdout.flush()
 
 
-def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile):
+def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile, stat_targets):
     common.log_msg(logging.DEBUG, "Job #" + str(num))
     os.chdir(process_dir + str(num))
     work_dir = os.getcwd()
@@ -1356,7 +1474,8 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
                 continue
             target_elapsed_time = 0.0
 
-            test_run = TestRun(test=test, stat=stat, target=t, proc_num=num)
+            test_run = TestRun(test=test, stat=stat, target=t, proc_num=num,
+                               parse_stats= True if (t.name in stat_targets) else False)
             if not test_run.build():
                 test.add_fail_run(test_run)
                 continue
@@ -1469,6 +1588,8 @@ Use specified folder for testing
                              "it's used as a number of creduce processes run for a single reduction (default is 4)")
     parser.add_argument("--no-tmp-cleaner", dest="no_tmp_cleaner", default=False, action="store_true",
                         help="Do not run tmp_cleaner.sh script during the run")
+    parser.add_argument("--collect-stat", dest="collect_stat", default="", type=str,
+                        help="List of testing sets for statistics collection")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -1489,4 +1610,5 @@ Use specified folder for testing
         creduce_n = args.creduce
     gen_test_makefile.set_standard(args.std_str)
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
-                                  args.config_file, args.seeds_option_value, args.blame, args.creduce, args.no_tmp_cleaner)
+                                  args.config_file, args.seeds_option_value, args.blame, args.creduce,
+                                  args.no_tmp_cleaner, args.collect_stat)

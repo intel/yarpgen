@@ -49,11 +49,11 @@ Testing sets:
 # Compiler arch - architecture which will be passed to compiler
 # Sde arch - architecture which will be passed to SDE
 
-# Set name       | Spec name | Arguments | Compiler arch  | Sde arch
+# Set name       | Spec name   | Arguments | Compiler arch  | Sde arch
 ubsan_clang_o0   | ubsan_clang | -O0       |                |
-#ubsan_clang_o2   | ubsan_clang | -O2       |                |
+#ubsan_clang_o2  | ubsan_clang | -O2       |                |
 ubsan_gcc_o0     | ubsan_gcc   | -O0       |                |
-#ubsan_gcc_o2     | ubsan_gcc   | -O2       |                |
+#ubsan_gcc_o2    | ubsan_gcc   | -O2       |                |
 
 gcc_no_opt       | gcc       | -O0       | nehalem        | nhm
 gcc_wsm_opt      | gcc       | -O3       | westmere       | wsm
@@ -80,3 +80,8 @@ icc_skx_opt      | icc       | -O3       | CORE-AVX512    | skx
 
 icx_no_opt       | icx       | -O0       |                |
 icx_hsw_opt      | icx       | -O3       |                | hsw
+
+Options for statistics' capture:
+#Spec name  | Arguments
+ubsan_clang | -save-stats -Xclang -print-stats
+clang       | -save-stats -Xclang -print-stats
