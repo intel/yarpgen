@@ -346,7 +346,8 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     if config_file is not None:
         parse_config(config_file)
     output = ""
-    stat_targets = list(set(stat_targets))
+    if stat_targets is not None:
+        stat_targets = list(set(stat_targets))
     # 1. License
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for license_str in license_file:
@@ -393,7 +394,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
 
-    if len(stat_targets) != 0:
+    if stat_targets is not None and len(stat_targets) != 0:
         common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets))
 
     # 4. Force make to rebuild everything
