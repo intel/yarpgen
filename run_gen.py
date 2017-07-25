@@ -167,7 +167,7 @@ class Test(object):
     def __init__(self, stat, seed="", proc_num=-1, blame=False, creduce_makefile=None):
         # Run generator
         yarpgen_run_list = [".." + os.sep + "yarpgen", "-q",
-                            "-std=" + gen_test_makefile.StdID.get_pretty_std_name(gen_test_makefile.selected_standard)]
+                            "--std=" + gen_test_makefile.StdID.get_pretty_std_name(gen_test_makefile.selected_standard)]
         if seed:
             yarpgen_run_list += ["-s", seed]
         self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
