@@ -24,6 +24,7 @@ Script for autonomous testing with YARP Generator
 import argparse
 import datetime
 import logging
+import math
 import multiprocessing
 import multiprocessing.managers
 import os
@@ -1052,6 +1053,12 @@ class StatsVault(object):
             self.stats[id][name] += value
         self.stats_num[id] += 1
 
+    def get_total_stats_num(self, id):
+        for i in self.stats[id]:
+            #TODO: not the best way to do it like so
+            if i == "stmts/expr":
+                return self.stats[id][i]
+
     def get_stats(self, id):
         output = "Parsed " + StatsVault.id_to_str(id) + " stats: " + str(self.stats_num[id]) + "\n"
         for i in self.stats[id]:
@@ -1124,6 +1131,9 @@ class Statistics (object):
         if opt_stats is not None:
             self.stats_vault[target_name].add_stats(opt_stats, id)
 
+    def get_total_stats_num(self, target_name, id):
+        return self.stats_vault[target_name].get_total_stats_num(id)
+
     def get_stats(self, target_name, id):
         return self.stats_vault[target_name].get_stats(id)
 
@@ -1144,8 +1154,30 @@ def get_testing_speed(seed_num, time_delta):
     minutes = time_delta.total_seconds() / 60
     return "{:.2f}".format(seed_num / minutes) + " seed/min"
 
+def add_metrix_prefix(num):
+    unit = 1000
+    if num < unit:
+        return str(num)
+    exp = int(math.log(num, unit))
+    prefix = "kMGTPE"[exp - 1]
+    return "{:.1f}{}".format(num / math.pow(unit, exp), prefix)
 
-def form_statistics(stat, targets, prev_len, tasks = None):
+
+def get_total_stmt_stats(stmt_stats_list):
+    sum = 0.0
+    num = 0
+    for i in stmt_stats_list:
+        if i > 0:
+            sum += i
+            num += 1
+    return sum / num if num > 0 else 0
+
+
+def get_stmt_speed(stmt_stats, time_delta):
+    return add_metrix_prefix(stmt_stats / time_delta.total_seconds()) + " SaE/s"
+
+
+def form_statistics(stat, targets, prev_len, tasks=None):
     verbose_stat_str = ""
 
     testing_speed = get_testing_speed(stat.get_yarpgen_runs(total), datetime.datetime.now() - script_start_time)
@@ -1208,6 +1240,7 @@ def form_statistics(stat, targets, prev_len, tasks = None):
         verbose_stat_str += "FAILED SEEDS (" + str(len(seeds_fail)) + "): " + \
                             ", ".join("S_"+s for s in seeds_fail) + "\n"
 
+    stmt_stats_list = []
     for i in gen_test_makefile.CompilerTarget.all_targets:
         if stat.is_stat_collected(i.name):
             verbose_stat_str += "\n=================================\n"
@@ -1216,6 +1249,7 @@ def form_statistics(stat, targets, prev_len, tasks = None):
             verbose_stat_str += stat.get_stats(i.name, StatsVault.opt_stats_id) + "\n\n"
             verbose_stat_str += "Statement statistics: \n"
             verbose_stat_str += stat.get_stats(i.name, StatsVault.stmt_stats_id) + "\n"
+            stmt_stats_list.append(stat.get_total_stats_num(i.name, StatsVault.stmt_stats_id))
     verbose_stat_str += "\n=================================\n"
 
     active = 0
@@ -1237,6 +1271,12 @@ def form_statistics(stat, targets, prev_len, tasks = None):
     stat_str += str(total_runfail_timeout) + "/"
     stat_str += str(total_runfail) + "/"
     stat_str += str(total_out_dif)
+
+    if len(stmt_stats_list) > 0:
+        stat_str += " | "
+        total_stmt_stats = get_total_stmt_stats(stmt_stats_list)
+        stat_str += "SaE: " + add_metrix_prefix(total_stmt_stats) + " | "
+        stat_str += get_stmt_speed(int(total_stmt_stats), datetime.datetime.now() - script_start_time)
 
     spaces_needed = prev_len - len(stat_str)
     for i in range(spaces_needed):
