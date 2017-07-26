@@ -1061,12 +1061,12 @@ class StatsVault(object):
 
     def get_stats(self, id):
         output = "Parsed " + StatsVault.id_to_str(id) + " stats: " + str(self.stats_num[id]) + "\n"
-        for i in self.stats[id]:
+        for i in sorted(self.stats[id].keys()):
             output += "\t" + str(i) + " : " + str(self.stats[id][i]) + "\n"
         return output
 
     def is_stats_collected(self):
-        return True if self.stats_num[StatsVault.opt_stats_id] != 0 and \
+        return True if self.stats_num[StatsVault.opt_stats_id] and \
                        self.stats_num[StatsVault.stmt_stats_id] \
                else False
 
@@ -1082,6 +1082,7 @@ class Statistics (object):
             self.stats_vault[i.name] = StatsVault(i.name)
         self.seeds_pass = None
         self.seeds_fail = None
+        self.collect_stats_enabled = False
 
     def update_yarpgen_runs(self, tag):
         self.yarpgen_runs.update(tag)
@@ -1139,6 +1140,12 @@ class Statistics (object):
 
     def is_stat_collected(self, target_name):
         return self.stats_vault[target_name].is_stats_collected()
+
+    def set_collect_stats_enabled(self, val):
+        self.collect_stats_enabled = val
+
+    def get_collect_stats_enabled(self):
+        return self.collect_stats_enabled
 
 MyManager.register("Statistics", Statistics)
 
@@ -1272,7 +1279,7 @@ def form_statistics(stat, targets, prev_len, tasks=None):
     stat_str += str(total_runfail) + "/"
     stat_str += str(total_out_dif)
 
-    if len(stmt_stats_list) > 0:
+    if stat.get_collect_stats_enabled():
         stat_str += " | "
         total_stmt_stats = get_total_stmt_stats(stmt_stats_list)
         stat_str += "SaE: " + add_metrix_prefix(total_stmt_stats) + " | "
@@ -1321,6 +1328,7 @@ def dump_testing_sets(targets):
         if i.specs.name in targets.split():
             test_sets.append(i.name)
     common.log_msg(logging.INFO, "Running "+str(len(test_sets))+" test sets: "+ str(test_sets), forced_duplication=True)
+    return test_sets
 
 
 def print_compilers_version(targets):
@@ -1424,7 +1432,11 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
         config_file = config_file,
         stat_targets=collect_stat.split())
 
-    dump_testing_sets(targets)
+    test_sets = dump_testing_sets(targets)
+    missed_stat_targets = [x for x in collect_stat.split() if x not in test_sets]
+    if len(missed_stat_targets):
+        common.log_msg(logging.WARNING, "Can't collect statistics for those targets, because they are not running: "
+                                         + str(missed_stat_targets) + "\n", forced_duplication=True)
 
     seeds = []
     task_queue = None
@@ -1448,6 +1460,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     stat = manager_obj.Statistics()
     if seeds_option_value:
         stat.enable_seeds()
+    if len(collect_stat.split()) > 0:
+        stat.set_collect_stats_enabled(True)
 
     start_time = time.time()
     end_time = start_time + timeout * 60

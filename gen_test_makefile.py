@@ -395,7 +395,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
 
     if stat_targets is not None and len(stat_targets) != 0:
-        common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets))
+        common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets), forced_duplication=True)
 
     # 4. Force make to rebuild everything
     # TODO: replace with PHONY
