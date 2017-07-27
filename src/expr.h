@@ -202,7 +202,8 @@ class BinaryExpr : public ArithExpr {
             LogAnd, ///< Logical AND
             LogOr , ///< Logical OR
 
-            MaxOp
+            MaxOp ,
+            Ter   , ///< Ternary (BinaryExpr is the easiest way to implement it)
         };
 
         BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
@@ -210,7 +211,7 @@ class BinaryExpr : public ArithExpr {
         std::string emit (std::string offset = "");
         static std::shared_ptr<BinaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
 
-    private:
+    protected:
         bool propagate_type ();
         UB propagate_value ();
         void perform_arith_conv ();
@@ -220,6 +221,18 @@ class BinaryExpr : public ArithExpr {
         Op op;
         std::shared_ptr<Expr> arg0;
         std::shared_ptr<Expr> arg1;
+};
+
+// ConditionalExpr - ternary conditional operator
+class ConditionalExpr : public BinaryExpr {
+    public:
+        ConditionalExpr (std::shared_ptr<Expr> _cond, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
+        std::string emit (std::string offset = "");
+        static std::shared_ptr<ConditionalExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+
+    private:
+        UB propagate_value ();
+        std::shared_ptr<Expr> condition;
 };
 
 // Member expression - provides access to members of struct variable

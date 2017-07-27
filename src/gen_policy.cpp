@@ -174,9 +174,11 @@ void GenPolicy::init_from_config () {
     arith_leaves.push_back (unary_leaf);
     Probability<ArithLeafID> binary_leaf (ArithLeafID::Binary, 45);
     arith_leaves.push_back (binary_leaf);
+    Probability<ArithLeafID> cond_leaf (ArithLeafID::Conditional, 7);
+    arith_leaves.push_back (cond_leaf);
     Probability<ArithLeafID> type_cast_leaf (ArithLeafID::TypeCast, 10);
     arith_leaves.push_back (type_cast_leaf);
-    Probability<ArithLeafID> cse_leaf (ArithLeafID::CSE, 5);
+    Probability<ArithLeafID> cse_leaf (ArithLeafID::CSE, 8);
     arith_leaves.push_back (cse_leaf);
     rand_val_gen->shuffle_prob(arith_leaves);
 
