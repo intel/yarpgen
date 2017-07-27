@@ -44,6 +44,8 @@ process_dir = "process_"
 creduce_bin = "creduce"
 creduce_n = 0
 
+clang_total_stmt_str = "stmts/expr"
+
 yarpgen_timeout = 60
 compiler_timeout = 1200
 run_timeout = 300
@@ -1055,8 +1057,7 @@ class StatsVault(object):
 
     def get_total_stats_num(self, id):
         for i in self.stats[id]:
-            #TODO: not the best way to do it like so
-            if i == "stmts/expr":
+            if i == clang_total_stmt_str:
                 return self.stats[id][i]
 
     def get_stats(self, id):
@@ -1171,6 +1172,8 @@ def add_metrix_prefix(num):
 
 
 def get_total_stmt_stats(stmt_stats_list):
+    if stmt_stats_list is None:
+        return 0
     sum = 0.0
     num = 0
     for i in stmt_stats_list:
