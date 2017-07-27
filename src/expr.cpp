@@ -340,6 +340,10 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     else if (node_type == GenPolicy::ArithLeafID::Binary) {
         ret = BinaryExpr::generate(new_ctx, inp, par_depth + 1);
     }
+    // Conditional (ternary) expr
+    else if (node_type == GenPolicy::ArithLeafID::Conditional) {
+        ret = ConditionalExpr::generate(new_ctx, inp, par_depth + 1);
+    }
     // TypeCast expr
     else if (node_type == GenPolicy::ArithLeafID::TypeCast) {
         ret = TypeCastExpr::generate(new_ctx, ArithExpr::gen_level(new_ctx, inp, par_depth + 1));
@@ -640,6 +644,7 @@ void BinaryExpr::rebuild (UB ub) {
         case BinaryExpr::LogOr:
             break;
         case BinaryExpr::MaxOp:
+        case BinaryExpr::Ter:
             ERROR("invalid Op (ArithExprGen)");
             break;
     }
@@ -720,6 +725,7 @@ bool BinaryExpr::propagate_type () {
         case BitAnd:
         case BitXor:
         case BitOr:
+        case Ter:
             // arithmetic conversions
             arg0 = integral_prom (arg0);
             arg1 = integral_prom (arg1);
@@ -752,6 +758,10 @@ UB BinaryExpr::propagate_value () {
         arg1->get_value()->get_class_id() != Data::VarClassID::VAR) {
         ERROR("can perform propagate_value only on ScalarVariable (BinaryExpr)");
     }
+
+    // Value propagation of ternary operator is handled differently
+    if (op == BinaryExpr::Ter)
+        return UB::NoUB;
 
     std::shared_ptr<ScalarVariable> scalar_lhs = std::static_pointer_cast<ScalarVariable>(arg0->get_value());
     std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
@@ -825,6 +835,7 @@ UB BinaryExpr::propagate_value () {
         case Shr:
             new_val = scalar_lhs->get_cur_value() >> scalar_rhs->get_cur_value();
             break;
+        case Ter:
         case MaxOp:
             ERROR("bad op (BinaryExpr)");
             break;
@@ -910,12 +921,62 @@ std::string BinaryExpr::emit (std::string offset) {
         case LogOr:
             ret += " || ";
             break;
+        case Ter:
         case MaxOp:
             ERROR("bad op (BinaryExpr)");
             break;
         }
         ret += "(" + arg1->emit() + ")";
         return ret;
+}
+
+ConditionalExpr::ConditionalExpr (std::shared_ptr<Expr> _cond, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
+                                  BinaryExpr(BinaryExpr::Op::Ter, lhs, rhs), condition(_cond) {
+    condition = conv_to_bool(condition);
+    propagate_value();
+}
+
+UB ConditionalExpr::propagate_value() {
+    if (condition == nullptr) {
+        ERROR("bad args (ConditionalExpr)");
+    }
+
+    //TODO: what about overloaded struct operators?
+    if (condition->get_value()->get_class_id() != Data::VarClassID::VAR)
+        ERROR("can perform propagate_value only on ScalarVariable (ConditionalExpr)");
+
+    std::shared_ptr<ScalarVariable> scalar_cond = std::static_pointer_cast<ScalarVariable>(condition->get_value());
+    // All other check are done in BinaryExpr constructor
+    std::shared_ptr<ScalarVariable> scalar_lhs = std::static_pointer_cast<ScalarVariable>(arg0->get_value());
+    std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
+    BuiltinType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
+
+    bool cond_val = options->is_cxx() ? scalar_cond->get_cur_value().val.bool_val :
+                                        (bool) scalar_cond->get_cur_value().val.int_val;
+    new_val = cond_val ? scalar_lhs->get_cur_value() : scalar_rhs->get_cur_value();
+
+    value = std::make_shared<ScalarVariable>("", IntegerType::init(new_val.get_int_type_id()));
+    std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(new_val);
+
+    return UB::NoUB;
+}
+
+std::string ConditionalExpr::emit (std::string offset) {
+    std::string ret = offset;
+    ret += "((" + condition->emit() + ") ? ";
+    ret += "(" + arg0->emit() + ") : ";
+    ret += "(" + arg1->emit() + "))";
+    return ret;
+}
+
+std::shared_ptr<ConditionalExpr> ConditionalExpr::generate (
+        std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+    GenPolicy::add_to_complexity(Node::NodeID::BINARY);
+    std::shared_ptr<Expr> cond = ArithExpr::gen_level (ctx, inp, par_depth);
+    std::shared_ptr<Expr> lhs = ArithExpr::gen_level (ctx, inp, par_depth);
+    std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
+    std::shared_ptr<ConditionalExpr> ret = std::make_shared<ConditionalExpr>(cond, lhs, rhs);
+    return ret;
 }
 
 bool MemberExpr::propagate_type () {

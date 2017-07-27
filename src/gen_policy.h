@@ -154,7 +154,7 @@ class GenPolicy {
     public:
         // Utility enums. They are used as IDs in Probability<ID>
         enum ArithLeafID {
-            Data, Unary, Binary, TypeCast, CSE, MAX_LEAF_ID
+            Data, Unary, Binary, Conditional, TypeCast, CSE, MAX_LEAF_ID
         };
 
         enum ArithDataID {

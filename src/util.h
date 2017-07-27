@@ -19,5 +19,7 @@ limitations under the License.
 #pragma once
 
 #define ERROR(err_message) \
-  std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ", function " << __func__ << "():\n    " << err_message << std::endl; \
-  exit(-1);
+    do { \
+        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ", function " << __func__ << "():\n    " << err_message << std::endl; \
+        exit(-1); \
+    } while (false)
