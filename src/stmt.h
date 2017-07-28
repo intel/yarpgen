@@ -35,7 +35,7 @@ class Stmt : public Node {
         Stmt (Node::NodeID _id) : Node(_id) {};
 
     protected:
-        static int total_stmt_count;
+        static uint32_t total_stmt_count;
 };
 
 // Declaration statement creates new variable (declares variable in current context) and adds it to local symbol table:

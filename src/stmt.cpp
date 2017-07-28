@@ -22,7 +22,7 @@ limitations under the License.
 
 using namespace yarpgen;
 
-int Stmt::total_stmt_count = 0;
+uint32_t Stmt::total_stmt_count = 0;
 
 DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
@@ -108,7 +108,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
 
     //TODO: add to gen_policy stmt number
     auto p = ctx->get_gen_policy();
-    int scope_stmt_count = rand_val_gen->get_rand_value<int>(p->get_min_scope_stmt_count(), p->get_max_scope_stmt_count());
+    uint32_t scope_stmt_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_scope_stmt_count(), p->get_max_scope_stmt_count());
     for (uint32_t i = 0; i < scope_stmt_count; ++i) {
         if (total_stmt_count >= p->get_max_total_stmt_count())
             //TODO: Can we somehow eliminate compiler timeout with the help of this?
@@ -130,18 +130,18 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             // Are we going to use mixed variable or create new outpu variable?
-            bool use_mix = rand_val_gen->get_rand_value<int>(0, 1);
+            bool use_mix = rand_val_gen->get_rand_value<uint32_t>(0, 1);
             GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(p->get_out_data_type_prob());
             std::shared_ptr<Expr> assign_lhs = nullptr;
             if (use_mix) {
                 // Use mixed variable or we don't have any suitable members
                 if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
-                    int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
+                    uint32_t mix_num = rand_val_gen->get_rand_value<uint32_t>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
                     assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
                 }
                 // Use member of mixed struct
                 else {
-                    int mix_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_mix_sym_table()->get_avail_members().size() - 1);
+                    uint32_t mix_num = rand_val_gen->get_rand_value<uint32_t>(0, ctx->get_extern_mix_sym_table()->get_avail_members().size() - 1);
                     assign_lhs = ctx->get_extern_mix_sym_table()->get_avail_members().at(mix_num);
                 }
             }
@@ -154,7 +154,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                 }
                 // Use member of output struct
                 else {
-                    int out_num = rand_val_gen->get_rand_value<int>(0, ctx->get_extern_out_sym_table()->get_avail_members().size() - 1);
+                    uint32_t out_num = rand_val_gen->get_rand_value<uint32_t>(0, ctx->get_extern_out_sym_table()->get_avail_members().size() - 1);
                     assign_lhs = ctx->get_extern_out_sym_table()->get_avail_members().at(out_num);
                     ctx->get_extern_out_sym_table()->del_avail_member(out_num);
                 }
@@ -220,23 +220,23 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     const_gen_policy.set_allow_const(true);
     const_ctx->set_gen_policy(const_gen_policy);
     // Generate random number of random input variables
-    int inp_var_count = rand_val_gen->get_rand_value<int>(p->get_min_inp_var_count(), p->get_max_inp_var_count());
-    for (int i = 0; i < inp_var_count; ++i) {
+    uint32_t inp_var_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_inp_var_count(), p->get_max_inp_var_count());
+    for (uint32_t i = 0; i < inp_var_count; ++i) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
     //TODO: add to gen_policy
     // Same for mixed variables
-    int mix_var_count = rand_val_gen->get_rand_value<int>(p->get_min_mix_var_count(), p->get_max_mix_var_count());
-    for (int i = 0; i < mix_var_count; ++i) {
+    uint32_t mix_var_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_mix_var_count(), p->get_max_mix_var_count());
+    for (uint32_t i = 0; i < mix_var_count; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
-    int struct_type_count = rand_val_gen->get_rand_value<int>(p->get_min_struct_type_count(), p->get_max_struct_type_count());
+    uint32_t struct_type_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_struct_type_count(), p->get_max_struct_type_count());
     if (struct_type_count == 0)
         return;
 
     // Create random number of struct definition
-    for (int i = 0; i < struct_type_count; ++i) {
+    for (uint32_t i = 0; i < struct_type_count; ++i) {
         //TODO: Maybe we should create one container for all struct types? And should they all be equal?
         std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types());
         ctx->get_extern_inp_sym_table()->add_struct_type(struct_type);
@@ -245,21 +245,21 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     }
 
     // Create random number of input structures
-    int inp_struct_count = rand_val_gen->get_rand_value<int>(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
-    for (int i = 0; i < inp_struct_count; ++i) {
-        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_type_count - 1);
+    uint32_t inp_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
+    for (uint32_t i = 0; i < inp_struct_count; ++i) {
+        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
         ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(const_ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
     }
     // Same for mixed structures
-    int mix_struct_count = rand_val_gen->get_rand_value<int>(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
-    for (int i = 0; i < mix_struct_count; ++i) {
-        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_type_count - 1);
+    uint32_t mix_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
+    for (uint32_t i = 0; i < mix_struct_count; ++i) {
+        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
         ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
     }
     // Same for output structures
-    int out_struct_count = rand_val_gen->get_rand_value<int>(p->get_min_out_struct_count(), p->get_max_out_struct_count());
-    for (int i = 0; i < out_struct_count; ++i) {
-        int struct_type_indx = rand_val_gen->get_rand_value<int>(0, struct_type_count - 1);
+    uint32_t out_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_out_struct_count(), p->get_max_out_struct_count());
+    for (uint32_t i = 0; i < out_struct_count; ++i) {
+        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
         ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
     }
 }

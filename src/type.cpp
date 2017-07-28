@@ -1162,7 +1162,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
     BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_lhs = 0;
-    uint64_t u_lhs = 0;
+//    uint64_t u_lhs = 0;
     int64_t s_rhs = 0;
     uint64_t u_rhs = 0;
     switch (int_type_id) {
@@ -1177,8 +1177,8 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
             s_lhs = val.int_val;
             break;
         case IntegerType::IntegerTypeID::UINT:
-            u_lhs = val.uint_val;
-            break;
+//            u_lhs = val.uint_val;
+//            break;
         case IntegerType::IntegerTypeID::LINT:
             if (options->mode_64bit)
                 s_lhs = val.lint64_val;
@@ -1186,16 +1186,16 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
                 s_lhs = val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (options->mode_64bit)
-                u_lhs = val.ulint64_val;
-            else
-                u_lhs = val.ulint32_val;
+//            if (options->mode_64bit)
+//                u_lhs = val.ulint64_val;
+//            else
+//                u_lhs = val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             s_lhs = val.llint_val;
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            u_lhs = val.ullint_val;
+//            u_lhs = val.ullint_val;
             break;
     }
 
@@ -1313,7 +1313,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
     BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_lhs = 0;
-    uint64_t u_lhs = 0;
+//    uint64_t u_lhs = 0;
     int64_t s_rhs = 0;
     uint64_t u_rhs = 0;
     switch (int_type_id) {
@@ -1328,7 +1328,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
             s_lhs = val.int_val;
             break;
         case IntegerType::IntegerTypeID::UINT:
-            u_lhs = val.uint_val;
+//            u_lhs = val.uint_val;
             break;
         case IntegerType::IntegerTypeID::LINT:
             if (options->mode_64bit)
@@ -1337,16 +1337,16 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
                 s_lhs = val.lint32_val;
             break;
         case IntegerType::IntegerTypeID::ULINT:
-            if (options->mode_64bit)
-                u_lhs = val.ulint64_val;
-            else
-                u_lhs = val.ulint32_val;
+//            if (options->mode_64bit)
+//                u_lhs = val.ulint64_val;
+//            else
+//                u_lhs = val.ulint32_val;
             break;
         case IntegerType::IntegerTypeID::LLINT:
             s_lhs = val.llint_val;
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            u_lhs = val.ullint_val;
+//            u_lhs = val.ullint_val;
             break;
     }
 
@@ -1967,7 +1967,7 @@ bool BitField::can_fit_in_int (BuiltinType::ScalarTypedVal val, bool is_unsigned
         if (is_unsigned)
             return (u_min <= u_val) && (u_val <= u_max);
         else
-            return (u_val <= s_max);
+            return (u_val <= (uint64_t)s_max);
     }
     else {
         if (is_unsigned)
