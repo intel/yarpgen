@@ -40,6 +40,8 @@ std::shared_ptr<Data> Expr::get_value () {
         }
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (Expr)");
+        default:
+            ERROR("Expr::get_value() - data corruption");
     }
 }
 
@@ -60,6 +62,8 @@ std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
             break;
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (VarUseExpr)");
+        default:
+            ERROR("Expr::set_value() - data corruption");
     }
 }
 
@@ -990,6 +994,8 @@ std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
             break;
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (MemberExpr)");
+        default:
+            ERROR("MemberExpr::set_value() - data corruption");
     }
 }
 

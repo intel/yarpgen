@@ -72,7 +72,7 @@ class Type {
         };
 
         Type (TypeID _id) : cv_qual(CV_Qual::NTHG), is_static(false), align(0), id (_id) {}
-        Type (TypeID _id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        Type (TypeID _id, CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
               cv_qual (_cv_qual), is_static (_is_static), align (_align), id (_id) {}
 
         // Getters and setters for general Type properties
@@ -85,8 +85,8 @@ class Type {
         CV_Qual get_cv_qual () { return cv_qual; }
         void set_is_static (bool _is_static) { is_static = _is_static; }
         bool get_is_static () { return is_static; }
-        void set_align (uint64_t _align) { align = _align; }
-        uint64_t get_align () { return align; }
+        void set_align (uint32_t _align) { align = _align; }
+        uint32_t get_align () { return align; }
 
         // We assume static storage duration, cv-qualifier and alignment as a part of Type's full name
         std::string get_name ();
@@ -106,7 +106,7 @@ class Type {
         std::string name;
         CV_Qual cv_qual;
         bool is_static;
-        uint64_t align;
+        uint32_t align;
 
     private:
         TypeID id;
@@ -133,7 +133,7 @@ class StructType : public Type {
         };
 
         StructType (std::string _name) : Type (Type::STRUCT_TYPE), nest_depth(0) { name = _name; }
-        StructType (std::string _name, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        StructType (std::string _name, CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                     Type (Type::STRUCT_TYPE, _cv_qual, _is_static, _align), nest_depth(0) { name = _name; }
         bool is_struct_type() { return true; }
 
@@ -142,9 +142,9 @@ class StructType : public Type {
         void add_member (std::shared_ptr<StructMember> new_mem) { members.push_back(new_mem); shadow_members.push_back(new_mem); }
         void add_member (std::shared_ptr<Type> _type, std::string _name);
         void add_shadow_member (std::shared_ptr<Type> _type) { shadow_members.push_back(std::make_shared<StructMember>(_type, "")); }
-        uint64_t get_member_count () { return members.size(); }
-        uint64_t get_shadow_member_count () { return shadow_members.size(); }
-        uint64_t get_nest_depth () { return nest_depth; }
+        uint32_t get_member_count () { return members.size(); }
+        uint32_t get_shadow_member_count () { return shadow_members.size(); }
+        uint32_t get_nest_depth () { return nest_depth; }
         std::shared_ptr<StructMember> get_member (unsigned int num);
 
 
@@ -162,7 +162,7 @@ class StructType : public Type {
         //TODO: it is a stub for unnamed bit fields. Nobody should know about them
         std::vector<std::shared_ptr<StructMember>> shadow_members;
         std::vector<std::shared_ptr<StructMember>> members;
-        uint64_t nest_depth;
+        uint32_t nest_depth;
 };
 
 // ID for all handled Undefined Behaviour
@@ -259,13 +259,13 @@ class BuiltinType : public Type {
         };
 
         BuiltinType (BuiltinTypeID _builtin_id) : Type (Type::BUILTIN_TYPE), bit_size (0), suffix(""), builtin_id (_builtin_id) {}
-        BuiltinType (BuiltinTypeID _builtin_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        BuiltinType (BuiltinTypeID _builtin_id, CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                     Type (Type::BUILTIN_TYPE, _cv_qual, _is_static, _align), bit_size (0), suffix(""), builtin_id (_builtin_id) {}
         bool is_builtin_type() { return true; }
 
         // Getters for BuiltinType properties
         BuiltinTypeID get_builtin_type_id() { return builtin_id; }
-        uint64_t get_bit_size () { return bit_size; }
+        uint32_t get_bit_size () { return bit_size; }
         std::string get_suffix () { return suffix; }
 
     protected:
@@ -283,7 +283,7 @@ std::ostream& operator<< (std::ostream &out, const BuiltinType::ScalarTypedVal &
 class IntegerType : public BuiltinType {
     public:
         IntegerType (IntegerTypeID it_id) : BuiltinType (BuiltinTypeID::Integer), is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
-        IntegerType (IntegerTypeID it_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        IntegerType (IntegerTypeID it_id, CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                      BuiltinType (BuiltinTypeID::Integer, _cv_qual, _is_static, _align),
                      is_signed (false), min(it_id), max(it_id), int_type_id (it_id) {}
         bool is_int_type() { return true; }
@@ -296,7 +296,7 @@ class IntegerType : public BuiltinType {
 
         // This utility functions take IntegerTypeID and return shared pointer to corresponding type
         static std::shared_ptr<IntegerType> init (BuiltinType::IntegerTypeID _type_id);
-        static std::shared_ptr<IntegerType> init (BuiltinType::IntegerTypeID _type_id, CV_Qual _cv_qual, bool _is_static, uint64_t _align);
+        static std::shared_ptr<IntegerType> init (BuiltinType::IntegerTypeID _type_id, CV_Qual _cv_qual, bool _is_static, uint32_t _align);
 
         // If type A can represent all the values of type B
         static bool can_repr_value (BuiltinType::IntegerTypeID A, BuiltinType::IntegerTypeID B); // if type B can represent all of the values of the type A
@@ -319,12 +319,12 @@ class IntegerType : public BuiltinType {
 // Class which represents bit-field
 class BitField : public IntegerType {
     public:
-        BitField (IntegerTypeID it_id, uint64_t _bit_size) : IntegerType(it_id) { init_type(it_id, _bit_size); }
-        BitField (IntegerTypeID it_id, uint64_t _bit_size, CV_Qual _cv_qual) : IntegerType(it_id, _cv_qual, false, 0) { init_type(it_id, _bit_size); }
+        BitField (IntegerTypeID it_id, uint32_t _bit_size) : IntegerType(it_id) { init_type(it_id, _bit_size); }
+        BitField (IntegerTypeID it_id, uint32_t _bit_size, CV_Qual _cv_qual) : IntegerType(it_id, _cv_qual, false, 0) { init_type(it_id, _bit_size); }
 
         // Getters of BitField properties
         bool get_is_bit_field() { return true; }
-        uint64_t get_bit_field_width() { return bit_field_width; }
+        uint32_t get_bit_field_width() { return bit_field_width; }
 
         // If all values of the bit-field can fit in signed/unsigned int
         static bool can_fit_in_int (BuiltinType::ScalarTypedVal val, bool is_unsigned);
@@ -336,8 +336,8 @@ class BitField : public IntegerType {
 
     private:
         // Common initializer functions, used in constructors
-        void init_type(IntegerTypeID it_id, uint64_t _bit_size);
-        uint64_t bit_field_width;
+        void init_type(IntegerTypeID it_id, uint32_t _bit_size);
+        uint32_t bit_field_width;
 };
 
 // Following classes represents standard integer types and bool
@@ -345,7 +345,7 @@ class BitField : public IntegerType {
 class TypeBOOL : public IntegerType {
     public:
         TypeBOOL () : IntegerType(BuiltinType::IntegerTypeID::BOOL) { init_type (); }
-        TypeBOOL (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeBOOL (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                   IntegerType(BuiltinType::IntegerTypeID::BOOL, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -363,7 +363,7 @@ class TypeBOOL : public IntegerType {
 class TypeCHAR : public IntegerType {
     public:
         TypeCHAR () : IntegerType(BuiltinType::IntegerTypeID::CHAR) { init_type (); }
-        TypeCHAR (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeCHAR (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                   IntegerType(BuiltinType::IntegerTypeID::CHAR, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -381,7 +381,7 @@ class TypeCHAR : public IntegerType {
 class TypeUCHAR : public IntegerType {
     public:
         TypeUCHAR () : IntegerType(BuiltinType::IntegerTypeID::UCHAR) { init_type (); }
-        TypeUCHAR (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeUCHAR (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                    IntegerType(BuiltinType::IntegerTypeID::UCHAR, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -399,7 +399,7 @@ class TypeUCHAR : public IntegerType {
 class TypeSHRT : public IntegerType {
     public:
         TypeSHRT () : IntegerType(BuiltinType::IntegerTypeID::SHRT) { init_type (); }
-        TypeSHRT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeSHRT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                   IntegerType(BuiltinType::IntegerTypeID::SHRT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -417,7 +417,7 @@ class TypeSHRT : public IntegerType {
 class TypeUSHRT : public IntegerType {
     public:
         TypeUSHRT () : IntegerType(BuiltinType::IntegerTypeID::USHRT) { init_type (); }
-        TypeUSHRT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeUSHRT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                    IntegerType(BuiltinType::IntegerTypeID::USHRT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -435,7 +435,7 @@ class TypeUSHRT : public IntegerType {
 class TypeINT : public IntegerType {
     public:
         TypeINT () : IntegerType(BuiltinType::IntegerTypeID::INT) { init_type (); }
-        TypeINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeINT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                  IntegerType(BuiltinType::IntegerTypeID::INT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -453,7 +453,7 @@ class TypeINT : public IntegerType {
 class TypeUINT : public IntegerType {
     public:
         TypeUINT () : IntegerType(BuiltinType::IntegerTypeID::UINT) { init_type (); }
-        TypeUINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeUINT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                   IntegerType(BuiltinType::IntegerTypeID::UINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -471,7 +471,7 @@ class TypeUINT : public IntegerType {
 class TypeLINT : public IntegerType {
     public:
         TypeLINT () : IntegerType(BuiltinType::IntegerTypeID::LINT) { init_type (); }
-        TypeLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeLINT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                   IntegerType(BuiltinType::IntegerTypeID::LINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -496,7 +496,7 @@ class TypeLINT : public IntegerType {
 class TypeULINT : public IntegerType {
     public:
         TypeULINT () : IntegerType(BuiltinType::IntegerTypeID::ULINT) { init_type (); }
-        TypeULINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeULINT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                    IntegerType(BuiltinType::IntegerTypeID::ULINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -521,7 +521,7 @@ class TypeULINT : public IntegerType {
 class TypeLLINT : public IntegerType {
     public:
         TypeLLINT () : IntegerType(BuiltinType::IntegerTypeID::LLINT) { init_type (); }
-        TypeLLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeLLINT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                    IntegerType(BuiltinType::IntegerTypeID::LLINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 
@@ -539,7 +539,7 @@ class TypeLLINT : public IntegerType {
 class TypeULLINT : public IntegerType {
     public:
         TypeULLINT () : IntegerType(BuiltinType::IntegerTypeID::ULLINT) { init_type (); }
-        TypeULLINT (CV_Qual _cv_qual, bool _is_static, uint64_t _align) :
+        TypeULLINT (CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
                     IntegerType(BuiltinType::IntegerTypeID::ULLINT, _cv_qual, _is_static, _align) { init_type (); }
         void dbg_dump ();
 

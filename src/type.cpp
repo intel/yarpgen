@@ -1149,8 +1149,8 @@ switch (rhs.get_int_type_id()) {                                                
         break;                                                                  \
 }
 
-static uint64_t msb(uint64_t x) {
-    uint64_t ret = 0;
+static uint32_t msb(uint64_t x) {
+    uint32_t ret = 0;
     while (x != 0) {
         ret++;
         x = x >> 1;
@@ -1162,9 +1162,9 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
     BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_lhs = 0;
-    int64_t u_lhs = 0;
+    uint64_t u_lhs = 0;
     int64_t s_rhs = 0;
-    int64_t u_rhs = 0;
+    uint64_t u_rhs = 0;
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -1244,9 +1244,9 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
         return ret;
     }
 
-    uint64_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
+    uint32_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
     if (rhs_is_signed) {
-        if (s_rhs >= lhs_bit_size) {
+        if (s_rhs >= (int)lhs_bit_size) {
             ret.set_ub(ShiftRhsLarge);
             return ret;
         }
@@ -1259,8 +1259,8 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
     }
 
     if (lhs_is_signed) {
-        uint64_t max_avail_shft = lhs_bit_size - msb(s_lhs);
-        if (rhs_is_signed && s_rhs >= max_avail_shft) {
+        uint32_t max_avail_shft = lhs_bit_size - msb(s_lhs);
+        if (rhs_is_signed && s_rhs >= (int)max_avail_shft) {
             ret.set_ub(ShiftRhsLarge);
             return ret;
         }
@@ -1313,9 +1313,9 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
     BuiltinType::ScalarTypedVal ret = *this;
 
     int64_t s_lhs = 0;
-    int64_t u_lhs = 0;
+    uint64_t u_lhs = 0;
     int64_t s_rhs = 0;
-    int64_t u_rhs = 0;
+    uint64_t u_rhs = 0;
     switch (int_type_id) {
         case IntegerType::IntegerTypeID::BOOL:
         case IntegerType::IntegerTypeID::CHAR:
@@ -1395,9 +1395,9 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator>> (ScalarTyped
         return ret;
     }
 
-    uint64_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
+    uint32_t lhs_bit_size = IntegerType::init(int_type_id)->get_bit_size();
     if (rhs_is_signed) {
-        if (s_rhs >= lhs_bit_size) {
+        if (s_rhs >= (int)lhs_bit_size) {
             ret.set_ub(ShiftRhsLarge);
             return ret;
         }
@@ -1608,7 +1608,7 @@ std::shared_ptr<IntegerType> IntegerType::init (BuiltinType::IntegerTypeID _type
     return ret;
 }
 
-std::shared_ptr<IntegerType> IntegerType::init (BuiltinType::IntegerTypeID _type_id, Type::CV_Qual _cv_qual, bool _is_static, uint64_t _align) {
+std::shared_ptr<IntegerType> IntegerType::init (BuiltinType::IntegerTypeID _type_id, Type::CV_Qual _cv_qual, bool _is_static, uint32_t _align) {
     std::shared_ptr<IntegerType> ret = IntegerType::init (_type_id);
     ret->set_cv_qual(_cv_qual);
     ret->set_is_static(_is_static);
@@ -1722,7 +1722,7 @@ BuiltinType::IntegerTypeID IntegerType::get_corr_unsig (BuiltinType::IntegerType
     }
 }
 
-void BitField::init_type (IntegerTypeID it_id, uint64_t _bit_size) {
+void BitField::init_type (IntegerTypeID it_id, uint32_t _bit_size) {
     std::shared_ptr<IntegerType> base_type = IntegerType::init(it_id);
     name = base_type->get_simple_name();
     suffix = base_type->get_suffix();
@@ -1889,18 +1889,18 @@ std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool
     }
     std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
 
-    uint64_t min_bit_size = is_unnamed ? 0 : (std::min(tmp_int_type->get_bit_size(), ctx->get_gen_policy()->get_min_bit_field_size()));
+    uint32_t min_bit_size = is_unnamed ? 0 : (std::min(tmp_int_type->get_bit_size(), ctx->get_gen_policy()->get_min_bit_field_size()));
 
     //TODO: it cause different result for LLVM and GCC, so we limit max_bit_size to int bitsize. See pr70733
-//    uint64_t max_bit_size = tmp_int_type->get_bit_size() * ctx->get_gen_policy()->get_max_bit_field_size();
+//    uint32_t max_bit_size = tmp_int_type->get_bit_size() * ctx->get_gen_policy()->get_max_bit_field_size();
     std::shared_ptr<IntegerType> int_type = IntegerType::init(Type::IntegerTypeID::INT);
-    uint64_t max_bit_size = int_type->get_bit_size();
+    uint32_t max_bit_size = int_type->get_bit_size();
 
     // C doesn't allows bit-fields bigger than its base type + pr70733
     if(options->is_c())
         max_bit_size = std::min(tmp_int_type->get_bit_size(), int_type->get_bit_size());
 
-    uint64_t bit_size = rand_val_gen->get_rand_value<uint64_t>(min_bit_size, max_bit_size);
+    uint32_t bit_size = rand_val_gen->get_rand_value<uint32_t>(min_bit_size, max_bit_size);
     return std::make_shared<BitField>(int_type_id, bit_size, cv_qual);
 }
 

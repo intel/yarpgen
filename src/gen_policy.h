@@ -38,7 +38,7 @@ namespace yarpgen {
 template<typename T>
 class Probability {
     public:
-        Probability (T _id, int _prob) : id(_id), prob (_prob) {}
+        Probability (T _id, uint64_t _prob) : id(_id), prob (_prob) {}
         T get_id () { return id; }
         uint64_t get_prob () { return prob; }
         void increase_prob(uint64_t add_prob) { prob += add_prob; }
@@ -75,7 +75,7 @@ class RandValGen {
         }
 
         std::string get_struct_type_name() { return "struct_" + std::to_string(++struct_type_count); }
-        uint64_t    get_struct_type_count() { return struct_type_count; }
+        uint32_t    get_struct_type_count() { return struct_type_count; }
         std::string get_scalar_var_name() { return "var_" + std::to_string(++scalar_var_count); }
         std::string get_struct_var_name() { return "struct_obj_" + std::to_string(++struct_var_count); }
 
@@ -106,9 +106,9 @@ class RandValGen {
     private:
         uint64_t seed;
         std::mt19937_64 rand_gen;
-        static uint64_t struct_type_count;
-        static uint64_t scalar_var_count;
-        static uint64_t struct_var_count;
+        static uint32_t struct_type_count;
+        static uint32_t scalar_var_count;
+        static uint32_t struct_var_count;
 };
 
 extern std::shared_ptr<RandValGen> rand_val_gen;
@@ -189,8 +189,8 @@ class GenPolicy {
 
         // Integer types section - defines number and type (bool, char ...) of available integer types
         void rand_init_allowed_int_types ();
-        void set_num_of_allowed_int_types (int _num_of_allowed_int_types) { num_of_allowed_int_types = _num_of_allowed_int_types; }
-        int get_num_of_allowed_int_types () { return num_of_allowed_int_types; }
+        void set_num_of_allowed_int_types (uint32_t _num_of_allowed_int_types) { num_of_allowed_int_types = _num_of_allowed_int_types; }
+        uint32_t get_num_of_allowed_int_types () { return num_of_allowed_int_types; }
         std::vector<Probability<IntegerType::IntegerTypeID>>& get_allowed_int_types () { return allowed_int_types; }
         void add_allowed_int_type (Probability<IntegerType::IntegerTypeID> allowed_int_type) { allowed_int_types.push_back(allowed_int_type); }
 
@@ -214,15 +214,15 @@ class GenPolicy {
         // distribution of bit fields properties ...
         void set_allow_struct (bool _allow_struct) { allow_struct = _allow_struct; }
         bool get_allow_struct () { return allow_struct; }
-        void set_min_struct_type_count (uint64_t _min_struct_type_count) { min_struct_type_count = _min_struct_type_count; }
-        uint64_t get_min_struct_type_count () { return min_struct_type_count; }
-        void set_max_struct_type_count (uint64_t _max_struct_type_count) { max_struct_type_count = _max_struct_type_count; }
-        uint64_t get_max_struct_type_count () { return max_struct_type_count; }
-        void set_min_inp_struct_count (uint64_t _min_inp_struct_count) { min_inp_struct_count = _min_inp_struct_count; }
-        void set_min_struct_member_count (uint64_t _min_struct_member_count) { min_struct_member_count = _min_struct_member_count; }
-        uint64_t get_min_struct_member_count () { return min_struct_member_count; }
-        void set_max_struct_member_count (uint64_t _max_struct_member_count) { max_struct_member_count = _max_struct_member_count; }
-        uint64_t get_max_struct_member_count () { return max_struct_member_count; }
+        void set_min_struct_type_count (uint32_t _min_struct_type_count) { min_struct_type_count = _min_struct_type_count; }
+        uint32_t get_min_struct_type_count () { return min_struct_type_count; }
+        void set_max_struct_type_count (uint32_t _max_struct_type_count) { max_struct_type_count = _max_struct_type_count; }
+        uint32_t get_max_struct_type_count () { return max_struct_type_count; }
+        void set_min_inp_struct_count (uint32_t _min_inp_struct_count) { min_inp_struct_count = _min_inp_struct_count; }
+        void set_min_struct_member_count (uint32_t _min_struct_member_count) { min_struct_member_count = _min_struct_member_count; }
+        uint32_t get_min_struct_member_count () { return min_struct_member_count; }
+        void set_max_struct_member_count (uint32_t _max_struct_member_count) { max_struct_member_count = _max_struct_member_count; }
+        uint32_t get_max_struct_member_count () { return max_struct_member_count; }
         void set_allow_mix_cv_qual_in_struct(bool mix) { allow_mix_cv_qual_in_struct = mix; }
         bool get_allow_mix_cv_qual_in_struct() { return allow_mix_cv_qual_in_struct; }
         void set_allow_static_members (bool _allow_static_members) { allow_static_members = _allow_static_members; }
@@ -232,43 +232,43 @@ class GenPolicy {
         void set_allow_mix_types_in_struct (bool mix) { allow_mix_types_in_struct = mix; }
         bool get_allow_mix_types_in_struct () { return allow_mix_types_in_struct; }
         std::vector<Probability<bool>> get_member_use_prob () { return member_use_prob; }
-        void set_max_struct_depth (uint64_t _max_struct_depth) { max_struct_depth = _max_struct_depth; }
-        uint64_t get_max_struct_depth () { return max_struct_depth; }
+        void set_max_struct_depth (uint32_t _max_struct_depth) { max_struct_depth = _max_struct_depth; }
+        uint32_t get_max_struct_depth () { return max_struct_depth; }
         std::vector<Probability<Data::VarClassID>>& get_member_class_prob () { return member_class_prob; }
         void add_out_data_type_prob(Probability<OutDataTypeID> prob) { out_data_type_prob.push_back(prob); }
-        void set_min_bit_field_size (uint64_t _min_bit_field_size) { min_bit_field_size = _min_bit_field_size; }
-        uint64_t get_min_bit_field_size () { return min_bit_field_size; }
-        void set_max_bit_field_size (uint64_t _max_bit_field_size) { max_bit_field_size = _max_bit_field_size; }
-        uint64_t get_max_bit_field_size () { return max_bit_field_size; }
+        void set_min_bit_field_size (uint32_t _min_bit_field_size) { min_bit_field_size = _min_bit_field_size; }
+        uint32_t get_min_bit_field_size () { return min_bit_field_size; }
+        void set_max_bit_field_size (uint32_t _max_bit_field_size) { max_bit_field_size = _max_bit_field_size; }
+        uint32_t get_max_bit_field_size () { return max_bit_field_size; }
         std::vector<Probability<BitFieldID>>& get_bit_field_prob () { return bit_field_prob; }
         void add_bit_field_prob(Probability<BitFieldID> prob) { bit_field_prob.push_back(prob); }
 
         // Variables section - defines total number of variables of each kind (input and mix),
         // distribution of type of output variables.
-        void set_min_inp_var_count (int _min_inp_var_count) { min_inp_var_count = _min_inp_var_count; }
-        int get_min_inp_var_count () { return min_inp_var_count; }
-        void set_max_inp_var_count (int _max_inp_var_count) { max_inp_var_count = _max_inp_var_count; }
-        int get_max_inp_var_count () { return max_inp_var_count; }
-        void set_min_mix_var_count (int _min_mix_var_count) { min_mix_var_count = _min_mix_var_count; }
-        int get_min_mix_var_count () { return min_mix_var_count; }
-        void set_max_mix_var_count (int _max_mix_var_count) { max_mix_var_count = _max_mix_var_count; }
-        int get_max_mix_var_count () { return max_mix_var_count; }
+        void set_min_inp_var_count (uint32_t _min_inp_var_count) { min_inp_var_count = _min_inp_var_count; }
+        uint32_t get_min_inp_var_count () { return min_inp_var_count; }
+        void set_max_inp_var_count (uint32_t _max_inp_var_count) { max_inp_var_count = _max_inp_var_count; }
+        uint32_t get_max_inp_var_count () { return max_inp_var_count; }
+        void set_min_mix_var_count (uint32_t _min_mix_var_count) { min_mix_var_count = _min_mix_var_count; }
+        uint32_t get_min_mix_var_count () { return min_mix_var_count; }
+        void set_max_mix_var_count (uint32_t _max_mix_var_count) { max_mix_var_count = _max_mix_var_count; }
+        uint32_t get_max_mix_var_count () { return max_mix_var_count; }
         std::vector<Probability<OutDataTypeID>> get_out_data_type_prob() { return out_data_type_prob; }
-        uint64_t get_min_inp_struct_count () { return min_inp_struct_count; }
-        void set_max_inp_struct_count (uint64_t _max_inp_struct_count) { max_inp_struct_count = _max_inp_struct_count; }
-        uint64_t get_max_inp_struct_count () { return max_inp_struct_count; }
-        void set_min_mix_struct_count (uint64_t _min_mix_struct_count) { min_mix_struct_count = _min_mix_struct_count; }
-        uint64_t get_min_mix_struct_count () { return min_mix_struct_count; }
-        void set_max_mix_struct_count (uint64_t _max_mix_struct_count) { max_mix_struct_count = _max_mix_struct_count; }
-        uint64_t get_max_mix_struct_count () { return max_mix_struct_count; }
-        void set_min_out_struct_count (uint64_t _min_out_struct_count) { min_out_struct_count = _min_out_struct_count; }
-        uint64_t get_min_out_struct_count () { return min_out_struct_count; }
-        void set_max_out_struct_count (uint64_t _max_out_struct_count) { max_out_struct_count = _max_out_struct_count; }
-        uint64_t get_max_out_struct_count () { return max_out_struct_count; }
+        uint32_t get_min_inp_struct_count () { return min_inp_struct_count; }
+        void set_max_inp_struct_count (uint32_t _max_inp_struct_count) { max_inp_struct_count = _max_inp_struct_count; }
+        uint32_t get_max_inp_struct_count () { return max_inp_struct_count; }
+        void set_min_mix_struct_count (uint32_t _min_mix_struct_count) { min_mix_struct_count = _min_mix_struct_count; }
+        uint32_t get_min_mix_struct_count () { return min_mix_struct_count; }
+        void set_max_mix_struct_count (uint32_t _max_mix_struct_count) { max_mix_struct_count = _max_mix_struct_count; }
+        uint32_t get_max_mix_struct_count () { return max_mix_struct_count; }
+        void set_min_out_struct_count (uint32_t _min_out_struct_count) { min_out_struct_count = _min_out_struct_count; }
+        uint32_t get_min_out_struct_count () { return min_out_struct_count; }
+        void set_max_out_struct_count (uint32_t _max_out_struct_count) { max_out_struct_count = _max_out_struct_count; }
+        uint32_t get_max_out_struct_count () { return max_out_struct_count; }
 
         // Arithmetic expression tree section - defines depth, operators distribution, kind of leaves
-        void set_max_arith_depth (int _max_arith_depth) { max_arith_depth = _max_arith_depth; }
-        int get_max_arith_depth () { return max_arith_depth; }
+        void set_max_arith_depth (uint32_t _max_arith_depth) { max_arith_depth = _max_arith_depth; }
+        uint32_t get_max_arith_depth () { return max_arith_depth; }
         void add_unary_op (Probability<UnaryExpr::Op> prob) { allowed_unary_op.push_back(prob); }
         std::vector<Probability<UnaryExpr::Op>>& get_allowed_unary_op () { return allowed_unary_op; }
         void add_binary_op (Probability<BinaryExpr::Op> prob) { allowed_binary_op.push_back(prob); }
@@ -277,8 +277,8 @@ class GenPolicy {
         std::vector<Probability<ArithDataID>>& get_arith_data_distr () { return arith_data_distr; }
 
         // CSE section
-        void set_max_cse_count (int _max_cse_count) { max_cse_count = _max_cse_count; }
-        int get_max_cse_count () { return max_cse_count; }
+        void set_max_cse_count (uint32_t _max_cse_count) { max_cse_count = _max_cse_count; }
+        uint32_t get_max_cse_count () { return max_cse_count; }
         // TODO: add depth control
         std::vector<std::shared_ptr<Expr>>& get_cse () { return cse; };
         void add_cse (std::shared_ptr<Expr> expr) { cse.push_back(expr); }
@@ -294,15 +294,15 @@ class GenPolicy {
 
         // Statement section - defines their number (per scope and total), distribution and properties
         std::vector<Probability<Node::NodeID>>& get_stmt_gen_prob () { return stmt_gen_prob; }
-        void set_min_scope_stmt_count (int _min_scope_stmt_count) { min_scope_stmt_count = _min_scope_stmt_count; }
-        int get_min_scope_stmt_count () { return min_scope_stmt_count; }
-        void set_max_scope_stmt_count (int _max_scope_stmt_count) { max_scope_stmt_count = _max_scope_stmt_count; }
-        int get_max_scope_stmt_count () { return max_scope_stmt_count; }
-        void set_max_total_stmt_count (int _max_total_stmt_count) { max_total_stmt_count = _max_total_stmt_count; }
-        int get_max_total_stmt_count () { return max_total_stmt_count; }
+        void set_min_scope_stmt_count (uint32_t _min_scope_stmt_count) { min_scope_stmt_count = _min_scope_stmt_count; }
+        uint32_t get_min_scope_stmt_count () { return min_scope_stmt_count; }
+        void set_max_scope_stmt_count (uint32_t _max_scope_stmt_count) { max_scope_stmt_count = _max_scope_stmt_count; }
+        uint32_t get_max_scope_stmt_count () { return max_scope_stmt_count; }
+        void set_max_total_stmt_count (uint32_t _max_total_stmt_count) { max_total_stmt_count = _max_total_stmt_count; }
+        uint32_t get_max_total_stmt_count () { return max_total_stmt_count; }
         std::vector<Probability<bool>>& get_else_prob () { return else_prob; }
-        void set_max_if_depth (int _max_if_depth) { max_if_depth = _max_if_depth; }
-        int get_max_if_depth () { return max_if_depth; }
+        void set_max_if_depth (uint32_t _max_if_depth) { max_if_depth = _max_if_depth; }
+        uint32_t get_max_if_depth () { return max_if_depth; }
 
         ///////////////////////////////////////////////////////////////////////
 
@@ -314,7 +314,7 @@ class GenPolicy {
         uint64_t max_test_complexity;
 
         // Types
-        int num_of_allowed_int_types;
+        uint32_t num_of_allowed_int_types;
         std::vector<Probability<IntegerType::IntegerTypeID>> allowed_int_types;
 
         // cv-qualifiers
@@ -327,43 +327,43 @@ class GenPolicy {
 
         // Struct
         bool allow_struct;
-        uint64_t min_struct_type_count;
-        uint64_t max_struct_type_count;
-        uint64_t min_struct_member_count;
-        uint64_t max_struct_member_count;
+        uint32_t min_struct_type_count;
+        uint32_t max_struct_type_count;
+        uint32_t min_struct_member_count;
+        uint32_t max_struct_member_count;
         bool allow_mix_cv_qual_in_struct;
         bool allow_mix_static_in_struct;
         bool allow_mix_types_in_struct;
         bool allow_static_members;
         std::vector<Probability<bool>> member_use_prob;
         std::vector<Probability<Data::VarClassID>> member_class_prob;
-        uint64_t max_struct_depth;
+        uint32_t max_struct_depth;
         std::vector<Probability<OutDataTypeID>> out_data_type_prob;
-        uint64_t min_bit_field_size;
-        uint64_t max_bit_field_size;
+        uint32_t min_bit_field_size;
+        uint32_t max_bit_field_size;
         std::vector<Probability<BitFieldID>> bit_field_prob;
 
         // Variable
-        int min_inp_var_count;
-        int max_inp_var_count;
-        int min_mix_var_count;
-        int max_mix_var_count;
-        uint64_t min_inp_struct_count;
-        uint64_t max_inp_struct_count;
-        uint64_t min_mix_struct_count;
-        uint64_t max_mix_struct_count;
-        uint64_t min_out_struct_count;
-        uint64_t max_out_struct_count;
+        uint32_t min_inp_var_count;
+        uint32_t max_inp_var_count;
+        uint32_t min_mix_var_count;
+        uint32_t max_mix_var_count;
+        uint32_t min_inp_struct_count;
+        uint32_t max_inp_struct_count;
+        uint32_t min_mix_struct_count;
+        uint32_t max_mix_struct_count;
+        uint32_t min_out_struct_count;
+        uint32_t max_out_struct_count;
 
         // Arithmetic expression tree
-        int max_arith_depth;
+        uint32_t max_arith_depth;
         std::vector<Probability<UnaryExpr::Op>> allowed_unary_op;
         std::vector<Probability<BinaryExpr::Op>> allowed_binary_op;
         std::vector<Probability<ArithLeafID>> arith_leaves;
         std::vector<Probability<ArithDataID>> arith_data_distr;
 
         // CSE
-        int max_cse_count;
+        uint32_t max_cse_count;
         std::vector<Probability<ArithCSEGenID>> arith_cse_gen;
         std::vector<std::shared_ptr<Expr>> cse;
 
@@ -374,12 +374,12 @@ class GenPolicy {
         ArithSSP::SimilarOp chosen_arith_ssp_similar_op;
 
         // Statements
-        int min_scope_stmt_count;
-        int max_scope_stmt_count;
-        int max_total_stmt_count;
+        uint32_t min_scope_stmt_count;
+        uint32_t max_scope_stmt_count;
+        uint32_t max_total_stmt_count;
         std::vector<Probability<Node::NodeID>> stmt_gen_prob;
         std::vector<Probability<bool>> else_prob;
-        int max_if_depth;
+        uint32_t max_if_depth;
 };
 
 extern GenPolicy default_gen_policy;

@@ -23,46 +23,46 @@ limitations under the License.
 
 using namespace yarpgen;
 
-const int MAX_ALLOWED_INT_TYPES = 3;
+const uint32_t MAX_ALLOWED_INT_TYPES = 3;
 
-const int MAX_ARITH_DEPTH = 5;
+const uint32_t MAX_ARITH_DEPTH = 5;
 
-const int MIN_SCOPE_STMT_COUNT = 5;
-const int MAX_SCOPE_STMT_COUNT = 10;
+const uint32_t MIN_SCOPE_STMT_COUNT = 5;
+const uint32_t MAX_SCOPE_STMT_COUNT = 10;
 
-const int MAX_TOTAL_STMT_COUNT = 5000;
+const uint32_t MAX_TOTAL_STMT_COUNT = 5000;
 
-const int MIN_INP_VAR_COUNT = 20;
-const int MAX_INP_VAR_COUNT = 60;
-const int MIN_MIX_VAR_COUNT = 20;
-const int MAX_MIX_VAR_COUNT = 60;
+const uint32_t MIN_INP_VAR_COUNT = 20;
+const uint32_t MAX_INP_VAR_COUNT = 60;
+const uint32_t MIN_MIX_VAR_COUNT = 20;
+const uint32_t MAX_MIX_VAR_COUNT = 60;
 
-const int MAX_CSE_COUNT = 5;
+const uint32_t MAX_CSE_COUNT = 5;
 
-const int MAX_IF_DEPTH = 3;
+const uint32_t MAX_IF_DEPTH = 3;
 
 const uint64_t MAX_TEST_COMPLEXITY = UINT64_MAX;
 
-const int MIN_STRUCT_TYPES_COUNT = 0;
-const int MAX_STRUCT_TYPES_COUNT = 6;
-const int MIN_INP_STRUCT_COUNT = 0;
-const int MAX_INP_STRUCT_COUNT = 6;
-const int MIN_MIX_STRUCT_COUNT = 0;
-const int MAX_MIX_STRUCT_COUNT = 6;
-const int MIN_OUT_STRUCT_COUNT = 0;
-const int MAX_OUT_STRUCT_COUNT = 8;
-const int MIN_STRUCT_MEMBER_COUNT = 1;
-const int MAX_STRUCT_MEMBER_COUNT = 10;
-const int MAX_STRUCT_DEPTH = 5;
-const int MIN_BIT_FIELD_SIZE = 8;
-const int MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
+const uint32_t MIN_STRUCT_TYPES_COUNT = 0;
+const uint32_t MAX_STRUCT_TYPES_COUNT = 6;
+const uint32_t MIN_INP_STRUCT_COUNT = 0;
+const uint32_t MAX_INP_STRUCT_COUNT = 6;
+const uint32_t MIN_MIX_STRUCT_COUNT = 0;
+const uint32_t MAX_MIX_STRUCT_COUNT = 6;
+const uint32_t MIN_OUT_STRUCT_COUNT = 0;
+const uint32_t MAX_OUT_STRUCT_COUNT = 8;
+const uint32_t MIN_STRUCT_MEMBER_COUNT = 1;
+const uint32_t MAX_STRUCT_MEMBER_COUNT = 10;
+const uint32_t MAX_STRUCT_DEPTH = 5;
+const uint32_t MIN_BIT_FIELD_SIZE = 8;
+const uint32_t MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
 
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
-uint64_t RandValGen::struct_type_count = 0;
-uint64_t RandValGen::scalar_var_count = 0;
-uint64_t RandValGen::struct_var_count = 0;
+uint32_t RandValGen::struct_type_count = 0;
+uint32_t RandValGen::scalar_var_count = 0;
+uint32_t RandValGen::struct_var_count = 0;
 
 RandValGen::RandValGen (uint64_t _seed) {
     if (_seed != 0) {
