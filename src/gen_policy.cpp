@@ -168,15 +168,15 @@ void GenPolicy::init_from_config () {
     stmt_gen_prob.push_back (if_gen);
     rand_val_gen->shuffle_prob(stmt_gen_prob);
 
-    Probability<ArithLeafID> data_leaf (ArithLeafID::Data, 10);
+    Probability<ArithLeafID> data_leaf (ArithLeafID::Data, 11);
     arith_leaves.push_back (data_leaf);
-    Probability<ArithLeafID> unary_leaf (ArithLeafID::Unary, 20);
+    Probability<ArithLeafID> unary_leaf (ArithLeafID::Unary, 21);
     arith_leaves.push_back (unary_leaf);
-    Probability<ArithLeafID> binary_leaf (ArithLeafID::Binary, 45);
+    Probability<ArithLeafID> binary_leaf (ArithLeafID::Binary, 46);
     arith_leaves.push_back (binary_leaf);
-    Probability<ArithLeafID> cond_leaf (ArithLeafID::Conditional, 7);
+    Probability<ArithLeafID> cond_leaf (ArithLeafID::Conditional, 3);
     arith_leaves.push_back (cond_leaf);
-    Probability<ArithLeafID> type_cast_leaf (ArithLeafID::TypeCast, 10);
+    Probability<ArithLeafID> type_cast_leaf (ArithLeafID::TypeCast, 11);
     arith_leaves.push_back (type_cast_leaf);
     Probability<ArithLeafID> cse_leaf (ArithLeafID::CSE, 8);
     arith_leaves.push_back (cse_leaf);
