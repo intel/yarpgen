@@ -321,7 +321,7 @@ GenPolicy GenPolicy::apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id)
 void GenPolicy::rand_init_allowed_int_types () {
     allowed_int_types.clear ();
     std::vector<IntegerType::IntegerTypeID> tmp_allowed_int_types;
-    int gen_types = 0;
+    uint32_t gen_types = 0;
     while (gen_types < num_of_allowed_int_types) {
         IntegerType::IntegerTypeID type = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_value<int>(0, IntegerType::IntegerTypeID::MAX_INT_ID - 1);
         if (type == IntegerType::IntegerTypeID::BOOL && options->is_c())

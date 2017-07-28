@@ -295,7 +295,7 @@ std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::ve
 }
 
 // Top-level recursive function for expression tree generation.
-std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth) {
     auto p = ctx->get_gen_policy();
     //TODO: it is a stub for testing. Rewrite it later.
     // Pick random pattern for single statement and apply it to gen_policy. Update Context with new gen_policy.
@@ -359,7 +359,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
 }
 
 
-std::shared_ptr<UnaryExpr> UnaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+std::shared_ptr<UnaryExpr> UnaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth) {
     GenPolicy::add_to_complexity(Node::NodeID::UNARY);
     UnaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_unary_op());
     std::shared_ptr<Expr> rhs = ArithExpr::gen_level (ctx, inp, par_depth);
@@ -525,7 +525,7 @@ std::string UnaryExpr::emit (std::string offset) {
     return ret;
 }
 
-std::shared_ptr<BinaryExpr> BinaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth) {
+std::shared_ptr<BinaryExpr> BinaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth) {
     GenPolicy::add_to_complexity(Node::NodeID::BINARY);
     BinaryExpr::Op op_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_binary_op());
     std::shared_ptr<Expr> lhs = ArithExpr::gen_level (ctx, inp, par_depth);

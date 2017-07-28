@@ -75,8 +75,8 @@ class Context {
 
         void set_gen_policy (GenPolicy _gen_policy) { gen_policy = std::make_shared<GenPolicy>(_gen_policy); }
         auto get_gen_policy () { return gen_policy; }
-        int get_depth () { return depth; }
-        int get_if_depth () { return if_depth; }
+        uint32_t get_depth () { return depth; }
+        uint32_t get_if_depth () { return if_depth; }
         auto get_self_stmt_id () { return self_stmt_id; }
         bool get_taken () { return taken; }
         void set_extern_inp_sym_table (std::shared_ptr<SymbolTable> st) { extern_inp_sym_table = st; }
@@ -101,8 +101,8 @@ class Context {
         std::shared_ptr<Context> parent_ctx;
         std::shared_ptr<SymbolTable> local_sym_table;
         Node::NodeID self_stmt_id;
-        int if_depth;
-        int depth;
+        uint32_t if_depth;
+        uint32_t depth;
         bool taken;
         //TODO: maybe we should add taken member?
 };

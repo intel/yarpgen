@@ -29,7 +29,7 @@ void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {
 }
 
 void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, bool ignore_const) {
-    for (int j = 0; j < struct_var->get_member_count(); ++j) {
+    for (uint32_t j = 0; j < struct_var->get_member_count(); ++j) {
         GenPolicy gen_policy;
         if (rand_val_gen->get_rand_id(gen_policy.get_member_use_prob())) {
             std::shared_ptr<MemberExpr> member_expr;
@@ -117,7 +117,7 @@ std::string SymbolTable::emit_struct_init (std::string offset) {
 
 std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset) {
     std::string ret = "";
-    for (int j = 0; j < struct_var->get_member_count(); ++j) {
+    for (uint32_t j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
@@ -146,7 +146,7 @@ std::string SymbolTable::emit_struct_check (std::string offset) {
 
 std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset) {
     std::string ret = "";
-    for (int j = 0; j < struct_var->get_member_count(); ++j) {
+    for (uint32_t j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
