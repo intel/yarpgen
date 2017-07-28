@@ -109,7 +109,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     //TODO: add to gen_policy stmt number
     auto p = ctx->get_gen_policy();
     int scope_stmt_count = rand_val_gen->get_rand_value<int>(p->get_min_scope_stmt_count(), p->get_max_scope_stmt_count());
-    for (int i = 0; i < scope_stmt_count; ++i) {
+    for (uint32_t i = 0; i < scope_stmt_count; ++i) {
         if (total_stmt_count >= p->get_max_total_stmt_count())
             //TODO: Can we somehow eliminate compiler timeout with the help of this?
             //GenPolicy::get_test_complexity() >= p->get_max_test_complexity())

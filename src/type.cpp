@@ -1871,7 +1871,7 @@ void TypeULLINT::dbg_dump () {
 std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool is_unnamed) {
     Type::CV_Qual cv_qual = ctx->get_gen_policy()->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
                                                                                                                  ctx->get_gen_policy()->get_allowed_cv_qual().size() - 1));
-    IntegerType::IntegerTypeID int_type_id;
+    IntegerType::IntegerTypeID int_type_id = MAX_INT_ID;
     if (options->is_cxx())
         int_type_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     // In C without "J.5.8 Extended bit-field types" bit-filed can have only signed/unsigned int type
@@ -1967,11 +1967,11 @@ bool BitField::can_fit_in_int (BuiltinType::ScalarTypedVal val, bool is_unsigned
         if (is_unsigned)
             return (u_min <= u_val) && (u_val <= u_max);
         else
-            return (s_min <= u_val) && (u_val <= s_max);
+            return (u_val <= s_max);
     }
     else {
         if (is_unsigned)
-            return (u_min <= s_val) && (s_val <= u_max);
+            return ((int64_t)u_min <= s_val) && ((uint64_t)s_val <= u_max);
         else
             return (s_min <= s_val) && (s_val <= s_max);
     }

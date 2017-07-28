@@ -139,7 +139,7 @@ class ArithExpr : public Expr {
         // Bridge to choose_and_apply_ssp_const_use and choose_and_apply_ssp_similar_op. This function combines both of them.
         static GenPolicy choose_and_apply_ssp (GenPolicy old_gen_policy);
         // Top-level recursive function for expression tree generation
-        static std::shared_ptr<Expr> gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+        static std::shared_ptr<Expr> gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
 
         std::shared_ptr<Expr> integral_prom (std::shared_ptr<Expr> arg);
         std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
@@ -163,7 +163,7 @@ class UnaryExpr : public ArithExpr {
         UnaryExpr (Op _op, std::shared_ptr<Expr> _arg);
         Op get_op () { return op; }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<UnaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+        static std::shared_ptr<UnaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
 
     private:
         bool propagate_type ();
@@ -208,7 +208,7 @@ class BinaryExpr : public ArithExpr {
         BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
         Op get_op () { return op; }
         std::string emit (std::string offset = "");
-        static std::shared_ptr<BinaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
+        static std::shared_ptr<BinaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
 
     private:
         bool propagate_type ();
