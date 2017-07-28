@@ -210,10 +210,12 @@ class Test(object):
             common.log_msg(logging.WARNING, "Generator has failed (" + runfail_timeout + ")")
             self.status = self.STATUS_fail_timeout
             stat.update_yarpgen_runs(runfail)
+            self.stat.seed_failed(self.seed)
         elif self.ret_code != 0:
             common.log_msg(logging.WARNING, "Generator has failed (" + runfail + ")")
             self.status = self.STATUS_fail
             stat.update_yarpgen_runs(runfail)
+            self.stat.seed_failed(self.seed)
         else:
             self.status = self.STATUS_ok
             stat.update_yarpgen_runs(ok)
@@ -1399,9 +1401,13 @@ def process_seed_line(line):
     seeds = []
     line = line.replace(",", " ")
     l_seeds = line.split()
+    seed_pattern = re.compile("^[_0-9]+$")
     for s1 in l_seeds:
         s2 = s1.lstrip("S_").rstrip("/")
-        if not s2.isnumeric():
+        if not seed_pattern.match(s2):
+            common.print_and_exit("Seed "+s1+" can't be parsed")
+        s3 = s2.split("_")
+        if not s3[-1].isnumeric() or len(s3) > 2:
             common.print_and_exit("Seed "+s1+" can't be parsed")
         seeds.append(s2)
     return seeds
