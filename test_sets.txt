@@ -51,35 +51,37 @@ Testing sets:
 
 # Set name       | Spec name   | Arguments | Compiler arch  | Sde arch
 ubsan_clang_o0   | ubsan_clang | -O0       |                |
-#ubsan_clang_o2  | ubsan_clang | -O2       |                |
+#ubsan_clang_o2   | ubsan_clang | -O2       |                |
 ubsan_gcc_o0     | ubsan_gcc   | -O0       |                |
-#ubsan_gcc_o2    | ubsan_gcc   | -O2       |                |
+#ubsan_gcc_o2     | ubsan_gcc   | -O2       |                |
 
-gcc_no_opt       | gcc       | -O0       | nehalem        | nhm
-gcc_wsm_opt      | gcc       | -O3       | westmere       | wsm
-gcc_ivb_opt      | gcc       | -O3       | ivybridge      | ivb
-gcc_bdw_opt      | gcc       | -O3       | broadwell      | bdw
-gcc_knl_no_opt   | gcc       | -O0       | knl            | knl
-gcc_knl_opt      | gcc       | -O3       | knl            | knl
-gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
-gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
+gcc_no_opt       | gcc       | -O0       |                |
+gcc_opt          | gcc       | -O3       |                |
+#gcc_wsm_opt      | gcc       | -O3       | westmere       | wsm
+#gcc_ivb_opt      | gcc       | -O3       | ivybridge      | ivb
+#gcc_hsw_opt      | gcc       | -O3       | haswell        | hsw
+#gcc_bdw_opt      | gcc       | -O3       | broadwell      | bdw
+#gcc_knl_no_opt   | gcc       | -O0       | knl            | knl
+#gcc_knl_opt      | gcc       | -O3       | knl            | knl
+#gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
+#gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
 
 clang_no_opt     | clang     | -O0       |                |
 clang_opt        | clang     | -O3       |                |
-clang_knl_no_opt | clang     | -O0       | knl            | knl
-clang_knl_opt    | clang     | -O3       | knl            | knl
-clang_skx_no_opt | clang     | -O0       | skx            | skx
-clang_skx_opt    | clang     | -O3       | skx            | skx
+#clang_knl_no_opt | clang     | -O0       | knl            | knl
+#clang_knl_opt    | clang     | -O3       | knl            | knl
+#clang_skx_no_opt | clang     | -O0       | skx            | skx
+#clang_skx_opt    | clang     | -O3       | skx            | skx
 
 icc_no_opt       | icc       | -O0       |                |
 icc_opt          | icc       | -O3       |                |
-icc_knl_no_opt   | icc       | -O0       | MIC-AVX512     | knl
-icc_knl_opt      | icc       | -O3       | MIC-AVX512     | knl
-icc_skx_no_opt   | icc       | -O0       | CORE-AVX512    | skx
-icc_skx_opt      | icc       | -O3       | CORE-AVX512    | skx
+#icc_knl_no_opt   | icc       | -O0       | MIC-AVX512     | knl
+#icc_knl_opt      | icc       | -O3       | MIC-AVX512     | knl
+#icc_skx_no_opt   | icc       | -O0       | CORE-AVX512    | skx
+#icc_skx_opt      | icc       | -O3       | CORE-AVX512    | skx
 
 icx_no_opt       | icx       | -O0       |                |
-icx_hsw_opt      | icx       | -O3       |                | hsw
+icx_opt          | icx       | -O3       |                |
 
 Options for statistics' capture:
 #Spec name  | Arguments
