@@ -25,6 +25,14 @@ namespace yarpgen {
 
 // This structure stores all of the options, required for YARPGen
 struct Options {
+    // Yarpgen version supposed to be changed every time the generation algorithm is changed,
+    // so version+seed should unambiguously correspond to generated test.
+    // TODO: with more extra parameters taken into account, like target platform properties,
+    // limits, generation policies, and output language, we may want to encode all this in the seed.
+    std::string yarpgen_version = "1.2";
+
+    std::string plane_yarpgen_version;
+
     // IDs for all supported language standards
     enum StandardID {
         C99, C11, MAX_CStandardID,
@@ -32,10 +40,10 @@ struct Options {
         OpenCL_1_0, OpenCL_1_1, OpenCL_1_2, OpenCL_2_0, OpenCL_2_1, OpenCL_2_2, MAX_OpenCLStandardID
     };
 
-    // This map matchs StandardIDs to string literals for them
+    // This map matches StandardIDs to string literals for them
     static const std::map<std::string, StandardID> str_to_standard;
 
-    Options() : standard_id(CXX11), mode_64bit(true) {}
+    Options();
     bool is_c ();
     bool is_cxx ();
     bool is_opencl ();

@@ -22,6 +22,7 @@ limitations under the License.
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <sstream>
 
 #include "gen_policy.h"
 #include "master.h"
@@ -29,6 +30,7 @@ limitations under the License.
 #include "sym_table.h"
 #include "type.h"
 #include "variable.h"
+#include "util.h"
 
 #ifndef BUILD_DATE
 #define BUILD_DATE __DATE__
@@ -41,11 +43,8 @@ limitations under the License.
 using namespace yarpgen;
 
 void printVersion () {
-    // Yarpgen version supposed to be changed every time the generation algorithm is changed,
-    // so version+seed should unambiguously correcpond to generated test.
-    // TODO: with more extra parameters taken into account, like target platform properties,
-    // limits, generation policies, and output languge, we may want to encode all this in the seed.
-    std::cout << "yarpgen version 1.1 (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
+    std::cout << "yarpgen version " + options->yarpgen_version +
+                 " (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
 }
 
 extern void self_test();
@@ -67,7 +66,7 @@ void print_usage_and_exit (std::string error_msg = "") {
     std::cout << "\t-q                        Quiet mode\n";
     std::cout << "\t-v, --version             Print yarpgen version\n";
     std::cout << "\t-d, --out-dir=<out-dir>   Output directory\n";
-    std::cout << "\t-s, --seed=<seed>         Predefined seed\n";
+    std::cout << "\t-s, --seed=<seed>         Predefined seed (it is accepted in form of SSS or VV_SSS)\n";
     std::cout << "\t-m, --bit-mode=<32/64>    Generated test's bit mode\n";
     std::cout << "\t--std=<standard>          Generated test's language standard\n";
     auto search_for_default_std = [] (const std::pair<std::string, Options::StandardID> &pair) {
@@ -134,8 +133,18 @@ int main (int argc, char* argv[128]) {
     // Detects predefined seed
     auto seed_action = [&seed] (std::string arg) {
         size_t *pEnd = nullptr;
+        std::stringstream arg_ss(arg);
+        std::string segment;
+        std::vector<std::string> seed_list;
+        while(std::getline(arg_ss, segment, '_'))
+            seed_list.push_back(segment);
+
+        if ((seed_list.size() > 1 && seed_list.at(0) != options->plane_yarpgen_version) ||
+            seed_list.size() > 2)
+            ERROR("Incompatible yarpgen version in seed: " + arg);
+
         try {
-            seed = std::stoull(arg, pEnd, 10);
+            seed = std::stoull(seed_list.back(), pEnd, 10);
         }
         catch (std::invalid_argument& e) {
             print_usage_and_exit("Can't recognize seed: " + arg);

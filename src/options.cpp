@@ -16,11 +16,19 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
+
 #include "options.h"
 
 using namespace yarpgen;
 
 Options* yarpgen::options;
+
+Options::Options() : standard_id(CXX11), mode_64bit(true) {
+    plane_yarpgen_version = yarpgen_version;
+    plane_yarpgen_version.erase(std::remove(plane_yarpgen_version.begin(), plane_yarpgen_version.end(), '.'),
+                                plane_yarpgen_version.end());
+}
 
 const std::map<std::string, Options::StandardID> Options::str_to_standard = {
     {"c99", C99},
@@ -51,5 +59,3 @@ bool Options::is_cxx() {
 bool Options::is_opencl() {
     return OpenCL_1_0 <= standard_id && standard_id < MAX_OpenCLStandardID;
 }
-
-
