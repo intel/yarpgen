@@ -121,7 +121,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
            ((p->get_cse().size() - 1 < p->get_max_cse_count()) ||
             (p->get_cse().size() == 0))) {
             std::vector<std::shared_ptr<Expr>> cse_inp = extract_inp_from_ctx(ctx);
-            p->add_cse(ArithExpr::generate(ctx, cse_inp));
+            p->add_cse(ArithExpr::generate(ctx, cse_inp, false));
         }
 
         // Randomly pick next Stmt ID
