@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <ostream>
 #include <vector>
 
 #include "type.h"
@@ -53,7 +54,7 @@ class Node {
         };
         Node (NodeID _id) : id(_id) {}
         NodeID get_id () { return id; }
-        virtual std::string emit (std::string offset = "") = 0;
+        virtual void emit (std::ostream& stream, std::string offset = "") = 0;
 
     private:
         NodeID id;

@@ -55,19 +55,19 @@ std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx, std:
     return ret;
 }
 
-std::string DeclStmt::emit (std::string offset) {
-    std::string ret = offset;
-    ret += data->get_type()->get_is_static() && !is_extern ? "static " : "";
-    ret += is_extern ? "extern " : "";
+void DeclStmt::emit (std::ostream& stream, std::string offset) {
+    stream << offset;
+    stream << (data->get_type()->get_is_static() && !is_extern ? "static " : "");
+    stream << (is_extern ? "extern " : "");
     switch (data->get_type()->get_cv_qual()) {
         case Type::CV_Qual::VOLAT:
-            ret += "volatile ";
+            stream << "volatile ";
             break;
         case Type::CV_Qual::CONST:
-            ret += "const ";
+            stream << "const ";
             break;
         case Type::CV_Qual::CONST_VOLAT:
-            ret += "const volatile ";
+            stream << "const volatile ";
             break;
         case Type::CV_Qual::NTHG:
             break;
@@ -75,9 +75,9 @@ std::string DeclStmt::emit (std::string offset) {
             ERROR("bad cv_qual (DeclStmt)");
             break;
     }
-    ret += data->get_type()->get_simple_name() + " " + data->get_name();
+    stream << data->get_type()->get_simple_name() + " " + data->get_name();
     if (data->get_type()->get_align() != 0 && is_extern) // TODO: Should we set __attribute__ to non-extern variable?
-        ret += " __attribute__((aligned(" + std::to_string(data->get_type()->get_align()) + ")))";
+        stream << " __attribute__((aligned(" + std::to_string(data->get_type()->get_align()) + ")))";
     if (init != nullptr) {
         if (data->get_class_id() == Data::VarClassID::STRUCT) {
             ERROR("emit init of struct (DeclStmt)");
@@ -85,10 +85,10 @@ std::string DeclStmt::emit (std::string offset) {
         if (is_extern) {
             ERROR("init of extern var (DeclStmt)");
         }
-        ret += " = " + init->emit();
+        stream << " = ";
+        init->emit(stream);
     }
-    ret += ";";
-    return ret;
+    stream << ";";
 }
 
 // One of the most important generation methods (top-level generator for everything between curve brackets).
@@ -264,12 +264,13 @@ void ScopeStmt::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     }
 }
 
-std::string ScopeStmt::emit (std::string offset) {
-    std::string ret = offset + "{\n";
-    for (auto i : scope)
-        ret += i->emit(offset + "    ") + "\n";
-    ret += offset + "}\n";
-    return ret;
+void ScopeStmt::emit (std::ostream& stream, std::string offset) {
+    stream << offset + "{\n";
+    for (const auto &i : scope) {
+        i->emit(stream, offset + "    ");
+        stream << "\n";
+    }
+    stream << offset + "}\n";
 }
 
 // This function randomly creates new AssignExpr and wraps it to ExprStmt.
@@ -282,6 +283,12 @@ std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx, std:
     std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
     GenPolicy::add_to_complexity(Node::NodeID::ASSIGN);
     return std::make_shared<ExprStmt>(assign_exp);
+}
+
+void ExprStmt::emit (std::ostream& stream, std::string offset) {
+    stream << offset;
+    expr->emit(stream);
+    stream << ";";
 }
 
 bool IfStmt::count_if_taken (std::shared_ptr<Expr> cond) {
@@ -315,13 +322,13 @@ std::shared_ptr<IfStmt> IfStmt::generate (std::shared_ptr<Context> ctx, std::vec
     return std::make_shared<IfStmt>(cond, then_br, else_br);
 }
 
-std::string IfStmt::emit (std::string offset) {
-    std::string ret = offset;
-    ret += "if (" + cond->emit() + ")\n";
-    ret += if_branch->emit(offset);
+void IfStmt::emit (std::ostream& stream, std::string offset) {
+    stream << offset << "if (";
+    cond->emit(stream);
+    stream << ")\n";
+    if_branch->emit(stream, offset);
     if (else_branch != nullptr) {
-        ret += offset + "else\n";
-        ret += else_branch->emit(offset);
+        stream << offset + "else\n";
+        else_branch->emit(stream, offset);
     }
-    return ret;
 }

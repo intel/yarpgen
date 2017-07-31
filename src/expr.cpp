@@ -109,12 +109,11 @@ UB AssignExpr::propagate_value () {
     return NoUB;
 }
 
-std::string AssignExpr::emit (std::string offset) {
-    std::string ret = offset;
-    ret += to->emit();
-    ret += " = ";
-    ret += from->emit();
-    return ret;
+void AssignExpr::emit (std::ostream& stream, std::string offset) {
+    stream << offset;
+    to->emit(stream);
+    stream << " = ";
+    from->emit(stream);
 }
 
 TypeCastExpr::TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit) :
@@ -150,15 +149,14 @@ std::shared_ptr<TypeCastExpr> TypeCastExpr::generate (std::shared_ptr<Context> c
     return std::make_shared<TypeCastExpr> (from, to_type, false);
 }
 
-std::string TypeCastExpr::emit (std::string offset) {
+void TypeCastExpr::emit (std::ostream& stream, std::string offset) {
     std::string ret = offset;
     //TODO: add parameter to gen_policy
-    if (!is_implicit)
-        ret += "(" + value->get_type()->get_simple_name() + ") ";
-    else
-        ret += "(" + value->get_type()->get_simple_name() + ") ";
-    ret += "(" + expr->emit() + ")";
-    return ret;
+    if (!is_implicit or is_implicit)
+        stream << "(" << value->get_type()->get_simple_name() << ") ";
+    stream << "(";
+    expr->emit(stream);
+    stream << ")";
 }
 
 std::shared_ptr<ConstExpr> ConstExpr::generate (std::shared_ptr<Context> ctx) {
@@ -176,56 +174,54 @@ std::string ConstExpr::to_string(T T_val, T min, std::string suffix) {
     return "(" + std::to_string(min + 1) + suffix + " - 1" + suffix + ")";
 }
 
-std::string ConstExpr::emit (std::string offset) {
-    std::string ret = offset;
+void ConstExpr::emit (std::ostream& stream, std::string offset) {
     std::shared_ptr<ScalarVariable> scalar_val = std::static_pointer_cast<ScalarVariable>(value);
     std::shared_ptr<IntegerType> int_type = std::static_pointer_cast<IntegerType>(scalar_val->get_type());
     std::string suffix = std::static_pointer_cast<BuiltinType>(scalar_val->get_type())->get_suffix ();
     auto val = scalar_val->get_cur_value().val;
     switch (scalar_val->get_type()->get_int_type_id()) {
         case IntegerType::IntegerTypeID::BOOL:
-            ret += val.bool_val ? "true" : "false";
+            stream << (val.bool_val ? "true" : "false");
             break;
         case IntegerType::IntegerTypeID::CHAR:
-            ret += to_string(val.char_val, int_type->get_min().val.char_val, suffix);
+            stream << to_string(val.char_val, int_type->get_min().val.char_val, suffix);
             break;
         case IntegerType::IntegerTypeID::UCHAR:
-            ret += to_string(val.uchar_val, int_type->get_min().val.uchar_val, suffix);
+            stream << to_string(val.uchar_val, int_type->get_min().val.uchar_val, suffix);
             break;
         case IntegerType::IntegerTypeID::SHRT:
-            ret += to_string(val.shrt_val, int_type->get_min().val.shrt_val, suffix);
+            stream << to_string(val.shrt_val, int_type->get_min().val.shrt_val, suffix);
             break;
         case IntegerType::IntegerTypeID::USHRT:
-            ret += to_string(val.ushrt_val, int_type->get_min().val.ushrt_val, suffix);
+            stream << to_string(val.ushrt_val, int_type->get_min().val.ushrt_val, suffix);
             break;
         case IntegerType::IntegerTypeID::INT:
-            ret += to_string(val.int_val, int_type->get_min().val.int_val, suffix);
+            stream << to_string(val.int_val, int_type->get_min().val.int_val, suffix);
             break;
         case IntegerType::IntegerTypeID::UINT:
-            ret += to_string(val.uint_val, int_type->get_min().val.uint_val, suffix);
+            stream << to_string(val.uint_val, int_type->get_min().val.uint_val, suffix);
             break;
         case IntegerType::IntegerTypeID::LINT:
             if (options->mode_64bit)
-                ret += to_string(val.lint64_val, int_type->get_min().val.lint64_val, suffix);
+                stream << to_string(val.lint64_val, int_type->get_min().val.lint64_val, suffix);
             else
-                ret += to_string(val.lint32_val, int_type->get_min().val.lint32_val, suffix);
+                stream << to_string(val.lint32_val, int_type->get_min().val.lint32_val, suffix);
             break;
         case IntegerType::IntegerTypeID::ULINT:
             if (options->mode_64bit)
-                ret += to_string(val.ulint64_val, int_type->get_min().val.ulint64_val, suffix);
+                stream << to_string(val.ulint64_val, int_type->get_min().val.ulint64_val, suffix);
             else
-                ret += to_string(val.ulint32_val, int_type->get_min().val.ulint32_val, suffix);
+                stream << to_string(val.ulint32_val, int_type->get_min().val.ulint32_val, suffix);
             break;
         case IntegerType::IntegerTypeID::LLINT:
-            ret += to_string(val.llint_val, int_type->get_min().val.llint_val, suffix);
+            stream << to_string(val.llint_val, int_type->get_min().val.llint_val, suffix);
             break;
         case IntegerType::IntegerTypeID::ULLINT:
-            ret += to_string(val.ullint_val, int_type->get_min().val.ullint_val, suffix);
+            stream << to_string(val.ullint_val, int_type->get_min().val.ullint_val, suffix);
             break;
         case IntegerType::IntegerTypeID::MAX_INT_ID:
             ERROR("bad int type id (Constexpr)");
     }
-    return ret;
 }
 
 ConstExpr::ConstExpr(BuiltinType::ScalarTypedVal _val) :
@@ -504,7 +500,7 @@ UB UnaryExpr::propagate_value () {
 // This function rebuilds Unary expression in case of UB.
 // The main idea is to replace operator by its complementary operator.
 // This trick always works for unary operations.
-std::string UnaryExpr::emit (std::string offset) {
+void UnaryExpr::emit (std::ostream& stream, std::string offset) {
     std::string op_str = offset;
     switch (op) {
         case PreInc:
@@ -532,11 +528,16 @@ std::string UnaryExpr::emit (std::string offset) {
             break;
     }
     std::string ret = "";
-    if (op == PostInc || op == PostDec)
-        ret = "(" + arg->emit() + ")" + op_str;
-    else
-        ret = op_str + "(" + arg->emit() + ")";
-    return ret;
+    if (op == PostInc || op == PostDec) {
+        stream << "(";
+        arg->emit(stream);
+        stream << ")" + op_str;
+    }
+    else {
+        stream << op_str + "(";
+        arg->emit(stream);
+        stream << ")";
+    }
 }
 
 std::shared_ptr<BinaryExpr> BinaryExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth) {
@@ -876,71 +877,73 @@ UB BinaryExpr::propagate_value () {
     return new_val.get_ub();
 }
 
-std::string BinaryExpr::emit (std::string offset) {
-    std::string ret = offset;
-    ret += "(" + arg0->emit() + ")";
+void BinaryExpr::emit (std::ostream& stream, std::string offset) {
+    stream << offset << "(";
+    arg0->emit(stream);
+    stream << ")";
     switch (op) {
         case Add:
-            ret += " + ";
+            stream << " + ";
             break;
         case Sub:
-            ret += " - ";
+            stream << " - ";
             break;
         case Mul:
-            ret += " * ";
+            stream << " * ";
             break;
         case Div:
-            ret += " / ";
+            stream << " / ";
             break;
         case Mod:
-            ret += " % ";
+            stream << " % ";
             break;
         case Shl:
-            ret += " << ";
+            stream << " << ";
             break;
         case Shr:
-            ret += " >> ";
+            stream << " >> ";
             break;
         case Lt:
-            ret += " < ";
+            stream << " < ";
             break;
         case Gt:
-            ret += " > ";
+            stream << " > ";
             break;
         case Le:
-            ret += " <= ";
+            stream << " <= ";
             break;
         case Ge:
-            ret += " >= ";
+            stream << " >= ";
             break;
         case Eq:
-            ret += " == ";
+            stream << " == ";
             break;
         case Ne:
-            ret += " != ";
+            stream << " != ";
             break;
         case BitAnd:
-            ret += " & ";
+            stream << " & ";
             break;
         case BitXor:
-            ret += " ^ ";
+            stream << " ^ ";
             break;
         case BitOr:
-            ret += " | ";
+            stream << " | ";
             break;
         case LogAnd:
-            ret += " && ";
+            stream << " && ";
             break;
         case LogOr:
-            ret += " || ";
+            stream << " || ";
             break;
         case Ter:
         case MaxOp:
             ERROR("bad op (BinaryExpr)");
             break;
         }
-        ret += "(" + arg1->emit() + ")";
-        return ret;
+        stream << "(";
+        arg1->emit(stream);
+        stream << ")";
 }
 
 ConditionalExpr::ConditionalExpr (std::shared_ptr<Expr> _cond, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs) :
@@ -975,12 +978,14 @@ UB ConditionalExpr::propagate_value() {
     return UB::NoUB;
 }
 
-std::string ConditionalExpr::emit (std::string offset) {
-    std::string ret = offset;
-    ret += "((" + condition->emit() + ") ? ";
-    ret += "(" + arg0->emit() + ") : ";
-    ret += "(" + arg1->emit() + "))";
-    return ret;
+void ConditionalExpr::emit (std::ostream& stream, std::string offset) {
+    stream << offset << "((";
+    condition->emit(stream);
+    stream << ") ? (";
+    arg0->emit(stream);
+    stream << ") : (";
+    arg1->emit(stream);
+    stream << "))";
 }
 
 std::shared_ptr<ConditionalExpr> ConditionalExpr::generate (
@@ -1103,7 +1108,7 @@ std::shared_ptr<Expr> MemberExpr::check_and_set_bit_field (std::shared_ptr<Expr>
     return ret;
 }
 
-std::string MemberExpr::emit (std::string offset) {
+void MemberExpr::emit (std::ostream& stream, std::string offset) {
     std::string ret = offset;
     if (struct_var == nullptr && member_expr == nullptr) {
         ERROR("bad struct_var or member_expr (MemberExpr)");
@@ -1113,7 +1118,7 @@ std::string MemberExpr::emit (std::string offset) {
         if (struct_var->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
-        ret += struct_var->get_name() + "." + struct_var->get_member(identifier)->get_name();
+        stream << struct_var->get_name() + "." + struct_var->get_member(identifier)->get_name();
     }
     else {
         std::shared_ptr<Data> member_expr_data = member_expr->get_value();
@@ -1124,9 +1129,9 @@ std::string MemberExpr::emit (std::string offset) {
         if (member_expr_struct->get_member_count() <= identifier) {
             ERROR("bad identifier (MemberExpr)");
         }
-        ret += member_expr->emit() + "." +  member_expr_struct->get_member(identifier)->get_name();
+        member_expr->emit(stream);
+        stream << "." +  member_expr_struct->get_member(identifier)->get_name();
     }
-    return ret;
 }
 
 MemberExpr::MemberExpr(std::shared_ptr<Struct> _struct, uint64_t _identifier) :

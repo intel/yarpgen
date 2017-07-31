@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <ostream>
 #include <vector>
 
 #include "type.h"
@@ -47,7 +48,7 @@ class DeclStmt : public Stmt {
         DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern = false);
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         std::shared_ptr<Data> get_data () { return data; }
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<DeclStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     private:
@@ -62,7 +63,7 @@ class DeclStmt : public Stmt {
 class ExprStmt : public Stmt {
     public:
         ExprStmt (std::shared_ptr<Expr> _expr) : Stmt(Node::NodeID::EXPR), expr(_expr) {}
-        std::string emit (std::string offset = "") { return offset + expr->emit() + ";"; }
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<ExprStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out);
 
     private:
@@ -79,7 +80,7 @@ class ScopeStmt : public Stmt {
     public:
         ScopeStmt () : Stmt(Node::NodeID::SCOPE) {}
         void add_stmt (std::shared_ptr<Stmt> stmt) { scope.push_back(stmt); }
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<ScopeStmt> generate (std::shared_ptr<Context> ctx);
 
     private:
@@ -101,7 +102,7 @@ class IfStmt : public Stmt {
     public:
         IfStmt (std::shared_ptr<Expr> cond, std::shared_ptr<ScopeStmt> if_branch, std::shared_ptr<ScopeStmt> else_branch);
         static bool count_if_taken (std::shared_ptr<Expr> cond);
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<IfStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     private:
