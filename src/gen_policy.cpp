@@ -26,6 +26,7 @@ using namespace yarpgen;
 const uint32_t MAX_ALLOWED_INT_TYPES = 3;
 
 const uint32_t MAX_ARITH_DEPTH = 5;
+const uint32_t MAX_TOTAL_ARITH_EXPR_COUNT = 50000000;
 
 const uint32_t MIN_SCOPE_STMT_COUNT = 5;
 const uint32_t MAX_SCOPE_STMT_COUNT = 10;
@@ -135,6 +136,7 @@ void GenPolicy::init_from_config () {
     rand_val_gen->shuffle_prob(out_data_type_prob);
 
     max_arith_depth = MAX_ARITH_DEPTH;
+    max_total_arith_expr_count = MAX_TOTAL_ARITH_EXPR_COUNT;
 
     min_scope_stmt_count = MIN_SCOPE_STMT_COUNT;
     max_scope_stmt_count = MAX_SCOPE_STMT_COUNT;

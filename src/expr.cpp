@@ -65,16 +65,18 @@ std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
     ERROR("Expr::set_value() - data corruption");
 }
 
-VarUseExpr::VarUseExpr(std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var) {
+VarUseExpr::VarUseExpr(std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var, 1) {
 }
 
 AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken) :
-                        Expr(Node::NodeID::ASSIGN, _to->get_value()), to(_to), from(_from), taken(_taken) {
+                        Expr(Node::NodeID::ASSIGN, _to->get_value(), 0),
+                        to(_to), from(_from), taken(_taken) {
     if (to->get_id() != Node::NodeID::VAR_USE && to->get_id() != Node::NodeID::MEMBER) {
         ERROR("can assign only to variable (AssignExpr)");
     }
     propagate_type();
     propagate_value();
+    complexity = from->get_complexity() + 1;
 }
 
 bool AssignExpr::propagate_type () {
@@ -116,7 +118,8 @@ std::string AssignExpr::emit (std::string offset) {
 }
 
 TypeCastExpr::TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit) :
-              Expr(Node::NodeID::TYPE_CAST, nullptr), expr(_expr), to_type(_type), is_implicit(_is_implicit) {
+              Expr(Node::NodeID::TYPE_CAST, nullptr, _expr->get_complexity() + 1),
+              expr(_expr), to_type(_type), is_implicit(_is_implicit) {
     propagate_type();
     propagate_value();
 }
@@ -226,9 +229,11 @@ std::string ConstExpr::emit (std::string offset) {
 }
 
 ConstExpr::ConstExpr(BuiltinType::ScalarTypedVal _val) :
-        Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id()))) {
+        Expr(Node::NodeID::CONST, std::make_shared<ScalarVariable>("", IntegerType::init(_val.get_int_type_id())), 1) {
     std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
 }
+
+uint32_t ArithExpr::total_arith_expr_count = 0;
 
 std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
     if (arg->get_value()->get_class_id() != Data::VarClassID::VAR) {
@@ -287,13 +292,17 @@ GenPolicy ArithExpr::choose_and_apply_ssp (GenPolicy gen_policy) {
     return new_policy;
 }
 
-std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
-//    std::cout << "============" << std::endl;
-    return gen_level(ctx, inp, 0);
+std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp,
+                                           bool count_up_total) {
+    std::shared_ptr<Expr> ret = gen_level(ctx, inp, 0);
+    if (count_up_total)
+        total_arith_expr_count += ret->get_complexity();
+    return ret;
 }
 
 // Top-level recursive function for expression tree generation.
-std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth) {
+std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp,
+                                            uint32_t par_depth) {
     auto p = ctx->get_gen_policy();
     //TODO: it is a stub for testing. Rewrite it later.
     // Pick random pattern for single statement and apply it to gen_policy. Update Context with new gen_policy.
@@ -305,10 +314,12 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     GenPolicy::ArithLeafID node_type = rand_val_gen->get_rand_id (p->get_arith_leaves());
     std::shared_ptr<Expr> ret = nullptr;
 
-    // If we want to use any Data, we've reached expression tree depth limit,
-    // or we want to use CSE but don't have any, we fall into this branch.
+    // If we want to use any Data, we've reached expression tree depth limit or
+    // total Arithmetic Expression number, or we want to use CSE but don't have any,
+    // we fall into this branch.
     if (node_type == GenPolicy::ArithLeafID::Data || par_depth == p->get_max_arith_depth() ||
-       (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0)) {
+       (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0) ||
+       (total_arith_expr_count >= p->get_max_total_arith_expr_count())) {
         // Pick random Data ID.
         GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (p->get_arith_data_distr());
         // If we want to use Const or don't have any input VarUseExpr / MemberExpr, we fall into this branch.
@@ -354,7 +365,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
         ret = p->get_cse().at(cse_num);
     }
     else {
-        ERROR("unappropriate node type (ArithExpr)");
+        ERROR("inappropriate node type (ArithExpr)");
     }
 //    std::cout << ret->emit() << std::endl;
     return ret;
@@ -408,6 +419,7 @@ UnaryExpr::UnaryExpr (Op _op, std::shared_ptr<Expr> _arg) :
     if (ret_ub != NoUB) {
         rebuild(ret_ub);
     }
+    complexity = arg->get_complexity() + 1;
 }
 
 bool UnaryExpr::propagate_type () {
@@ -548,6 +560,7 @@ BinaryExpr::BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr>
     if (ret_ub != NoUB) {
         rebuild(ret_ub);
     }
+    complexity = arg0->get_complexity() + 1 + arg1->get_complexity();
 }
 
 static uint64_t msb(uint64_t x) {
@@ -934,6 +947,7 @@ ConditionalExpr::ConditionalExpr (std::shared_ptr<Expr> _cond, std::shared_ptr<E
                                   BinaryExpr(BinaryExpr::Op::Ter, lhs, rhs), condition(_cond) {
     condition = conv_to_bool(condition);
     propagate_value();
+    complexity = condition->get_complexity() + arg0->get_complexity() + arg1->get_complexity() + 1;
 }
 
 UB ConditionalExpr::propagate_value() {
@@ -1116,13 +1130,14 @@ std::string MemberExpr::emit (std::string offset) {
 }
 
 MemberExpr::MemberExpr(std::shared_ptr<Struct> _struct, uint64_t _identifier) :
-        Expr(Node::NodeID::MEMBER, _struct), member_expr(nullptr), struct_var(_struct), identifier(_identifier) {
+        Expr(Node::NodeID::MEMBER, _struct, 1), member_expr(nullptr), struct_var(_struct), identifier(_identifier) {
     propagate_type();
     propagate_value();
 }
 
 MemberExpr::MemberExpr(std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier) :
-        Expr(Node::NodeID::MEMBER, _member_expr->get_value()), member_expr(_member_expr), struct_var(nullptr), identifier(_identifier) {
+        Expr(Node::NodeID::MEMBER, _member_expr->get_value(), _member_expr->get_complexity() + 1),
+        member_expr(_member_expr), struct_var(nullptr), identifier(_identifier) {
     propagate_type();
     propagate_value();
 }
