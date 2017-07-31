@@ -53,71 +53,65 @@ void SymbolTable::form_struct_member_expr (std::shared_ptr<MemberExpr> parent_me
     }
 }
 
-std::string SymbolTable::emit_variable_extern_decl (std::string offset) {
-    std::string ret = "";
-    for (auto i : variable) {
+void SymbolTable::emit_variable_extern_decl (std::ostream& stream, std::string offset) {
+    for (const auto &i : variable) {
         DeclStmt decl (i, nullptr, true);
-        ret += offset + decl.emit() + "\n";
+        stream << offset;
+        decl.emit(stream);
+        stream << "\n";
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_variable_def (std::string offset) {
-    std::string ret = "";
-    for (auto i : variable) {
+void SymbolTable::emit_variable_def (std::ostream& stream, std::string offset) {
+    for (const auto &i : variable) {
         std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr>(i->get_init_value());
 
         std::shared_ptr<DeclStmt> decl = std::make_shared<DeclStmt>(i, const_init);
-        ret += offset + decl->emit() + "\n";
+        stream << offset;
+        decl->emit(stream);
+        stream << "\n";
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_struct_type_static_memb_def (std::string offset) {
-    std::string ret = "";
-    for (auto i : struct_type) {
-        ret += i->get_static_memb_def() + "\n";
+void SymbolTable::emit_struct_type_static_memb_def (std::ostream& stream, std::string offset) {
+    for (const auto &i : struct_type) {
+        stream << i->get_static_memb_def() + "\n";
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_struct_type_def (std::string offset) {
-    std::string ret = "";
-    for (auto i : struct_type) {
-        ret += offset + i->get_definition() + "\n";
+void SymbolTable::emit_struct_type_def (std::ostream& stream, std::string offset) {
+    for (const auto &i : struct_type) {
+        stream << offset + i->get_definition() + "\n";
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_struct_def (std::string offset) {
-    std::string ret = "";
-    for (auto i : structs) {
+void SymbolTable::emit_struct_def (std::ostream& stream, std::string offset) {
+    for (const auto &i : structs) {
         DeclStmt decl (i, nullptr, false);
-        ret += offset + decl.emit() + "\n";
+        stream << offset;
+        decl.emit(stream);
+        stream << "\n";
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_struct_extern_decl (std::string offset) {
-    std::string ret = "";
-    for (auto i : structs) {
+void SymbolTable::emit_struct_extern_decl (std::ostream& stream, std::string offset) {
+    for (const auto &i : structs) {
         DeclStmt decl (i, nullptr, true);
-        ret += offset + decl.emit() + "\n";
+        stream << offset;
+        decl.emit(stream);
+        stream << "\n";
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_struct_init (std::string offset) {
-    std::string ret = "";
-    for (auto i : structs) {
-        ret += emit_single_struct_init(nullptr, i, offset);
-    }
-    return ret;
+void SymbolTable::emit_struct_init (std::ostream& stream, std::string offset) {
+    for (const auto &i : structs)
+        emit_single_struct_init(nullptr, i, stream, offset);
 }
 
-std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset) {
-    std::string ret = "";
-    for (uint32_t j = 0; j < struct_var->get_member_count(); ++j) {
+void SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr,
+                                                  std::shared_ptr<Struct> struct_var,
+                                                  std::ostream& stream, std::string offset) {
+    for (int j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
@@ -125,28 +119,29 @@ std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> pa
             member_expr = std::make_shared<MemberExpr>(struct_var, j);
 
         if (struct_var->get_member(j)->get_type()->is_struct_type()) {
-            ret += emit_single_struct_init(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)), offset);
+            emit_single_struct_init(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)),
+                                    stream, offset);
         }
         else {
             std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr>(std::static_pointer_cast<ScalarVariable>(struct_var->get_member(j))->get_init_value());
             AssignExpr assign (member_expr, const_init, false);
-            ret += offset + assign.emit() + ";\n";
+            stream << offset;
+            assign.emit(stream);
+            stream << ";\n";
         }
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_struct_check (std::string offset) {
-    std::string ret = "";
-    for (auto i : structs) {
-        ret += emit_single_struct_check(nullptr, i, offset);
-    }
-    return ret;
+void SymbolTable::emit_struct_check (std::ostream& stream, std::string offset) {
+    for (const auto &i : structs)
+        emit_single_struct_check(nullptr, i, stream, offset);
 }
 
-std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset) {
-    std::string ret = "";
-    for (uint32_t j = 0; j < struct_var->get_member_count(); ++j) {
+void SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr,
+                                            std::shared_ptr<Struct> struct_var,
+                                            std::ostream& stream,
+                                            std::string offset) {
+    for (int j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
@@ -154,19 +149,20 @@ std::string SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> p
             member_expr = std::make_shared<MemberExpr>(struct_var, j);
 
         if (struct_var->get_member(j)->get_type()->is_struct_type())
-            ret += emit_single_struct_check(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)), offset);
-        else
-            ret += offset + "hash(&seed, " + member_expr->emit() + ");\n";
+            emit_single_struct_check(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)),
+                                     stream, offset);
+        else {
+            stream << offset + "hash(&seed, ";
+            member_expr->emit(stream);
+            stream << ");\n";
+        }
     }
-    return ret;
 }
 
-std::string SymbolTable::emit_variable_check (std::string offset) {
-    std::string ret = "";
-    for (auto i = variable.begin(); i != variable.end(); ++i) {
-        ret += offset + "hash(&seed, " + (*i)->get_name() + ");\n";
+void SymbolTable::emit_variable_check (std::ostream& stream, std::string offset) {
+    for (const auto &i : variable) {
+        stream << offset + "hash(&seed, " + i->get_name() + ");\n";
     }
-    return ret;
 }
 
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx, Node::NodeID _self_stmt_id, bool _taken) {

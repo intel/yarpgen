@@ -43,12 +43,12 @@ class Master {
 
         // Print-out methods
         // To get valid test, all of them should be called (the order doesn't matter)
-        std::string emit_func ();
-        std::string emit_init ();
-        std::string emit_decl ();
-        std::string emit_hash ();
-        std::string emit_check ();
-        std::string emit_main ();
+        void emit_func ();
+        void emit_init ();
+        void emit_decl ();
+        void emit_hash ();
+        void emit_check ();
+        void emit_main ();
 
     private:
         void write_file (std::string of_name, std::string data);

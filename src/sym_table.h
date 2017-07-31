@@ -46,21 +46,23 @@ class SymbolTable {
         auto& get_avail_const_members() { return avail_const_members; }
         void del_avail_member(int idx) { avail_members.erase(avail_members.begin() + idx); }
 
-        std::string emit_variable_extern_decl (std::string offset = "");
-        std::string emit_variable_def (std::string offset = "");
+        void emit_variable_extern_decl (std::ostream& stream, std::string offset = "");
+        void emit_variable_def (std::ostream& stream, std::string offset = "");
         // TODO: rewrite with IR
-        std::string emit_variable_check (std::string offset = "");
-        std::string emit_struct_type_static_memb_def (std::string offset = "");
-        std::string emit_struct_type_def (std::string offset = "");
-        std::string emit_struct_def (std::string offset = "");
-        std::string emit_struct_extern_decl (std::string offset = "");
-        std::string emit_struct_init (std::string offset = "");
-        std::string emit_struct_check (std::string offset = "");
+        void emit_variable_check (std::ostream& stream, std::string offset = "");
+        void emit_struct_type_static_memb_def (std::ostream& stream, std::string offset = "");
+        void emit_struct_type_def (std::ostream& stream, std::string offset = "");
+        void emit_struct_def (std::ostream& stream, std::string offset = "");
+        void emit_struct_extern_decl (std::ostream& stream, std::string offset = "");
+        void emit_struct_init (std::ostream& stream, std::string offset = "");
+        void emit_struct_check (std::ostream& stream, std::string offset = "");
 
     private:
         void form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, bool ignore_const = false);
-        std::string emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
-        std::string emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, std::string offset = "");
+        void emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var,
+                                      std::ostream& stream, std::string offset = "");
+        void emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var,
+                                       std::ostream& stream, std::string offset = "");
 
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;

@@ -320,7 +320,7 @@ void self_test () {
     std::shared_ptr<MemberExpr> mem_expr1 = std::make_shared<MemberExpr>(mem_expr0, 0);
     std::shared_ptr<AssignExpr> struct0_assign = std::make_shared<AssignExpr>(mem_expr1, char_const);
 
-    std::cout << struct0_assign->emit() << std::endl;
+    struct0_assign->emit(std::cout);
 
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct0->get_member(0))->get_member(0))->get_cur_value() << std::endl;
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct1->get_member(0))->get_member(0))->get_cur_value() << std::endl;

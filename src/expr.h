@@ -60,7 +60,7 @@ class VarUseExpr : public Expr {
     public:
         VarUseExpr (std::shared_ptr<Data> _var);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
-        std::string emit (std::string offset = "") { return value->get_name (); }
+        void emit (std::ostream& stream, std::string offset = "") { stream << value->get_name (); }
 
     private:
         bool propagate_type () { return true; }
@@ -74,7 +74,7 @@ class VarUseExpr : public Expr {
 class AssignExpr : public Expr {
     public:
         AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken = true);
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
 
     private:
         bool propagate_type ();
@@ -95,7 +95,7 @@ class AssignExpr : public Expr {
 class TypeCastExpr : public Expr {
     public:
         TypeCastExpr (std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _type, bool _is_implicit = false);
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<TypeCastExpr> generate (std::shared_ptr<Context> ctx, std::shared_ptr<Expr> from);
 
     private:
@@ -116,7 +116,7 @@ class TypeCastExpr : public Expr {
 class ConstExpr : public Expr {
     public:
         ConstExpr (BuiltinType::ScalarTypedVal _val);
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<ConstExpr> generate (std::shared_ptr<Context> ctx);
 
     private:
@@ -172,8 +172,8 @@ class UnaryExpr : public ArithExpr {
         };
         UnaryExpr (Op _op, std::shared_ptr<Expr> _arg);
         Op get_op () { return op; }
-        std::string emit (std::string offset = "");
         static std::shared_ptr<UnaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
+        void emit (std::ostream& stream, std::string offset = "");
 
     private:
         bool propagate_type ();
@@ -218,8 +218,8 @@ class BinaryExpr : public ArithExpr {
 
         BinaryExpr (Op _op, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
         Op get_op () { return op; }
-        std::string emit (std::string offset = "");
         static std::shared_ptr<BinaryExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
+        void emit (std::ostream& stream, std::string offset = "");
 
     protected:
         bool propagate_type ();
@@ -237,7 +237,7 @@ class BinaryExpr : public ArithExpr {
 class ConditionalExpr : public BinaryExpr {
     public:
         ConditionalExpr (std::shared_ptr<Expr> _cond, std::shared_ptr<Expr> lhs, std::shared_ptr<Expr> rhs);
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<ConditionalExpr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, int par_depth);
 
     private:
@@ -252,7 +252,7 @@ class MemberExpr : public Expr {
         MemberExpr (std::shared_ptr<Struct> _struct, uint64_t _identifier);
         MemberExpr (std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
-        std::string emit (std::string offset = "");
+        void emit (std::ostream& stream, std::string offset = "");
 
     private:
         bool propagate_type ();
