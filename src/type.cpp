@@ -1178,7 +1178,7 @@ BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::operator<< (ScalarTyped
             break;
         case IntegerType::IntegerTypeID::UINT:
 //            u_lhs = val.uint_val;
-//            break;
+            break;
         case IntegerType::IntegerTypeID::LINT:
             if (options->mode_64bit)
                 s_lhs = val.lint64_val;
