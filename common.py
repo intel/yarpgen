@@ -116,7 +116,15 @@ def check_and_copy(src, dst):
     norm_dst = os.path.abspath(dst)
     if os.path.exists(norm_src):
         log_msg(logging.DEBUG, "Copying " + norm_src + " to " + norm_dst)
-        shutil.copy(norm_src, norm_dst)
+        if os.path.isfile(norm_src):
+            shutil.copy(norm_src, norm_dst)
+        elif os.path.isdir(norm_src):
+            # for directories, destination should be not the dir where it will be
+            # copied to, but the new directory name. I.e. copying "abc" to ".." we
+            # need to provide destination as "../abc".
+            shutil.copytree(norm_src, norm_dst + os.sep + os.path.basename(src))
+        else:
+            print_and_exit("Can't copy " + norm_src)
     else:
         print_and_exit("File " + norm_src + " wasn't found")
 

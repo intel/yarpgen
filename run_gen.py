@@ -467,6 +467,18 @@ class Test(object):
                     init_h.write(l)
             init_h.close()
 
+    def check_for_creduce_fails(self):
+        found_bugs = False
+        for entry in os.listdir():
+            if os.path.basename(entry).startswith('creduce_bug') and os.path.isdir(entry):
+                common.check_and_copy(entry, "..")
+                self.files.append(entry)
+                found_bugs = True
+
+        if found_bugs:
+            common.log_msg(logging.INFO, "\nCReduce for seed " + self.seed + " got an error, consider reporting the bug.\n" +
+                                         "Check for creduce_bug_000 dir in the results.", forced_duplication=True)
+
 
     #TODO: all do_creduce _* function have a lot of copy-pasted code. We need to refactor them!
     def do_creduce_miscompare(self, good_runs, bad_runs):
@@ -561,6 +573,8 @@ class Test(object):
         common.check_and_copy("func" + gen_test_makefile.get_file_ext(), ".." + os.sep+reduced_file_name)
         self.files.append(reduced_file_name)
 
+        self.check_for_creduce_fails()
+
         os.chdir(self.path)
 
     def do_creduce_buildfail(self, buildfail_run):
@@ -643,6 +657,8 @@ class Test(object):
         reduced_file_name = "func_reduced_" + buildfail_run.optset + gen_test_makefile.get_file_ext()
         common.check_and_copy("func" + gen_test_makefile.get_file_ext(), ".." + os.sep + reduced_file_name)
         self.files.append(reduced_file_name)
+
+        self.check_for_creduce_fails()
 
         os.chdir(self.path)
 
@@ -734,6 +750,8 @@ class Test(object):
         reduced_file_name = "func_reduced_" + runfail_run.optset + gen_test_makefile.get_file_ext()
         common.check_and_copy("func" + gen_test_makefile.get_file_ext(), ".." + os.sep + reduced_file_name)
         self.files.append(reduced_file_name)
+
+        self.check_for_creduce_fails()
 
         os.chdir(self.path)
 
