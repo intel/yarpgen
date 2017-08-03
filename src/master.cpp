@@ -106,9 +106,8 @@ std::string Master::emit_decl () {
 std::string Master::emit_func () {
     std::string ret = "";
     ret += "#include \"init.h\"\n\n";
-    ret += "void foo () {\n";
+    ret += "void foo ()\n";
     ret += program->emit();
-    ret += "}";
     write_file("func." + get_file_ext(), ret);
     return ret;
 }
