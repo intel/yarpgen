@@ -76,6 +76,11 @@ known_build_fails = { \
     "verify_gimple_shift": "type mismatch in shift expression", \
     "verify_gimple_binary": "type mismatch in binary expression", \
     "REG_BR_PROB": "REG_BR_PROB does not match", \
+    "build_low_bits_mask": "in build_low_bits_mask", \
+    "verify_gimple_conversion_in_unary": "non-trivial conversion in unary operation", \
+    "verify_gimple_register_size": "conversion of register to a different size", \
+    "decompose": "in decompose", \
+    "verify_gimple_unary_conversion": "mismatching comparison operand types", \
 # problem with available memory
     "memory_problem": "std::bad_alloc", \
     "memory_problem": "Cannot allocate memory" \
@@ -686,7 +691,7 @@ class Test(object):
         # This is needed when reduceing gcc_ubsan problem. Without this check we have good chances to reduce to the code
         # snipent, which contains left shift of negative value (caught by gcc ubsan, but not clang ubsan).
         test_sh +="! grep \"left shift of negative value\" err.log && \\\n"
-        
+
         test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + ubsan_run.optset + " && \\\n"
         test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " run_" + ubsan_run.optset + " \n"
         test_sh_file = open("test.sh", "w")
