@@ -40,9 +40,8 @@ std::shared_ptr<Data> Expr::get_value () {
         }
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (Expr)");
-        default:
-            ERROR("Expr::get_value() - data corruption");
     }
+    ERROR("Expr::get_value() - data corruption");
 }
 
 std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
@@ -62,9 +61,8 @@ std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
             break;
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (VarUseExpr)");
-        default:
-            ERROR("Expr::set_value() - data corruption");
     }
+    ERROR("Expr::set_value() - data corruption");
 }
 
 VarUseExpr::VarUseExpr(std::shared_ptr<Data> _var) : Expr(Node::NodeID::VAR_USE, _var) {
@@ -994,9 +992,8 @@ std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
             break;
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (MemberExpr)");
-        default:
-            ERROR("MemberExpr::set_value() - data corruption");
     }
+    ERROR("MemberExpr::set_value() - data corruption");
 }
 
 static std::shared_ptr<Expr> change_to_value(std::shared_ptr<Context> ctx, std::shared_ptr<Expr> _expr, BuiltinType::ScalarTypedVal to_val) {
