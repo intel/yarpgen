@@ -74,11 +74,6 @@ class RandValGen {
             return vec.at(discrete_dis(rand_gen)).get_id();
         }
 
-        std::string get_struct_type_name() { return "struct_" + std::to_string(++struct_type_count); }
-        uint32_t    get_struct_type_count() { return struct_type_count; }
-        std::string get_scalar_var_name() { return "var_" + std::to_string(++scalar_var_count); }
-        std::string get_struct_var_name() { return "struct_obj_" + std::to_string(++struct_var_count); }
-
         // To improve variety of generated tests, we implement shuffling of
         // input probabilities (they are stored in GenPolicy).
         // TODO: sometimes this action increases test complexity, and tests becomes non-generatable.
@@ -106,12 +101,33 @@ class RandValGen {
     private:
         uint64_t seed;
         std::mt19937_64 rand_gen;
-        static uint32_t struct_type_count;
-        static uint32_t scalar_var_count;
-        static uint32_t struct_var_count;
 };
 
 extern std::shared_ptr<RandValGen> rand_val_gen;
+
+// Singleton class which handles name's creation of all variables, structures, etc.
+class NameHandler {
+    public:
+        static NameHandler& get_instance() {
+            static NameHandler instance;
+            return instance;
+        }
+
+        NameHandler(const NameHandler& root) = delete;
+        NameHandler& operator=(const NameHandler&) = delete;
+
+        std::string get_struct_type_name() { return "struct_" + std::to_string(++struct_type_count); }
+        uint32_t    get_struct_type_count() { return struct_type_count; }
+        std::string get_scalar_var_name() { return "var_" + std::to_string(++scalar_var_count); }
+        std::string get_struct_var_name() { return "struct_obj_" + std::to_string(++struct_var_count); }
+
+    private:
+        NameHandler() : struct_type_count(0), scalar_var_count(0), struct_var_count(0) {};
+
+        uint32_t struct_type_count;
+        uint32_t scalar_var_count;
+        uint32_t struct_var_count;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
