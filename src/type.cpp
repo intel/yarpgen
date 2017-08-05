@@ -140,7 +140,8 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
     //TODO: what about align?
     std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_cv_qual, primary_static_spec, 0);
 
-    std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(rand_val_gen->get_struct_type_name());
+    NameHandler& name_handler = NameHandler::get_instance();
+    std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(name_handler.get_struct_type_name());
     int struct_member_count = rand_val_gen->get_rand_value<int>(p->get_min_struct_member_count(), p->get_max_struct_member_count());
     int member_count = 0;
     for (int i = 0; i < struct_member_count; ++i) {
@@ -199,7 +200,8 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, 
         }
         primary_type->set_cv_qual(primary_cv_qual);
         primary_type->set_is_static(primary_static_spec);
-        struct_type->add_member(primary_type, "member_" + std::to_string(rand_val_gen->get_struct_type_count()) + "_" + std::to_string(member_count++));
+        struct_type->add_member(primary_type, "member_" + std::to_string(name_handler.get_struct_type_count()) + "_" +
+                                              std::to_string(member_count++));
     }
     return struct_type;
 }

@@ -61,9 +61,10 @@ const uint32_t MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause differen
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
-uint32_t RandValGen::struct_type_count = 0;
-uint32_t RandValGen::scalar_var_count = 0;
-uint32_t RandValGen::struct_var_count = 0;
+
+uint32_t NameHandler::struct_type_count = 0;
+uint32_t NameHandler::scalar_var_count = 0;
+uint32_t NameHandler::struct_var_count = 0;
 
 RandValGen::RandValGen (uint64_t _seed) {
     if (_seed != 0) {
