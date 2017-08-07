@@ -26,6 +26,7 @@ import errno
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import sys
 
@@ -162,7 +163,7 @@ def check_dir_and_create(directory):
 def run_cmd(cmd, time_out=None, num=-1):
     is_time_expired = False
     start_time = os.times()
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True) as process:
         try:
             log_msg_str = "Running " + str(cmd)
             if num != -1:
@@ -175,15 +176,25 @@ def run_cmd(cmd, time_out=None, num=-1):
             output, err_output = process.communicate(timeout=time_out)
             ret_code = process.poll()
         except subprocess.TimeoutExpired:
-            process.kill()
-            log_msg(logging.DEBUG, str(cmd) + " failed")
-            output, err_output = process.communicate()
+            log_msg(logging.DEBUG, "Timeout triggered for proc num " + str(process.pid) + " sending kill signal to group")
+            # Sigterm is good enough here and compared to sigkill gives a chance to the processes
+            # to clean up after themselves.
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+            # once in a while stdout/stderr may not exist when the process is killed, so using try.
+            try:
+                output, err_output = process.communicate()
+            except ValueError:
+                output = b''
+                err_output = b''
+            log_msg(logging.DEBUG, "Procces " + str(process.pid) + " has finally died")
             is_time_expired = True
             ret_code = None
         except:
-            log_msg(logging.ERROR, str(cmd) + " failed: unknown exception")
-            process.kill()
+            log_msg(logging.ERROR, str(cmd) + " failed: unknown exception (proc num "+ str(process.pid) + ")")
+            # Something really bad is going on, so better to send sigkill
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
             process.wait()
+            log_msg(logging.DEBUG, "Procces " + str(process.pid) + " has finally died")
             raise
     end_time = os.times()
     elapsed_time = end_time.children_user - start_time.children_user + \

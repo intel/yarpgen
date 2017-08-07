@@ -31,4 +31,6 @@ find /tmp -user $current_user -name "iccdummy*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "iccgccdash*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "icclibgcc*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "tmp*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "cc*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "??????????" -type f -mmin +60 -delete
 echo "tmp_cleaner was run" >> cleaner.log

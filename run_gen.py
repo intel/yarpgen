@@ -814,7 +814,8 @@ class TestRun(object):
         else:
             self.status = self.STATUS_not_run
 
-        if self.parse_stats:
+        # parse stats if needed
+        if self.parse_stats and os.path.isfile("func.stats"):
             opt_stats = None
             stmt_stats = None
             if "clang" in self.target.specs.name:
@@ -825,9 +826,9 @@ class TestRun(object):
 
         # update file list
         expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", "out"]
+        expected_files = [ self.optset + "_" + e for e in expected_files ]
         if self.parse_stats:
             expected_files.append("func.stats")
-        expected_files = [ self.optset + "_" + e for e in expected_files ]
         for f in expected_files:
             if os.path.isfile(f):
                 self.files.append(f)
