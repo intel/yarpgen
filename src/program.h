@@ -34,9 +34,9 @@ namespace yarpgen {
 //
 // Generation process starts with initialization of global Context and extern SymTable.
 // After it, recursive Scope generation method starts
-class Master {
+class Program {
     public:
-        Master (std::string _out_folder);
+        Program (std::string _out_folder);
 
         // It initializes global Context and launches generation process.
         void generate ();
@@ -54,7 +54,7 @@ class Master {
         void write_file (std::string of_name, std::string data);
 
         GenPolicy gen_policy;
-        std::shared_ptr<ScopeStmt> program;
+        std::shared_ptr<ScopeStmt> function;
         // There are three kind of global variables which exist in test.
         // All of them are declared as external variables for core test function
         // to prevent constant propagation optimization.

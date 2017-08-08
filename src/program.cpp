@@ -16,29 +16,29 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "master.h"
+#include "program.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
 using namespace yarpgen;
 
-Master::Master (std::string _out_folder) {
+Program::Program (std::string _out_folder) {
     out_folder = _out_folder;
     extern_inp_sym_table = std::make_shared<SymbolTable> ();
     extern_mix_sym_table = std::make_shared<SymbolTable> ();
     extern_out_sym_table = std::make_shared<SymbolTable> ();
 }
 
-void Master::generate () {
+void Program::generate () {
     Context ctx (gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
     ctx.set_extern_inp_sym_table (extern_inp_sym_table);
     ctx.set_extern_mix_sym_table (extern_mix_sym_table);
     ctx.set_extern_out_sym_table (extern_out_sym_table);
 
-    program = ScopeStmt::generate(std::make_shared<Context>(ctx));
+    function = ScopeStmt::generate(std::make_shared<Context>(ctx));
 }
 
-void Master::write_file (std::string of_name, std::string data) {
+void Program::write_file (std::string of_name, std::string data) {
     std::ofstream out_file;
     out_file.open (out_folder + "/" + of_name);
     out_file << data;
@@ -54,7 +54,7 @@ static std::string get_file_ext () {
     exit(-1);
 }
 
-void Master::emit_init () {
+void Program::emit_init () {
     std::ofstream out_file;
     out_file.open(out_folder + "/" + "init." + get_file_ext());
     out_file << "#include \"init.h\"\n\n";
@@ -84,7 +84,7 @@ void Master::emit_init () {
     out_file.close();
 }
 
-void Master::emit_decl () {
+void Program::emit_decl () {
     std::ofstream out_file;
     out_file.open(out_folder + "/" + "init.h");
     /* TODO: none of it is used currently.
@@ -117,24 +117,24 @@ void Master::emit_decl () {
     out_file.close();
 }
 
-void Master::emit_func () {
+void Program::emit_func () {
     std::ofstream out_file;
     out_file.open(out_folder + "/" + "func." + get_file_ext());
     out_file << "#include \"init.h\"\n\n";
     out_file << "void foo ()\n";
-    program->emit(out_file);
+    function->emit(out_file);
 
     out_file.close();
 }
 
-void Master::emit_hash () {
+void Program::emit_hash () {
     std::string ret = "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
     ret += "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
     ret += "}\n";
     write_file("hash." + get_file_ext(), ret);
 }
 
-void Master::emit_check () { // TODO: rewrite with IR
+void Program::emit_check () { // TODO: rewrite with IR
     std::ofstream out_file;
     out_file.open(out_folder + "/" + "check." + get_file_ext());
     out_file << "#include \"init.h\"\n\n";
@@ -165,7 +165,7 @@ void Master::emit_check () { // TODO: rewrite with IR
     out_file.close();
 }
 
-void Master::emit_main () {
+void Program::emit_main () {
     std::string ret;
     ret += "#include <stdio.h>\n";
     ret += "#include \"init.h\"\n\n";

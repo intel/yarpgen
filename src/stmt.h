@@ -75,7 +75,7 @@ class ExprStmt : public Stmt {
 // {
 //     ...
 // }
-//TODO: it also fills global SymTable at startup. Master class should do it.
+//TODO: it also fills global SymTable at startup. Program class should do it.
 class ScopeStmt : public Stmt {
     public:
         ScopeStmt () : Stmt(Node::NodeID::SCOPE) {}

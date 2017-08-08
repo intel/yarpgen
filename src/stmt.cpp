@@ -97,7 +97,7 @@ void DeclStmt::emit (std::ostream& stream, std::string offset) {
 std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     GenPolicy::add_to_complexity(Node::NodeID::SCOPE);
 
-    //TODO: this should be inside Master
+    //TODO: this should be inside Program
     if (ctx->get_parent_ctx() == nullptr)
         form_extern_sym_table(ctx);
 
