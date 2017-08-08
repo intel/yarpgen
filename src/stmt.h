@@ -85,7 +85,9 @@ class ScopeStmt : public Stmt {
 
     private:
         static std::vector<std::shared_ptr<Expr>> extract_inp_from_ctx(std::shared_ptr<Context> ctx);
+        static std::vector<std::shared_ptr<Expr>> extract_locals_from_ctx(std::shared_ptr<Context> ctx);
         static std::vector<std::shared_ptr<Expr>> extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx);
+
         std::vector<std::shared_ptr<Stmt>> scope;
 };
 

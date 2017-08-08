@@ -188,8 +188,21 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_from_ctx(std::shared_p
     return ret;
 }
 
-// This function extracts all available input and mixed variables from extern sybmol table and
-// local symbol tables of current Context and all it's predecessors.
+// This function extracts local symbol tables of current Context and all it's predecessors.
+std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_locals_from_ctx(std::shared_ptr<Context> ctx) {
+    //TODO: add struct members
+    std::vector<std::shared_ptr<Expr>> ret;
+    if (ctx->get_parent_ctx() != nullptr) {
+        ret = extract_locals_from_ctx(ctx->get_parent_ctx());
+    }
+    for (auto i : ctx->get_local_sym_table()->get_variables())
+        ret.push_back(std::make_shared<VarUseExpr> (i));
+
+    return ret;
+}
+
+// This function extracts all available input and mixed variables from extern symbol table and
+// local symbol tables of current Context and all it's predecessors (by calling extract_locals_from_ctx).
 // TODO: we create multiple entry for variables from extern_sym_tables
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<Expr>> ret = extract_inp_from_ctx(ctx);
@@ -199,11 +212,10 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_and_mix_from_ctx(std::
     for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
         ret.push_back(std::make_shared<VarUseExpr> (i));
     }
-    if (ctx->get_parent_ctx() != nullptr)
-        ret = extract_inp_and_mix_from_ctx(ctx->get_parent_ctx());
-    //TODO: add struct members
-    for (auto i : ctx->get_local_sym_table()->get_variables())
-        ret.push_back(std::make_shared<VarUseExpr> (i));
+
+    auto locals = extract_locals_from_ctx(ctx);
+    ret.insert(ret.end(), locals.begin(), locals.end());
+
     return ret;
 }
 
