@@ -25,8 +25,8 @@ limitations under the License.
 #include <sstream>
 
 #include "gen_policy.h"
-#include "master.h"
 #include "options.h"
+#include "program.h"
 #include "sym_table.h"
 #include "type.h"
 #include "variable.h"
@@ -214,7 +214,7 @@ int main (int argc, char* argv[128]) {
 
 //    self_test();
 
-    Master mas (out_dir);
+    Program mas (out_dir);
     mas.generate ();
     mas.emit_func ();
     mas.emit_init ();
