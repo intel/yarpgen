@@ -51,6 +51,9 @@ class Program {
         void emit_main ();
 
     private:
+
+        void form_extern_sym_table(std::shared_ptr<Context> ctx);
+
         void write_file (std::string of_name, std::string data);
 
         GenPolicy gen_policy;

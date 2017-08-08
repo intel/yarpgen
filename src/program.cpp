@@ -34,8 +34,63 @@ void Program::generate () {
     ctx.set_extern_inp_sym_table (extern_inp_sym_table);
     ctx.set_extern_mix_sym_table (extern_mix_sym_table);
     ctx.set_extern_out_sym_table (extern_out_sym_table);
+    std::shared_ptr<Context> ctx_ptr = std::make_shared<Context>(ctx);
+    form_extern_sym_table(ctx_ptr);
 
-    function = ScopeStmt::generate(std::make_shared<Context>(ctx));
+    function = ScopeStmt::generate(ctx_ptr);
+}
+
+// This function initially fills extern symbol table with inp and mix variables. It also creates type structs definitions.
+void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
+    auto p = ctx->get_gen_policy();
+    // Allow const cv-qualifier in gen_policy, pass it to new Context
+    std::shared_ptr<Context> const_ctx = std::make_shared<Context>(*(ctx));
+    GenPolicy const_gen_policy = *(const_ctx->get_gen_policy());
+    const_gen_policy.set_allow_const(true);
+    const_ctx->set_gen_policy(const_gen_policy);
+    // Generate random number of random input variables
+    uint32_t inp_var_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_inp_var_count(), p->get_max_inp_var_count());
+    for (uint32_t i = 0; i < inp_var_count; ++i) {
+        ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
+    }
+    //TODO: add to gen_policy
+    // Same for mixed variables
+    uint32_t mix_var_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_mix_var_count(), p->get_max_mix_var_count());
+    for (uint32_t i = 0; i < mix_var_count; ++i) {
+        ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
+    }
+
+    uint32_t struct_type_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_struct_type_count(), p->get_max_struct_type_count());
+    if (struct_type_count == 0)
+        return;
+
+    // Create random number of struct definition
+    for (uint32_t i = 0; i < struct_type_count; ++i) {
+        //TODO: Maybe we should create one container for all struct types? And should they all be equal?
+        std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types());
+        ctx->get_extern_inp_sym_table()->add_struct_type(struct_type);
+        ctx->get_extern_out_sym_table()->add_struct_type(struct_type);
+        ctx->get_extern_mix_sym_table()->add_struct_type(struct_type);
+    }
+
+    // Create random number of input structures
+    uint32_t inp_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
+    for (uint32_t i = 0; i < inp_struct_count; ++i) {
+        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
+        ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(const_ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
+    }
+    // Same for mixed structures
+    uint32_t mix_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
+    for (uint32_t i = 0; i < mix_struct_count; ++i) {
+        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
+        ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
+    }
+    // Same for output structures
+    uint32_t out_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_out_struct_count(), p->get_max_out_struct_count());
+    for (uint32_t i = 0; i < out_struct_count; ++i) {
+        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
+        ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
+    }
 }
 
 void Program::write_file (std::string of_name, std::string data) {
