@@ -322,6 +322,14 @@ class GenPolicy {
         void set_max_out_struct_count (uint32_t _max_out_struct_count) { max_out_struct_count = _max_out_struct_count; }
         uint32_t get_max_out_struct_count () { return max_out_struct_count; }
 
+        // Arrays section - defines arrays' sizes, their kind, base type probability
+        uint32_t get_min_array_size () { return min_array_size; }
+        void set_min_array_size (uint32_t _min_array_size) { min_array_size = _min_array_size; }
+        uint32_t get_max_array_size () { return max_array_size; }
+        void set_max_array_size (uint32_t _max_array_size) { max_array_size = _max_array_size; }
+        std::vector<Probability<ArrayType::Kind>>& get_array_kind_prob () { return array_kind_prob; }
+        std::vector<Probability<Type::TypeID>>& get_array_base_type_prob () { return array_base_type_prob; }
+
         // Arithmetic expression tree section - defines depth, operators distribution, kind of leaves
         void set_max_arith_depth (uint32_t _max_arith_depth) { max_arith_depth = _max_arith_depth; }
         uint32_t get_max_arith_depth () { return max_arith_depth; }
@@ -427,6 +435,12 @@ class GenPolicy {
         uint32_t max_mix_struct_count;
         uint32_t min_out_struct_count;
         uint32_t max_out_struct_count;
+
+        // Array
+        uint32_t min_array_size;
+        uint32_t max_array_size;
+        std::vector<Probability<ArrayType::Kind>> array_kind_prob;
+        std::vector<Probability<Type::TypeID>> array_base_type_prob;
 
         // Arithmetic expression tree
         uint32_t max_arith_depth;

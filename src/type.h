@@ -36,6 +36,7 @@ class Type {
         enum TypeID {
             BUILTIN_TYPE,
             STRUCT_TYPE,
+            ARRAY_TYPE,
             MAX_TYPE_ID
         };
 
@@ -50,7 +51,7 @@ class Type {
 
         // ID for builtin types (in C terminology they "atomic", in C++ they are "fundamental" types)
         enum BuiltinTypeID {
-            Integer, FP, Max_BuiltinTypeID
+            Integer, Max_BuiltinTypeID
         };
 
         enum IntegerTypeID {
@@ -91,13 +92,13 @@ class Type {
         // We assume static storage duration, cv-qualifier and alignment as a part of Type's full name
         std::string get_name ();
         std::string get_simple_name () { return name; }
+        virtual std::string get_suffix () { return ""; }
 
         // Utility functions, which allows quickly determine Type kind
         virtual bool is_builtin_type() { return false; }
-        virtual bool is_ptr_type() { return false; }
         virtual bool is_int_type() { return false; }
-        virtual bool is_fp_type() { return false; }
         virtual bool is_struct_type() { return false; }
+        virtual bool is_array_type() { return false; }
 
         // Pure virtual function, used for debug purposes
         virtual void dbg_dump() = 0;
@@ -554,5 +555,36 @@ class TypeULLINT : public IntegerType {
             bit_size = sizeof (unsigned long long int) * CHAR_BIT;
             is_signed = false;
         }
+};
+
+// ArrayType represents arrays of all kinds.
+//TODO: 1) maybe we should split it to several classes?
+//      2) nowadays it can represent only one-dimensional array
+class ArrayType : public Type {
+    public:
+        enum Kind {
+            C_ARR,
+            VAL_ARR,
+            STD_ARR,
+            STD_VEC,
+            MAX_KIND
+        };
+
+        ArrayType(std::shared_ptr<Type> _base_type, uint32_t _size, Kind _kind);
+
+        bool is_array_type () { return true; }
+        std::shared_ptr<Type> get_base_type () { return base_type; }
+        uint32_t get_size () { return size; }
+        Kind get_kind () { return kind; }
+
+        std::string get_suffix ();
+        void dbg_dump();
+
+        static std::shared_ptr<ArrayType> generate(std::shared_ptr<Context> ctx);
+
+    private:
+        std::shared_ptr<Type> base_type;
+        uint32_t size;
+        Kind kind;
 };
 }

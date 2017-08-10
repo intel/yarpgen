@@ -64,6 +64,9 @@ const uint32_t MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause differen
 
 const uint32_t CONST_BUFFER_SIZE = 4;
 
+const uint32_t MIN_ARRAY_SIZE = 2;
+const uint32_t MAX_ARRAY_SIZE = 10;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
@@ -141,6 +144,19 @@ void GenPolicy::init_from_config () {
     out_data_type_prob.push_back(Probability<OutDataTypeID>(VAR, 70));
     out_data_type_prob.push_back(Probability<OutDataTypeID>(STRUCT, 30));
     rand_val_gen->shuffle_prob(out_data_type_prob);
+
+    min_array_size = MIN_ARRAY_SIZE;
+    max_array_size = MAX_ARRAY_SIZE;
+
+    array_base_type_prob.emplace_back(Probability<Type::TypeID>(Type::BUILTIN_TYPE, 60));
+    array_base_type_prob.emplace_back(Probability<Type::TypeID>(Type::STRUCT_TYPE, 40));
+    rand_val_gen->shuffle_prob(array_base_type_prob);
+
+    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::C_ARR, 40));
+    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::VAL_ARR, 15));
+    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::STD_ARR, 15));
+    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::STD_VEC, 15));
+    rand_val_gen->shuffle_prob(array_kind_prob);
 
     max_arith_depth = MAX_ARITH_DEPTH;
     max_total_expr_count = MAX_TOTAL_EXPR_COUNT;
