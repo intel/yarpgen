@@ -2029,3 +2029,83 @@ void BitField::dbg_dump () {
     ret += "is_signed: " + std::to_string(is_signed) + "\n";
     std::cout << ret;
 }
+
+ArrayType::ArrayType(std::shared_ptr<Type> _base_type, uint32_t _size, Kind _kind) :
+                     Type (Type::ARRAY_TYPE), base_type(_base_type), size(_size), kind(_kind) {
+    switch (kind) {
+        case C_ARR:
+            break;
+        case VAL_ARR:
+            name = "std::valarray<";
+            break;
+        case STD_ARR:
+            name = "std::array<";
+            break;
+        case STD_VEC:
+            name = "std::vector<";
+            break;
+        case MAX_KIND:
+            ERROR("bad array kind");
+            break;
+    }
+
+    name += base_type->get_simple_name();
+
+    switch (kind) {
+        case C_ARR:
+            break;
+        case VAL_ARR:
+        case STD_VEC:
+            name += ">";
+            break;
+        case STD_ARR:
+            name += ", " + std::to_string(size) + ">";
+            break;
+        case MAX_KIND:
+            ERROR("bad array kind");
+            break;
+    }
+}
+
+std::string ArrayType::get_suffix () {
+    return kind == C_ARR ? "[" + std::to_string(size) + "]" : "";
+}
+
+void ArrayType::dbg_dump() {
+    std::string ret = "";
+    ret += "kind: " + std::to_string(kind) + "\n";
+    ret += "size: " + std::to_string(size) + "\n";
+    ret += "full name: " + get_name();
+    if (kind == C_ARR)
+        ret += " " + get_suffix();
+    ret += "\n";
+    ret += "suffix: " + get_suffix() + "\n";
+    ret += "base type: ";
+    std::cout << ret;
+    base_type->dbg_dump();
+    std::cout << std::endl;
+}
+
+std::shared_ptr<ArrayType> ArrayType::generate(std::shared_ptr<Context> ctx) {
+    auto p = ctx->get_gen_policy();
+
+    Type::TypeID base_type_id = rand_val_gen->get_rand_id(p->get_array_base_type_prob());
+    std::shared_ptr<Type> base_type;
+    if (base_type_id == TypeID::BUILTIN_TYPE || ctx->get_extern_inp_sym_table()->get_struct_types().size() == 0) {
+        base_type = IntegerType::generate(ctx);
+    }
+    else if (base_type_id == TypeID::STRUCT_TYPE) {
+        uint32_t struct_type_idx = rand_val_gen->get_rand_value(0UL, ctx->get_extern_inp_sym_table()->get_struct_types().size());
+        base_type = ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_idx);
+    }
+    else
+        ERROR("bad TypeID");
+
+    uint32_t size = rand_val_gen->get_rand_value(p->get_min_array_size(), p->get_max_array_size());
+
+    Kind kind = rand_val_gen->get_rand_id(p->get_array_kind_prob());
+    if (options->is_c())
+        kind = C_ARR;
+
+    return std::make_shared<ArrayType>(base_type, size, kind);
+}

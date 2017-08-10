@@ -296,7 +296,7 @@ void self_test () {
     std::shared_ptr<ExprStmt> expr_stmt = ExprStmt::generate(ctx, inp, inp.at(0));
     std::cout << "expr_stmt: " << expr_stmt->emit() << std::endl;
     std::cout << "\n====================="<< std::endl;
-*/
+
 
     std::shared_ptr<StructType> struct_type0 = std::make_shared<StructType> ("struct A");
     std::shared_ptr<IntegerType> int_type = IntegerType::init(Type::IntegerTypeID::INT);
@@ -324,4 +324,17 @@ void self_test () {
 
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct0->get_member(0))->get_member(0))->get_cur_value() << std::endl;
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct1->get_member(0))->get_member(0))->get_cur_value() << std::endl;
+    */
+    std::shared_ptr<IntegerType> int_type_for_arr = IntegerType::init(IntegerType::IntegerTypeID::UINT);
+    std::shared_ptr<ArrayType> arr_type = std::make_shared<ArrayType>(int_type_for_arr, 100, ArrayType::STD_VEC);
+    arr_type->dbg_dump();
+
+    GenPolicy gen_policy;
+    Context ctx_var (gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
+    ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
+    ctx_var.set_extern_inp_sym_table((std::make_shared<SymbolTable>()));
+    std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
+
+    std::shared_ptr<ArrayType> arr_gen_type = ArrayType::generate(ctx);
+    arr_gen_type->dbg_dump();
 }
