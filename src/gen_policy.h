@@ -137,7 +137,8 @@ class NameHandler {
         uint32_t    get_struct_type_count() { return struct_type_count; }
         std::string get_scalar_var_name() { return test_func_prefix + "var_" + std::to_string(++scalar_var_count); }
         std::string get_struct_var_name() { return test_func_prefix + "struct_obj_" + std::to_string(++struct_var_count); }
-        void zero_out_counters () { struct_type_count = scalar_var_count = struct_var_count = 0; }
+        std::string get_array_var_name() { return test_func_prefix + "array_" + std::to_string(++array_var_count); }
+        void zero_out_counters () { struct_type_count = scalar_var_count = struct_var_count = array_var_count = 0; }
 
     private:
         NameHandler() : struct_type_count(0), scalar_var_count(0), struct_var_count(0) {};
@@ -147,6 +148,7 @@ class NameHandler {
         uint32_t struct_type_count;
         uint32_t scalar_var_count;
         uint32_t struct_var_count;
+        uint32_t array_var_count;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

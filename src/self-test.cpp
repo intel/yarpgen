@@ -334,7 +334,17 @@ void self_test () {
     ctx_var.set_local_sym_table(std::make_shared<SymbolTable>());
     ctx_var.set_extern_inp_sym_table((std::make_shared<SymbolTable>()));
     std::shared_ptr<Context> ctx = std::make_shared<Context>(ctx_var);
+    std::shared_ptr<StructType> struct_type = StructType::generate(ctx);
+    ctx->get_extern_inp_sym_table()->add_struct_type(struct_type);
 
     std::shared_ptr<ArrayType> arr_gen_type = ArrayType::generate(ctx);
     arr_gen_type->dbg_dump();
+
+    std::cout << "\n====================="<< std::endl;
+    std::shared_ptr<Array> array_1 = Array::generate(ctx, arr_gen_type);
+    array_1->dbg_dump();
+
+    std::cout << "\n====================="<< std::endl;
+    std::shared_ptr<Array> array_2 = Array::generate(ctx);
+    array_2->dbg_dump();
 }

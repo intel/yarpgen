@@ -2095,7 +2095,8 @@ std::shared_ptr<ArrayType> ArrayType::generate(std::shared_ptr<Context> ctx) {
         base_type = IntegerType::generate(ctx);
     }
     else if (base_type_id == TypeID::STRUCT_TYPE) {
-        uint32_t struct_type_idx = rand_val_gen->get_rand_value(0UL, ctx->get_extern_inp_sym_table()->get_struct_types().size());
+        uint32_t struct_type_idx = rand_val_gen->get_rand_value(
+                                   0UL, ctx->get_extern_inp_sym_table()->get_struct_types().size() - 1);
         base_type = ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_idx);
     }
     else

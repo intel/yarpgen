@@ -132,6 +132,83 @@ std::shared_ptr<ScalarVariable> ScalarVariable::generate(std::shared_ptr<Context
     NameHandler& name_handler = NameHandler::get_instance();
     std::shared_ptr<ScalarVariable> ret = std::make_shared<ScalarVariable> (name_handler.get_scalar_var_name(),
                                                                             IntegerType::generate(ctx));
+    std::shared_ptr<IntegerType> int_type = IntegerType::generate(ctx);
+    return ScalarVariable::generate(ctx, int_type);
+}
+
+std::shared_ptr<ScalarVariable> ScalarVariable::generate(std::shared_ptr<Context> ctx,
+                                                         std::shared_ptr<IntegerType> int_type) {
+    NameHandler& name_handler = NameHandler::get_instance();
+    std::shared_ptr<ScalarVariable> ret = std::make_shared<ScalarVariable> (name_handler.get_scalar_var_name(),
+                                                                            int_type);
     ret->set_init_value(BuiltinType::ScalarTypedVal::generate(ctx, ret->get_type()->get_int_type_id()));
+    return ret;
+}
+
+Array::Array (std::string _name, std::shared_ptr<ArrayType> _type, std::shared_ptr<Context> ctx) :
+              Data(_name, _type, Data::ARRAY) {
+    if (!type->is_array_type())
+        ERROR("can't create array without ArrayType");
+    init_elements(ctx);
+}
+
+void Array::init_elements (std::shared_ptr<Context> ctx) {
+    std::shared_ptr<ArrayType> array_type = std::static_pointer_cast<ArrayType>(type);
+    std::shared_ptr<Type> base_type = array_type->get_base_type();
+    std::shared_ptr<Data> new_element;
+
+    auto var_init = [this, &new_element, &base_type, ctx] (int32_t idx) {
+        std::shared_ptr<IntegerType> base_int_type = std::static_pointer_cast<IntegerType>(base_type);
+        if (ctx == nullptr || ctx.use_count() == 0)
+            new_element = std::make_shared<ScalarVariable>(name + " [" + std::to_string(idx) + "]", base_int_type);
+        else {
+            new_element = ScalarVariable::generate(ctx, base_int_type);
+            new_element->set_name(name + " [" + std::to_string(idx) + "]");
+        }
+    };
+
+    auto struct_init = [this, &new_element, &base_type, ctx] (int32_t idx) {
+        std::shared_ptr<StructType> base_struct_type = std::static_pointer_cast<StructType>(base_type);
+        if (ctx == nullptr || ctx.use_count() == 0)
+            new_element = std::make_shared<Struct>(name + " [" + std::to_string(idx) + "]", base_struct_type);
+        else {
+            new_element = Struct::generate(ctx, base_struct_type);
+            new_element->set_name(name + " [" + std::to_string(idx) + "]");
+        }
+    };
+
+    for (int i = 0; i < array_type->get_size(); ++i) {
+        if (base_type->is_int_type())
+            var_init(i);
+        else if (base_type->is_struct_type())
+            struct_init(i);
+        else
+            ERROR("bad base TypeID");
+
+        elements.push_back(new_element);
+    }
+}
+
+std::shared_ptr<Data> Array::get_element (uint64_t idx) {
+    return (idx >= elements.size()) ? nullptr : elements.at(idx);
+}
+
+void Array::dbg_dump () {
+    std::cout << "name: " << name << std::endl;
+    std::cout << "array type: " << std::endl;
+    type->dbg_dump();
+    std::cout << "elements: " << std::endl;
+    for (auto const& i : elements)
+        i->dbg_dump();
+}
+
+std::shared_ptr<Array> Array::generate(std::shared_ptr<Context> ctx) {
+    std::shared_ptr<ArrayType> array_type = ArrayType::generate(ctx);
+    return generate(ctx, array_type);
+}
+
+std::shared_ptr<Array> Array::generate(std::shared_ptr<Context> ctx, std::shared_ptr<ArrayType> array_type) {
+    NameHandler& name_handler = NameHandler::get_instance();
+    std::shared_ptr<Array> ret = std::make_shared<Array>(name_handler.get_array_var_name(), array_type, ctx);
     return ret;
 }

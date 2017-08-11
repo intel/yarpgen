@@ -42,6 +42,8 @@ std::shared_ptr<Data> Expr::get_value () {
             struct_var->set_name("");
             return struct_var;
         }
+        //TODO: implement for Array
+        case Data::VarClassID::ARRAY:
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (Expr)");
     }
@@ -62,6 +64,10 @@ std::shared_ptr<Expr> VarUseExpr::set_value (std::shared_ptr<Expr> _expr) {
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
             ERROR("struct is unsupported (VarUseExpr)");
+            break;
+        case Data::VarClassID::ARRAY:
+            //TODO: implement for Array
+            ERROR("array is unsupported (VarUseExpr)");
             break;
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (VarUseExpr)");
@@ -1206,6 +1212,10 @@ std::shared_ptr<Expr> MemberExpr::set_value (std::shared_ptr<Expr> _expr) {
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
             ERROR("Struct is unsupported (MemberExpr)");
+            break;
+        case Data::VarClassID::ARRAY:
+            //TODO: implement for Array
+            ERROR("Array is unsupported (MemberExpr)");
             break;
         case Data::VarClassID::MAX_CLASS_ID:
             ERROR("unsupported Data::VarClassID (MemberExpr)");
