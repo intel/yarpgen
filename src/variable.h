@@ -27,10 +27,9 @@ class Context;
 class Data {
     public:
         enum VarClassID {
-            VAR, STRUCT, MAX_CLASS_ID
+            VAR, STRUCT, ARRAY, MAX_CLASS_ID
         };
 
-        //TODO: Data can be not only integer, but who cares
         Data (std::string _name, std::shared_ptr<Type> _type, VarClassID _class_id) :
               type(_type), name(_name), class_id(_class_id) {}
         VarClassID get_class_id () { return class_id; }
@@ -80,6 +79,7 @@ class ScalarVariable : public Data {
         BuiltinType::ScalarTypedVal get_min () { return min; }
         void dbg_dump ();
         static std::shared_ptr<ScalarVariable> generate(std::shared_ptr<Context> ctx);
+        static std::shared_ptr<ScalarVariable> generate(std::shared_ptr<Context> ctx, std::shared_ptr<IntegerType> int_type);
 
     private:
         BuiltinType::ScalarTypedVal min;
@@ -87,5 +87,20 @@ class ScalarVariable : public Data {
         BuiltinType::ScalarTypedVal init_val;
         BuiltinType::ScalarTypedVal cur_val;
         bool was_changed;
+};
+
+class Array : public Data {
+    public:
+        Array (std::string _name, std::shared_ptr<ArrayType> _type, std::shared_ptr<Context> ctx = nullptr);
+        uint64_t get_elements_count () { return elements.size(); }
+        std::shared_ptr<Data> get_element (uint64_t idx);
+        void dbg_dump ();
+        static std::shared_ptr<Array> generate(std::shared_ptr<Context> ctx);
+        static std::shared_ptr<Array> generate(std::shared_ptr<Context> ctx, std::shared_ptr<ArrayType> array_type);
+
+    private:
+        void init_elements (std::shared_ptr<Context> ctx = nullptr);
+
+        std::vector<std::shared_ptr<Data>> elements;
 };
 }
