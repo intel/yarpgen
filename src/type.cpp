@@ -17,7 +17,8 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cassert>
-#include "type.h"
+#include <sstream>
+
 #include "options.h"
 #include "sym_table.h"
 #include "type.h"
@@ -106,10 +107,49 @@ std::string StructType::get_definition (std::string offset) {
 }
 
 std::string StructType::get_static_memb_def (std::string offset) {
-    std::string ret = "";
-    for (auto i : members) {
+    std::string ret;
+    for (const auto& i : members)
         if (i->get_type()->get_is_static())
-        ret += offset + i->get_type()->get_simple_name() + " " + name + "::" + i->get_name() + ";\n";
+            ret += offset + i->get_type()->get_simple_name() + " " + name + "::" + i->get_name() + ";\n";
+    return ret;
+}
+
+static std::string static_memb_init_from_structs (const std::string& parent_str, std::shared_ptr<Struct> inp_struct);
+
+// This function implements single iteration of loop of static members' initialization emission
+static std::string static_memb_init_iter(const std::string &parent_str, std::shared_ptr<Data> member) {
+    std::string ret = parent_str + member->get_name();
+    if (member->get_class_id() == Data::VAR) {
+        ConstExpr init_expr(std::static_pointer_cast<ScalarVariable>(member)->get_init_value());
+        std::stringstream sstream;
+        init_expr.emit(sstream);
+        ret += " = " + sstream.str() + ";\n";
+    } else if (member->get_class_id() == Data::STRUCT) {
+        std::shared_ptr<Struct> member_struct = std::static_pointer_cast<Struct>(member);
+        ret = static_memb_init_from_structs(ret + ".", member_struct);
+    } else
+        ERROR("bad Data::ClassID");
+
+    return ret;
+}
+
+// Helper function which is needed for recursive walk over all nested structures
+static std::string static_memb_init_from_structs (const std::string& parent_str, std::shared_ptr<Struct> inp_struct) {
+    std::string ret;
+    for (int i = 0; i < inp_struct->get_member_count(); ++i) {
+        std::shared_ptr<Data> member = inp_struct->get_member(i);
+        ret += static_memb_init_iter(parent_str, member);
+    }
+    return ret;
+}
+
+std::string StructType::get_static_memb_init (std::string offset) {
+    std::string ret;
+    for (const auto &i : members) {
+        if (!i->get_type()->get_is_static())
+            continue;
+
+        ret += static_memb_init_iter(offset + name + "::", i->get_data());
     }
     return ret;
 }
@@ -1708,7 +1748,7 @@ BuiltinType::IntegerTypeID IntegerType::get_corr_unsig (BuiltinType::IntegerType
 void BitField::init_type (IntegerTypeID it_id, uint32_t _bit_size) {
     std::shared_ptr<IntegerType> base_type = IntegerType::init(it_id);
     name = base_type->get_simple_name();
-    suffix = base_type->get_suffix();
+    suffix = base_type->get_int_literal_suffix();
     is_signed = base_type->get_is_signed();
     bit_size = _bit_size;
     bit_field_width = _bit_size;
@@ -2037,12 +2077,15 @@ ArrayType::ArrayType(std::shared_ptr<Type> _base_type, uint32_t _size, Kind _kin
             break;
         case VAL_ARR:
             name = "std::valarray<";
+            options->include_valarray = true;
             break;
         case STD_ARR:
             name = "std::array<";
+            options->include_array = true;
             break;
         case STD_VEC:
             name = "std::vector<";
+            options->include_vector = true;
             break;
         case MAX_KIND:
             ERROR("bad array kind");
@@ -2067,8 +2110,8 @@ ArrayType::ArrayType(std::shared_ptr<Type> _base_type, uint32_t _size, Kind _kin
     }
 }
 
-std::string ArrayType::get_suffix () {
-    return kind == C_ARR ? "[" + std::to_string(size) + "]" : "";
+std::string ArrayType::get_type_suffix() {
+    return kind == C_ARR ? " [" + std::to_string(size) + "]" : "";
 }
 
 void ArrayType::dbg_dump() {
@@ -2077,9 +2120,9 @@ void ArrayType::dbg_dump() {
     ret += "size: " + std::to_string(size) + "\n";
     ret += "full name: " + get_name();
     if (kind == C_ARR)
-        ret += " " + get_suffix();
+        ret += get_type_suffix();
     ret += "\n";
-    ret += "suffix: " + get_suffix() + "\n";
+    ret += "suffix: " + get_type_suffix() + "\n";
     ret += "base type: ";
     std::cout << ret;
     base_type->dbg_dump();
@@ -2105,8 +2148,6 @@ std::shared_ptr<ArrayType> ArrayType::generate(std::shared_ptr<Context> ctx) {
     uint32_t size = rand_val_gen->get_rand_value(p->get_min_array_size(), p->get_max_array_size());
 
     Kind kind = rand_val_gen->get_rand_id(p->get_array_kind_prob());
-    if (options->is_c())
-        kind = C_ARR;
 
     return std::make_shared<ArrayType>(base_type, size, kind);
 }

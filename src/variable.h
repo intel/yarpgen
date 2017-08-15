@@ -94,6 +94,9 @@ class Array : public Data {
         Array (std::string _name, std::shared_ptr<ArrayType> _type, std::shared_ptr<Context> ctx = nullptr);
         uint64_t get_elements_count () { return elements.size(); }
         std::shared_ptr<Data> get_element (uint64_t idx);
+        std::vector<std::shared_ptr<Data>>& get_elements () { return elements; }
+        void set_elements (std::vector<std::shared_ptr<Data>> &_elements) { elements = _elements; }
+
         void dbg_dump ();
         static std::shared_ptr<Array> generate(std::shared_ptr<Context> ctx);
         static std::shared_ptr<Array> generate(std::shared_ptr<Context> ctx, std::shared_ptr<ArrayType> array_type);

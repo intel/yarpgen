@@ -63,47 +63,106 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     const_gen_policy.set_allow_const(true);
     const_ctx->set_gen_policy(const_gen_policy);
     // Generate random number of random input variables
-    uint32_t inp_var_count = rand_val_gen->get_rand_value(p->get_min_inp_var_count(), p->get_max_inp_var_count());
+    uint32_t inp_var_count = rand_val_gen->get_rand_value(p->get_min_inp_var_count(),
+                                                          p->get_max_inp_var_count());
     for (uint32_t i = 0; i < inp_var_count; ++i) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
     //TODO: add to gen_policy
     // Same for mixed variables
-    uint32_t mix_var_count = rand_val_gen->get_rand_value(p->get_min_mix_var_count(), p->get_max_mix_var_count());
+    uint32_t mix_var_count = rand_val_gen->get_rand_value(p->get_min_mix_var_count(),
+                                                          p->get_max_mix_var_count());
     for (uint32_t i = 0; i < mix_var_count; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
-    uint32_t struct_type_count = rand_val_gen->get_rand_value(p->get_min_struct_type_count(), p->get_max_struct_type_count());
+    uint32_t struct_type_count = rand_val_gen->get_rand_value(p->get_min_struct_type_count(),
+                                                              p->get_max_struct_type_count());
     if (struct_type_count == 0)
         return;
 
     // Create random number of struct definition
     for (uint32_t i = 0; i < struct_type_count; ++i) {
         //TODO: Maybe we should create one container for all struct types? And should they all be equal?
-        std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->get_struct_types());
+        std::shared_ptr<StructType> struct_type = StructType::generate(ctx, ctx->get_extern_inp_sym_table()->
+                                                                                 get_struct_types());
         ctx->get_extern_inp_sym_table()->add_struct_type(struct_type);
         ctx->get_extern_out_sym_table()->add_struct_type(struct_type);
         ctx->get_extern_mix_sym_table()->add_struct_type(struct_type);
     }
 
     // Create random number of input structures
-    uint32_t inp_struct_count = rand_val_gen->get_rand_value(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
-    for (uint32_t i = 0; i < inp_struct_count; ++i)
-        ctx->get_extern_inp_sym_table()->add_struct(
-                Struct::generate(const_ctx,
-                                 rand_val_gen->get_rand_elem(ctx->get_extern_inp_sym_table()->get_struct_types())));
+    uint32_t inp_struct_count = rand_val_gen->get_rand_value(p->get_min_inp_struct_count(),
+                                                             p->get_max_inp_struct_count());
+    for (uint32_t i = 0; i < inp_struct_count; ++i) {
+        std::shared_ptr<StructType>& struct_type = rand_val_gen->get_rand_elem(ctx->get_extern_inp_sym_table()->
+                                                                               get_struct_types());
+        std::shared_ptr<Struct> new_struct = Struct::generate(const_ctx, struct_type);
+        ctx->get_extern_inp_sym_table()->add_struct(new_struct);
+    }
     // Same for mixed structures
-    uint32_t mix_struct_count = rand_val_gen->get_rand_value(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
-    for (uint32_t i = 0; i < mix_struct_count; ++i)
-        ctx->get_extern_mix_sym_table()->add_struct(
-                Struct::generate(ctx,
-                                 rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->get_struct_types())));
+    uint32_t mix_struct_count = rand_val_gen->get_rand_value(p->get_min_mix_struct_count(),
+                                                             p->get_max_mix_struct_count());
+    for (uint32_t i = 0; i < mix_struct_count; ++i) {
+        std::shared_ptr<StructType>& struct_type = rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->
+                                                                               get_struct_types());
+        std::shared_ptr<Struct> new_struct = Struct::generate(ctx, struct_type);
+        ctx->get_extern_mix_sym_table()->add_struct(new_struct);
+    }
     // Same for output structures
-    uint32_t out_struct_count = rand_val_gen->get_rand_value(p->get_min_out_struct_count(), p->get_max_out_struct_count());
-    for (uint32_t i = 0; i < out_struct_count; ++i)
-        ctx->get_extern_out_sym_table()->add_struct(
-                Struct::generate(ctx, rand_val_gen->get_rand_elem(ctx->get_extern_out_sym_table()->get_struct_types())));
+    uint32_t out_struct_count = rand_val_gen->get_rand_value(p->get_min_out_struct_count(),
+                                                             p->get_max_out_struct_count());
+    for (uint32_t i = 0; i < out_struct_count; ++i) {
+        std::shared_ptr<StructType>& struct_type = rand_val_gen->get_rand_elem(ctx->get_extern_out_sym_table()->
+                                                                               get_struct_types());
+        std::shared_ptr<Struct> new_struct = Struct::generate(ctx, struct_type);
+        ctx->get_extern_out_sym_table()->add_struct(new_struct);
+    }
+
+
+    // Create random number of common array types
+    uint32_t array_type_count = rand_val_gen->get_rand_value(p->get_min_array_type_count(),
+                                                             p->get_max_array_type_count());
+    if (array_type_count == 0)
+        return;
+
+    for (uint32_t i = 0; i < array_type_count; ++i) {
+        //TODO: Maybe we should create one container for all struct types? And should they all be equal?
+        std::shared_ptr<ArrayType> array_type = ArrayType::generate(ctx);
+        ctx->get_extern_inp_sym_table()->add_array_type(array_type);
+        ctx->get_extern_out_sym_table()->add_array_type(array_type);
+        ctx->get_extern_mix_sym_table()->add_array_type(array_type);
+    }
+
+    // Create random number of input arrays
+    uint32_t inp_array_count = rand_val_gen->get_rand_value(p->get_min_inp_array_count(),
+                                                            p->get_max_inp_array_count());
+    for (int i = 0; i < inp_array_count; ++i) {
+        std::shared_ptr<ArrayType>& array_type = rand_val_gen->get_rand_elem(ctx->get_extern_inp_sym_table()->
+                                                                             get_array_types());
+        std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
+        ctx->get_extern_inp_sym_table()->add_array(new_array);
+    }
+
+    // Same for mixed arrays
+    uint32_t mix_array_count = rand_val_gen->get_rand_value(p->get_min_mix_array_count(),
+                                                            p->get_max_mix_array_count());
+    for (int i = 0; i < mix_array_count; ++i) {
+        std::shared_ptr<ArrayType>& array_type = rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->
+                                                                             get_array_types());
+        std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
+        ctx->get_extern_mix_sym_table()->add_array(new_array);
+    }
+
+    // Same for output arrays
+    uint32_t out_array_count = rand_val_gen->get_rand_value(p->get_min_out_array_count(),
+                                                            p->get_max_out_array_count());
+    for (int i = 0; i < out_array_count; ++i) {
+        std::shared_ptr<ArrayType>& array_type = rand_val_gen->get_rand_elem(ctx->get_extern_out_sym_table()->
+                                                                             get_array_types());
+        std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
+        ctx->get_extern_out_sym_table()->add_array(new_array);
+    }
 }
 
 static std::string get_file_ext () {
@@ -118,14 +177,12 @@ static std::string get_file_ext () {
 void Program::emit_decl () {
     std::ofstream out_file;
     out_file.open(out_folder + "/" + "init.h");
-    /* TODO: none of it is used currently.
-     * All these headers must be added only when they are really needed.
-     * Parsing these headers is costly for compile time
-    stream << "#include <cstdint>\n";
-    out_file << "#include <array>\n";
-    out_file << "#include <vector>\n";
-    out_file << "#include <valarray>\n\n";
-    */
+    if (options->include_valarray)
+        out_file << "#include <valarray>\n\n";
+    if (options->include_vector)
+        out_file << "#include <vector>\n\n";
+    if (options->include_array)
+        out_file << "#include <array>\n\n";
 
     for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
         extern_inp_sym_table.at(i)->emit_variable_extern_decl(out_file);
@@ -142,6 +199,12 @@ void Program::emit_decl () {
         extern_mix_sym_table.at(i)->emit_struct_extern_decl(out_file);
         out_file << "\n\n";
         extern_out_sym_table.at(i)->emit_struct_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_inp_sym_table.at(i)->emit_array_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_array_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_array_extern_decl(out_file);
         out_file << "\n\n";
     }
 
@@ -176,7 +239,7 @@ void Program::emit_main () {
                                                                             Type::IntegerTypeID::ULLINT));
     std::shared_ptr<VarUseExpr> seed_use = std::make_shared<VarUseExpr>(seed);
 
-    BuiltinType::ScalarTypedVal zero_init(IntegerType::IntegerTypeID::ULLINT);
+    BuiltinType::ScalarTypedVal zero_init(Type::IntegerTypeID::ULLINT);
     zero_init.val.ullint_val = 0;
     std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr>(zero_init);
 
@@ -203,12 +266,18 @@ void Program::emit_main () {
         out_file << "\n\n";
         extern_out_sym_table.at(i)->emit_struct_def(out_file);
         out_file << "\n\n";
+        extern_inp_sym_table.at(i)->emit_array_def(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_array_def(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_array_def(out_file);
 
         //TODO: what if we extend struct types in mix_sym_table and out_sym_table
         extern_inp_sym_table.at(i)->emit_struct_type_static_memb_def(out_file);
         out_file << "\n\n";
 
         out_file << "void " << NameHandler::common_test_func_prefix << i << "_init () {\n";
+        extern_inp_sym_table.at(i)->emit_struct_type_static_memb_init (out_file, "    ");
         extern_inp_sym_table.at(i)->emit_struct_init(out_file, "    ");
         extern_mix_sym_table.at(i)->emit_struct_init(out_file, "    ");
         extern_out_sym_table.at(i)->emit_struct_init(out_file, "    ");
@@ -223,6 +292,9 @@ void Program::emit_main () {
 
         extern_mix_sym_table.at(i)->emit_struct_check(out_file, "    ");
         extern_out_sym_table.at(i)->emit_struct_check(out_file, "    ");
+
+        extern_mix_sym_table.at(i)->emit_array_check (out_file, "    ");
+        extern_out_sym_table.at(i)->emit_array_check (out_file, "    ");
 
         out_file << "}\n\n";
 

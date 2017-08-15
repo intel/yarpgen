@@ -28,6 +28,8 @@ namespace yarpgen {
 
 class Context;
 class Data;
+class ScalarVariable;
+class Struct;
 
 // Abstract class, serves as a common ancestor for all types.
 class Type {
@@ -92,7 +94,7 @@ class Type {
         // We assume static storage duration, cv-qualifier and alignment as a part of Type's full name
         std::string get_name ();
         std::string get_simple_name () { return name; }
-        virtual std::string get_suffix () { return ""; }
+        virtual std::string get_type_suffix() { return ""; }
 
         // Utility functions, which allows quickly determine Type kind
         virtual bool is_builtin_type() { return false; }
@@ -154,6 +156,7 @@ class StructType : public Type {
         std::string get_definition (std::string offset = "");
         // It returns an out-of-line definition for all static members of the structure
         std::string get_static_memb_def (std::string offset = "");
+        std::string get_static_memb_init (std::string offset = "");
 
         void dbg_dump();
 
@@ -269,7 +272,7 @@ class BuiltinType : public Type {
         // Getters for BuiltinType properties
         BuiltinTypeID get_builtin_type_id() { return builtin_id; }
         uint32_t get_bit_size () { return bit_size; }
-        std::string get_suffix () { return suffix; }
+        std::string get_int_literal_suffix() { return suffix; }
 
     protected:
         unsigned int bit_size;
@@ -577,7 +580,7 @@ class ArrayType : public Type {
         uint32_t get_size () { return size; }
         Kind get_kind () { return kind; }
 
-        std::string get_suffix ();
+        std::string get_type_suffix();
         void dbg_dump();
 
         static std::shared_ptr<ArrayType> generate(std::shared_ptr<Context> ctx);
