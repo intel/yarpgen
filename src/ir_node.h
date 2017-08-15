@@ -40,6 +40,7 @@ class Node {
             UNARY,
             VAR_USE,
             MEMBER,
+            STUB,
             MAX_EXPR_ID,
             // Stmt type
             MIN_STMT_ID,

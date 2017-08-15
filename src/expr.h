@@ -279,4 +279,17 @@ class MemberExpr : public Expr {
         uint64_t identifier;
 };
 
+
+// Stub expression - serves as helper function for unimplemented features
+class StubExpr : public Expr {
+    public:
+        StubExpr(std::string _str) : Expr(Node::NodeID::STUB, nullptr, 1), string(_str) {}
+        void emit (std::ostream& stream, std::string offset = "") { stream << offset << string; }
+
+    private:
+        bool propagate_type () { return true; }
+        UB propagate_value () { return NoUB; }
+
+        std::string string;
+};
 }

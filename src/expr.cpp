@@ -332,7 +332,7 @@ std::string ConstExpr::to_string(T T_val, T min, std::string suffix) {
 void ConstExpr::emit (std::ostream& stream, std::string offset) {
     std::shared_ptr<ScalarVariable> scalar_val = std::static_pointer_cast<ScalarVariable>(value);
     std::shared_ptr<IntegerType> int_type = std::static_pointer_cast<IntegerType>(scalar_val->get_type());
-    std::string suffix = std::static_pointer_cast<BuiltinType>(scalar_val->get_type())->get_suffix ();
+    std::string suffix = std::static_pointer_cast<BuiltinType>(scalar_val->get_type())->get_int_literal_suffix();
     auto val = scalar_val->get_cur_value().val;
     switch (scalar_val->get_type()->get_int_type_id()) {
         case IntegerType::IntegerTypeID::BOOL:

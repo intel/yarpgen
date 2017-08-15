@@ -50,6 +50,10 @@ struct Options {
 
     StandardID standard_id;
     bool mode_64bit;
+
+    bool include_valarray;
+    bool include_vector;
+    bool include_array;
 };
 
 extern Options *options;

@@ -66,6 +66,14 @@ const uint32_t CONST_BUFFER_SIZE = 4;
 
 const uint32_t MIN_ARRAY_SIZE = 2;
 const uint32_t MAX_ARRAY_SIZE = 10;
+const uint32_t MIN_ARRAY_TYPES_COUNT = 0;
+const uint32_t MAX_ARRAY_TYPES_COUNT = 6;
+const uint32_t MIN_INP_ARRAY_COUNT = 0;
+const uint32_t MAX_INP_ARRAY_COUNT = 6;
+const uint32_t MIN_MIX_ARRAY_COUNT = 0;
+const uint32_t MAX_MIX_ARRAY_COUNT = 6;
+const uint32_t MIN_OUT_ARRAY_COUNT = 0;
+const uint32_t MAX_OUT_ARRAY_COUNT = 8;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -141,22 +149,38 @@ void GenPolicy::init_from_config () {
     bit_field_prob.push_back(Probability<BitFieldID>(MAX_BIT_FIELD_ID, 65));
     rand_val_gen->shuffle_prob(bit_field_prob);
 
-    out_data_type_prob.push_back(Probability<OutDataTypeID>(VAR, 70));
-    out_data_type_prob.push_back(Probability<OutDataTypeID>(STRUCT, 30));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(VAR, 50));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(STRUCT, 25));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(VAR_IN_ARRAY, 15));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(STRUCT_IN_ARRAY, 10));
     rand_val_gen->shuffle_prob(out_data_type_prob);
+
+    out_data_category_prob.emplace_back(Probability<OutDataCategoryID>(MIX, 50));
+    out_data_category_prob.emplace_back(Probability<OutDataCategoryID>(OUT, 50));
+    rand_val_gen->shuffle_prob(out_data_category_prob);
 
     min_array_size = MIN_ARRAY_SIZE;
     max_array_size = MAX_ARRAY_SIZE;
-
     array_base_type_prob.emplace_back(Probability<Type::TypeID>(Type::BUILTIN_TYPE, 60));
     array_base_type_prob.emplace_back(Probability<Type::TypeID>(Type::STRUCT_TYPE, 40));
     rand_val_gen->shuffle_prob(array_base_type_prob);
-
     array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::C_ARR, 40));
-    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::VAL_ARR, 15));
-    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::STD_ARR, 15));
-    array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::STD_VEC, 15));
+    if (options->is_cxx()) {
+        array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::VAL_ARR, 15));
+        if (options->standard_id >= Options::CXX11) {
+            array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::STD_ARR, 15));
+            array_kind_prob.emplace_back(Probability<ArrayType::Kind>(ArrayType::STD_VEC, 15));
+        }
+    }
     rand_val_gen->shuffle_prob(array_kind_prob);
+    min_array_type_count = MIN_ARRAY_TYPES_COUNT;
+    max_array_type_count = MAX_ARRAY_TYPES_COUNT;
+    min_inp_array_count = MIN_INP_ARRAY_COUNT;
+    max_inp_array_count = MAX_INP_ARRAY_COUNT;
+    min_mix_array_count = MIN_MIX_ARRAY_COUNT;
+    max_mix_array_count = MAX_MIX_ARRAY_COUNT;
+    min_out_array_count = MIN_OUT_ARRAY_COUNT;
+    max_out_array_count = MAX_OUT_ARRAY_COUNT;
 
     max_arith_depth = MAX_ARITH_DEPTH;
     max_total_expr_count = MAX_TOTAL_EXPR_COUNT;

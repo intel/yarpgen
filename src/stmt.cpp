@@ -25,15 +25,24 @@ using namespace yarpgen;
 uint32_t Stmt::total_stmt_count = 0;
 uint32_t Stmt::func_stmt_count = 0;
 
+// C++03 and previous versions doesn't allow to use list-initialization for vector and valarray,
+// so we need to use StubExpr as init expression
+static bool is_cxx03_and_special_arr_kind(std::shared_ptr<Data> data) {
+    return options->is_cxx() && options->standard_id <= Options::CXX03 &&
+           data->get_class_id() == Data::ARRAY &&
+           (std::static_pointer_cast<ArrayType>(data->get_type())->get_kind() == ArrayType::STD_VEC ||
+            std::static_pointer_cast<ArrayType>(data->get_type())->get_kind() == ArrayType::VAL_ARR);
+}
+
 DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
-    if (init == nullptr)
+    if (init == nullptr || is_cxx03_and_special_arr_kind(data))
         return;
     if (data->get_class_id() != Data::VarClassID::VAR || init->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        ERROR("can init only ScalarVariable in (DeclStmt)");
+        ERROR("can init only ScalarVariable in DeclStmt");
     }
     if (is_extern) {
-        ERROR("init of extern var (DeclStmt)");
+        ERROR("init of extern var DeclStmt");
     }
     std::shared_ptr<ScalarVariable> data_var = std::static_pointer_cast<ScalarVariable>(data);
     std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
@@ -60,6 +69,39 @@ std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx,
     return ret;
 }
 
+// This function creates list-initialization for structs in arrays
+static void emit_list_init_for_struct(std::ostream &stream, std::shared_ptr<Struct> struct_elem) {
+    stream << "{";
+    uint64_t member_count = struct_elem->get_member_count();
+    for (int i = 0; i < member_count; ++i) {
+        std::shared_ptr<Data> member = struct_elem->get_member(i);
+        // Skip static members
+        if (member->get_type()->get_is_static())
+            continue;
+
+        switch (member->get_class_id()) {
+            case Data::VAR: {
+                std::shared_ptr<ScalarVariable> var_member = std::static_pointer_cast<ScalarVariable>(member);
+                ConstExpr init_const(var_member->get_init_value());
+                init_const.emit(stream);
+            }
+                break;
+            case Data::STRUCT: {
+                std::shared_ptr<Struct> struct_member = std::static_pointer_cast<Struct>(member);
+                emit_list_init_for_struct(stream, struct_member);
+            }
+                break;
+            case Data::ARRAY:
+            case Data::MAX_CLASS_ID:
+                ERROR("inappropriate type of Struct member");
+                break;
+        }
+        if (i < member_count - 1)
+            stream << ", ";
+    }
+    stream << "} ";
+}
+
 void DeclStmt::emit (std::ostream& stream, std::string offset) {
     stream << offset;
     stream << (data->get_type()->get_is_static() && !is_extern ? "static " : "");
@@ -80,11 +122,15 @@ void DeclStmt::emit (std::ostream& stream, std::string offset) {
             ERROR("bad cv_qual (DeclStmt)");
             break;
     }
-    stream << data->get_type()->get_simple_name() + " " + data->get_name();
+    stream << data->get_type()->get_simple_name() + " " + data->get_name() + data->get_type()->get_type_suffix();
     if (data->get_type()->get_align() != 0 && is_extern) // TODO: Should we set __attribute__ to non-extern variable?
         stream << " __attribute__((aligned(" + std::to_string(data->get_type()->get_align()) + ")))";
-    if (init != nullptr) {
-        if (data->get_class_id() == Data::VarClassID::STRUCT) {
+    if (init != nullptr &&
+       // C++03 and previous versions doesn't allow to use list-initialization for vector and valarray,
+       // so we need to use StubExpr as init expression
+       !is_cxx03_and_special_arr_kind(data)) {
+        if (data->get_class_id() == Data::VarClassID::STRUCT ||
+           (data->get_class_id() == Data::VarClassID::ARRAY && !is_cxx03_and_special_arr_kind(data))) {
             ERROR("emit init of struct (DeclStmt)");
         }
         if (is_extern) {
@@ -92,6 +138,44 @@ void DeclStmt::emit (std::ostream& stream, std::string offset) {
         }
         stream << " = ";
         init->emit(stream);
+    }
+    if (data->get_class_id() == Data::VarClassID::ARRAY && !is_extern) {
+        //TODO: it is a stub. We should use something to represent list-initialization.
+        if (!is_cxx03_and_special_arr_kind(data)) {
+            stream << " = {";
+            std::shared_ptr<Array> array = std::static_pointer_cast<Array>(data);
+            std::shared_ptr<ArrayType> array_type = std::static_pointer_cast<ArrayType>(array->get_type());
+            uint64_t array_elements_count = array->get_elements_count();
+            // std::array requires additional curly brackets in list-initialization
+            if (array_type->get_kind() == ArrayType::STD_ARR)
+                stream << "{";
+
+            for (int i = 0; i < array_elements_count; ++i) {
+                if (array_type->get_base_type()->is_int_type()) {
+                    std::shared_ptr<ScalarVariable> elem = std::static_pointer_cast<ScalarVariable>(
+                            array->get_element(i));
+                    ConstExpr init_const(elem->get_init_value());
+                    init_const.emit(stream);
+                } else if (array_type->get_base_type()->is_struct_type()) {
+                    std::shared_ptr<Struct> elem = std::static_pointer_cast<Struct>(array->get_element(i));
+                    emit_list_init_for_struct(stream, elem);
+                } else
+                    ERROR("bad base type of array");
+                if (i < array_elements_count - 1)
+                    stream << ", ";
+            }
+
+            // std::array requires additional curly brackets in list-initialization
+            if (array_type->get_kind() == ArrayType::STD_ARR)
+                stream << "}";
+            stream << "}";
+        }
+        else {
+            // Same note about C++03 and previous versions
+            stream << " (";
+            std::static_pointer_cast<StubExpr>(init)->emit(stream);
+            stream << ")";
+        }
     }
     stream << ";";
 }
@@ -111,6 +195,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     auto p = ctx->get_gen_policy();
     uint32_t scope_stmt_count = rand_val_gen->get_rand_value(p->get_min_scope_stmt_count(),
                                                              p->get_max_scope_stmt_count());
+
     for (uint32_t i = 0; i < scope_stmt_count; ++i) {
         if (Stmt::total_stmt_count >= p->get_max_total_stmt_count() ||
             Stmt::func_stmt_count  >= p->get_max_func_stmt_count())
@@ -132,31 +217,77 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         // ExprStmt
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
-            // Are we going to use mixed variable or create new outpu variable?
-            bool use_mix = rand_val_gen->get_rand_value(false, true);
+            // Are we going to use mixed variable or create new output variable?
+            bool use_mix = rand_val_gen->get_rand_id(p->get_out_data_category_prob()) == GenPolicy::OutDataCategoryID::MIX;
             GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(p->get_out_data_type_prob());
             std::shared_ptr<Expr> assign_lhs = nullptr;
-            if (use_mix) {
-                // Use mixed variable or we don't have any suitable members
-                if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0)
-                    assign_lhs = std::make_shared<VarUseExpr>(rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->get_variables()));
-                // Use member of mixed struct
-                else
-                    assign_lhs = rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->get_avail_members());
-            }
-            else {
-                // Create new output variable or we don't have any suitable members
-                if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_out_sym_table()->get_avail_members().size() == 0) {
+
+            // This function checks if we have any suitable members / variables / arrays
+            auto check_ctx_for_zero_size = [&out_data_type] (std::shared_ptr<SymbolTable> sym_table) -> bool {
+                return (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY &&
+                            sym_table->get_var_use_exprs_in_arrays().empty()) ||
+                       (out_data_type == GenPolicy::OutDataTypeID::STRUCT &&
+                            sym_table->get_members_in_structs().empty()) ||
+                       (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY &&
+                            sym_table->get_members_in_arrays().empty());
+            };
+
+            // This function randomly picks element from vector.
+            // Also it optionally returns picked element's id in ret_rand_num
+            auto pick_elem = [&assign_lhs] (auto vector_of_exprs, uint32_t* ret_rand_num = nullptr) {
+                uint64_t rand_num = rand_val_gen->get_rand_value(0UL, vector_of_exprs.size() - 1);
+                assign_lhs = vector_of_exprs.at(rand_num);
+                if (ret_rand_num != nullptr)
+                    *ret_rand_num = rand_num;
+            };
+
+            if (!use_mix || ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars().empty()) {
+                bool zero_size = check_ctx_for_zero_size(ctx->get_extern_out_sym_table());
+
+                // Create new output variable or we don't have any suitable members / variables / arrays
+                if (out_data_type == GenPolicy::OutDataTypeID::VAR || zero_size) {
                     std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
                     ctx->get_extern_out_sym_table()->add_variable (out_var);
                     assign_lhs = std::make_shared<VarUseExpr>(out_var);
                 }
+                // Use variable in output array
+                else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
+                    //TODO: we should also delete it (make it not-reusable)
+                    pick_elem(ctx->get_extern_out_sym_table()->get_var_use_exprs_in_arrays());
                 // Use member of output struct
-                else {
-                    size_t out_num = rand_val_gen->get_rand_value(0UL, ctx->get_extern_out_sym_table()->get_avail_members().size() - 1);
-                    assign_lhs = ctx->get_extern_out_sym_table()->get_avail_members().at(out_num);
-                    ctx->get_extern_out_sym_table()->del_avail_member(out_num);
+                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT) {
+                    uint32_t elem_num;
+                    pick_elem(ctx->get_extern_out_sym_table()->get_members_in_structs(), &elem_num);
+                    ctx->get_extern_out_sym_table()->del_member_in_structs(elem_num);
                 }
+                // Use member of struct in output array
+                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY) {
+                    uint32_t elem_num;
+                    pick_elem(ctx->get_extern_out_sym_table()->get_members_in_arrays(), &elem_num);
+                    ctx->get_extern_out_sym_table()->del_member_in_arrays(elem_num);
+                }
+                else
+                    ERROR("bad OutDataTypeID");
+
+            }
+            else {
+                bool zero_size = check_ctx_for_zero_size(ctx->get_extern_mix_sym_table());
+
+                // Use mixed variable or we don't have any suitable members / variables / arrays
+                if (out_data_type == GenPolicy::OutDataTypeID::VAR || zero_size)
+                    pick_elem(ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars());
+                // Use variable in mixed array
+                else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
+                    pick_elem(ctx->get_extern_mix_sym_table()->get_var_use_exprs_in_arrays());
+                // Use member of mixed struct
+                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT)
+                    pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_structs());
+                // Use member of struct in mixed array
+                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY)
+                    pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_arrays());
+                else
+                    ERROR("bad OutDataTypeID");
+
             }
             ret->add_stmt(ExprStmt::generate(ctx, inp, assign_lhs, true));
         }
@@ -181,26 +312,24 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
 // CSE shouldn't change during the scope to make generation process easy. In order to achieve this,
 // we use only "input" variables for them and this function extracts such variables from extern symbol table.
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_from_ctx(std::shared_ptr<Context> ctx) {
-    std::vector<std::shared_ptr<Expr>> ret;
-    for (auto i : ctx->get_extern_inp_sym_table()->get_variables()) {
-        ret.push_back(std::make_shared<VarUseExpr> (i));
-    }
+    std::vector<std::shared_ptr<Expr>> ret = ctx->get_extern_inp_sym_table()->get_all_var_use_exprs();
 
-    for (auto i : ctx->get_extern_inp_sym_table()->get_avail_const_members()) {
+    for (auto i : ctx->get_extern_inp_sym_table()->get_const_members_in_structs())
         ret.push_back(i);
-    }
+
+    for (auto i : ctx->get_extern_inp_sym_table()->get_const_members_in_arrays())
+        ret.push_back(i);
+
     return ret;
 }
 
 // This function extracts local symbol tables of current Context and all it's predecessors.
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_locals_from_ctx(std::shared_ptr<Context> ctx) {
     //TODO: add struct members
-    std::vector<std::shared_ptr<Expr>> ret;
-    if (ctx->get_parent_ctx() != nullptr) {
+    std::vector<std::shared_ptr<Expr>> ret = ctx->get_local_sym_table()->get_all_var_use_exprs();
+
+    if (ctx->get_parent_ctx() != nullptr)
         ret = extract_locals_from_ctx(ctx->get_parent_ctx());
-    }
-    for (auto i : ctx->get_local_sym_table()->get_variables())
-        ret.push_back(std::make_shared<VarUseExpr> (i));
 
     return ret;
 }
@@ -210,12 +339,13 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_locals_from_ctx(std::share
 // TODO: we create multiple entry for variables from extern_sym_tables
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx) {
     std::vector<std::shared_ptr<Expr>> ret = extract_inp_from_ctx(ctx);
-    for (auto i : ctx->get_extern_mix_sym_table()->get_avail_members()) {
+    for (auto i : ctx->get_extern_mix_sym_table()->get_members_in_structs())
         ret.push_back(i);
-    }
-    for (auto i : ctx->get_extern_mix_sym_table()->get_variables()) {
-        ret.push_back(std::make_shared<VarUseExpr> (i));
-    }
+    for (auto i : ctx->get_extern_mix_sym_table()->get_members_in_arrays())
+        ret.push_back(i);
+
+    for (auto i : ctx->get_extern_mix_sym_table()->get_all_var_use_exprs())
+        ret.push_back(i);
 
     auto locals = extract_locals_from_ctx(ctx);
     ret.insert(ret.end(), locals.begin(), locals.end());

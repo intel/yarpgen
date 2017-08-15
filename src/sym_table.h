@@ -28,47 +28,71 @@ limitations under the License.
 namespace yarpgen {
 
 class SymbolTable {
+    //TODO: we definitely need to refactor this class, because it is all messed up and strange
+    //      e.g. sometimes we return from similar functions references, sometimes - objects
     public:
+        using MemberVector = std::vector<std::shared_ptr<MemberExpr>>;
+        using ExprVector = std::vector<std::shared_ptr<Expr>>;
+
         SymbolTable () {}
 
-        void add_variable (std::shared_ptr<ScalarVariable> _var) { variable.push_back (_var); }
         void add_struct_type (std::shared_ptr<StructType> _type) { struct_type.push_back (_type); }
-        void add_struct (std::shared_ptr<Struct> _struct);
-
-        void set_variables (std::vector<std::shared_ptr<ScalarVariable>> _variable) { variable = _variable; }
-        void set_struct_types (std::vector<std::shared_ptr<StructType>> _struct_type) { struct_type = _struct_type; }
-        void set_structs (std::vector<std::shared_ptr<Struct>> _structs) { structs = _structs; }
-
-        auto& get_variables () { return variable; }
         auto& get_struct_types () { return struct_type; }
-        auto& get_structs () { return structs; }
-        auto& get_avail_members() { return avail_members; }
-        auto& get_avail_const_members() { return avail_const_members; }
-        void del_avail_member(int idx) { avail_members.erase(avail_members.begin() + idx); }
+        void add_array_type (std::shared_ptr<ArrayType> _array_type) { array_type.push_back(_array_type); }
+        auto& get_array_types() { return array_type; }
+
+        void add_variable (std::shared_ptr<ScalarVariable> _var) { variable.push_back (_var); }
+        void add_struct (std::shared_ptr<Struct> _struct);
+        void add_array (std::shared_ptr<Array> _array);
+
+        ExprVector get_var_use_exprs_in_arrays();
+        ExprVector get_var_use_exprs_from_vars();
+        ExprVector get_all_var_use_exprs();
+
+        auto& get_members_in_structs() { return std::get<ALL>(members_in_structs); }
+        auto& get_const_members_in_structs() { return std::get<CONST>(members_in_structs); }
+        void del_member_in_structs(int idx);
+
+        auto& get_members_in_arrays() { return std::get<ALL>(members_in_arrays); }
+        auto& get_const_members_in_arrays() { return std::get<CONST>(members_in_arrays); }
+        void del_member_in_arrays(int idx);
 
         void emit_variable_extern_decl (std::ostream& stream, std::string offset = "");
         void emit_variable_def (std::ostream& stream, std::string offset = "");
         // TODO: rewrite with IR
         void emit_variable_check (std::ostream& stream, std::string offset = "");
         void emit_struct_type_static_memb_def (std::ostream& stream, std::string offset = "");
+        void emit_struct_type_static_memb_init (std::ostream& stream, std::string offset = "");
         void emit_struct_type_def (std::ostream& stream, std::string offset = "");
         void emit_struct_def (std::ostream& stream, std::string offset = "");
         void emit_struct_extern_decl (std::ostream& stream, std::string offset = "");
         void emit_struct_init (std::ostream& stream, std::string offset = "");
         void emit_struct_check (std::ostream& stream, std::string offset = "");
+        void emit_array_extern_decl (std::ostream& stream, std::string offset = "");
+        void emit_array_def (std::ostream& stream, std::string offset = "");
+        void emit_array_check (std::ostream& stream, std::string offset = "");
 
     private:
-        void form_struct_member_expr (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var, bool ignore_const = false);
+        enum MemVecID {ALL, CONST};
+
+        void form_struct_member_expr (std::tuple<MemberVector, MemberVector>& ret,
+                                      std::shared_ptr<MemberExpr> parent_memb_expr,
+                                      std::shared_ptr<Struct> struct_var,
+                                      bool ignore_const = false);
         void emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var,
                                       std::ostream& stream, std::string offset = "");
         void emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var,
                                        std::ostream& stream, std::string offset = "");
+        void var_use_exprs_from_vars_in_arrays(std::vector<std::shared_ptr<Expr>>& ret);
 
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;
-        std::vector<std::shared_ptr<MemberExpr>> avail_members;
-        std::vector<std::shared_ptr<MemberExpr>> avail_const_members; // TODO: it is a stub, because now static members can't be const input in CSE gen
+        std::tuple<MemberVector, MemberVector> members_in_structs;
         std::vector<std::shared_ptr<ScalarVariable>> variable;
+        std::vector<std::shared_ptr<ArrayType>> array_type;
+        std::vector<std::shared_ptr<Array>> array;
+        std::tuple<MemberVector, MemberVector> members_in_arrays;
+
 };
 
 class Context {
