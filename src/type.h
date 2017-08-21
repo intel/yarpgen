@@ -565,6 +565,10 @@ class TypeULLINT : public IntegerType {
 //      2) nowadays it can represent only one-dimensional array
 class ArrayType : public Type {
     public:
+        enum ElementSubscript {
+            Brackets, At, MaxElementSubscript
+        };
+
         enum Kind {
             C_ARR,
             VAL_ARR,

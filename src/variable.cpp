@@ -155,25 +155,36 @@ Array::Array (std::string _name, std::shared_ptr<ArrayType> _type, std::shared_p
 void Array::init_elements (std::shared_ptr<Context> ctx) {
     std::shared_ptr<ArrayType> array_type = std::static_pointer_cast<ArrayType>(type);
     std::shared_ptr<Type> base_type = array_type->get_base_type();
+    ArrayType::Kind kind = array_type->get_kind();
     std::shared_ptr<Data> new_element;
 
-    auto var_init = [this, &new_element, &base_type, ctx] (int32_t idx) {
+    auto pick_name = [this, &ctx, &kind] (int32_t idx) -> std::string {
+        if (ctx != nullptr && ctx.use_count() != 0) {
+            ArrayType::ElementSubscript subs_type = rand_val_gen->get_rand_id(ctx->get_gen_policy()->
+                                                                                   get_array_elem_subs_prob());
+            if ((kind == ArrayType::STD_VEC || kind == ArrayType::STD_ARR) && subs_type == ArrayType::At)
+                return name + ".at(" + std::to_string(idx) + ")";
+        }
+        return name + " [" + std::to_string(idx) + "]";
+    };
+
+    auto var_init = [&new_element, &base_type, &ctx, &pick_name] (int32_t idx) {
         std::shared_ptr<IntegerType> base_int_type = std::static_pointer_cast<IntegerType>(base_type);
         if (ctx == nullptr || ctx.use_count() == 0)
-            new_element = std::make_shared<ScalarVariable>(name + " [" + std::to_string(idx) + "]", base_int_type);
+            new_element = std::make_shared<ScalarVariable>(pick_name(idx), base_int_type);
         else {
             new_element = ScalarVariable::generate(ctx, base_int_type);
-            new_element->set_name(name + " [" + std::to_string(idx) + "]");
+            new_element->set_name(pick_name(idx));
         }
     };
 
-    auto struct_init = [this, &new_element, &base_type, ctx] (int32_t idx) {
+    auto struct_init = [&new_element, &base_type, &ctx, &pick_name] (int32_t idx) {
         std::shared_ptr<StructType> base_struct_type = std::static_pointer_cast<StructType>(base_type);
         if (ctx == nullptr || ctx.use_count() == 0)
-            new_element = std::make_shared<Struct>(name + " [" + std::to_string(idx) + "]", base_struct_type);
+            new_element = std::make_shared<Struct>(pick_name(idx), base_struct_type);
         else {
             new_element = Struct::generate(ctx, base_struct_type);
-            new_element->set_name(name + " [" + std::to_string(idx) + "]");
+            new_element->set_name(pick_name(idx));
         }
     };
 
