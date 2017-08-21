@@ -843,8 +843,9 @@ class TestRun(object):
             self.stat.add_stats(stmt_stats, self.optset, StatsVault.stmt_stats_id)
 
         # update file list
-        expected_files = ["init.o", "driver.o", "func.o", "check.o", "hash.o", "out"]
-        expected_files = [ self.optset + "_" + e for e in expected_files ]
+        expected_files = [source + ".o" for source in gen_test_makefile.sources.value.split()]
+        expected_files.append(gen_test_makefile.executable.value)
+        expected_files = [self.optset + "_" + e for e in expected_files]
         if self.parse_stats:
             expected_files.append("func.stats")
         for f in expected_files:

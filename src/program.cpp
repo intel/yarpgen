@@ -93,13 +93,6 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     }
 }
 
-void Program::write_file (std::string of_name, std::string data) {
-    std::ofstream out_file;
-    out_file.open (out_folder + "/" + of_name);
-    out_file << data;
-    out_file.close ();
-}
-
 static std::string get_file_ext () {
     if (options->is_c())
         return "c";
@@ -107,36 +100,6 @@ static std::string get_file_ext () {
         return "cpp";
     std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ": can't detect language subset" << std::endl;
     exit(-1);
-}
-
-void Program::emit_init () {
-    std::ofstream out_file;
-    out_file.open(out_folder + "/" + "init." + get_file_ext());
-    out_file << "#include \"init.h\"\n\n";
-
-    extern_inp_sym_table->emit_variable_def(out_file);
-    out_file << "\n\n";
-    extern_mix_sym_table->emit_variable_def(out_file);
-    out_file << "\n\n";
-    extern_out_sym_table->emit_variable_def(out_file);
-    out_file << "\n\n";
-    extern_inp_sym_table->emit_struct_def(out_file);
-    out_file << "\n\n";
-    extern_mix_sym_table->emit_struct_def(out_file);
-    out_file << "\n\n";
-    extern_out_sym_table->emit_struct_def(out_file);
-    out_file << "\n\n";
-    //TODO: what if we extand struct types in mix_sym_table and out_sym_table
-    extern_inp_sym_table->emit_struct_type_static_memb_def(out_file);
-    out_file << "\n\n";
-
-    out_file << "void init () {\n";
-    extern_inp_sym_table->emit_struct_init (out_file, "    ");
-    extern_mix_sym_table->emit_struct_init (out_file, "    ");
-    extern_out_sym_table->emit_struct_init (out_file, "    ");
-    out_file << "}";
-
-    out_file.close();
 }
 
 void Program::emit_decl () {
@@ -150,8 +113,6 @@ void Program::emit_decl () {
     out_file << "#include <vector>\n";
     out_file << "#include <valarray>\n\n";
     */
-
-    out_file << "void hash(unsigned long long int *seed, unsigned long long int const v);\n\n";
 
     extern_inp_sym_table->emit_variable_extern_decl(out_file);
     out_file << "\n\n";
@@ -178,22 +139,51 @@ void Program::emit_func () {
     out_file << "#include \"init.h\"\n\n";
     out_file << "void foo ()\n";
     function->emit(out_file);
-
     out_file.close();
 }
 
-void Program::emit_hash () {
-    std::string ret = "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
-    ret += "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
-    ret += "}\n";
-    write_file("hash." + get_file_ext(), ret);
-}
-
-void Program::emit_check () { // TODO: rewrite with IR
+void Program::emit_main () {
     std::ofstream out_file;
-    out_file.open(out_folder + "/" + "check." + get_file_ext());
+    out_file.open(out_folder + "/" + "driver." + get_file_ext());
+
+    // Headers
+    //////////////////////////////////////////////////////////
+    out_file << "#include <stdio.h>\n";
     out_file << "#include \"init.h\"\n\n";
 
+    // Definitions and initialization
+    //////////////////////////////////////////////////////////
+    extern_inp_sym_table->emit_variable_def(out_file);
+    out_file << "\n\n";
+    extern_mix_sym_table->emit_variable_def(out_file);
+    out_file << "\n\n";
+    extern_out_sym_table->emit_variable_def(out_file);
+    out_file << "\n\n";
+    extern_inp_sym_table->emit_struct_def(out_file);
+    out_file << "\n\n";
+    extern_mix_sym_table->emit_struct_def(out_file);
+    out_file << "\n\n";
+    extern_out_sym_table->emit_struct_def(out_file);
+    out_file << "\n\n";
+
+    //TODO: what if we extend struct types in mix_sym_table and out_sym_table
+    extern_inp_sym_table->emit_struct_type_static_memb_def(out_file);
+    out_file << "\n\n";
+
+    out_file << "void init () {\n";
+    extern_inp_sym_table->emit_struct_init (out_file, "    ");
+    extern_mix_sym_table->emit_struct_init (out_file, "    ");
+    extern_out_sym_table->emit_struct_init (out_file, "    ");
+    out_file << "}\n\n";
+
+    // Hash
+    //////////////////////////////////////////////////////////
+    out_file << "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
+    out_file << "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
+    out_file << "}\n\n";
+
+    // Check
+    //////////////////////////////////////////////////////////
     out_file << "unsigned long long int checksum () {\n";
 
     std::shared_ptr<ScalarVariable> seed = std::make_shared<ScalarVariable>("seed", IntegerType::init(Type::IntegerTypeID::ULLINT));
@@ -215,24 +205,18 @@ void Program::emit_check () { // TODO: rewrite with IR
     extern_out_sym_table->emit_struct_check (out_file, "    ");
 
     out_file << "    return seed;\n";
-    out_file << "}";
+    out_file << "}\n\n";
+
+    // Main
+    //////////////////////////////////////////////////////////
+    out_file << "extern void foo ();\n\n";
+    out_file << "int main () {\n";
+    out_file << "    init ();\n";
+    out_file << "    foo ();\n";
+    out_file << "    printf(\"%llu\\n\", checksum ());\n";
+    out_file << "    return 0;\n";
+    out_file << "}\n";
 
     out_file.close();
-}
-
-void Program::emit_main () {
-    std::string ret;
-    ret += "#include <stdio.h>\n";
-    ret += "#include \"init.h\"\n\n";
-    ret += "extern void init ();\n";
-    ret += "extern void foo ();\n";
-    ret += "extern unsigned long long int checksum ();\n\n";
-    ret += "int main () {\n";
-    ret += "    init ();\n";
-    ret += "    foo ();\n";
-    ret += "    printf(\"%llu\\n\", checksum ());\n";
-    ret += "    return 0;\n";
-    ret += "}";
-    write_file("driver." + get_file_ext(), ret);
 }
 
