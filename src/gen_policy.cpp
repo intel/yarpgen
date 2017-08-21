@@ -173,6 +173,9 @@ void GenPolicy::init_from_config () {
         }
     }
     rand_val_gen->shuffle_prob(array_kind_prob);
+    array_elem_subs_prob.emplace_back(Probability<ArrayType::ElementSubscript>(ArrayType::Brackets, 50));
+    array_elem_subs_prob.emplace_back(Probability<ArrayType::ElementSubscript>(ArrayType::At, 50));
+    rand_val_gen->shuffle_prob(array_elem_subs_prob);
     min_array_type_count = MIN_ARRAY_TYPES_COUNT;
     max_array_type_count = MAX_ARRAY_TYPES_COUNT;
     min_inp_array_count = MIN_INP_ARRAY_COUNT;
