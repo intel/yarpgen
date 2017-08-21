@@ -44,17 +44,12 @@ class Program {
         // Print-out methods
         // To get valid test, all of them should be called (the order doesn't matter)
         void emit_func ();
-        void emit_init ();
         void emit_decl ();
-        void emit_hash ();
-        void emit_check ();
         void emit_main ();
 
     private:
 
         void form_extern_sym_table(std::shared_ptr<Context> ctx);
-
-        void write_file (std::string of_name, std::string data);
 
         GenPolicy gen_policy;
         std::shared_ptr<ScopeStmt> function;

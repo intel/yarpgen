@@ -65,7 +65,7 @@ std_flags = MakefileVariable("STDFLAGS", "-std=")
 Makefile_variable_list.append(std_flags)
 
 # File extension will be set later to match selected language standard in adjust_sources_to_standard()
-sources = MakefileVariable("SOURCES", "init driver func check hash")
+sources = MakefileVariable("SOURCES", "driver func")
 Makefile_variable_list.append(sources)
 
 headers = MakefileVariable("HEADERS", "init.h")

@@ -217,10 +217,7 @@ int main (int argc, char* argv[128]) {
     Program mas (out_dir);
     mas.generate ();
     mas.emit_func ();
-    mas.emit_init ();
     mas.emit_decl ();
-    mas.emit_hash ();
-    mas.emit_check ();
     mas.emit_main ();
 
     delete(options);
