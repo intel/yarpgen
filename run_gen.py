@@ -167,6 +167,7 @@ class Test(object):
     STATUS_fail_timeout=3
     STATUS_miscompare=4
     STATUS_multiple_miscompare=5
+    STATUS_no_good_runs=6
 
     # Generate new test
     # stat is statistics object
@@ -239,6 +240,7 @@ class Test(object):
         elif self.status == self.STATUS_fail_timeout:        return "gen_fail_timeout"
         elif self.status == self.STATUS_miscompare:          return "miscompare"
         elif self.status == self.STATUS_multiple_miscompare: return "multiple_miscompare"
+        elif self.status == self.STATUS_no_good_runs:        return "no_good_runs"
         else: raise
 
     # Save test
@@ -346,7 +348,10 @@ class Test(object):
         else:
             # More than 2 different results.
             # Treat them all as bad
-            self.status = self.STATUS_multiple_miscompare
+            if len(results) == 0:
+                self.status = self.STATUS_no_good_runs
+            else:
+                self.status = self.STATUS_multiple_miscompare
             good_runs = []
             bad_runs = []
             for run in results.values():
@@ -411,16 +416,27 @@ class Test(object):
             log.write("=== Generator end ==================================================\n")
             log.write("\n")
         if self.status >= self.STATUS_miscompare:
-            for run in bad_runs:
-                log.write("==== BAD ==================================\n")
-                log.write("Optset: " + run.optset + "\n")
-                log.write("Output: " + str(run.run_stdout, "utf-8") + "\n")
-            log.write("===========================================\n\n")
-            for run in good_runs:
-                log.write("==== GOOD =================================\n")
-                log.write("Optset: " + run.optset + "\n")
-                log.write("Output: " + str(run.run_stdout, "utf-8") + "\n")
-            log.write("===========================================\n")
+            log.write("==== FAILED TEST RUNS =====================\n")
+            for run in self.fail_test_runs:
+                log.write("Optset " + run.optset + " has status " + run.status_string() + "\n")
+            log.write("==== SUCCESSFUL TEST RUNS =================\n")
+            for run in self.successful_test_runs:
+                log.write("Optset " + run.optset + " has status " + run.status_string() + "\n")
+
+            if self.status == self.STATUS_no_good_runs:
+                log.write("===========================================\n")
+                log.write("For details look for this fail saved as one of individual compfail or runfail");
+            else:
+                for run in bad_runs:
+                    log.write("==== BAD ==================================\n")
+                    log.write("Optset: " + run.optset + "\n")
+                    log.write("Output: " + str(run.run_stdout, "utf-8") + "\n")
+                log.write("===========================================\n\n")
+                for run in good_runs:
+                    log.write("==== GOOD =================================\n")
+                    log.write("Optset: " + run.optset + "\n")
+                    log.write("Output: " + str(run.run_stdout, "utf-8") + "\n")
+                log.write("===========================================\n")
 
         log.close()
         return log_name
