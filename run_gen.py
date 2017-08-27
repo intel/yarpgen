@@ -512,8 +512,9 @@ class Test(object):
 
         if not good_run:
             # TODO: fix
-            common.log_msg(logging.WARNING, "No good runs found for seed " + self.seed + \
+            common.log_msg(logging.WARNING, "No good UBSAN runs found for seed " + self.seed + \
                     " in process " + str(self.proc_num), True)
+            common.log_msg(logging.WARNING, "PLEASE CHECK THAT UBSAN IS IN YOUR TARGETS!", True)
             raise
 
         bad_run = None
