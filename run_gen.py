@@ -537,7 +537,8 @@ class Test(object):
             common.check_and_copy(f, "reduce")
         os.chdir("reduce")
 
-        self.creduce_performance_hack()
+        # This is required only for old loop code and assumes 5 files, not 2.
+        #self.creduce_performance_hack()
 
         # Now we need to construct a Makefile and script for passing to creduce.
         # Need to make sure that -Werror=uninitialized is passed to the compiler.
