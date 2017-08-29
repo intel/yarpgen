@@ -64,6 +64,8 @@ const uint32_t MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause differen
 
 const uint32_t CONST_BUFFER_SIZE = 4;
 
+// This switch totally disables array in generated tests
+const bool DISABLE_ARRAYS = false;
 const uint32_t MIN_ARRAY_SIZE = 2;
 const uint32_t MAX_ARRAY_SIZE = 10;
 const uint32_t MIN_ARRAY_TYPES_COUNT = 0;
@@ -184,6 +186,12 @@ void GenPolicy::init_from_config () {
     max_mix_array_count = MAX_MIX_ARRAY_COUNT;
     min_out_array_count = MIN_OUT_ARRAY_COUNT;
     max_out_array_count = MAX_OUT_ARRAY_COUNT;
+    if (DISABLE_ARRAYS) {
+        min_array_type_count = max_array_type_count = 0;
+        min_inp_array_count = max_inp_array_count = 0;
+        min_mix_array_count = max_mix_array_count = 0;
+        min_out_array_count = max_out_array_count = 0;
+    }
 
     max_arith_depth = MAX_ARITH_DEPTH;
     max_total_expr_count = MAX_TOTAL_EXPR_COUNT;
