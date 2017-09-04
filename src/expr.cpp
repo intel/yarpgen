@@ -26,6 +26,8 @@ limitations under the License.
 
 using namespace yarpgen;
 
+uint32_t Expr::total_expr_count = 0;
+
 std::shared_ptr<Data> Expr::get_value () {
     switch (value->get_class_id()) {
         case Data::VarClassID::VAR: {
@@ -76,7 +78,7 @@ AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, 
     }
     propagate_type();
     propagate_value();
-    complexity = from->get_complexity() + 1;
+    complexity = to->get_complexity() + from->get_complexity() + 1;
 }
 
 bool AssignExpr::propagate_type () {
@@ -229,8 +231,6 @@ ConstExpr::ConstExpr(BuiltinType::ScalarTypedVal _val) :
     std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(_val);
 }
 
-uint32_t ArithExpr::total_arith_expr_count = 0;
-
 std::shared_ptr<Expr> ArithExpr::integral_prom (std::shared_ptr<Expr> arg) {
     if (arg->get_value()->get_class_id() != Data::VarClassID::VAR) {
         ERROR("can perform integral_prom only on ScalarVariable (ArithExpr)");
@@ -288,12 +288,8 @@ GenPolicy ArithExpr::choose_and_apply_ssp (GenPolicy gen_policy) {
     return new_policy;
 }
 
-std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp,
-                                           bool count_up_total) {
-    std::shared_ptr<Expr> ret = gen_level(ctx, inp, 0);
-    if (count_up_total)
-        total_arith_expr_count += ret->get_complexity();
-    return ret;
+std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    return gen_level(ctx, inp, 0);
 }
 
 // Top-level recursive function for expression tree generation.
@@ -315,7 +311,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     // we fall into this branch.
     if (node_type == GenPolicy::ArithLeafID::Data || par_depth == p->get_max_arith_depth() ||
        (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0) ||
-       (total_arith_expr_count >= p->get_max_total_arith_expr_count())) {
+       (Expr::total_expr_count >= p->get_max_total_arith_expr_count())) {
         // Pick random Data ID.
         GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (p->get_arith_data_distr());
         // If we want to use Const or don't have any input VarUseExpr / MemberExpr, we fall into this branch.
