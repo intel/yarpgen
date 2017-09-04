@@ -37,6 +37,8 @@ class Expr : public Node {
         Type::TypeID get_type_id () { return value->get_type()->get_type_id (); }
         std::shared_ptr<Data> get_value ();
         uint32_t get_complexity() { return complexity; }
+        static void increase_total_expr_count (uint32_t val) { total_expr_count += val; }
+        static uint32_t get_total_expr_count () { return total_expr_count; }
 
     protected:
         // This function does type conversions required by the language standard (implicit cast,
@@ -51,6 +53,8 @@ class Expr : public Node {
         virtual UB propagate_value () = 0;
         std::shared_ptr<Data> value;
         uint32_t complexity;
+
+        static uint32_t total_expr_count;
 };
 
 // Variable Use expression provides access to variable.
@@ -134,9 +138,7 @@ class ArithExpr : public Expr {
         // Complexity for ArithExpr should be set manually after all transformations,
         // rather than passed to Expr constructor
         ArithExpr(Node::NodeID _node_id, std::shared_ptr<Data> _val) : Expr(_node_id, _val, 0) {}
-        // count_up_total determines whether to increase total_arith_expr_count (used for CSE)
-        static std::shared_ptr<Expr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp,
-                                               bool count_up_total = true);
+        static std::shared_ptr<Expr> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
 
     protected:
         // This function chooses one of ArithSSP::ConstUse patterns and combines old_gen_policy with it
@@ -152,7 +154,6 @@ class ArithExpr : public Expr {
         std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
 
         // Total number of all generated arithmetic expressions
-        static uint32_t total_arith_expr_count;
 };
 
 // Unary expression represents all unary operators

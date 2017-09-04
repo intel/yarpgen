@@ -49,7 +49,10 @@ class DeclStmt : public Stmt {
         void set_is_extern (bool _is_extern) { is_extern = _is_extern; }
         std::shared_ptr<Data> get_data () { return data; }
         void emit (std::ostream& stream, std::string offset = "");
-        static std::shared_ptr<DeclStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
+        // count_up_total determines whether to increase Expr::total_expr_count or not (used for CSE)
+        static std::shared_ptr<DeclStmt> generate (std::shared_ptr<Context> ctx,
+                                                   std::vector<std::shared_ptr<Expr>> inp,
+                                                   bool count_up_total);
 
     private:
         std::shared_ptr<Data> data;
@@ -64,7 +67,11 @@ class ExprStmt : public Stmt {
     public:
         ExprStmt (std::shared_ptr<Expr> _expr) : Stmt(Node::NodeID::EXPR), expr(_expr) {}
         void emit (std::ostream& stream, std::string offset = "");
-        static std::shared_ptr<ExprStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, std::shared_ptr<Expr> out);
+        // For info about count_up_total see note above
+        static std::shared_ptr<ExprStmt> generate (std::shared_ptr<Context> ctx,
+                                                   std::vector<std::shared_ptr<Expr>> inp,
+                                                   std::shared_ptr<Expr> out,
+                                                   bool count_up_total);
 
     private:
         std::shared_ptr<Expr> expr;
@@ -101,10 +108,14 @@ class ScopeStmt : public Stmt {
 // }>
 class IfStmt : public Stmt {
     public:
-        IfStmt (std::shared_ptr<Expr> cond, std::shared_ptr<ScopeStmt> if_branch, std::shared_ptr<ScopeStmt> else_branch);
+        IfStmt (std::shared_ptr<Expr> cond, std::shared_ptr<ScopeStmt> if_branch,
+                std::shared_ptr<ScopeStmt> else_branch);
         static bool count_if_taken (std::shared_ptr<Expr> cond);
         void emit (std::ostream& stream, std::string offset = "");
-        static std::shared_ptr<IfStmt> generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp);
+        // For info about count_up_total see note above
+        static std::shared_ptr<IfStmt> generate (std::shared_ptr<Context> ctx,
+                                                 std::vector<std::shared_ptr<Expr>> inp,
+                                                 bool count_up_total);
 
     private:
         // TODO: do we need it? It should indicate whether the scope is evaluated.
