@@ -123,7 +123,17 @@ class ConstExpr : public Expr {
         void emit (std::ostream& stream, std::string offset = "");
         static std::shared_ptr<ConstExpr> generate (std::shared_ptr<Context> ctx);
 
+        // This function fills internal buffers (unique for each type of context) of used constants and
+        // should be called before each new generation of Stmt.
+        // These buffers are used later during ConstExpr::generate.
+        static void fill_const_buf(std::shared_ptr<Context> ctx);
+
     private:
+        // Buffer for constants, used in arithmetic context
+        static std::vector<BuiltinType::ScalarTypedVal> arith_const_buffer;
+        // Buffer for constants, used in bit-logical context
+        static std::vector<BuiltinType::ScalarTypedVal> bit_log_const_buffer;
+
         template <typename T>
         std::string to_string(T T_val, T min, std::string suffix);
         bool propagate_type () { return true; }

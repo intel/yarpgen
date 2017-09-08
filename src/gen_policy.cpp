@@ -60,6 +60,8 @@ const uint32_t MAX_STRUCT_DEPTH = 5;
 const uint32_t MIN_BIT_FIELD_SIZE = 8;
 const uint32_t MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause different result for LLVM and GCC. See pr70733
 
+const uint32_t CONST_BUFFER_SIZE = 4;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
@@ -226,6 +228,31 @@ void GenPolicy::init_from_config () {
     rand_val_gen->shuffle_prob(allowed_arith_ssp_similar_op);
 
     chosen_arith_ssp_similar_op = ArithSSP::SimilarOp::MAX_SIMILAR_OP;
+
+    const_buffer_size = CONST_BUFFER_SIZE;
+    new_const_prob.emplace_back(Probability<bool>(true, 50));
+    new_const_prob.emplace_back(Probability<bool>(false, 50));
+    rand_val_gen->shuffle_prob(new_const_prob);
+    new_const_type_prob.emplace_back(Probability<bool>(true, 50));
+    new_const_type_prob.emplace_back(Probability<bool>(false, 50));
+    rand_val_gen->shuffle_prob(new_const_type_prob);
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::Zero, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::One, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::Two, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::Three, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::Four, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::Eight, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::Sixteen, 10));
+    special_const_prob.emplace_back(Probability<ConstPattern::SpecialConst>(ConstPattern::MAX_SPECIAL_CONST, 10));
+    rand_val_gen->shuffle_prob(special_const_prob);
+    new_const_kind_prob.emplace_back(Probability<ConstPattern::NewConstKind>(ConstPattern::EndBits, 25));
+    new_const_kind_prob.emplace_back(Probability<ConstPattern::NewConstKind>(ConstPattern::BitBlock, 25));
+    new_const_kind_prob.emplace_back(Probability<ConstPattern::NewConstKind>(ConstPattern::MAX_NEW_CONST_KIND, 50));
+    rand_val_gen->shuffle_prob(new_const_kind_prob);
+    const_transform_prob.emplace_back(Probability<UnaryExpr::Op>(UnaryExpr::Op::Negate, 33));
+    const_transform_prob.emplace_back(Probability<UnaryExpr::Op>(UnaryExpr::Op::BitNot, 33));
+    const_transform_prob.emplace_back(Probability<UnaryExpr::Op>(UnaryExpr::Op::Plus, 33));
+    rand_val_gen->shuffle_prob(const_transform_prob);
 
     Probability<bool> else_exist (true, 50);
     else_prob.push_back(else_exist);

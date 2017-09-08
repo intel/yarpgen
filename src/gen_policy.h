@@ -74,6 +74,13 @@ class RandValGen {
             return vec.at(discrete_dis(rand_gen)).get_id();
         }
 
+        // Randomly chooses one of vec elements
+        template<typename T>
+        T& get_rand_elem (std::vector<T>& vec) {
+            uint64_t idx = get_rand_value(0UL, vec.size() - 1);
+            return vec.at(idx);
+        }
+
         // To improve variety of generated tests, we implement shuffling of
         // input probabilities (they are stored in GenPolicy).
         // TODO: sometimes this action increases test complexity, and tests becomes non-generatable.
@@ -102,6 +109,12 @@ class RandValGen {
         uint64_t seed;
         std::mt19937_64 rand_gen;
 };
+
+template <>
+inline bool RandValGen::get_rand_value<bool> (bool from, bool to) {
+    std::uniform_int_distribution<int> dis((int)from, (int)to);
+    return (bool)dis(rand_gen);
+}
 
 extern std::shared_ptr<RandValGen> rand_val_gen;
 
@@ -166,6 +179,24 @@ struct ArithSSP : public Pattern {
     };
 };
 
+struct ConstPattern : public Pattern {
+    enum SpecialConst {
+        Zero = 0,
+        One = 1,
+        Two = 2,
+        Three = 3,
+        Four = 4,
+        Eight = 8,
+        Sixteen = 16,
+        MAX_SPECIAL_CONST // Maximal value for type
+    };
+
+    enum NewConstKind {
+        EndBits, // Continuous bit block at the beginning or end
+        BitBlock, // Continuous bit block in the middle
+        MAX_NEW_CONST_KIND // New non-special constant
+    };
+};
 ///////////////////////////////////////////////////////////////////////////////
 // GenPolicy stores actual distribution of all available parameters, used during
 // random decision process (distributions, applied patterns and etc).
@@ -319,6 +350,14 @@ class GenPolicy {
         ArithSSP::SimilarOp get_chosen_arith_ssp_similar_op () { return chosen_arith_ssp_similar_op; }
         GenPolicy apply_arith_ssp_similar_op (ArithSSP::SimilarOp pattern_id);
 
+        // Constant generation
+        uint32_t get_const_buffer_size () { return const_buffer_size; }
+        std::vector<Probability<bool>>& get_new_const_prob () { return new_const_prob; }
+        std::vector<Probability<bool>>& get_new_const_type_prob () { return new_const_type_prob; }
+        std::vector<Probability<ConstPattern::SpecialConst>>& get_special_const_prob () { return special_const_prob; }
+        std::vector<Probability<ConstPattern::NewConstKind>>& get_new_const_kind_prob () { return new_const_kind_prob; }
+        std::vector<Probability<UnaryExpr::Op>>& get_const_transform_prob () { return const_transform_prob; }
+
         // Statement section - defines their number (per scope and total), distribution and properties
         std::vector<Probability<Node::NodeID>>& get_stmt_gen_prob () { return stmt_gen_prob; }
         void set_min_scope_stmt_count (uint32_t _min_scope_stmt_count) { min_scope_stmt_count = _min_scope_stmt_count; }
@@ -403,6 +442,14 @@ class GenPolicy {
         ArithSSP::ConstUse chosen_arith_ssp_const_use;
         std::vector<Probability<ArithSSP::SimilarOp>> allowed_arith_ssp_similar_op;
         ArithSSP::SimilarOp chosen_arith_ssp_similar_op;
+
+        // Constant generation
+        uint32_t const_buffer_size;
+        std::vector<Probability<bool>> new_const_prob;
+        std::vector<Probability<bool>> new_const_type_prob;
+        std::vector<Probability<ConstPattern::SpecialConst>> special_const_prob;
+        std::vector<Probability<ConstPattern::NewConstKind>> new_const_kind_prob;
+        std::vector<Probability<UnaryExpr::Op>> const_transform_prob;
 
         // Statements
         uint32_t min_scope_stmt_count;
