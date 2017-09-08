@@ -16,6 +16,7 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include <cassert>
 #include "expr.h"
 #include "ir_node.h"
 #include "gen_policy.h"
@@ -162,10 +163,155 @@ void TypeCastExpr::emit (std::ostream& stream, std::string offset) {
     stream << ")";
 }
 
+std::vector<BuiltinType::ScalarTypedVal> ConstExpr::arith_const_buffer;
+std::vector<BuiltinType::ScalarTypedVal> ConstExpr::bit_log_const_buffer;
+
+//TODO: maybe variadic template function would be better?
+template <typename T>
+static bool can_reroll (std::vector<Probability<T>>& prob_vec, std::initializer_list<T> bad_variants) {
+    uint64_t sum_of_all = 0;
+    uint64_t sum_of_bad = 0;
+    for (auto &i : prob_vec) {
+        sum_of_all += i.get_prob();
+        for (auto &j : bad_variants)
+            if (i.get_id() == j)
+                sum_of_bad += i.get_prob();
+    }
+    return sum_of_all != sum_of_bad;
+}
+
 std::shared_ptr<ConstExpr> ConstExpr::generate (std::shared_ptr<Context> ctx) {
     GenPolicy::add_to_complexity(Node::NodeID::CONST);
-    std::shared_ptr<IntegerType> int_type = IntegerType::generate (ctx);
-    return std::make_shared<ConstExpr>(BuiltinType::ScalarTypedVal::generate(ctx, int_type->get_int_type_id()));
+    auto p = ctx->get_gen_policy();
+
+    // Randomly choose if we want to create new constant or somehow reuse the old one
+    bool gen_new_const = rand_val_gen->get_rand_id(p->get_new_const_prob());
+
+    // Determine type of context
+    auto chosen_arith_ssp_similar_op = p->get_chosen_arith_ssp_similar_op();
+    bool bit_log_ctx = chosen_arith_ssp_similar_op == ArithSSP::SimilarOp::BITWISE ||
+                       chosen_arith_ssp_similar_op == ArithSSP::SimilarOp::LOGIC   ||
+                       chosen_arith_ssp_similar_op == ArithSSP::SimilarOp::BIT_SH  ||
+                       chosen_arith_ssp_similar_op == ArithSSP::SimilarOp::MAX_SIMILAR_OP;
+
+    // Determine actual buffer of used constants based on type of context
+    std::vector<BuiltinType::ScalarTypedVal>& actual_const_buffer = arith_const_buffer;
+    if (bit_log_ctx)
+        actual_const_buffer = bit_log_const_buffer;
+
+    // Utility function for various transformation of constants
+    auto perform_unary_op = [] (UnaryExpr::Op op, BuiltinType::ScalarTypedVal val) -> BuiltinType::ScalarTypedVal {
+        std::shared_ptr<ConstExpr> tmp_const = std::make_shared<ConstExpr>(val);
+        UnaryExpr unary_expr = UnaryExpr(op, tmp_const);
+        return std::static_pointer_cast<ScalarVariable>(unary_expr.get_value())->get_cur_value();
+    };
+
+    // Main logical part
+    BuiltinType::ScalarTypedVal new_val (Type::IntegerTypeID::MAX_INT_ID);
+    if (gen_new_const || actual_const_buffer.empty()) {
+        // Randomly pick type of new constant
+        bool gen_new_type = rand_val_gen->get_rand_id(p->get_new_const_type_prob());
+        IntegerType::IntegerTypeID int_type_id;
+        if (gen_new_type || actual_const_buffer.empty())
+            int_type_id = IntegerType::generate(ctx)->get_int_type_id();
+        else
+            int_type_id = rand_val_gen->get_rand_elem(actual_const_buffer).get_int_type_id();
+        std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
+        new_val = BuiltinType::ScalarTypedVal(int_type_id);
+
+        // Randomly choose what kind of special constant we want
+        ConstPattern::SpecialConst spec_const_id = rand_val_gen->get_rand_id(p->get_special_const_prob());
+        if (spec_const_id < ConstPattern::SpecialConst::MAX_SPECIAL_CONST) {
+            // Magic numbers (0, 1, 2, ...)
+            new_val.set_abs_val(spec_const_id);
+            bool negative_sign = rand_val_gen->get_rand_value(false, true);
+            if (negative_sign && tmp_int_type->get_is_signed())
+                new_val = perform_unary_op(UnaryExpr::Negate, new_val);
+        }
+        else if (spec_const_id == ConstPattern::SpecialConst::MAX_SPECIAL_CONST) {
+            bool use_max = rand_val_gen->get_rand_value(false, true);
+            new_val = use_max ? tmp_int_type->get_max() : tmp_int_type->get_min();
+        }
+        else
+            ERROR("Bad id for ConstPattern::SpecialConst");
+    }
+    else {
+        BuiltinType::ScalarTypedVal& buf_elem = rand_val_gen->get_rand_elem(actual_const_buffer);
+        new_val = buf_elem;
+
+        // Randomly pick a kind of an action on the chosen constant
+        UnaryExpr::Op const_transform_id = rand_val_gen->get_rand_id(p->get_const_transform_prob());
+        if (!bit_log_ctx && const_transform_id == UnaryExpr::Op::BitNot) {
+            bool can_reroll_const_transform = can_reroll(p->get_const_transform_prob(),
+                                                         {UnaryExpr::Op::BitNot});
+            if (can_reroll_const_transform)
+                while (const_transform_id == UnaryExpr::Op::BitNot)
+                    const_transform_id = rand_val_gen->get_rand_id(p->get_const_transform_prob());
+            else
+                const_transform_id = UnaryExpr::Op::Plus;
+        }
+
+        if (const_transform_id != UnaryExpr::Op::Plus   &&
+            const_transform_id != UnaryExpr::Op::Negate &&
+            const_transform_id != UnaryExpr::Op::BitNot)
+            ERROR("Bad id for UnaryExpr::Op");
+
+        new_val = perform_unary_op(const_transform_id, new_val);
+    }
+
+    return std::make_shared<ConstExpr>(new_val);
+}
+
+void ConstExpr::fill_const_buf (std::shared_ptr<Context> ctx) {
+    // Wipe out old information
+    arith_const_buffer.clear();
+    bit_log_const_buffer.clear();
+
+    auto p = ctx->get_gen_policy();
+
+    // Fill buffer for constants, used in arithmetic context
+    for (uint64_t i = 0; i < p->get_const_buffer_size(); i++) {
+        IntegerType::IntegerTypeID int_type_id = IntegerType::generate(ctx)->get_int_type_id();
+        arith_const_buffer.push_back(BuiltinType::ScalarTypedVal::generate(ctx, int_type_id));
+    }
+
+    // Utility function for EndBits and BitBlock
+    auto fill_bits = [](uint32_t start, uint32_t end) -> uint64_t {
+        assert(end >= start);
+        return (end - start) == 63 ? UINT64_MAX : ((1ULL << (end - start + 1)) - 1ULL) << start;
+    };
+
+    // Fill buffer for constants, used in bit-logical context
+    for (uint64_t i = 0; i < p->get_const_buffer_size(); i++) {
+        // Tmp variables, required for loop iteration
+        IntegerType::IntegerTypeID int_type_id = IntegerType::generate(ctx)->get_int_type_id();
+        std::shared_ptr<IntegerType> tmp_int_type = IntegerType::init(int_type_id);
+        BuiltinType::ScalarTypedVal new_val(int_type_id);
+
+        // Randomly pick kind of new constant
+        ConstPattern::NewConstKind new_const_kind = rand_val_gen->get_rand_id(p->get_new_const_kind_prob());
+        if (new_const_kind == ConstPattern::NewConstKind::EndBits) {
+            bool use_lsb_end = rand_val_gen->get_rand_value(false, true);
+            uint32_t fixed_block_point = rand_val_gen->get_rand_value(0U, tmp_int_type->get_bit_size() - 1);
+            if (use_lsb_end)
+                new_val.set_abs_val(fill_bits(0UL, fixed_block_point));
+            else
+                new_val.set_abs_val(fill_bits(fixed_block_point, tmp_int_type->get_bit_size() - 1));
+        }
+        else if (new_const_kind == ConstPattern::NewConstKind::BitBlock) {
+            uint32_t block_start = rand_val_gen->get_rand_value(0U, tmp_int_type->get_bit_size() - 1);
+            uint32_t block_end = rand_val_gen->get_rand_value(block_start, tmp_int_type->get_bit_size() - 1);
+            new_val.set_abs_val(fill_bits(block_start, block_end));
+        }
+        else if (new_const_kind == ConstPattern::NewConstKind::MAX_NEW_CONST_KIND) {
+            // Generate new one
+            new_val = BuiltinType::ScalarTypedVal::generate(ctx, int_type_id);
+        }
+        else
+            ERROR("Bad id for ConstPattern::NewConstKind");
+
+        bit_log_const_buffer.push_back(new_val);
+    }
 }
 
 template <typename T>
@@ -290,6 +436,7 @@ GenPolicy ArithExpr::choose_and_apply_ssp (GenPolicy gen_policy) {
 }
 
 std::shared_ptr<Expr> ArithExpr::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp) {
+    ConstExpr::fill_const_buf(ctx);
     return gen_level(ctx, inp, 0);
 }
 
