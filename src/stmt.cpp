@@ -108,7 +108,8 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
 
     //TODO: add to gen_policy stmt number
     auto p = ctx->get_gen_policy();
-    uint32_t scope_stmt_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_scope_stmt_count(), p->get_max_scope_stmt_count());
+    uint32_t scope_stmt_count = rand_val_gen->get_rand_value(p->get_min_scope_stmt_count(),
+                                                             p->get_max_scope_stmt_count());
     for (uint32_t i = 0; i < scope_stmt_count; ++i) {
         if (total_stmt_count >= p->get_max_total_stmt_count())
             //TODO: Can we somehow eliminate compiler timeout with the help of this?
@@ -130,20 +131,16 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         if (gen_id == Node::NodeID::EXPR) {
             //TODO: add to gen_policy
             // Are we going to use mixed variable or create new outpu variable?
-            bool use_mix = rand_val_gen->get_rand_value<uint32_t>(0, 1);
+            bool use_mix = rand_val_gen->get_rand_value(false, true);
             GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(p->get_out_data_type_prob());
             std::shared_ptr<Expr> assign_lhs = nullptr;
             if (use_mix) {
                 // Use mixed variable or we don't have any suitable members
-                if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0) {
-                    uint32_t mix_num = rand_val_gen->get_rand_value<uint32_t>(0, ctx->get_extern_mix_sym_table()->get_variables().size() - 1);
-                    assign_lhs = std::make_shared<VarUseExpr>(ctx->get_extern_mix_sym_table()->get_variables().at(mix_num));
-                }
+                if (out_data_type == GenPolicy::OutDataTypeID::VAR || ctx->get_extern_mix_sym_table()->get_avail_members().size() == 0)
+                    assign_lhs = std::make_shared<VarUseExpr>(rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->get_variables()));
                 // Use member of mixed struct
-                else {
-                    uint32_t mix_num = rand_val_gen->get_rand_value<uint32_t>(0, ctx->get_extern_mix_sym_table()->get_avail_members().size() - 1);
-                    assign_lhs = ctx->get_extern_mix_sym_table()->get_avail_members().at(mix_num);
-                }
+                else
+                    assign_lhs = rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->get_avail_members());
             }
             else {
                 // Create new output variable or we don't have any suitable members
@@ -154,7 +151,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                 }
                 // Use member of output struct
                 else {
-                    uint32_t out_num = rand_val_gen->get_rand_value<uint32_t>(0, ctx->get_extern_out_sym_table()->get_avail_members().size() - 1);
+                    size_t out_num = rand_val_gen->get_rand_value(0UL, ctx->get_extern_out_sym_table()->get_avail_members().size() - 1);
                     assign_lhs = ctx->get_extern_out_sym_table()->get_avail_members().at(out_num);
                     ctx->get_extern_out_sym_table()->del_avail_member(out_num);
                 }

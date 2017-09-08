@@ -61,18 +61,18 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     const_gen_policy.set_allow_const(true);
     const_ctx->set_gen_policy(const_gen_policy);
     // Generate random number of random input variables
-    uint32_t inp_var_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_inp_var_count(), p->get_max_inp_var_count());
+    uint32_t inp_var_count = rand_val_gen->get_rand_value(p->get_min_inp_var_count(), p->get_max_inp_var_count());
     for (uint32_t i = 0; i < inp_var_count; ++i) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
     //TODO: add to gen_policy
     // Same for mixed variables
-    uint32_t mix_var_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_mix_var_count(), p->get_max_mix_var_count());
+    uint32_t mix_var_count = rand_val_gen->get_rand_value(p->get_min_mix_var_count(), p->get_max_mix_var_count());
     for (uint32_t i = 0; i < mix_var_count; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
-    uint32_t struct_type_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_struct_type_count(), p->get_max_struct_type_count());
+    uint32_t struct_type_count = rand_val_gen->get_rand_value(p->get_min_struct_type_count(), p->get_max_struct_type_count());
     if (struct_type_count == 0)
         return;
 
@@ -86,23 +86,22 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     }
 
     // Create random number of input structures
-    uint32_t inp_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
-    for (uint32_t i = 0; i < inp_struct_count; ++i) {
-        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
-        ctx->get_extern_inp_sym_table()->add_struct(Struct::generate(const_ctx, ctx->get_extern_inp_sym_table()->get_struct_types().at(struct_type_indx)));
-    }
+    uint32_t inp_struct_count = rand_val_gen->get_rand_value(p->get_min_inp_struct_count(), p->get_max_inp_struct_count());
+    for (uint32_t i = 0; i < inp_struct_count; ++i)
+        ctx->get_extern_inp_sym_table()->add_struct(
+                Struct::generate(const_ctx,
+                                 rand_val_gen->get_rand_elem(ctx->get_extern_inp_sym_table()->get_struct_types())));
     // Same for mixed structures
-    uint32_t mix_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
-    for (uint32_t i = 0; i < mix_struct_count; ++i) {
-        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
-        ctx->get_extern_mix_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_mix_sym_table()->get_struct_types().at(struct_type_indx)));
-    }
+    uint32_t mix_struct_count = rand_val_gen->get_rand_value(p->get_min_mix_struct_count(), p->get_max_mix_struct_count());
+    for (uint32_t i = 0; i < mix_struct_count; ++i)
+        ctx->get_extern_mix_sym_table()->add_struct(
+                Struct::generate(ctx,
+                                 rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->get_struct_types())));
     // Same for output structures
-    uint32_t out_struct_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_out_struct_count(), p->get_max_out_struct_count());
-    for (uint32_t i = 0; i < out_struct_count; ++i) {
-        uint32_t struct_type_indx = rand_val_gen->get_rand_value<uint32_t>(0, struct_type_count - 1);
-        ctx->get_extern_out_sym_table()->add_struct(Struct::generate(ctx, ctx->get_extern_out_sym_table()->get_struct_types().at(struct_type_indx)));
-    }
+    uint32_t out_struct_count = rand_val_gen->get_rand_value(p->get_min_out_struct_count(), p->get_max_out_struct_count());
+    for (uint32_t i = 0; i < out_struct_count; ++i)
+        ctx->get_extern_out_sym_table()->add_struct(
+                Struct::generate(ctx, rand_val_gen->get_rand_elem(ctx->get_extern_out_sym_table()->get_struct_types())));
 }
 
 static std::string get_file_ext () {
