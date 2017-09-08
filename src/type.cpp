@@ -124,49 +124,39 @@ std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx) 
     return generate(ctx, empty_vec);
 }
 
-std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<StructType>> nested_struct_types) {
+std::shared_ptr<StructType> StructType::generate (std::shared_ptr<Context> ctx,
+                                                  std::vector<std::shared_ptr<StructType>> nested_struct_types) {
     auto p = ctx->get_gen_policy();
-    Type::CV_Qual primary_cv_qual = p->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
-                                                                                                p->get_allowed_cv_qual().size() - 1));
+    Type::CV_Qual primary_cv_qual = rand_val_gen->get_rand_elem(p->get_allowed_cv_qual());
 
     bool primary_static_spec = false;
     //TODO: add distr to gen_policy
     if (p->get_allow_static_var())
-        primary_static_spec = rand_val_gen->get_rand_value<int>(0, 1);
-    else
-        primary_static_spec = false;
+        primary_static_spec = rand_val_gen->get_rand_value(false, true);
 
-    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(p->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id = rand_val_gen->get_rand_id(p->get_allowed_int_types());
     //TODO: what about align?
     std::shared_ptr<Type> primary_type = IntegerType::init(int_type_id, primary_cv_qual, primary_static_spec, 0);
 
     NameHandler& name_handler = NameHandler::get_instance();
     std::shared_ptr<StructType> struct_type = std::make_shared<StructType>(name_handler.get_struct_type_name());
-    int struct_member_count = rand_val_gen->get_rand_value<int>(p->get_min_struct_member_count(), p->get_max_struct_member_count());
+    int struct_member_count = rand_val_gen->get_rand_value(p->get_min_struct_member_count(),
+                                                           p->get_max_struct_member_count());
     int member_count = 0;
     for (int i = 0; i < struct_member_count; ++i) {
-        if (p->get_allow_mix_cv_qual_in_struct()) {
-            primary_cv_qual = p->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0, p->get_allowed_cv_qual().size() - 1));;
-        }
+        if (p->get_allow_mix_cv_qual_in_struct())
+            primary_cv_qual = rand_val_gen->get_rand_elem(p->get_allowed_cv_qual());
 
-        if (p->get_allow_mix_static_in_struct()) {
-            primary_static_spec = p->get_allow_static_members() ? rand_val_gen->get_rand_value<int>(0, 1) : false;
-        }
+        if (p->get_allow_mix_static_in_struct())
+            primary_static_spec = p->get_allow_static_members() ? rand_val_gen->get_rand_value(false, true) : false;
 
         if (p->get_allow_mix_types_in_struct()) {
             Data::VarClassID member_class = rand_val_gen->get_rand_id(p->get_member_class_prob());
             bool add_substruct = false;
-            int substruct_type_idx = 0;
             std::shared_ptr<StructType> substruct_type = nullptr;
             if (member_class == Data::VarClassID::STRUCT && p->get_max_struct_depth() > 0 && nested_struct_types.size() > 0) {
-                substruct_type_idx = rand_val_gen->get_rand_value<int>(0, nested_struct_types.size() - 1);
-                substruct_type = nested_struct_types.at(substruct_type_idx);
-                if (substruct_type->get_nest_depth() + 1 == p->get_max_struct_depth()) {
-                    add_substruct = false;
-                }
-                else {
-                    add_substruct = true;
-                }
+                substruct_type = rand_val_gen->get_rand_elem(nested_struct_types);
+                add_substruct = substruct_type->get_nest_depth() + 1 != p->get_max_struct_depth();
             }
             if (add_substruct) {
                 primary_type = std::make_shared<StructType>(*substruct_type);
@@ -1455,12 +1445,6 @@ static void gen_rand_typed_val (T& ret, T& min, T& max) {
     ret = (T) rand_val_gen->get_rand_value<T>(min, max);
 }
 
-template <>
-void gen_rand_typed_val<bool> (bool& ret, bool& min, bool& max) {
-    ret = (bool) rand_val_gen->get_rand_value<int>(min, max);
-}
-
-
 BuiltinType::ScalarTypedVal BuiltinType::ScalarTypedVal::generate (std::shared_ptr<Context> ctx, BuiltinType::IntegerTypeID _int_type_id) {
     std::shared_ptr<IntegerType> tmp_type = IntegerType::init (_int_type_id);
     BuiltinType::ScalarTypedVal min = tmp_type->get_min();
@@ -1619,17 +1603,14 @@ std::shared_ptr<IntegerType> IntegerType::init (BuiltinType::IntegerTypeID _type
 }
 
 std::shared_ptr<IntegerType> IntegerType::generate (std::shared_ptr<Context> ctx) {
-    Type::CV_Qual cv_qual = ctx->get_gen_policy()->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
-                                                                                                                 ctx->get_gen_policy()->get_allowed_cv_qual().size() - 1));
+    Type::CV_Qual cv_qual = rand_val_gen->get_rand_elem(ctx->get_gen_policy()->get_allowed_cv_qual());
 
     bool specifier = false;
     if (ctx->get_gen_policy()->get_allow_static_var())
-        specifier = rand_val_gen->get_rand_value<int>(0, 1);
-    else
-        specifier = false;
+        specifier = rand_val_gen->get_rand_value(false, true);
     //TODO: what about align?
 
-    IntegerType::IntegerTypeID int_type_id = (IntegerType::IntegerTypeID) rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
+    IntegerType::IntegerTypeID int_type_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
     return IntegerType::init(int_type_id, cv_qual, specifier, 0);
 }
 
@@ -1871,8 +1852,8 @@ void TypeULLINT::dbg_dump () {
 }
 
 std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool is_unnamed) {
-    Type::CV_Qual cv_qual = ctx->get_gen_policy()->get_allowed_cv_qual().at(rand_val_gen->get_rand_value<int>(0,
-                                                                                                                 ctx->get_gen_policy()->get_allowed_cv_qual().size() - 1));
+    Type::CV_Qual cv_qual = rand_val_gen->get_rand_elem(ctx->get_gen_policy()->get_allowed_cv_qual());
+
     IntegerType::IntegerTypeID int_type_id = MAX_INT_ID;
     if (options->is_cxx())
         int_type_id = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_allowed_int_types());
@@ -1902,7 +1883,7 @@ std::shared_ptr<BitField> BitField::generate (std::shared_ptr<Context> ctx, bool
     if(options->is_c())
         max_bit_size = std::min(tmp_int_type->get_bit_size(), int_type->get_bit_size());
 
-    uint32_t bit_size = rand_val_gen->get_rand_value<uint32_t>(min_bit_size, max_bit_size);
+    uint32_t bit_size = rand_val_gen->get_rand_value(min_bit_size, max_bit_size);
     return std::make_shared<BitField>(int_type_id, bit_size, cv_qual);
 }
 

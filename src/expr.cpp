@@ -469,8 +469,7 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
         }
         // Branch for input VarUseExpr / MemberExpr
         else if (data_type == GenPolicy::ArithDataID::Inp) {
-            int inp_num = rand_val_gen->get_rand_value<int>(0, inp.size() - 1);
-            ret = inp.at(inp_num);
+            ret = rand_val_gen->get_rand_elem(inp);
             if (ret->get_id() == Node::NodeID::VAR_USE)
                 GenPolicy::add_to_complexity(Node::NodeID::VAR_USE);
             else if (ret->get_id() == Node::NodeID::MEMBER)
@@ -485,29 +484,22 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     }
     // All of the following branches implement direct or indirect recursion, calling ArithExpr::gen_level
     // Unary expr
-    else if (node_type == GenPolicy::ArithLeafID::Unary) {
+    else if (node_type == GenPolicy::ArithLeafID::Unary)
         ret = UnaryExpr::generate(new_ctx, inp, par_depth + 1);
-    }
     // Binary expr
-    else if (node_type == GenPolicy::ArithLeafID::Binary) {
+    else if (node_type == GenPolicy::ArithLeafID::Binary)
         ret = BinaryExpr::generate(new_ctx, inp, par_depth + 1);
-    }
     // Conditional (ternary) expr
-    else if (node_type == GenPolicy::ArithLeafID::Conditional) {
+    else if (node_type == GenPolicy::ArithLeafID::Conditional)
         ret = ConditionalExpr::generate(new_ctx, inp, par_depth + 1);
-    }
     // TypeCast expr
-    else if (node_type == GenPolicy::ArithLeafID::TypeCast) {
+    else if (node_type == GenPolicy::ArithLeafID::TypeCast)
         ret = TypeCastExpr::generate(new_ctx, ArithExpr::gen_level(new_ctx, inp, par_depth + 1));
-    }
     // Use existing CSE
-    else if (node_type == GenPolicy::ArithLeafID::CSE) {
-        int cse_num = rand_val_gen->get_rand_value<int>(0, p->get_cse().size() - 1);
-        ret = p->get_cse().at(cse_num);
-    }
-    else {
+    else if (node_type == GenPolicy::ArithLeafID::CSE)
+        ret = rand_val_gen->get_rand_elem(p->get_cse());
+    else
         ERROR("inappropriate node type (ArithExpr)");
-    }
 //    std::cout << ret->emit() << std::endl;
     return ret;
 }
@@ -757,7 +749,7 @@ void BinaryExpr::rebuild (UB ub) {
                 if ((op == Shl) && (lhs_int_type->get_is_signed()) && (ub == UB::ShiftRhsLarge))
                     max_sht_val -= msb((uint64_t)std::static_pointer_cast<ScalarVariable>(lhs->get_value())->get_cur_value().get_abs_val());
                 // Second, we randomly choose value between 0 and maximum rhs value.
-                uint64_t const_val = rand_val_gen->get_rand_value<int>(0, max_sht_val);
+                uint64_t const_val = rand_val_gen->get_rand_value(0UL, max_sht_val);
                 // Third, we combine chosen value with existing rhs
                 uint64_t rhs_abs_val = std::static_pointer_cast<ScalarVariable>(rhs->get_value())->get_cur_value().get_abs_val();
                 std::shared_ptr<IntegerType> rhs_int_type = std::static_pointer_cast<IntegerType>(rhs->get_value()->get_type());
