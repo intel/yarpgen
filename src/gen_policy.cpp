@@ -23,6 +23,8 @@ limitations under the License.
 
 using namespace yarpgen;
 
+const uint32_t TEST_FUNC_COUNT = 5;
+
 const uint32_t MAX_ALLOWED_INT_TYPES = 3;
 
 const uint32_t MAX_ARITH_DEPTH = 5;
@@ -62,10 +64,6 @@ const uint32_t MAX_BIT_FIELD_SIZE = 2; //TODO: unused, because it cause differen
 
 std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
 
-uint32_t NameHandler::struct_type_count = 0;
-uint32_t NameHandler::scalar_var_count = 0;
-uint32_t NameHandler::struct_var_count = 0;
-
 RandValGen::RandValGen (uint64_t _seed) {
     if (_seed != 0) {
         seed = _seed;
@@ -78,6 +76,8 @@ RandValGen::RandValGen (uint64_t _seed) {
     rand_gen = std::mt19937_64(seed);
 }
 
+const std::string NameHandler::common_test_func_prefix = "tf_";
+
 ///////////////////////////////////////////////////////////////////////////////
 
 bool GenPolicy::default_was_loaded = false;
@@ -89,6 +89,8 @@ GenPolicy::GenPolicy () {
 }
 
 void GenPolicy::init_from_config () {
+    test_func_count = TEST_FUNC_COUNT;
+
     num_of_allowed_int_types = MAX_ALLOWED_INT_TYPES;
     rand_init_allowed_int_types();
 

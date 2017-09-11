@@ -24,20 +24,32 @@ using namespace yarpgen;
 
 Program::Program (std::string _out_folder) {
     out_folder = _out_folder;
-    extern_inp_sym_table = std::make_shared<SymbolTable> ();
-    extern_mix_sym_table = std::make_shared<SymbolTable> ();
-    extern_out_sym_table = std::make_shared<SymbolTable> ();
+    uint32_t test_func_count = gen_policy.get_test_func_count();
+    extern_inp_sym_table.reserve(test_func_count);
+    extern_mix_sym_table.reserve(test_func_count);
+    extern_out_sym_table.reserve(test_func_count);
+    functions.reserve(gen_policy.get_test_func_count());
 }
 
 void Program::generate () {
-    Context ctx (gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
-    ctx.set_extern_inp_sym_table (extern_inp_sym_table);
-    ctx.set_extern_mix_sym_table (extern_mix_sym_table);
-    ctx.set_extern_out_sym_table (extern_out_sym_table);
-    std::shared_ptr<Context> ctx_ptr = std::make_shared<Context>(ctx);
-    form_extern_sym_table(ctx_ptr);
+    NameHandler& name_handler = NameHandler::get_instance();
+    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+        name_handler.set_test_func_prefix(i);
 
-    function = ScopeStmt::generate(ctx_ptr);
+        extern_inp_sym_table.push_back(std::make_shared<SymbolTable>());
+        extern_mix_sym_table.push_back(std::make_shared<SymbolTable>());
+        extern_out_sym_table.push_back(std::make_shared<SymbolTable>());
+
+        Context ctx(gen_policy, nullptr, Node::NodeID::MAX_STMT_ID, true);
+        ctx.set_extern_inp_sym_table(extern_inp_sym_table.back());
+        ctx.set_extern_mix_sym_table(extern_mix_sym_table.back());
+        ctx.set_extern_out_sym_table(extern_out_sym_table.back());
+        std::shared_ptr<Context> ctx_ptr = std::make_shared<Context>(ctx);
+        form_extern_sym_table(ctx_ptr);
+        functions.push_back(ScopeStmt::generate(ctx_ptr));
+
+        name_handler.zero_out_counters();
+    }
 }
 
 // This function initially fills extern symbol table with inp and mix variables. It also creates type structs definitions.
@@ -114,21 +126,23 @@ void Program::emit_decl () {
     out_file << "#include <valarray>\n\n";
     */
 
-    extern_inp_sym_table->emit_variable_extern_decl(out_file);
-    out_file << "\n\n";
-    extern_mix_sym_table->emit_variable_extern_decl(out_file);
-    out_file << "\n\n";
-    extern_out_sym_table->emit_variable_extern_decl(out_file);
-    out_file << "\n\n";
-    //TODO: what if we extand struct types in mix_sym_tabl
-    extern_inp_sym_table->emit_struct_type_def(out_file);
-    out_file << "\n\n";
-    extern_inp_sym_table->emit_struct_extern_decl(out_file);
-    out_file << "\n\n";
-    extern_mix_sym_table->emit_struct_extern_decl(out_file);
-    out_file << "\n\n";
-    extern_out_sym_table->emit_struct_extern_decl(out_file);
-    out_file << "\n\n";
+    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+        extern_inp_sym_table.at(i)->emit_variable_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_variable_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_variable_extern_decl(out_file);
+        out_file << "\n\n";
+        //TODO: what if we extend struct types in mix_sym_tabl
+        extern_inp_sym_table.at(i)->emit_struct_type_def(out_file);
+        out_file << "\n\n";
+        extern_inp_sym_table.at(i)->emit_struct_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_struct_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_struct_extern_decl(out_file);
+        out_file << "\n\n";
+    }
 
     out_file.close();
 }
@@ -137,8 +151,12 @@ void Program::emit_func () {
     std::ofstream out_file;
     out_file.open(out_folder + "/" + "func." + get_file_ext());
     out_file << "#include \"init.h\"\n\n";
-    out_file << "void foo ()\n";
-    function->emit(out_file);
+
+    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+        out_file << "void " << NameHandler::common_test_func_prefix << i << "_foo ()\n";
+        functions.at(i)->emit(out_file);
+        out_file << "\n";
+    }
     out_file.close();
 }
 
@@ -151,69 +169,77 @@ void Program::emit_main () {
     out_file << "#include <stdio.h>\n";
     out_file << "#include \"init.h\"\n\n";
 
-    // Definitions and initialization
-    //////////////////////////////////////////////////////////
-    extern_inp_sym_table->emit_variable_def(out_file);
-    out_file << "\n\n";
-    extern_mix_sym_table->emit_variable_def(out_file);
-    out_file << "\n\n";
-    extern_out_sym_table->emit_variable_def(out_file);
-    out_file << "\n\n";
-    extern_inp_sym_table->emit_struct_def(out_file);
-    out_file << "\n\n";
-    extern_mix_sym_table->emit_struct_def(out_file);
-    out_file << "\n\n";
-    extern_out_sym_table->emit_struct_def(out_file);
-    out_file << "\n\n";
-
-    //TODO: what if we extend struct types in mix_sym_table and out_sym_table
-    extern_inp_sym_table->emit_struct_type_static_memb_def(out_file);
-    out_file << "\n\n";
-
-    out_file << "void init () {\n";
-    extern_inp_sym_table->emit_struct_init (out_file, "    ");
-    extern_mix_sym_table->emit_struct_init (out_file, "    ");
-    extern_out_sym_table->emit_struct_init (out_file, "    ");
-    out_file << "}\n\n";
-
     // Hash
     //////////////////////////////////////////////////////////
+    std::shared_ptr<ScalarVariable> seed = std::make_shared<ScalarVariable>("seed", IntegerType::init(
+                                                                            Type::IntegerTypeID::ULLINT));
+    std::shared_ptr<VarUseExpr> seed_use = std::make_shared<VarUseExpr>(seed);
+
+    BuiltinType::ScalarTypedVal zero_init(IntegerType::IntegerTypeID::ULLINT);
+    zero_init.val.ullint_val = 0;
+    std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr>(zero_init);
+
+    std::shared_ptr<DeclStmt> seed_decl = std::make_shared<DeclStmt>(seed, const_init);
+    seed_decl->emit(out_file);
+    out_file << "\n\n";
+
     out_file << "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
     out_file << "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
     out_file << "}\n\n";
 
-    // Check
-    //////////////////////////////////////////////////////////
-    out_file << "unsigned long long int checksum () {\n";
+    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+        // Definitions and initialization
+        //////////////////////////////////////////////////////////
+        extern_inp_sym_table.at(i)->emit_variable_def(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_variable_def(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_variable_def(out_file);
+        out_file << "\n\n";
+        extern_inp_sym_table.at(i)->emit_struct_def(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_struct_def(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_struct_def(out_file);
+        out_file << "\n\n";
 
-    std::shared_ptr<ScalarVariable> seed = std::make_shared<ScalarVariable>("seed", IntegerType::init(Type::IntegerTypeID::ULLINT));
-    std::shared_ptr<VarUseExpr> seed_use = std::make_shared<VarUseExpr>(seed);
+        //TODO: what if we extend struct types in mix_sym_table and out_sym_table
+        extern_inp_sym_table.at(i)->emit_struct_type_static_memb_def(out_file);
+        out_file << "\n\n";
 
-    BuiltinType::ScalarTypedVal zero_init (IntegerType::IntegerTypeID::ULLINT);
-    zero_init.val.ullint_val = 0;
-    std::shared_ptr<ConstExpr> const_init = std::make_shared<ConstExpr> (zero_init);
+        out_file << "void " << NameHandler::common_test_func_prefix << i << "_init () {\n";
+        extern_inp_sym_table.at(i)->emit_struct_init(out_file, "    ");
+        extern_mix_sym_table.at(i)->emit_struct_init(out_file, "    ");
+        extern_out_sym_table.at(i)->emit_struct_init(out_file, "    ");
+        out_file << "}\n\n";
 
-    std::shared_ptr<DeclStmt> seed_decl = std::make_shared<DeclStmt>(seed, const_init);
+        // Check
+        //////////////////////////////////////////////////////////
+        out_file << "void " << NameHandler::common_test_func_prefix << i << "_checksum () {\n";
 
-    seed_decl->emit(out_file, "    ");
-    out_file << "\n";
+        extern_mix_sym_table.at(i)->emit_variable_check(out_file, "    ");
+        extern_out_sym_table.at(i)->emit_variable_check(out_file, "    ");
 
-    extern_mix_sym_table->emit_variable_check (out_file, "    ");
-    extern_out_sym_table->emit_variable_check (out_file, "    ");
+        extern_mix_sym_table.at(i)->emit_struct_check(out_file, "    ");
+        extern_out_sym_table.at(i)->emit_struct_check(out_file, "    ");
 
-    extern_mix_sym_table->emit_struct_check (out_file, "    ");
-    extern_out_sym_table->emit_struct_check (out_file, "    ");
+        out_file << "}\n\n";
 
-    out_file << "    return seed;\n";
-    out_file << "}\n\n";
+        out_file << "extern void " << NameHandler::common_test_func_prefix << i << "_foo ();\n\n";
+    }
 
     // Main
     //////////////////////////////////////////////////////////
-    out_file << "extern void foo ();\n\n";
+    out_file << "\n";
     out_file << "int main () {\n";
-    out_file << "    init ();\n";
-    out_file << "    foo ();\n";
-    out_file << "    printf(\"%llu\\n\", checksum ());\n";
+    std::string tf_prefix;
+    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+        tf_prefix = NameHandler::common_test_func_prefix + std::to_string(i) + "_";
+        out_file << "    " << tf_prefix << "init ();\n";
+        out_file << "    " << tf_prefix << "foo ();\n";
+        out_file << "    " << tf_prefix << "checksum ();\n\n";
+    }
+    out_file << "    printf(\"%llu\\n\", seed);\n";
     out_file << "    return 0;\n";
     out_file << "}\n";
 
