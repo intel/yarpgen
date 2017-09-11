@@ -52,7 +52,7 @@ class Program {
         void form_extern_sym_table(std::shared_ptr<Context> ctx);
 
         GenPolicy gen_policy;
-        std::shared_ptr<ScopeStmt> function;
+        std::vector<std::shared_ptr<ScopeStmt>> functions;
         // There are three kind of global variables which exist in test.
         // All of them are declared as external variables for core test function
         // to prevent constant propagation optimization.
@@ -63,9 +63,9 @@ class Program {
         //    They are used in checksum calculation.
         // 3) Output variables - they can change their value only once.
         //    They are also used in checksum calculation.
-        std::shared_ptr<SymbolTable> extern_inp_sym_table;
-        std::shared_ptr<SymbolTable> extern_mix_sym_table;
-        std::shared_ptr<SymbolTable> extern_out_sym_table;
+        std::vector<std::shared_ptr<SymbolTable>> extern_inp_sym_table;
+        std::vector<std::shared_ptr<SymbolTable>> extern_mix_sym_table;
+        std::vector<std::shared_ptr<SymbolTable>> extern_out_sym_table;
         std::string out_folder;
 };
 }

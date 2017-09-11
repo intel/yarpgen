@@ -108,6 +108,8 @@ extern std::shared_ptr<RandValGen> rand_val_gen;
 // Singleton class which handles name's creation of all variables, structures, etc.
 class NameHandler {
     public:
+        static const std::string common_test_func_prefix;
+
         static NameHandler& get_instance() {
             static NameHandler instance;
             return instance;
@@ -116,14 +118,19 @@ class NameHandler {
         NameHandler(const NameHandler& root) = delete;
         NameHandler& operator=(const NameHandler&) = delete;
 
-        std::string get_struct_type_name() { return "struct_" + std::to_string(++struct_type_count); }
+        void set_test_func_prefix (uint32_t prefix) { test_func_prefix = common_test_func_prefix +
+                                                                         std::to_string(prefix) + "_"; }
+        std::string get_struct_type_name() { return test_func_prefix + "struct_" + std::to_string(++struct_type_count); }
         uint32_t    get_struct_type_count() { return struct_type_count; }
-        std::string get_scalar_var_name() { return "var_" + std::to_string(++scalar_var_count); }
-        std::string get_struct_var_name() { return "struct_obj_" + std::to_string(++struct_var_count); }
+        std::string get_scalar_var_name() { return test_func_prefix + "var_" + std::to_string(++scalar_var_count); }
+        std::string get_struct_var_name() { return test_func_prefix + "struct_obj_" + std::to_string(++struct_var_count); }
+        void zero_out_counters () { struct_type_count = scalar_var_count = struct_var_count = 0; }
 
     private:
         NameHandler() : struct_type_count(0), scalar_var_count(0), struct_var_count(0) {};
 
+        // Test function prefix is required for multiple functions in one test
+        std::string test_func_prefix;
         uint32_t struct_type_count;
         uint32_t scalar_var_count;
         uint32_t struct_var_count;
@@ -196,6 +203,8 @@ class GenPolicy {
         GenPolicy ();
         void copy_data (std::shared_ptr<GenPolicy> old);
         void init_from_config();
+
+        uint32_t get_test_func_count () { return test_func_count; }
 
         // Complexity section
         static void add_to_complexity(Node::NodeID node_id);
@@ -326,6 +335,9 @@ class GenPolicy {
 
     private:
         static bool default_was_loaded;
+
+        // Number of independent test functions in one test
+        uint32_t test_func_count;
 
         // Complexity
         static uint64_t test_complexity;
