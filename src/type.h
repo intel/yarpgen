@@ -102,6 +102,8 @@ class Type {
         // Pure virtual function, used for debug purposes
         virtual void dbg_dump() = 0;
 
+        virtual ~Type () {}
+
     protected:
         std::string name;
         CV_Qual cv_qual;
