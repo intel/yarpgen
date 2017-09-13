@@ -276,7 +276,7 @@ class GenPolicy {
         std::vector<Probability<ArithLeafID>>& get_arith_leaves () { return arith_leaves; }
         std::vector<Probability<ArithDataID>>& get_arith_data_distr () { return arith_data_distr; }
         void set_max_total_arith_expr_count (int max_count) { max_total_arith_expr_count = max_count; }
-        int get_max_total_arith_expr_count () { return max_total_arith_expr_count; }
+        uint32_t get_max_total_arith_expr_count () { return max_total_arith_expr_count; }
 
         // CSE section
         void set_max_cse_count (uint32_t _max_cse_count) { max_cse_count = _max_cse_count; }

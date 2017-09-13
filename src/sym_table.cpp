@@ -111,7 +111,7 @@ void SymbolTable::emit_struct_init (std::ostream& stream, std::string offset) {
 void SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr,
                                                   std::shared_ptr<Struct> struct_var,
                                                   std::ostream& stream, std::string offset) {
-    for (int j = 0; j < struct_var->get_member_count(); ++j) {
+    for (uint64_t j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
@@ -141,7 +141,7 @@ void SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_m
                                             std::shared_ptr<Struct> struct_var,
                                             std::ostream& stream,
                                             std::string offset) {
-    for (int j = 0; j < struct_var->get_member_count(); ++j) {
+    for (uint64_t j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
