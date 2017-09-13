@@ -39,6 +39,8 @@ class Data {
         std::shared_ptr<Type> get_type () { return type; }
         virtual void dbg_dump () = 0;
 
+        virtual ~Data () {}
+
     protected:
         std::shared_ptr<Type> type;
         std::string name;

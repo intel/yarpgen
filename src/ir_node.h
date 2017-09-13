@@ -56,6 +56,8 @@ class Node {
         NodeID get_id () { return id; }
         virtual void emit (std::ostream& stream, std::string offset = "") = 0;
 
+        virtual ~Node () {}
+
     private:
         NodeID id;
 };
