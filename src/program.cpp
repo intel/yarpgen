@@ -49,6 +49,8 @@ void Program::generate () {
         functions.push_back(ScopeStmt::generate(ctx_ptr));
 
         name_handler.zero_out_counters();
+        Stmt::zero_out_func_stmt_count();
+        Expr::zero_out_func_expr_count();
     }
 }
 
