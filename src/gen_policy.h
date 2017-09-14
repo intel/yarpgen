@@ -300,8 +300,10 @@ class GenPolicy {
         std::vector<Probability<BinaryExpr::Op>>& get_allowed_binary_op () { return allowed_binary_op; }
         std::vector<Probability<ArithLeafID>>& get_arith_leaves () { return arith_leaves; }
         std::vector<Probability<ArithDataID>>& get_arith_data_distr () { return arith_data_distr; }
-        void set_max_total_arith_expr_count (int max_count) { max_total_arith_expr_count = max_count; }
-        uint32_t get_max_total_arith_expr_count () { return max_total_arith_expr_count; }
+        void set_max_total_expr_count(uint32_t max_count) { max_total_expr_count = max_count; }
+        uint32_t get_max_total_expr_count() { return max_total_expr_count; }
+        void set_max_func_expr_count(uint32_t max_count) { max_func_expr_count = max_count; }
+        uint32_t get_max_func_expr_count() { return max_func_expr_count; }
 
         // CSE section
         void set_max_cse_count (uint32_t _max_cse_count) { max_cse_count = _max_cse_count; }
@@ -327,6 +329,8 @@ class GenPolicy {
         uint32_t get_max_scope_stmt_count () { return max_scope_stmt_count; }
         void set_max_total_stmt_count (uint32_t _max_total_stmt_count) { max_total_stmt_count = _max_total_stmt_count; }
         uint32_t get_max_total_stmt_count () { return max_total_stmt_count; }
+        void set_max_func_stmt_count (uint32_t _max_func_stmt_count) { max_func_stmt_count = _max_func_stmt_count; }
+        uint32_t get_max_func_stmt_count () { return max_func_stmt_count; }
         std::vector<Probability<bool>>& get_else_prob () { return else_prob; }
         void set_max_if_depth (uint32_t _max_if_depth) { max_if_depth = _max_if_depth; }
         uint32_t get_max_if_depth () { return max_if_depth; }
@@ -391,7 +395,8 @@ class GenPolicy {
         std::vector<Probability<BinaryExpr::Op>> allowed_binary_op;
         std::vector<Probability<ArithLeafID>> arith_leaves;
         std::vector<Probability<ArithDataID>> arith_data_distr;
-        uint32_t max_total_arith_expr_count;
+        uint32_t max_total_expr_count;
+        uint32_t max_func_expr_count;
 
         // CSE
         uint32_t max_cse_count;
@@ -408,6 +413,7 @@ class GenPolicy {
         uint32_t min_scope_stmt_count;
         uint32_t max_scope_stmt_count;
         uint32_t max_total_stmt_count;
+        uint32_t max_func_stmt_count;
         std::vector<Probability<Node::NodeID>> stmt_gen_prob;
         std::vector<Probability<bool>> else_prob;
         uint32_t max_if_depth;

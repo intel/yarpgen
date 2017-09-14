@@ -35,8 +35,14 @@ class Stmt : public Node {
     public:
         Stmt (Node::NodeID _id) : Node(_id) {};
 
+        static void increase_stmt_count() { total_stmt_count++; func_stmt_count++; }
+        static void zero_out_func_stmt_count () { func_stmt_count = 0; }
+
     protected:
+        // Count of statements over all test program
         static uint32_t total_stmt_count;
+        // Counter of statements per single test function
+        static uint32_t func_stmt_count;
 };
 
 // Declaration statement creates new variable (declares variable in current context) and adds it to local symbol table:

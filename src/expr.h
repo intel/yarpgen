@@ -37,8 +37,9 @@ class Expr : public Node {
         Type::TypeID get_type_id () { return value->get_type()->get_type_id (); }
         std::shared_ptr<Data> get_value ();
         uint32_t get_complexity() { return complexity; }
-        static void increase_total_expr_count (uint32_t val) { total_expr_count += val; }
+        static void increase_expr_count(uint32_t val) { total_expr_count += val; func_expr_count += val; }
         static uint32_t get_total_expr_count () { return total_expr_count; }
+        static void zero_out_func_expr_count () { func_expr_count = 0; }
 
     protected:
         // This function does type conversions required by the language standard (implicit cast,
@@ -54,7 +55,10 @@ class Expr : public Node {
         std::shared_ptr<Data> value;
         uint32_t complexity;
 
+        // Count of expression over all test program
         static uint32_t total_expr_count;
+        // Count of expression per single test function
+        static uint32_t func_expr_count;
 };
 
 // Variable Use expression provides access to variable.

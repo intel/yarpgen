@@ -23,6 +23,7 @@ limitations under the License.
 using namespace yarpgen;
 
 uint32_t Stmt::total_stmt_count = 0;
+uint32_t Stmt::func_stmt_count = 0;
 
 DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bool _is_extern) :
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
@@ -44,13 +45,13 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
 std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx,
                                               std::vector<std::shared_ptr<Expr>> inp,
                                               bool count_up_total) {
-    total_stmt_count++;
+    Stmt::increase_stmt_count();
     GenPolicy::add_to_complexity(Node::NodeID::DECL);
 
     std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
     std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
     if (count_up_total)
-        Expr::increase_total_expr_count(new_init->get_complexity());
+        Expr::increase_expr_count(new_init->get_complexity());
     std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
     if (ctx->get_parent_ctx() == nullptr || ctx->get_parent_ctx()->get_local_sym_table() == nullptr) {
         ERROR("no par_ctx or local_sym_table (DeclStmt)");
@@ -110,7 +111,8 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     auto p = ctx->get_gen_policy();
     uint32_t scope_stmt_count = rand_val_gen->get_rand_value<uint32_t>(p->get_min_scope_stmt_count(), p->get_max_scope_stmt_count());
     for (uint32_t i = 0; i < scope_stmt_count; ++i) {
-        if (total_stmt_count >= p->get_max_total_stmt_count())
+        if (Stmt::total_stmt_count >= p->get_max_total_stmt_count() ||
+            Stmt::func_stmt_count  >= p->get_max_func_stmt_count())
             //TODO: Can we somehow eliminate compiler timeout with the help of this?
             //GenPolicy::get_test_complexity() >= p->get_max_test_complexity())
             break;
@@ -238,14 +240,14 @@ std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx,
                                               std::vector<std::shared_ptr<Expr>> inp,
                                               std::shared_ptr<Expr> out,
                                               bool count_up_total) {
-    total_stmt_count++;
+    Stmt::increase_stmt_count();
     GenPolicy::add_to_complexity(Node::NodeID::EXPR);
 
     //TODO: now it can be only assign. Do we want something more?
     std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
     std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
     if (count_up_total)
-        Expr::increase_total_expr_count(assign_exp->get_complexity());
+        Expr::increase_expr_count(assign_exp->get_complexity());
     GenPolicy::add_to_complexity(Node::NodeID::ASSIGN);
     return std::make_shared<ExprStmt>(assign_exp);
 }
@@ -277,11 +279,11 @@ IfStmt::IfStmt (std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _if_br, 
 std::shared_ptr<IfStmt> IfStmt::generate (std::shared_ptr<Context> ctx,
                                           std::vector<std::shared_ptr<Expr>> inp,
                                           bool count_up_total) {
-    total_stmt_count++;
+    Stmt::increase_stmt_count();
     GenPolicy::add_to_complexity(Node::NodeID::IF);
     std::shared_ptr<Expr> cond = ArithExpr::generate(ctx, inp);
     if (count_up_total)
-        Expr::increase_total_expr_count(cond->get_complexity());
+        Expr::increase_expr_count(cond->get_complexity());
     bool else_exist = rand_val_gen->get_rand_id(ctx->get_gen_policy()->get_else_prob());
     bool cond_taken = IfStmt::count_if_taken(cond);
     std::shared_ptr<ScopeStmt> then_br = ScopeStmt::generate(std::make_shared<Context>(*(ctx->get_gen_policy()), ctx, Node::NodeID::SCOPE, cond_taken));

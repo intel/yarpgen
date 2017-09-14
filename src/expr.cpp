@@ -27,6 +27,7 @@ limitations under the License.
 using namespace yarpgen;
 
 uint32_t Expr::total_expr_count = 0;
+uint32_t Expr::func_expr_count = 0;
 
 std::shared_ptr<Data> Expr::get_value () {
     switch (value->get_class_id()) {
@@ -310,8 +311,9 @@ std::shared_ptr<Expr> ArithExpr::gen_level (std::shared_ptr<Context> ctx, std::v
     // total Arithmetic Expression number, or we want to use CSE but don't have any,
     // we fall into this branch.
     if (node_type == GenPolicy::ArithLeafID::Data || par_depth == p->get_max_arith_depth() ||
-       (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0) ||
-       (Expr::total_expr_count >= p->get_max_total_arith_expr_count())) {
+        (node_type == GenPolicy::ArithLeafID::CSE && p->get_cse().size() == 0) ||
+        Expr::total_expr_count >= p->get_max_total_expr_count() ||
+        Expr::func_expr_count  >= p->get_max_func_expr_count()) {
         // Pick random Data ID.
         GenPolicy::ArithDataID data_type = rand_val_gen->get_rand_id (p->get_arith_data_distr());
         // If we want to use Const or don't have any input VarUseExpr / MemberExpr, we fall into this branch.
