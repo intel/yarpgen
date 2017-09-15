@@ -377,10 +377,15 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         if selected_standard.is_cxx():
             compiler_name = target.specs.comp_cxx_name
         output += target.name + ": " + "COMPILER=" + compiler_name + "\n"
-        output += target.name + ": " + "OPTFLAGS=" + target.args
+
+        optflags_str = target.name + ": " + "OPTFLAGS=" + target.args
         if target.arch.comp_name != "":
-            output += " " + target.specs.arch_prefix + target.arch.comp_name
-        output += "\n"
+            optflags_str += " " + target.specs.arch_prefix + target.arch.comp_name
+        optflags_str += "\n"
+        output += optflags_str
+        # For performance reasons driver should always be compiled with -O0
+        output += re.sub("-O\d", "-O0", (optflags_str.replace("OPTFLAGS", "DRIVER_OPTFLAGS")))
+
         if inject_blame_opt is not None:
             output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
         #TODO: one day we can decide to use gcc also.
@@ -409,7 +414,9 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             force_str = "\n"
         source_name = source.split(".")[0]
         output += "%" + source_name + ".o: " + source_prefix + source + force_str
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $@ -c $<"
+        # For performance reasons driver should always be compiled with -O0
+        optflags_name = "$(OPTFLAGS)" if source_name != "driver" else "$(DRIVER_OPTFLAGS)"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " -o $@ -c $<"
         if source_name == "func":
             output += " $(STATFLAGS) "
             if inject_blame_opt is not None:
