@@ -160,10 +160,16 @@ def check_dir_and_create(directory):
         print_and_exit("Can't use '" + norm_dir + "' directory")
 
 
-def run_cmd(cmd, time_out=None, num=-1):
+def run_cmd(cmd, time_out=None, num=-1, memory_limit=None):
     is_time_expired = False
+    shell = False
+    if memory_limit is not None:
+        shell = True
+        new_cmd = "ulimit -v " + str(memory_limit) + " ; "
+        new_cmd += " ".join(i for i in cmd)
+        cmd = new_cmd
     start_time = os.times()
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True) as process:
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, shell=shell) as process:
         try:
             log_msg_str = "Running " + str(cmd)
             if num != -1:

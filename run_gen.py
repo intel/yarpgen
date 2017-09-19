@@ -53,6 +53,10 @@ stat_update_delay = 10
 tmp_cleanup_delay = 3600
 creduce_timeout = 3600 * 24
 
+# Various memory limits (in kbytes), passed to ulimit -v
+yarpgen_mem_limit  =  2000000 # 2 Gb
+compiler_mem_limit = 10000000 # 10 Gb
+
 script_start_time = datetime.datetime.now()  # We should init variable, so let's do it this way
 
 known_build_fails = { \
@@ -181,7 +185,7 @@ class Test(object):
             yarpgen_run_list += ["-s", seed]
         self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
         self.ret_code, self.stdout, self.stderr, self.is_time_expired, self.elapsed_time = \
-            common.run_cmd(yarpgen_run_list, yarpgen_timeout, proc_num)
+            common.run_cmd(yarpgen_run_list, yarpgen_timeout, proc_num, yarpgen_mem_limit)
 
         # Files that belongs to generate test. They are hardcoded for now.
         # Generator may report them in output later and we may need to parse it.
@@ -821,7 +825,7 @@ class TestRun(object):
         build_params_list = ["make", "-f", gen_test_makefile.Test_Makefile_name, self.optset]
         self.build_cmd = " ".join(str(p) for p in build_params_list)
         self.build_ret_code, self.build_stdout, self.build_stderr, self.is_build_time_expired, self.build_elapsed_time = \
-            common.run_cmd(build_params_list, compiler_timeout, self.proc_num)
+            common.run_cmd(build_params_list, compiler_timeout, self.proc_num, compiler_mem_limit)
         # update status and stats
         if self.is_build_time_expired:
             self.stat.update_target_runs(self.optset, compfail_timeout)
