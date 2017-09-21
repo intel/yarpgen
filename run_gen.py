@@ -173,6 +173,10 @@ class Test(object):
     STATUS_multiple_miscompare=5
     STATUS_no_good_runs=6
 
+    # Static variables
+    # Don't save anything other than log-file if compile time expires
+    ignore_comp_time_exp = True
+
     # Generate new test
     # stat is statistics object
     # seed is optional, if we want to generate some particular seed.
@@ -372,14 +376,25 @@ class Test(object):
         # Report
         for run in bad_runs:
             self.stat.update_target_runs(run.optset, out_dif)
+
+        # Prepare files
+        save_only_log = False
+        if self.status == self.STATUS_no_good_runs and Test.ignore_comp_time_exp:
+            for run in self.fail_test_runs:
+                save_only_log |= run.status == TestRun.STATUS_compfail_timeout
+
+        files_to_save = []
+        if not save_only_log:
+            files_to_save = self.files
+            for run in (bad_runs + good_runs):
+                files_to_save.append(run.exe_file)
+
         # Build log
         log = self.build_log(bad_runs, good_runs)
         self.files.append(log)
+        files_to_save.append(log)
 
-        # Save
-        files_to_save = self.files
-        for run in (bad_runs + good_runs):
-            files_to_save.append(run.exe_file)
+        # Prepare compiler's name set
         cmplr_set = set()
         for run in bad_runs:
             cmplr_set.add(run.target.specs.name)
@@ -429,7 +444,7 @@ class Test(object):
 
             if self.status == self.STATUS_no_good_runs:
                 log.write("===========================================\n")
-                log.write("For details look for this fail saved as one of individual compfail or runfail");
+                log.write("For details look for this fail saved as one of individual compfail or runfail")
             else:
                 for run in bad_runs:
                     log.write("==== BAD ==================================\n")
@@ -914,11 +929,13 @@ class TestRun(object):
 
         # Files to save: source files, own files, files from similar fails and
         # log file.
-        file_list = self.test.files + self.files
-        for run in self.same_type_fails:
-            file_list += run.files
-        # Remove duplicates
-        file_list = list(set(file_list))
+        file_list = []
+        if not self.test.ignore_comp_time_exp:
+            file_list = self.test.files + self.files
+            for run in self.same_type_fails:
+                file_list += run.files
+            # Remove duplicates
+            file_list = list(set(file_list))
         log = self.build_log()
         file_list.append(log)
 
@@ -956,6 +973,11 @@ class TestRun(object):
             log.write("====================================================================\n")
             if test.status == self.STATUS_compfail_timeout:
                 log.write("Build timeout: " + str(compiler_timeout) + " seconds\n")
+                if Test.ignore_comp_time_exp:
+                    log.write("File sizes: \n")
+                    for file in self.test.files + self.files:
+                        size = add_metrix_prefix(os.path.getsize(file)) + "b"
+                        log.write(file + " : " + size + "\n")
             if test.status >= self.STATUS_compfail:
                 log.write("Build cmd: " + test.build_cmd + "\n")
                 log.write("Build exit code: " + str(test.build_ret_code) + "\n")
@@ -966,7 +988,7 @@ class TestRun(object):
                 log.write("=== Build end ======================================================\n")
                 log.write("\n")
             if test.status == self.STATUS_runfail_timeout:
-                log.write("Build timeout: " + str(run_timeout) + " seconds\n")
+                log.write("Exec timeout: " + str(run_timeout) + " seconds\n")
             if test.status >= self.STATUS_runfail:
                 log.write("Run cmd: " + test.run_cmd + "\n")
                 log.write("Run exit code: " + str(test.run_ret_code) + "\n")
@@ -1210,6 +1232,7 @@ def strfdelta(time_delta, format_str):
 def get_testing_speed(seed_num, time_delta):
     minutes = time_delta.total_seconds() / 60
     return "{:.2f}".format(seed_num / minutes) + " seed/min"
+
 
 def add_metrix_prefix(num):
     unit = 1000
@@ -1704,6 +1727,8 @@ Use specified folder for testing
                         help="Do not run tmp_cleaner.sh script during the run")
     parser.add_argument("--collect-stat", dest="collect_stat", default="", type=str,
                         help="List of testing sets for statistics collection")
+    parser.add_argument("--ignore-comp-time-exp", dest="ignore_comp_time_exp", default=True, action="store_true",
+                        help="Don't save files (except log-file) when compile time expires")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -1723,6 +1748,7 @@ Use specified folder for testing
     if args.creduce:
         creduce_n = args.creduce
     gen_test_makefile.set_standard(args.std_str)
+    Test.ignore_comp_time_exp = args.ignore_comp_time_exp
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
                                   args.config_file, args.seeds_option_value, args.blame, args.creduce,
                                   args.no_tmp_cleaner, args.collect_stat)
