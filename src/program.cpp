@@ -62,18 +62,26 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     GenPolicy const_gen_policy = *(const_ctx->get_gen_policy());
     const_gen_policy.set_allow_const(true);
     const_ctx->set_gen_policy(const_gen_policy);
+
     // Generate random number of random input variables
     uint32_t inp_var_count = rand_val_gen->get_rand_value(p->get_min_inp_var_count(),
                                                           p->get_max_inp_var_count());
     for (uint32_t i = 0; i < inp_var_count; ++i) {
         ctx->get_extern_inp_sym_table()->add_variable(ScalarVariable::generate(const_ctx));
     }
-    //TODO: add to gen_policy
     // Same for mixed variables
     uint32_t mix_var_count = rand_val_gen->get_rand_value(p->get_min_mix_var_count(),
                                                           p->get_max_mix_var_count());
     for (uint32_t i = 0; i < mix_var_count; ++i) {
         ctx->get_extern_mix_sym_table()->add_variable(ScalarVariable::generate(ctx));
+    }
+
+    // Same for output variables
+    //TODO: now this part used is only for output pointers
+    uint32_t out_var_count = rand_val_gen->get_rand_value(p->get_min_out_var_count(),
+                                                          p->get_max_out_var_count());
+    for (uint32_t i = 0; i < out_var_count; ++i) {
+        ctx->get_extern_out_sym_table()->add_variable(ScalarVariable::generate(ctx));
     }
 
     uint32_t struct_type_count = rand_val_gen->get_rand_value(p->get_min_struct_type_count(),
@@ -163,6 +171,95 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
         ctx->get_extern_out_sym_table()->add_array(new_array);
     }
+
+    NameHandler& name_handler = NameHandler::get_instance();
+
+    // Utility function which generates pointers to invariant members
+    auto ptr_to_const_memb_generation = [&name_handler] (std::shared_ptr<SymbolTable> sym_table,
+                                                         uint32_t min_count, uint32_t max_count) {
+        std::vector<std::shared_ptr<Expr>> all_const_memb_exprs;
+        for (auto i : sym_table->get_const_members_in_structs())
+            all_const_memb_exprs.push_back(i);
+        for (auto i : sym_table->get_const_members_in_arrays())
+            all_const_memb_exprs.push_back(i);
+        std::random_shuffle(all_const_memb_exprs.begin(), all_const_memb_exprs.end());
+        uint32_t const_memb_ptr_count = rand_val_gen->get_rand_value(min_count, max_count);
+        for (uint32_t i = 0; i < const_memb_ptr_count && i < all_const_memb_exprs.size(); ++i) {
+            std::shared_ptr<MemberExpr> member_expr = std::static_pointer_cast<MemberExpr>(all_const_memb_exprs.at(i));
+            if (member_expr->get_raw_value()->get_type()->get_is_bit_field()) {
+                const_memb_ptr_count++;
+                continue;
+            }
+            std::shared_ptr<Pointer> ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), member_expr->get_raw_value());
+            sym_table->add_ptr_to_member(ptr, all_const_memb_exprs.at(i), SymbolTable::CONST);
+        }
+    };
+
+    // Utility function which generates pointers to members
+    auto ptr_to_memb_generation = [&name_handler] (std::shared_ptr<SymbolTable> sym_table,
+                                                   uint32_t min_count, uint32_t max_count) {
+        std::vector<std::shared_ptr<Expr>> all_memb_exprs;
+        for (auto i : sym_table->get_members_in_structs())
+            all_memb_exprs.push_back(i);
+        for (auto i : sym_table->get_members_in_arrays())
+            all_memb_exprs.push_back(i);
+        std::random_shuffle(all_memb_exprs.begin(), all_memb_exprs.end());
+        uint32_t memb_ptr_count = rand_val_gen->get_rand_value(min_count, max_count);
+        for (uint32_t i = 0; i < memb_ptr_count && i < all_memb_exprs.size(); ++i) {
+            std::shared_ptr<MemberExpr> member_expr = std::static_pointer_cast<MemberExpr>(all_memb_exprs.at(i));
+            if (member_expr->get_raw_value()->get_type()->get_is_bit_field()) {
+                memb_ptr_count++;
+                continue;
+            }
+            std::shared_ptr<Pointer> ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), member_expr->get_raw_value());
+            sym_table->add_ptr_to_member(ptr, all_memb_exprs.at(i), SymbolTable::CONST);
+        }
+    };
+
+    // Generate random number of random input pointers
+    uint32_t inp_ptr_count = rand_val_gen->get_rand_value(p->get_min_inp_pointer_count(),
+                                                          p->get_max_inp_pointer_count());
+    std::vector<std::shared_ptr<Expr>> all_inp_exprs = ctx->get_extern_inp_sym_table()->get_var_use_exprs_from_vars();
+    //TODO: is it repeatable with seed?
+    std::random_shuffle(all_inp_exprs.begin(), all_inp_exprs.end());
+    for (uint32_t i = 0; i < inp_ptr_count && i < all_inp_exprs.size(); ++i) {
+        std::shared_ptr<VarUseExpr> var_use_expr = std::static_pointer_cast<VarUseExpr>(all_inp_exprs.at(i));
+        std::shared_ptr<Pointer> ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), var_use_expr->get_raw_value());
+        ctx->get_extern_inp_sym_table()->add_ptr_to_var(ptr, all_inp_exprs.at(i));
+    }
+
+    ptr_to_const_memb_generation(ctx->get_extern_inp_sym_table(), p->get_min_inp_const_memb_ptr_count(),
+                                                                  p->get_max_inp_const_memb_ptr_count());
+    ptr_to_memb_generation(ctx->get_extern_inp_sym_table(), p->get_min_inp_memb_ptr_count(),
+                                                            p->get_max_inp_memb_ptr_count());
+
+    // Same for mixed pointers
+    uint32_t mix_ptr_count = rand_val_gen->get_rand_value(p->get_min_mix_pointer_count(),
+                                                          p->get_max_mix_pointer_count());
+    std::vector<std::shared_ptr<Expr>> all_mix_exprs = ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars();
+    //TODO: is it repeatable with seed?
+    std::random_shuffle(all_mix_exprs.begin(), all_mix_exprs.end());
+    for (uint32_t i = 0; i < mix_ptr_count && i < all_mix_exprs.size(); ++i) {
+        std::shared_ptr<VarUseExpr> var_use_expr = std::static_pointer_cast<VarUseExpr>(all_mix_exprs.at(i));
+        std::shared_ptr<Pointer> ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), var_use_expr->get_raw_value());
+        ctx->get_extern_mix_sym_table()->add_ptr_to_var(ptr, all_mix_exprs.at(i));
+    }
+    ptr_to_memb_generation(ctx->get_extern_mix_sym_table(), p->get_min_mix_memb_ptr_count(),
+                                                            p->get_max_mix_memb_ptr_count());
+
+    // Same for output pointers
+    uint32_t out_ptr_count = rand_val_gen->get_rand_value(p->get_min_out_pointer_count(),
+                                                          p->get_max_out_pointer_count());
+    std::vector<std::shared_ptr<Expr>> all_out_exprs = ctx->get_extern_out_sym_table()->get_var_use_exprs_from_vars();
+    //TODO: is it repeatable with seed?
+    std::random_shuffle(all_out_exprs.begin(), all_out_exprs.end());
+    for (uint32_t i = 0; i < out_ptr_count && i < all_out_exprs.size(); ++i) {
+        std::shared_ptr<VarUseExpr> var_use_expr = std::static_pointer_cast<VarUseExpr>(all_out_exprs.at(i));
+        std::shared_ptr<Pointer> ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), var_use_expr->get_raw_value());
+        ctx->get_extern_out_sym_table()->add_ptr_to_var(ptr, all_out_exprs.at(i));
+    }
+    ptr_to_memb_generation(ctx->get_extern_out_sym_table(), p->get_min_out_memb_ptr_count(),
+                                                            p->get_max_out_memb_ptr_count());
 }
 
 static std::string get_file_ext () {
@@ -205,6 +302,12 @@ void Program::emit_decl () {
         extern_mix_sym_table.at(i)->emit_array_extern_decl(out_file);
         out_file << "\n\n";
         extern_out_sym_table.at(i)->emit_array_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_inp_sym_table.at(i)->emit_ptr_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_ptr_extern_decl(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_ptr_extern_decl(out_file);
         out_file << "\n\n";
     }
 
@@ -272,6 +375,12 @@ void Program::emit_main () {
         out_file << "\n\n";
         extern_out_sym_table.at(i)->emit_array_def(out_file);
 
+        extern_inp_sym_table.at(i)->emit_ptr_def(out_file);
+        out_file << "\n\n";
+        extern_mix_sym_table.at(i)->emit_ptr_def(out_file);
+        out_file << "\n\n";
+        extern_out_sym_table.at(i)->emit_ptr_def(out_file);
+
         //TODO: what if we extend struct types in mix_sym_table and out_sym_table
         extern_inp_sym_table.at(i)->emit_struct_type_static_memb_def(out_file);
         out_file << "\n\n";
@@ -295,6 +404,9 @@ void Program::emit_main () {
 
         extern_mix_sym_table.at(i)->emit_array_check (out_file, "    ");
         extern_out_sym_table.at(i)->emit_array_check (out_file, "    ");
+
+        extern_mix_sym_table.at(i)->emit_ptr_check(out_file, "    ");
+        extern_out_sym_table.at(i)->emit_ptr_check(out_file, "    ");
 
         out_file << "}\n\n";
 

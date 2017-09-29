@@ -27,7 +27,7 @@ class Context;
 class Data {
     public:
         enum VarClassID {
-            VAR, STRUCT, ARRAY, MAX_CLASS_ID
+            VAR, STRUCT, ARRAY, POINTER, MAX_CLASS_ID
         };
 
         Data (std::string _name, std::shared_ptr<Type> _type, VarClassID _class_id) :
@@ -105,5 +105,16 @@ class Array : public Data {
         void init_elements (std::shared_ptr<Context> ctx = nullptr);
 
         std::vector<std::shared_ptr<Data>> elements;
+};
+
+class Pointer : public Data {
+    public:
+        Pointer (std::string _name, std::shared_ptr<Data> _pointee);
+        void set_pointee (std::shared_ptr<Data> _pointee) { pointee = _pointee; }
+        std::shared_ptr<Data> get_pointee () { return pointee; }
+        void dbg_dump ();
+
+    private:
+        std::shared_ptr<Data> pointee;
 };
 }

@@ -68,6 +68,8 @@ class VarUseExpr : public Expr {
     public:
         VarUseExpr (std::shared_ptr<Data> _var);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
+        // This method provides direct access to underlying variable
+        std::shared_ptr<Data> get_raw_value () { return value; }
         void emit (std::ostream& stream, std::string offset = "") { stream << value->get_name (); }
 
     private:
@@ -267,6 +269,8 @@ class MemberExpr : public Expr {
         MemberExpr (std::shared_ptr<Struct> _struct, uint64_t _identifier);
         MemberExpr (std::shared_ptr<MemberExpr> _member_expr, uint64_t _identifier);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
+        // This method provides direct access to underlying member
+        std::shared_ptr<Data> get_raw_value () { return value; }
         void emit (std::ostream& stream, std::string offset = "");
 
     private:
@@ -279,6 +283,32 @@ class MemberExpr : public Expr {
         uint64_t identifier;
 };
 
+// Reference expression - represents taking the address of any object
+class ReferenceExpr : public Expr {
+    public:
+        ReferenceExpr(std::shared_ptr<Expr> expr);
+        void emit (std::ostream& stream, std::string offset = "");
+
+    private:
+        bool propagate_type () { return true; }
+        UB propagate_value () { return NoUB; }
+
+        std::shared_ptr<Expr> ref_expr;
+};
+
+// Dereference expression - represents dereference of a pointer
+class DereferenceExpr : public Expr {
+    public:
+        DereferenceExpr(std::shared_ptr<Expr> expr);
+        std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
+        void emit (std::ostream& stream, std::string offset = "");
+
+    private:
+        bool propagate_type () { return true; }
+        UB propagate_value () { return NoUB; }
+
+        std::shared_ptr<Expr> deref_expr;
+};
 
 // Stub expression - serves as helper function for unimplemented features
 class StubExpr : public Expr {

@@ -2151,3 +2151,18 @@ std::shared_ptr<ArrayType> ArrayType::generate(std::shared_ptr<Context> ctx) {
 
     return std::make_shared<ArrayType>(base_type, size, kind);
 }
+
+void PointerType::init() {
+    name = pointee_type->get_simple_name() + " *";
+    cv_qual = pointee_type->get_cv_qual();
+    if (!pointee_type->is_ptr_type())
+        return;
+    std::shared_ptr<PointerType> base_ptr_type = std::static_pointer_cast<PointerType>(pointee_type);
+    depth += base_ptr_type->get_depth();
+}
+
+void PointerType::dbg_dump() {
+    std::cout << "Pointer type: " << name << std::endl;
+    std::cout << "Pointee type:\n";
+    pointee_type->dbg_dump();
+}

@@ -223,3 +223,16 @@ std::shared_ptr<Array> Array::generate(std::shared_ptr<Context> ctx, std::shared
     std::shared_ptr<Array> ret = std::make_shared<Array>(name_handler.get_array_var_name(), array_type, ctx);
     return ret;
 }
+
+Pointer::Pointer(std::string _name, std::shared_ptr<Data> _pointee) :
+                 Data (_name, nullptr, Data::VarClassID::POINTER), pointee(_pointee) {
+    type = std::make_shared<PointerType>(pointee->get_type());
+}
+
+void Pointer::dbg_dump () {
+    std::cout << "name: " << name << std::endl;
+    std::cout << "pointer type: " << std::endl;
+    type->dbg_dump();
+    std::cout << "base type: " << std::endl;
+    pointee->dbg_dump();
+}

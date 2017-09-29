@@ -324,7 +324,7 @@ void self_test () {
 
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct0->get_member(0))->get_member(0))->get_cur_value() << std::endl;
     std::cout << std::static_pointer_cast<ScalarVariable>(std::static_pointer_cast<Struct>(struct1->get_member(0))->get_member(0))->get_cur_value() << std::endl;
-    */
+
     std::shared_ptr<IntegerType> int_type_for_arr = IntegerType::init(IntegerType::IntegerTypeID::UINT);
     std::shared_ptr<ArrayType> arr_type = std::make_shared<ArrayType>(int_type_for_arr, 100, ArrayType::STD_VEC);
     arr_type->dbg_dump();
@@ -347,4 +347,28 @@ void self_test () {
     std::cout << "\n====================="<< std::endl;
     std::shared_ptr<Array> array_2 = Array::generate(ctx);
     array_2->dbg_dump();
+    */
+
+    PointerType ptr_type (IntegerType::init(IntegerType::UINT));
+    ptr_type.dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<ScalarVariable> pointee = std::make_shared<ScalarVariable>("aaa", IntegerType::init(IntegerType::ULINT));
+    Pointer pointer ("ptr_to_aaa", pointee);
+    pointer.dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    std::shared_ptr<VarUseExpr> pointee_var_use_expr = std::make_shared<VarUseExpr>(pointee);
+    std::shared_ptr<ReferenceExpr> ref_expr = std::make_shared<ReferenceExpr>(pointee_var_use_expr);
+    ref_expr->emit(std::cout);
+    std::cout << std::endl;
+    ref_expr->get_value()->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
+    DereferenceExpr deref_expr (ref_expr);
+    deref_expr.emit(std::cout);
+    std::cout << std::endl;
+    deref_expr.get_value()->dbg_dump();
+    std::cout << "\n====================="<< std::endl;
+
 }

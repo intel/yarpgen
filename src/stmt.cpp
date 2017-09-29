@@ -38,15 +38,23 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
                   Stmt(Node::NodeID::DECL), data(_data), init(_init), is_extern(_is_extern) {
     if (init == nullptr || is_cxx03_and_special_arr_kind(data))
         return;
-    if (data->get_class_id() != Data::VarClassID::VAR || init->get_value()->get_class_id() != Data::VarClassID::VAR) {
-        ERROR("can init only ScalarVariable in DeclStmt");
-    }
-    if (is_extern) {
+    if (is_extern)
         ERROR("init of extern var DeclStmt");
+    if (data->get_class_id() == Data::VarClassID::VAR) {
+        if (init->get_value()->get_class_id() != Data::VarClassID::VAR)
+            ERROR("can init only ScalarVariable or Pointer in DeclStmt");
+        std::shared_ptr<ScalarVariable> data_var = std::static_pointer_cast<ScalarVariable>(data);
+        std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
+        data_var->set_init_value(std::static_pointer_cast<ScalarVariable>(cast_type->get_value())->get_cur_value());
     }
-    std::shared_ptr<ScalarVariable> data_var = std::static_pointer_cast<ScalarVariable>(data);
-    std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
-    data_var->set_init_value(std::static_pointer_cast<ScalarVariable>(cast_type->get_value())->get_cur_value());
+    else if (data->get_class_id() == Data::VarClassID::POINTER) {
+        if (init->get_value()->get_class_id() != Data::VarClassID::POINTER)
+            ERROR("can init only ScalarVariable or Pointer in DeclStmt");
+        std::shared_ptr<Pointer> data_ptr = std::static_pointer_cast<Pointer>(data);
+        data_ptr->set_pointee(init->get_value());
+    }
+    else
+        ERROR("can init only ScalarVariable or Pointer in DeclStmt");
 }
 
 // This function randomly creates new ScalarVariable, its initializing arithmetic expression and
@@ -91,6 +99,7 @@ static void emit_list_init_for_struct(std::ostream &stream, std::shared_ptr<Stru
                 emit_list_init_for_struct(stream, struct_member);
             }
                 break;
+            case Data::POINTER:
             case Data::ARRAY:
             case Data::MAX_CLASS_ID:
                 ERROR("inappropriate type of Struct member");
@@ -229,7 +238,11 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                        (out_data_type == GenPolicy::OutDataTypeID::STRUCT &&
                             sym_table->get_members_in_structs().empty()) ||
                        (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY &&
-                            sym_table->get_members_in_arrays().empty());
+                            sym_table->get_members_in_arrays().empty()) ||
+                       (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_VAR &&
+                            sym_table->get_deref_expr_to_vars().empty()) ||
+                       (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_MEMBER &&
+                            sym_table->get_deref_expr_to_members().empty());
             };
 
             // This function randomly picks element from vector.
@@ -252,7 +265,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                 }
                 // Use variable in output array
                 else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
-                    //TODO: we should also delete it (make it not-reusable)
+                    //TODO: we should also delete it (make it nonreusable)
                     pick_elem(ctx->get_extern_out_sym_table()->get_var_use_exprs_in_arrays());
                 // Use member of output struct
                 else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT) {
@@ -266,6 +279,14 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                     pick_elem(ctx->get_extern_out_sym_table()->get_members_in_arrays(), &elem_num);
                     ctx->get_extern_out_sym_table()->del_member_in_arrays(elem_num);
                 }
+                // Use pointer to variable
+                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_VAR)
+                    //TODO: we should also delete it (make it nonreusable)
+                    pick_elem(ctx->get_extern_out_sym_table()->get_deref_expr_to_vars());
+                // Use pointer to member
+                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_MEMBER)
+                    //TODO: we should also delete it (make it nonreusable)
+                    pick_elem(ctx->get_extern_out_sym_table()->get_deref_expr_to_members());
                 else
                     ERROR("bad OutDataTypeID");
 
@@ -285,6 +306,12 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                 // Use member of struct in mixed array
                 else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY)
                     pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_arrays());
+                // Use pointer to mix variable
+                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_VAR)
+                    pick_elem(ctx->get_extern_mix_sym_table()->get_deref_expr_to_vars());
+                // Use pointer to member of mix struct
+                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_MEMBER)
+                    pick_elem(ctx->get_extern_mix_sym_table()->get_deref_expr_to_members());
                 else
                     ERROR("bad OutDataTypeID");
 
@@ -320,6 +347,9 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_from_ctx(std::shared_p
     for (auto i : ctx->get_extern_inp_sym_table()->get_const_members_in_arrays())
         ret.push_back(i);
 
+    for (auto i : ctx->get_extern_inp_sym_table()->get_deref_expr_to_const_members())
+        ret.push_back(i);
+
     return ret;
 }
 
@@ -338,10 +368,13 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_locals_from_ctx(std::share
 // local symbol tables of current Context and all it's predecessors (by calling extract_locals_from_ctx).
 // TODO: we create multiple entry for variables from extern_sym_tables
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx) {
+    //TODO: extract_inp_from_ctx extracts only invariant members of structs
     std::vector<std::shared_ptr<Expr>> ret = extract_inp_from_ctx(ctx);
     for (auto i : ctx->get_extern_mix_sym_table()->get_members_in_structs())
         ret.push_back(i);
     for (auto i : ctx->get_extern_mix_sym_table()->get_members_in_arrays())
+        ret.push_back(i);
+    for (auto i : ctx->get_extern_mix_sym_table()->get_deref_expr_to_members())
         ret.push_back(i);
 
     for (auto i : ctx->get_extern_mix_sym_table()->get_all_var_use_exprs())

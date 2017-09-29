@@ -31,8 +31,17 @@ class SymbolTable {
     //TODO: we definitely need to refactor this class, because it is all messed up and strange
     //      e.g. sometimes we return from similar functions references, sometimes - objects
     public:
+        enum MembVecID {ALL, CONST};
+
         using MemberVector = std::vector<std::shared_ptr<MemberExpr>>;
         using ExprVector = std::vector<std::shared_ptr<Expr>>;
+        using DerefExprVector = std::vector<std::shared_ptr<DereferenceExpr>>;
+
+        struct PointersInfo {
+            std::vector<std::shared_ptr<Pointer>> ptr;
+            std::vector<std::shared_ptr<Expr>> init_expr;
+            std::vector<std::shared_ptr<DereferenceExpr>> deref_expr;
+        };
 
         SymbolTable () {}
 
@@ -44,9 +53,12 @@ class SymbolTable {
         void add_variable (std::shared_ptr<ScalarVariable> _var) { variable.push_back (_var); }
         void add_struct (std::shared_ptr<Struct> _struct);
         void add_array (std::shared_ptr<Array> _array);
+        void add_ptr_to_var (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr);
+        void add_ptr_to_member (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr, MembVecID vec_id);
 
         ExprVector get_var_use_exprs_in_arrays();
         ExprVector get_var_use_exprs_from_vars();
+        ExprVector get_deref_expr_to_vars();
         ExprVector get_all_var_use_exprs();
 
         auto& get_members_in_structs() { return std::get<ALL>(members_in_structs); }
@@ -56,6 +68,9 @@ class SymbolTable {
         auto& get_members_in_arrays() { return std::get<ALL>(members_in_arrays); }
         auto& get_const_members_in_arrays() { return std::get<CONST>(members_in_arrays); }
         void del_member_in_arrays(int idx);
+
+        DerefExprVector& get_deref_expr_to_members();
+        DerefExprVector& get_deref_expr_to_const_members();
 
         void emit_variable_extern_decl (std::ostream& stream, std::string offset = "");
         void emit_variable_def (std::ostream& stream, std::string offset = "");
@@ -71,10 +86,12 @@ class SymbolTable {
         void emit_array_extern_decl (std::ostream& stream, std::string offset = "");
         void emit_array_def (std::ostream& stream, std::string offset = "");
         void emit_array_check (std::ostream& stream, std::string offset = "");
+        void emit_ptr_extern_decl (std::ostream& stream, std::string offset = "");
+        void emit_ptr_def (std::ostream& stream, std::string offset = "");
+        // TODO: rewrite with IR
+        void emit_ptr_check (std::ostream& stream, std::string offset = "");
 
     private:
-        enum MemVecID {ALL, CONST};
-
         void form_struct_member_expr (std::tuple<MemberVector, MemberVector>& ret,
                                       std::shared_ptr<MemberExpr> parent_memb_expr,
                                       std::shared_ptr<Struct> struct_var,
@@ -92,7 +109,8 @@ class SymbolTable {
         std::vector<std::shared_ptr<ArrayType>> array_type;
         std::vector<std::shared_ptr<Array>> array;
         std::tuple<MemberVector, MemberVector> members_in_arrays;
-
+        PointersInfo ptr_to_vars;
+        std::tuple<PointersInfo, PointersInfo> ptr_to_members;
 };
 
 class Context {
