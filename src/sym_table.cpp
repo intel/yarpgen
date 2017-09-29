@@ -68,6 +68,30 @@ void SymbolTable::add_array (std::shared_ptr<Array> _array) {
             form_struct_member_expr(members_in_arrays, nullptr, std::static_pointer_cast<Struct>(_array->get_element(i)));
 }
 
+void SymbolTable::add_ptr_to_var (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr) {
+    if (init_expr->get_id() != Node::NodeID::VAR_USE)
+        ERROR("can add only VarUseExpr");
+    ptr_to_vars.ptr.push_back(ptr);
+    ptr_to_vars.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
+    ptr_to_vars.deref_expr.push_back(std::make_shared<DereferenceExpr>(std::make_shared<VarUseExpr>(ptr)));
+}
+
+void SymbolTable::add_ptr_to_member (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr, MembVecID vec_id) {
+    if (init_expr->get_id() != Node::NodeID::MEMBER)
+        ERROR("can add only MemberExpr");
+    PointersInfo& pointers = std::get<ALL>(ptr_to_members);
+    pointers.ptr.push_back(ptr);
+    pointers.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
+    pointers.deref_expr.push_back(std::make_shared<DereferenceExpr>(std::make_shared<VarUseExpr>(ptr)));
+    if (vec_id != CONST)
+        return;
+
+    pointers = std::get<CONST>(ptr_to_members);
+    pointers.ptr.push_back(ptr);
+    pointers.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
+    pointers.deref_expr.push_back(std::make_shared<DereferenceExpr>(std::make_shared<VarUseExpr>(ptr)));
+}
+
 void SymbolTable::del_member_in_structs(int idx) {
     auto& member_exprs = std::get<ALL>(members_in_structs);
     member_exprs.erase(member_exprs.begin() + idx);
@@ -76,6 +100,14 @@ void SymbolTable::del_member_in_structs(int idx) {
 void SymbolTable::del_member_in_arrays(int idx) {
     auto& member_exprs = std::get<ALL>(members_in_arrays);
     member_exprs.erase(member_exprs.begin() + idx);
+}
+
+SymbolTable::DerefExprVector& SymbolTable::get_deref_expr_to_members() {
+    return std::get<ALL>(ptr_to_members).deref_expr;
+}
+
+SymbolTable::DerefExprVector& SymbolTable::get_deref_expr_to_const_members() {
+    return std::get<CONST>(ptr_to_members).deref_expr;
 }
 
 void SymbolTable::var_use_exprs_from_vars_in_arrays (std::vector<std::shared_ptr<Expr>>& ret) {
@@ -100,8 +132,17 @@ SymbolTable::ExprVector SymbolTable::get_var_use_exprs_in_arrays () {
     return ret;
 }
 
+SymbolTable::ExprVector SymbolTable::get_deref_expr_to_vars() {
+    std::vector<std::shared_ptr<Expr>> ret;
+    for (auto const& i : ptr_to_vars.deref_expr)
+        ret.push_back(i);
+    return ret;
+}
+
 SymbolTable::ExprVector SymbolTable::get_all_var_use_exprs() {
     std::vector<std::shared_ptr<Expr>> ret = get_var_use_exprs_from_vars();
+    std::vector<std::shared_ptr<Expr>> deref_exprs = get_deref_expr_to_vars();
+    ret.insert(ret.end(), deref_exprs.begin(), deref_exprs.end());
     var_use_exprs_from_vars_in_arrays(ret);
     return ret;
 }
@@ -280,11 +321,50 @@ void SymbolTable::emit_array_check (std::ostream& stream, std::string offset) {
                 case Data::STRUCT:
                     emit_single_struct_check(nullptr, std::static_pointer_cast<Struct>(array_elem), stream, offset);
                     break;
+                case Data::POINTER:
                 case Data::ARRAY:
                 case Data::MAX_CLASS_ID:
                     ERROR("inappropriate Data class for array");
             }
         }
+}
+
+void SymbolTable::emit_ptr_extern_decl (std::ostream& stream, std::string offset) {
+    auto emitter = [&stream, &offset] (SymbolTable::PointersInfo ptrs_info) {
+        for (int i = 0; i < ptrs_info.ptr.size(); ++i) {
+            DeclStmt decl (ptrs_info.ptr.at(i), nullptr, true);
+            stream << offset;
+            decl.emit(stream);
+            stream << "\n";
+        }
+    };
+    emitter(ptr_to_vars);
+    emitter(std::get<ALL>(ptr_to_members));
+}
+
+void SymbolTable::emit_ptr_def (std::ostream& stream, std::string offset) {
+    auto emitter = [&stream, &offset] (SymbolTable::PointersInfo ptrs_info) {
+        for (int i = 0; i < ptrs_info.ptr.size(); ++i) {
+            DeclStmt decl (ptrs_info.ptr.at(i), ptrs_info.init_expr.at(i));
+            stream << offset;
+            decl.emit(stream);
+            stream << "\n";
+        }
+    };
+    emitter(ptr_to_vars);
+    emitter(std::get<ALL>(ptr_to_members));
+}
+
+void SymbolTable::emit_ptr_check (std::ostream& stream, std::string offset) {
+    auto emitter = [&stream, &offset] (SymbolTable::PointersInfo ptrs_info) {
+        for (int i = 0; i < ptrs_info.ptr.size(); ++i) {
+            stream << offset + "hash(&seed, ";
+            ptrs_info.deref_expr.at(i)->emit(stream);
+            stream << ");\n";
+        }
+    };
+    emitter(ptr_to_vars);
+    emitter(std::get<ALL>(ptr_to_members));
 }
 
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx, Node::NodeID _self_stmt_id, bool _taken) {

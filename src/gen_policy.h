@@ -138,10 +138,12 @@ class NameHandler {
         std::string get_scalar_var_name() { return test_func_prefix + "var_" + std::to_string(++scalar_var_count); }
         std::string get_struct_var_name() { return test_func_prefix + "struct_obj_" + std::to_string(++struct_var_count); }
         std::string get_array_var_name() { return test_func_prefix + "array_" + std::to_string(++array_var_count); }
-        void zero_out_counters () { struct_type_count = scalar_var_count = struct_var_count = array_var_count = 0; }
+        std::string get_ptr_var_name() { return test_func_prefix + "ptr_" + std::to_string(++ptr_var_count); }
+        void zero_out_counters () { struct_type_count = scalar_var_count = struct_var_count =
+                                    array_var_count = ptr_var_count = 0; }
 
     private:
-        NameHandler() : struct_type_count(0), scalar_var_count(0), struct_var_count(0) {};
+        NameHandler() : struct_type_count(0), scalar_var_count(0), struct_var_count(0), ptr_var_count(0) {};
 
         // Test function prefix is required for multiple functions in one test
         std::string test_func_prefix;
@@ -149,6 +151,7 @@ class NameHandler {
         uint32_t scalar_var_count;
         uint32_t struct_var_count;
         uint32_t array_var_count;
+        uint32_t ptr_var_count;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,7 +227,7 @@ class GenPolicy {
 
         //TODO: This can be replaced with enum from Data
         enum OutDataTypeID {
-            VAR, STRUCT, VAR_IN_ARRAY, STRUCT_IN_ARRAY, MAX_OUT_DATA_TYPE_ID
+            VAR, STRUCT, VAR_IN_ARRAY, STRUCT_IN_ARRAY, PTR_TO_VAR, PTR_TO_MEMBER, MAX_OUT_DATA_TYPE_ID
         };
 
         enum OutDataCategoryID {
@@ -317,6 +320,10 @@ class GenPolicy {
         uint32_t get_min_mix_var_count () { return min_mix_var_count; }
         void set_max_mix_var_count (uint32_t _max_mix_var_count) { max_mix_var_count = _max_mix_var_count; }
         uint32_t get_max_mix_var_count () { return max_mix_var_count; }
+        void set_min_out_var_count (uint32_t _min_out_var_count) { min_out_var_count = _min_out_var_count; }
+        uint32_t get_min_out_var_count () { return min_out_var_count; }
+        void set_max_out_var_count (uint32_t _max_out_var_count) { max_out_var_count = _max_out_var_count; }
+        uint32_t get_max_out_var_count () { return max_out_var_count; }
         void set_min_inp_struct_count (uint32_t _min_inp_struct_count) { min_inp_struct_count = _min_inp_struct_count; }
         uint32_t get_min_inp_struct_count () { return min_inp_struct_count; }
         void set_max_inp_struct_count (uint32_t _max_inp_struct_count) { max_inp_struct_count = _max_inp_struct_count; }
@@ -329,6 +336,7 @@ class GenPolicy {
         uint32_t get_min_out_struct_count () { return min_out_struct_count; }
         void set_max_out_struct_count (uint32_t _max_out_struct_count) { max_out_struct_count = _max_out_struct_count; }
         uint32_t get_max_out_struct_count () { return max_out_struct_count; }
+        void set_min_inp_array_count (uint32_t _min_inp_array_count) { min_inp_array_count = _min_inp_array_count; }
         uint32_t get_min_inp_array_count () { return min_inp_array_count; }
         void set_max_inp_array_count (uint32_t _max_inp_array_count) { max_inp_array_count = _max_inp_array_count; }
         uint32_t get_max_inp_array_count () { return max_inp_array_count; }
@@ -340,6 +348,42 @@ class GenPolicy {
         uint32_t get_min_out_array_count () { return min_out_array_count; }
         void set_max_out_array_count (uint32_t _max_out_array_count) { max_out_array_count = _max_out_array_count; }
         uint32_t get_max_out_array_count () { return max_out_array_count; }
+        void set_min_inp_pointer_count (uint32_t _min_inp_pointer_count) { min_inp_pointer_count = _min_inp_pointer_count; }
+        uint32_t get_min_inp_pointer_count () { return min_inp_pointer_count; }
+        void set_max_inp_pointer_count (uint32_t _max_inp_pointer_count) { max_inp_pointer_count = _max_inp_pointer_count; }
+        uint32_t get_max_inp_pointer_count () { return max_inp_pointer_count; }
+        void set_min_mix_pointer_count (uint32_t _min_mix_pointer_count) { min_mix_pointer_count = _min_mix_pointer_count; }
+        uint32_t get_min_mix_pointer_count () { return min_mix_pointer_count; }
+        void set_max_mix_pointer_count (uint32_t _max_mix_pointer_count) { max_mix_pointer_count = _max_mix_pointer_count; }
+        uint32_t get_max_mix_pointer_count () { return max_mix_pointer_count; }
+        void set_min_out_pointer_count (uint32_t _min_out_pointer_count) { min_out_pointer_count = _min_out_pointer_count; }
+        uint32_t get_min_out_pointer_count () { return min_out_pointer_count; }
+        void set_max_out_pointer_count (uint32_t _max_out_pointer_count) { max_out_pointer_count = _max_out_pointer_count; }
+        uint32_t get_max_out_pointer_count () { return max_out_pointer_count; }
+        void set_min_inp_const_memb_ptr_count (uint32_t _min_inp_const_memb_ptr_count) { min_inp_const_memb_ptr_count = _min_inp_const_memb_ptr_count; }
+        uint32_t get_min_inp_const_memb_ptr_count () { return min_inp_const_memb_ptr_count; }
+        void set_max_inp_const_memb_ptr_count (uint32_t _max_inp_const_memb_ptr_count) { max_inp_const_memb_ptr_count = _max_inp_const_memb_ptr_count; }
+        uint32_t get_max_inp_const_memb_ptr_count () { return max_inp_const_memb_ptr_count; }
+        void set_min_mix_const_memb_ptr_count (uint32_t _min_mix_const_memb_ptr_count) { min_mix_const_memb_ptr_count = _min_mix_const_memb_ptr_count; }
+        uint32_t get_min_mix_const_memb_ptr_count () { return min_mix_const_memb_ptr_count; }
+        void set_max_mix_const_memb_ptr_count (uint32_t _max_mix_const_memb_ptr_count) { max_mix_const_memb_ptr_count = _max_mix_const_memb_ptr_count; }
+        uint32_t get_max_mix_const_memb_ptr_count () { return max_mix_const_memb_ptr_count; }
+        void set_min_out_const_memb_ptr_count (uint32_t _min_out_const_memb_ptr_count) { min_out_const_memb_ptr_count = _min_out_const_memb_ptr_count; }
+        uint32_t get_min_out_const_memb_ptr_count () { return min_out_const_memb_ptr_count; }
+        void set_max_out_const_memb_ptr_count (uint32_t _max_out_const_memb_ptr_count) { max_out_const_memb_ptr_count = _max_out_const_memb_ptr_count; }
+        uint32_t get_max_out_const_memb_ptr_count () { return max_out_const_memb_ptr_count; }
+        void set_min_inp_memb_ptr_count (uint32_t _min_inp_memb_ptr_count) { min_inp_memb_ptr_count = _min_inp_memb_ptr_count; }
+        uint32_t get_min_inp_memb_ptr_count () { return min_inp_memb_ptr_count; }
+        void set_max_inp_memb_ptr_count (uint32_t _max_inp_memb_ptr_count) { max_inp_memb_ptr_count = _max_inp_memb_ptr_count; }
+        uint32_t get_max_inp_memb_ptr_count () { return max_inp_memb_ptr_count; }
+        void set_min_mix_memb_ptr_count (uint32_t _min_mix_memb_ptr_count) { min_mix_memb_ptr_count = _min_mix_memb_ptr_count; }
+        uint32_t get_min_mix_memb_ptr_count () { return min_mix_memb_ptr_count; }
+        void set_max_mix_memb_ptr_count (uint32_t _max_mix_memb_ptr_count) { max_mix_memb_ptr_count = _max_mix_memb_ptr_count; }
+        uint32_t get_max_mix_memb_ptr_count () { return max_mix_memb_ptr_count; }
+        void set_min_out_memb_ptr_count (uint32_t _min_out_memb_ptr_count) { min_out_memb_ptr_count = _min_out_memb_ptr_count; }
+        uint32_t get_min_out_memb_ptr_count () { return min_out_memb_ptr_count; }
+        void set_max_out_memb_ptr_count (uint32_t _max_out_memb_ptr_count) { max_out_memb_ptr_count = _max_out_memb_ptr_count; }
+        uint32_t get_max_out_memb_ptr_count () { return max_out_memb_ptr_count; }
 
         // Arrays section - defines arrays' sizes, their kind, base type probability
         uint32_t get_min_array_size () { return min_array_size; }
@@ -454,6 +498,8 @@ class GenPolicy {
         uint32_t max_inp_var_count;
         uint32_t min_mix_var_count;
         uint32_t max_mix_var_count;
+        uint32_t min_out_var_count;
+        uint32_t max_out_var_count;
         uint32_t min_inp_struct_count;
         uint32_t max_inp_struct_count;
         uint32_t min_mix_struct_count;
@@ -466,6 +512,24 @@ class GenPolicy {
         uint32_t max_mix_array_count;
         uint32_t min_out_array_count;
         uint32_t max_out_array_count;
+        uint32_t min_inp_pointer_count;
+        uint32_t max_inp_pointer_count;
+        uint32_t min_mix_pointer_count;
+        uint32_t max_mix_pointer_count;
+        uint32_t min_out_pointer_count;
+        uint32_t max_out_pointer_count;
+        uint32_t min_inp_const_memb_ptr_count;
+        uint32_t max_inp_const_memb_ptr_count;
+        uint32_t min_mix_const_memb_ptr_count;
+        uint32_t max_mix_const_memb_ptr_count;
+        uint32_t min_out_const_memb_ptr_count;
+        uint32_t max_out_const_memb_ptr_count;
+        uint32_t min_inp_memb_ptr_count;
+        uint32_t max_inp_memb_ptr_count;
+        uint32_t min_mix_memb_ptr_count;
+        uint32_t max_mix_memb_ptr_count;
+        uint32_t min_out_memb_ptr_count;
+        uint32_t max_out_memb_ptr_count;
 
         // Array
         uint32_t min_array_size;

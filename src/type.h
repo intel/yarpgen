@@ -39,6 +39,7 @@ class Type {
             BUILTIN_TYPE,
             STRUCT_TYPE,
             ARRAY_TYPE,
+            POINTER_TYPE,
             MAX_TYPE_ID
         };
 
@@ -101,6 +102,7 @@ class Type {
         virtual bool is_int_type() { return false; }
         virtual bool is_struct_type() { return false; }
         virtual bool is_array_type() { return false; }
+        virtual bool is_ptr_type() { return false; }
 
         // Pure virtual function, used for debug purposes
         virtual void dbg_dump() = 0;
@@ -593,5 +595,24 @@ class ArrayType : public Type {
         std::shared_ptr<Type> base_type;
         uint32_t size;
         Kind kind;
+};
+
+// Class which represents pointers
+class PointerType : public Type {
+    public:
+        PointerType (std::shared_ptr<Type> base_type) :
+                Type(TypeID::POINTER_TYPE), pointee_type(base_type), depth(1) { init(); }
+        PointerType (std::shared_ptr<Type> base_type, CV_Qual _cv_qual, bool _is_static, uint32_t _align) :
+                Type(TypeID::POINTER_TYPE, _cv_qual, _is_static, _align), pointee_type(base_type), depth(1) { init(); }
+        bool is_ptr_type() { return true; }
+        std::shared_ptr<Type> get_pointee_type() { return pointee_type; }
+        uint32_t get_depth() { return depth; }
+        void dbg_dump();
+
+    private:
+        void init();
+
+        std::shared_ptr<Type> pointee_type;
+        uint32_t depth;
 };
 }
