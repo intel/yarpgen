@@ -30,6 +30,9 @@ find /tmp -user $current_user -name "iccdash*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "iccdummy*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "iccgccdash*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "icclibgcc*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "icpc*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "data.*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "creduce*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "tmp*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "cc*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "??????????" -type f -mmin +60 -delete
