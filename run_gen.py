@@ -379,22 +379,14 @@ class Test(object):
         for run in bad_runs:
             self.stat.update_target_runs(run.optset, out_dif)
 
-        # Prepare files
-        save_only_log = False
-        if self.status == self.STATUS_no_good_runs and Test.ignore_comp_time_exp:
-            for run in self.fail_test_runs:
-                save_only_log |= run.status == TestRun.STATUS_compfail_timeout
-
-        files_to_save = []
-        if not save_only_log:
-            files_to_save = self.files
-            for run in (bad_runs + good_runs):
-                files_to_save.append(run.exe_file)
-
         # Build log
         log = self.build_log(bad_runs, good_runs)
         self.files.append(log)
-        files_to_save.append(log)
+
+        # List of files to save
+        files_to_save = self.files
+        for run in (bad_runs + good_runs):
+            files_to_save.append(run.exe_file)
 
         # Prepare compiler's name set
         cmplr_set = set()
@@ -932,7 +924,7 @@ class TestRun(object):
         # Files to save: source files, own files, files from similar fails and
         # log file.
         file_list = []
-        if not self.test.ignore_comp_time_exp:
+        if self.status != self.STATUS_compfail_timeout or not self.test.ignore_comp_time_exp:
             file_list = self.test.files + self.files
             for run in self.same_type_fails:
                 file_list += run.files
