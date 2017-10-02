@@ -1,4 +1,10 @@
 LLVM:
+34787 - Assertion `TN->getNumChildren() == 0 && "Not a tree leaf"'
+34782 - Assertion "Deleted edge still exists in the CFG!"
+34381 - Clang produces incorrect code at -O0
+34377 - Clang produces incorrect code with -O1 and higher
+34137 - clang crash in llvm::SelectionDAG::Combine on -O0
+33844 - Assertion `loBit <= BitWidth && "loBit out of range"' failed with -O1
 33828 - Crash in X86DAGToDAGISel::RunSDNodeXForm: "getConstant with a uint64_t value that doesn't fit in the type!"
 33765 - Replacing instructions in instcombine violates dominance relation
 33695 - Bit-Tracking Dead Code Elimination (BDCE) fails to invalidate nsw/nuw after transforms
@@ -49,6 +55,21 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+82381 - [8 Regression] internal compiler error: qsort checking failed
+82353 - [8 Regression] runtime ubsan crash
+82192 - [5/6/7/8 Regression] gcc produces incorrect code with -O2 and bit-field
+82073 - internal compiler error: in pop_to_marker, at tree-ssa-scopedtables.c
+81987 - [8 Regression] ICE in verify_ssa with -O3 -march=skylake-avx512
+81814 - [5/6/7 Regression] Incorrect behaviour at -O0 (conditional operator)
+81705 - [8 Regression] UBSAN: yet another false positive
+81607 - [6 Regression] Conditional operator: "type mismatch in shift expression" error
+81588 - [7/8 Regression] Wrong code at -O2
+81556 - [7/8 Regression] Wrong code at -O2
+81555 - [5/6/7/8 Regression] Wrong code at -O1
+81553 - [7/8 Regression] ICE in immed_wide_int_const, at emit-rtl.c:607
+81546 - [8 Regression] ICE at -O3 during GIMPLE pass dom
+81503 - [8 Regression] Wrong code at -O2
+81488 - [8 Regression] gcc goes off the limits allocating memory in gimple-ssa-strength-reduction.c
 81423 - [6/7/8 Regression] Wrong code at -O2
 81403 - [8 Regression] wrong code at -O3
 81387 - UBSAN consumes too much memory at -O2
