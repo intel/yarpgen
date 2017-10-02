@@ -101,7 +101,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         start_opt, end_opt, cur_opt = get_next_step(start_opt, end_opt, cur_opt, failed_flag)
         common.log_msg(logging.DEBUG, "Previous failed (process " + str(num) + "): " + str(failed_flag))
         failed_flag = False
-        eff = ((start_opt + 1) == cur_opt)  # Earliest fail was found
+        eff = ((start_opt + 1) >= cur_opt)  # Earliest fail was found
 
         common.log_msg(logging.DEBUG, "Trying opt (process " + str(num) + "): " + str(start_opt) + "/" + str(cur_opt) + "/" + str(end_opt))
         gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, inject_str + str(cur_opt))
@@ -141,7 +141,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         common.log_msg(logging.DEBUG, "Swapping current and end opt (process " + str(num) + ")")
         cur_opt = end_opt
 
-    common.log_msg(logging.DEBUG, "Finished blame phase, result: " + str(cur_opt) + " (process " + str(num) + ")")
+    common.log_msg(logging.DEBUG, "Finished blame phase, result: " + str(inject_str) + str(cur_opt) + " (process " + str(num) + ")")
 
     return str(cur_opt)
 
