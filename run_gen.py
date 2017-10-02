@@ -73,6 +73,7 @@ known_build_fails = { \
     "DELETED_NODE_CSEMap": "DELETED_NODE in CSEMap!", \
     "VerifyScheduledSequence": "The number of nodes scheduled doesn't match the expected number", \
     "physreg_copy": "Cannot emit physreg copy instruction", \
+    "deleted_cfg_edge": "Deleted edge still exists in the CFG", \
 # gcc
     "compute_live_loop_exits" : "compute_live_loop_exits", \
     "ubsan_instrument_division": "ubsan_instrument_division", \
@@ -85,6 +86,7 @@ known_build_fails = { \
     "verify_gimple_register_size": "conversion of register to a different size", \
     "decompose": "in decompose", \
     "verify_gimple_unary_conversion": "mismatching comparison operand types", \
+    "qsort": "qsort checking failed", \
 # problem with available memory
     "memory_problem": "std::bad_alloc", \
     "memory_problem": "Cannot allocate memory" \
