@@ -110,7 +110,8 @@ class Array : public Data {
 class Pointer : public Data {
     public:
         Pointer (std::string _name, std::shared_ptr<Data> _pointee);
-        void set_pointee (std::shared_ptr<Data> _pointee) { pointee = _pointee; }
+        Pointer (std::string _name, std::shared_ptr<PointerType> _type);
+        void set_pointee (std::shared_ptr<Data> _pointee);
         std::shared_ptr<Data> get_pointee () { return pointee; }
         void dbg_dump ();
 

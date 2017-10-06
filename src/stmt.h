@@ -97,9 +97,11 @@ class ScopeStmt : public Stmt {
         static std::shared_ptr<ScopeStmt> generate (std::shared_ptr<Context> ctx);
 
     private:
-        static std::vector<std::shared_ptr<Expr>> extract_inp_from_ctx(std::shared_ptr<Context> ctx);
-        static std::vector<std::shared_ptr<Expr>> extract_locals_from_ctx(std::shared_ptr<Context> ctx);
-        static std::vector<std::shared_ptr<Expr>> extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx);
+        using ExprVector = std::vector<std::shared_ptr<Expr>>;
+        static ExprVector extract_inp_from_ctx(std::shared_ptr<Context> ctx);
+        static ExprVector extract_locals_from_ctx(std::shared_ptr<Context> ctx);
+        static ExprVector extract_inp_and_mix_from_ctx(std::shared_ptr<Context> ctx);
+        static std::map<std::string, ExprVector> extract_all_local_ptr_exprs(std::shared_ptr<Context> ctx);
 
         std::vector<std::shared_ptr<Stmt>> scope;
 };
