@@ -77,24 +77,12 @@ const uint32_t MAX_MIX_ARRAY_COUNT = 6;
 const uint32_t MIN_OUT_ARRAY_COUNT = 0;
 const uint32_t MAX_OUT_ARRAY_COUNT = 8;
 
-const uint32_t MIN_INP_POINTER_COUNT = 0;
-const uint32_t MAX_INP_POINTER_COUNT = 10;
-const uint32_t MIN_MIX_POINTER_COUNT = 0;
-const uint32_t MAX_MIX_POINTER_COUNT = 10;
-const uint32_t MIN_OUT_POINTER_COUNT = 0;
-const uint32_t MAX_OUT_POINTER_COUNT = 10;
-const uint32_t MIN_INP_CONST_MEMB_PTR_COUNT = 0;
-const uint32_t MAX_INP_CONST_MEMB_PTR_COUNT = 5;
-const uint32_t MIN_MIX_CONST_MEMB_PTR_COUNT = 0;
-const uint32_t MAX_MIX_CONST_MEMB_PTR_COUNT = 5;
-const uint32_t MIN_OUT_CONST_MEMB_PTR_COUNT = 0;
-const uint32_t MAX_OUT_CONST_MEMB_PTR_COUNT = 5;
-const uint32_t MIN_INP_MEMB_PTR_COUNT = 0;
-const uint32_t MAX_INP_MEMB_PTR_COUNT = 5;
-const uint32_t MIN_MIX_MEMB_PTR_COUNT = 0;
-const uint32_t MAX_MIX_MEMB_PTR_COUNT = 5;
-const uint32_t MIN_OUT_MEMB_PTR_COUNT = 0;
-const uint32_t MAX_OUT_MEMB_PTR_COUNT = 5;
+const uint32_t MIN_INP_PTR_COUNT = 0;
+const uint32_t MAX_INP_PTR_COUNT = 10;
+const uint32_t MIN_MIX_PTR_COUNT = 0;
+const uint32_t MAX_MIX_PTR_COUNT = 10;
+const uint32_t MIN_OUT_PTR_COUNT = 0;
+const uint32_t MAX_OUT_PTR_COUNT = 10;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -171,11 +159,11 @@ void GenPolicy::init_from_config () {
     rand_val_gen->shuffle_prob(bit_field_prob);
 
     out_data_type_prob.emplace_back(Probability<OutDataTypeID>(VAR, 50));
-    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(STRUCT, 25));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(MEMBER, 25));
     out_data_type_prob.emplace_back(Probability<OutDataTypeID>(VAR_IN_ARRAY, 15));
-    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(STRUCT_IN_ARRAY, 10));
-    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(PTR_TO_VAR, 10));
-    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(PTR_TO_MEMBER, 10));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(MEMBER_IN_ARRAY, 10));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(DEREFERENCE, 10));
+    out_data_type_prob.emplace_back(Probability<OutDataTypeID>(POINTER, 10));
     rand_val_gen->shuffle_prob(out_data_type_prob);
 
     out_data_category_prob.emplace_back(Probability<OutDataCategoryID>(MIX, 50));
@@ -214,24 +202,12 @@ void GenPolicy::init_from_config () {
         min_out_array_count = max_out_array_count = 0;
     }
 
-    min_inp_pointer_count = MIN_INP_POINTER_COUNT;
-    max_inp_pointer_count = MAX_INP_POINTER_COUNT;
-    min_mix_pointer_count = MIN_MIX_POINTER_COUNT;
-    max_mix_pointer_count = MAX_MIX_POINTER_COUNT;
-    min_out_pointer_count = MIN_OUT_POINTER_COUNT;
-    max_out_pointer_count = MAX_OUT_POINTER_COUNT;
-    min_inp_const_memb_ptr_count = MIN_INP_CONST_MEMB_PTR_COUNT;
-    max_inp_const_memb_ptr_count = MAX_INP_CONST_MEMB_PTR_COUNT;
-    min_mix_const_memb_ptr_count = MIN_MIX_CONST_MEMB_PTR_COUNT;
-    max_mix_const_memb_ptr_count = MAX_MIX_CONST_MEMB_PTR_COUNT;
-    min_out_const_memb_ptr_count = MIN_OUT_CONST_MEMB_PTR_COUNT;
-    max_out_const_memb_ptr_count = MAX_OUT_CONST_MEMB_PTR_COUNT;
-    min_inp_memb_ptr_count = MIN_INP_MEMB_PTR_COUNT;
-    max_inp_memb_ptr_count = MAX_INP_MEMB_PTR_COUNT;
-    min_mix_memb_ptr_count = MIN_MIX_MEMB_PTR_COUNT;
-    max_mix_memb_ptr_count = MAX_MIX_MEMB_PTR_COUNT;
-    min_out_memb_ptr_count = MIN_OUT_MEMB_PTR_COUNT;
-    max_out_memb_ptr_count = MAX_OUT_MEMB_PTR_COUNT;
+    min_inp_ptr_count = MIN_INP_PTR_COUNT;
+    max_inp_ptr_count = MAX_INP_PTR_COUNT;
+    min_mix_ptr_count = MIN_MIX_PTR_COUNT;
+    max_mix_ptr_count = MAX_MIX_PTR_COUNT;
+    min_out_ptr_count = MIN_OUT_PTR_COUNT;
+    max_out_ptr_count = MAX_OUT_PTR_COUNT;
 
     max_arith_depth = MAX_ARITH_DEPTH;
     max_total_expr_count = MAX_TOTAL_EXPR_COUNT;

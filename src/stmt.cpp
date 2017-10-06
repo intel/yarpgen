@@ -225,98 +225,112 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         Node::NodeID gen_id = rand_val_gen->get_rand_id(p->get_stmt_gen_prob());
         // ExprStmt
         if (gen_id == Node::NodeID::EXPR) {
-            //TODO: add to gen_policy
             // Are we going to use mixed variable or create new output variable?
-            bool use_mix = rand_val_gen->get_rand_id(p->get_out_data_category_prob()) == GenPolicy::OutDataCategoryID::MIX;
+            bool use_mix = rand_val_gen->get_rand_id(p->get_out_data_category_prob()) ==
+                           GenPolicy::OutDataCategoryID::MIX;
             GenPolicy::OutDataTypeID out_data_type = rand_val_gen->get_rand_id(p->get_out_data_type_prob());
-            std::shared_ptr<Expr> assign_lhs = nullptr;
+            // Create assignment to pointer
+            if (out_data_type == GenPolicy::OutDataTypeID::POINTER) {
+                auto ptr_assign_generation = [&ret, &out_data_type, &ctx] (std::shared_ptr<SymbolTable> sym_table) {
+                    std::map<std::string, SymbolTable::ExprVector> &lval_map = sym_table->get_lval_expr_with_ptr_type();
+                    std::map<std::string, SymbolTable::ExprVector> &all_map = sym_table->get_all_expr_with_ptr_type();
+                    std::vector<std::string> ptr_type_keys = sym_table->get_lval_ptr_map_keys();
+                    if (!ptr_type_keys.empty()) {
+                        std::string chosen_key = rand_val_gen->get_rand_elem(ptr_type_keys);
+                        std::shared_ptr<Expr> lhs = rand_val_gen->get_rand_elem(lval_map.at(chosen_key));
+                        ret->add_stmt(ExprStmt::generate(ctx, all_map.at(chosen_key), lhs, true));
+                    }
+                    else
+                        // We can't create assignment to pointer, so fall back to variable
+                        out_data_type = GenPolicy::OutDataTypeID::VAR;
+                };
 
-            // This function checks if we have any suitable members / variables / arrays
-            auto check_ctx_for_zero_size = [&out_data_type] (std::shared_ptr<SymbolTable> sym_table) -> bool {
-                return (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY &&
+                if (!use_mix)
+                    ptr_assign_generation(ctx->get_extern_mix_sym_table());
+                else
+                    ptr_assign_generation(ctx->get_extern_out_sym_table());
+            }
+            // Create assignment to variable or member
+            if (out_data_type != GenPolicy::OutDataTypeID::POINTER) {
+                std::shared_ptr<Expr> assign_lhs = nullptr;
+
+                // This function checks if we have any suitable members / variables / arrays
+                auto check_ctx_for_zero_size = [&out_data_type](std::shared_ptr<SymbolTable> sym_table) -> bool {
+                    return (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY &&
                             sym_table->get_var_use_exprs_in_arrays().empty()) ||
-                       (out_data_type == GenPolicy::OutDataTypeID::STRUCT &&
+                           (out_data_type == GenPolicy::OutDataTypeID::MEMBER &&
                             sym_table->get_members_in_structs().empty()) ||
-                       (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY &&
+                           (out_data_type == GenPolicy::OutDataTypeID::MEMBER_IN_ARRAY &&
                             sym_table->get_members_in_arrays().empty()) ||
-                       (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_VAR &&
-                            sym_table->get_deref_expr_to_vars().empty()) ||
-                       (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_MEMBER &&
-                            sym_table->get_deref_expr_to_members().empty());
-            };
+                           (out_data_type == GenPolicy::OutDataTypeID::DEREFERENCE &&
+                            sym_table->get_deref_exprs().empty());
+                };
 
-            // This function randomly picks element from vector.
-            // Also it optionally returns picked element's id in ret_rand_num
-            auto pick_elem = [&assign_lhs] (auto vector_of_exprs, uint32_t* ret_rand_num = nullptr) {
-                uint64_t rand_num = rand_val_gen->get_rand_value(0UL, vector_of_exprs.size() - 1);
-                assign_lhs = vector_of_exprs.at(rand_num);
-                if (ret_rand_num != nullptr)
-                    *ret_rand_num = rand_num;
-            };
+                // This function randomly picks element from vector.
+                // Also it optionally returns picked element's id in ret_rand_num
+                auto pick_elem = [&assign_lhs](auto vector_of_exprs, uint32_t *ret_rand_num = nullptr) {
+                    uint64_t rand_num = rand_val_gen->get_rand_value(0UL, vector_of_exprs.size() - 1);
+                    assign_lhs = vector_of_exprs.at(rand_num);
+                    if (ret_rand_num != nullptr)
+                        *ret_rand_num = rand_num;
+                };
 
-            if (!use_mix || ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars().empty()) {
-                bool zero_size = check_ctx_for_zero_size(ctx->get_extern_out_sym_table());
+                if (!use_mix || ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars().empty()) {
+                    bool zero_size = check_ctx_for_zero_size(ctx->get_extern_out_sym_table());
 
-                // Create new output variable or we don't have any suitable members / variables / arrays
-                if (out_data_type == GenPolicy::OutDataTypeID::VAR || zero_size) {
-                    std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
-                    ctx->get_extern_out_sym_table()->add_variable (out_var);
-                    assign_lhs = std::make_shared<VarUseExpr>(out_var);
+                    // Create new output variable or we don't have any suitable members / variables / arrays
+                    if (out_data_type == GenPolicy::OutDataTypeID::VAR || zero_size) {
+                        std::shared_ptr<ScalarVariable> out_var = ScalarVariable::generate(ctx);
+                        ctx->get_extern_out_sym_table()->add_variable(out_var);
+                        assign_lhs = std::make_shared<VarUseExpr>(out_var);
+                    }
+                        // Use variable in output array
+                    else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
+                        //TODO: we should also delete it (make it nonreusable)
+                        pick_elem(ctx->get_extern_out_sym_table()->get_var_use_exprs_in_arrays());
+                        // Use member of output struct
+                    else if (out_data_type == GenPolicy::OutDataTypeID::MEMBER) {
+                        uint32_t elem_num;
+                        pick_elem(ctx->get_extern_out_sym_table()->get_members_in_structs(), &elem_num);
+                        ctx->get_extern_out_sym_table()->del_member_in_structs(elem_num);
+                    }
+                        // Use member of struct in output array
+                    else if (out_data_type == GenPolicy::OutDataTypeID::MEMBER_IN_ARRAY) {
+                        uint32_t elem_num;
+                        pick_elem(ctx->get_extern_out_sym_table()->get_members_in_arrays(), &elem_num);
+                        ctx->get_extern_out_sym_table()->del_member_in_arrays(elem_num);
+                    }
+                        // Use dereference expression to output data
+                    else if (out_data_type == GenPolicy::OutDataTypeID::DEREFERENCE)
+                        //TODO: we should also delete it (make it nonreusable)
+                        pick_elem(ctx->get_extern_out_sym_table()->get_deref_exprs());
+                    else
+                        ERROR("bad OutDataTypeID");
+
+                } else {
+                    bool zero_size = check_ctx_for_zero_size(ctx->get_extern_mix_sym_table());
+
+                    // Use mixed variable or we don't have any suitable members / variables / arrays
+                    if (out_data_type == GenPolicy::OutDataTypeID::VAR || zero_size)
+                        pick_elem(ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars());
+                        // Use variable in mixed array
+                    else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
+                        pick_elem(ctx->get_extern_mix_sym_table()->get_var_use_exprs_in_arrays());
+                        // Use member of mixed struct
+                    else if (out_data_type == GenPolicy::OutDataTypeID::MEMBER)
+                        pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_structs());
+                        // Use member of struct in mixed array
+                    else if (out_data_type == GenPolicy::OutDataTypeID::MEMBER_IN_ARRAY)
+                        pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_arrays());
+                        // Use dereference expression to mix data
+                    else if (out_data_type == GenPolicy::OutDataTypeID::DEREFERENCE)
+                        pick_elem(ctx->get_extern_mix_sym_table()->get_deref_exprs());
+                    else
+                        ERROR("bad OutDataTypeID");
+
                 }
-                // Use variable in output array
-                else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
-                    //TODO: we should also delete it (make it nonreusable)
-                    pick_elem(ctx->get_extern_out_sym_table()->get_var_use_exprs_in_arrays());
-                // Use member of output struct
-                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT) {
-                    uint32_t elem_num;
-                    pick_elem(ctx->get_extern_out_sym_table()->get_members_in_structs(), &elem_num);
-                    ctx->get_extern_out_sym_table()->del_member_in_structs(elem_num);
-                }
-                // Use member of struct in output array
-                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY) {
-                    uint32_t elem_num;
-                    pick_elem(ctx->get_extern_out_sym_table()->get_members_in_arrays(), &elem_num);
-                    ctx->get_extern_out_sym_table()->del_member_in_arrays(elem_num);
-                }
-                // Use pointer to variable
-                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_VAR)
-                    //TODO: we should also delete it (make it nonreusable)
-                    pick_elem(ctx->get_extern_out_sym_table()->get_deref_expr_to_vars());
-                // Use pointer to member
-                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_MEMBER)
-                    //TODO: we should also delete it (make it nonreusable)
-                    pick_elem(ctx->get_extern_out_sym_table()->get_deref_expr_to_members());
-                else
-                    ERROR("bad OutDataTypeID");
-
+                ret->add_stmt(ExprStmt::generate(ctx, inp, assign_lhs, true));
             }
-            else {
-                bool zero_size = check_ctx_for_zero_size(ctx->get_extern_mix_sym_table());
-
-                // Use mixed variable or we don't have any suitable members / variables / arrays
-                if (out_data_type == GenPolicy::OutDataTypeID::VAR || zero_size)
-                    pick_elem(ctx->get_extern_mix_sym_table()->get_var_use_exprs_from_vars());
-                // Use variable in mixed array
-                else if (out_data_type == GenPolicy::OutDataTypeID::VAR_IN_ARRAY)
-                    pick_elem(ctx->get_extern_mix_sym_table()->get_var_use_exprs_in_arrays());
-                // Use member of mixed struct
-                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT)
-                    pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_structs());
-                // Use member of struct in mixed array
-                else if (out_data_type == GenPolicy::OutDataTypeID::STRUCT_IN_ARRAY)
-                    pick_elem(ctx->get_extern_mix_sym_table()->get_members_in_arrays());
-                // Use pointer to mix variable
-                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_VAR)
-                    pick_elem(ctx->get_extern_mix_sym_table()->get_deref_expr_to_vars());
-                // Use pointer to member of mix struct
-                else if (out_data_type == GenPolicy::OutDataTypeID::PTR_TO_MEMBER)
-                    pick_elem(ctx->get_extern_mix_sym_table()->get_deref_expr_to_members());
-                else
-                    ERROR("bad OutDataTypeID");
-
-            }
-            ret->add_stmt(ExprStmt::generate(ctx, inp, assign_lhs, true));
         }
         // DeclStmt or if we want IfStmt, but have reached its depth limit
         else if (gen_id == Node::NodeID::DECL || (ctx->get_if_depth() == p->get_max_if_depth())) {
@@ -347,7 +361,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_from_ctx(std::shared_p
     for (auto i : ctx->get_extern_inp_sym_table()->get_const_members_in_arrays())
         ret.push_back(i);
 
-    for (auto i : ctx->get_extern_inp_sym_table()->get_deref_expr_to_const_members())
+    for (auto i : ctx->get_extern_inp_sym_table()->get_deref_exprs())
         ret.push_back(i);
 
     return ret;
@@ -374,10 +388,9 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_and_mix_from_ctx(std::
         ret.push_back(i);
     for (auto i : ctx->get_extern_mix_sym_table()->get_members_in_arrays())
         ret.push_back(i);
-    for (auto i : ctx->get_extern_mix_sym_table()->get_deref_expr_to_members())
-        ret.push_back(i);
-
     for (auto i : ctx->get_extern_mix_sym_table()->get_all_var_use_exprs())
+        ret.push_back(i);
+    for (auto i : ctx->get_extern_mix_sym_table()->get_deref_exprs())
         ret.push_back(i);
 
     auto locals = extract_locals_from_ctx(ctx);
@@ -403,9 +416,15 @@ std::shared_ptr<ExprStmt> ExprStmt::generate (std::shared_ptr<Context> ctx,
     Stmt::increase_stmt_count();
     GenPolicy::add_to_complexity(Node::NodeID::EXPR);
 
+    std::shared_ptr<AssignExpr> assign_exp;
     //TODO: now it can be only assign. Do we want something more?
-    std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
-    std::shared_ptr<AssignExpr> assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
+    if (!out->get_value()->get_type()->is_ptr_type()) {
+        std::shared_ptr<Expr> from = ArithExpr::generate(ctx, inp);
+        assign_exp = std::make_shared<AssignExpr>(out, from, ctx->get_taken());
+    }
+    else {
+        assign_exp = std::make_shared<AssignExpr>(out, rand_val_gen->get_rand_elem(inp), ctx->get_taken());
+    }
     if (count_up_total)
         Expr::increase_expr_count(assign_exp->get_complexity());
     GenPolicy::add_to_complexity(Node::NodeID::ASSIGN);

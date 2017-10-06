@@ -349,6 +349,7 @@ void self_test () {
     array_2->dbg_dump();
     */
 
+    /*
     PointerType ptr_type (IntegerType::init(IntegerType::UINT));
     ptr_type.dbg_dump();
     std::cout << "\n====================="<< std::endl;
@@ -370,5 +371,56 @@ void self_test () {
     std::cout << std::endl;
     deref_expr.get_value()->dbg_dump();
     std::cout << "\n====================="<< std::endl;
+    */
+    std::shared_ptr<ScalarVariable> pointee_1 = std::make_shared<ScalarVariable>("var_1",
+                                                                                 IntegerType::init(IntegerType::ULINT));
+    BuiltinType::ScalarTypedVal max_ullint = IntegerType::init(IntegerType::ULINT)->get_max();
+    pointee_1->set_cur_value(max_ullint);
+
+    std::shared_ptr<Pointer> pointer_1 = std::make_shared<Pointer>("ptr_1", pointee_1);
+    std::shared_ptr<VarUseExpr> ptr_1_use = std::make_shared<VarUseExpr>(pointer_1);
+
+    std::shared_ptr<ScalarVariable> pointee_2 = std::make_shared<ScalarVariable>("var_2",
+                                                                                 IntegerType::init(IntegerType::ULINT));
+    std::shared_ptr<Pointer> pointer_2 = std::make_shared<Pointer>("ptr_2", pointee_2);
+    std::shared_ptr<VarUseExpr> ptr_2_use = std::make_shared<VarUseExpr>(pointer_2);
+    std::shared_ptr<DereferenceExpr> ptr_2_deref = std::make_shared<DereferenceExpr>(ptr_2_use);
+
+    //std::shared_ptr<AssignExpr> ptr_assign = std::make_shared<AssignExpr>(ptr_2_use, ptr_1_use);
+    //pointer_2->dbg_dump();
+
+    std::shared_ptr<Pointer> ptr_to_ptr_1 = std::make_shared<Pointer>("ptr_to_ptr_1", pointer_1);
+    std::shared_ptr<VarUseExpr> ptr_to_ptr_1_use = std::make_shared<VarUseExpr>(ptr_to_ptr_1);
+
+    std::shared_ptr<Pointer> ptr_to_ptr_2 = std::make_shared<Pointer>("ptr_to_ptr_2", pointer_2);
+    std::shared_ptr<VarUseExpr> ptr_to_ptr_2_use = std::make_shared<VarUseExpr>(ptr_to_ptr_2);
+    std::shared_ptr<DereferenceExpr> ptr_to_ptr_2_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_2_use);
+    std::shared_ptr<DereferenceExpr> ptr_to_ptr_2_deref_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_2_deref);
+
+    std::shared_ptr<AssignExpr> ptr_to_assign = std::make_shared<AssignExpr>(ptr_to_ptr_2_use, ptr_to_ptr_1_use);
+    //ptr_to_ptr_2->dbg_dump();
+    /*
+    std::cout << "pointee_1 addr:" << pointee_1.get() << std::endl;
+    std::cout << "ptr_1 pointee addr: " << pointer_1->get_pointee().get() << std::endl;
+    std::cout << "ptr_1 var_use val addr: " << ptr_1_use->get_value().get() << std::endl;
+    std::cout << "ptr_1 var_use pointee addr: " << std::static_pointer_cast<Pointer>(ptr_1_use->get_value())->get_pointee().get() << std::endl;
+    std::cout << "pointee_2 addr:" << pointee_2.get() << std::endl;
+    std::cout << "ptr_2 pointee addr: " << pointer_2->get_pointee().get() << std::endl;
+    std::cout << "ptr_2 var_use val addr: " << ptr_2_use->get_value().get() << std::endl;
+    std::cout << "ptr_2 var_use pointee addr: " << std::static_pointer_cast<Pointer>(ptr_2_use->get_value())->get_pointee().get() << std::endl;
+    std::cout << std::static_pointer_cast<ScalarVariable>(ptr_2_deref->get_value())->get_cur_value() << std::endl;
+    std::cout << std::static_pointer_cast<ScalarVariable>(ptr_to_ptr_2_deref_deref->get_value())->get_cur_value() << std::endl;
+    std::cout << pointee_1->get_cur_value() << std::endl;
+    */
+
+    std::shared_ptr<DereferenceExpr> ptr_to_ptr_1_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_1_use);
+    ptr_to_ptr_1_deref->emit(std::cout);
+    std::cout << std::endl;
+    ptr_to_ptr_1_deref->get_value()->get_type()->dbg_dump();
+
+    std::shared_ptr<DereferenceExpr> ptr_to_ptr_1_deref_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_1_deref);
+    ptr_to_ptr_1_deref_deref->emit(std::cout);
+    std::cout << std::endl;
+    ptr_to_ptr_1_deref_deref->get_value()->get_type()->dbg_dump();
 
 }

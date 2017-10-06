@@ -225,9 +225,8 @@ class GenPolicy {
             Add, MAX_CSE_GEN_ID
         };
 
-        //TODO: This can be replaced with enum from Data
         enum OutDataTypeID {
-            VAR, STRUCT, VAR_IN_ARRAY, STRUCT_IN_ARRAY, PTR_TO_VAR, PTR_TO_MEMBER, MAX_OUT_DATA_TYPE_ID
+            VAR, MEMBER, VAR_IN_ARRAY, MEMBER_IN_ARRAY, DEREFERENCE, POINTER, MAX_OUT_DATA_TYPE_ID
         };
 
         enum OutDataCategoryID {
@@ -348,42 +347,17 @@ class GenPolicy {
         uint32_t get_min_out_array_count () { return min_out_array_count; }
         void set_max_out_array_count (uint32_t _max_out_array_count) { max_out_array_count = _max_out_array_count; }
         uint32_t get_max_out_array_count () { return max_out_array_count; }
-        void set_min_inp_pointer_count (uint32_t _min_inp_pointer_count) { min_inp_pointer_count = _min_inp_pointer_count; }
-        uint32_t get_min_inp_pointer_count () { return min_inp_pointer_count; }
-        void set_max_inp_pointer_count (uint32_t _max_inp_pointer_count) { max_inp_pointer_count = _max_inp_pointer_count; }
-        uint32_t get_max_inp_pointer_count () { return max_inp_pointer_count; }
-        void set_min_mix_pointer_count (uint32_t _min_mix_pointer_count) { min_mix_pointer_count = _min_mix_pointer_count; }
-        uint32_t get_min_mix_pointer_count () { return min_mix_pointer_count; }
-        void set_max_mix_pointer_count (uint32_t _max_mix_pointer_count) { max_mix_pointer_count = _max_mix_pointer_count; }
-        uint32_t get_max_mix_pointer_count () { return max_mix_pointer_count; }
-        void set_min_out_pointer_count (uint32_t _min_out_pointer_count) { min_out_pointer_count = _min_out_pointer_count; }
-        uint32_t get_min_out_pointer_count () { return min_out_pointer_count; }
-        void set_max_out_pointer_count (uint32_t _max_out_pointer_count) { max_out_pointer_count = _max_out_pointer_count; }
-        uint32_t get_max_out_pointer_count () { return max_out_pointer_count; }
-        void set_min_inp_const_memb_ptr_count (uint32_t _min_inp_const_memb_ptr_count) { min_inp_const_memb_ptr_count = _min_inp_const_memb_ptr_count; }
-        uint32_t get_min_inp_const_memb_ptr_count () { return min_inp_const_memb_ptr_count; }
-        void set_max_inp_const_memb_ptr_count (uint32_t _max_inp_const_memb_ptr_count) { max_inp_const_memb_ptr_count = _max_inp_const_memb_ptr_count; }
-        uint32_t get_max_inp_const_memb_ptr_count () { return max_inp_const_memb_ptr_count; }
-        void set_min_mix_const_memb_ptr_count (uint32_t _min_mix_const_memb_ptr_count) { min_mix_const_memb_ptr_count = _min_mix_const_memb_ptr_count; }
-        uint32_t get_min_mix_const_memb_ptr_count () { return min_mix_const_memb_ptr_count; }
-        void set_max_mix_const_memb_ptr_count (uint32_t _max_mix_const_memb_ptr_count) { max_mix_const_memb_ptr_count = _max_mix_const_memb_ptr_count; }
-        uint32_t get_max_mix_const_memb_ptr_count () { return max_mix_const_memb_ptr_count; }
-        void set_min_out_const_memb_ptr_count (uint32_t _min_out_const_memb_ptr_count) { min_out_const_memb_ptr_count = _min_out_const_memb_ptr_count; }
-        uint32_t get_min_out_const_memb_ptr_count () { return min_out_const_memb_ptr_count; }
-        void set_max_out_const_memb_ptr_count (uint32_t _max_out_const_memb_ptr_count) { max_out_const_memb_ptr_count = _max_out_const_memb_ptr_count; }
-        uint32_t get_max_out_const_memb_ptr_count () { return max_out_const_memb_ptr_count; }
-        void set_min_inp_memb_ptr_count (uint32_t _min_inp_memb_ptr_count) { min_inp_memb_ptr_count = _min_inp_memb_ptr_count; }
-        uint32_t get_min_inp_memb_ptr_count () { return min_inp_memb_ptr_count; }
-        void set_max_inp_memb_ptr_count (uint32_t _max_inp_memb_ptr_count) { max_inp_memb_ptr_count = _max_inp_memb_ptr_count; }
-        uint32_t get_max_inp_memb_ptr_count () { return max_inp_memb_ptr_count; }
-        void set_min_mix_memb_ptr_count (uint32_t _min_mix_memb_ptr_count) { min_mix_memb_ptr_count = _min_mix_memb_ptr_count; }
-        uint32_t get_min_mix_memb_ptr_count () { return min_mix_memb_ptr_count; }
-        void set_max_mix_memb_ptr_count (uint32_t _max_mix_memb_ptr_count) { max_mix_memb_ptr_count = _max_mix_memb_ptr_count; }
-        uint32_t get_max_mix_memb_ptr_count () { return max_mix_memb_ptr_count; }
-        void set_min_out_memb_ptr_count (uint32_t _min_out_memb_ptr_count) { min_out_memb_ptr_count = _min_out_memb_ptr_count; }
-        uint32_t get_min_out_memb_ptr_count () { return min_out_memb_ptr_count; }
-        void set_max_out_memb_ptr_count (uint32_t _max_out_memb_ptr_count) { max_out_memb_ptr_count = _max_out_memb_ptr_count; }
-        uint32_t get_max_out_memb_ptr_count () { return max_out_memb_ptr_count; }
+        uint32_t get_min_inp_ptr_count () { return min_inp_ptr_count; }
+        void set_max_inp_ptr_count (uint32_t _max_inp_ptr_count) { max_inp_ptr_count = _max_inp_ptr_count; }
+        uint32_t get_max_inp_ptr_count () { return max_inp_ptr_count; }
+        void set_min_mix_ptr_count (uint32_t _min_mix_ptr_count) { min_mix_ptr_count = _min_mix_ptr_count; }
+        uint32_t get_min_mix_ptr_count () { return min_mix_ptr_count; }
+        void set_max_mix_ptr_count (uint32_t _max_mix_ptr_count) { max_mix_ptr_count = _max_mix_ptr_count; }
+        uint32_t get_max_mix_ptr_count () { return max_mix_ptr_count; }
+        void set_min_out_ptr_count (uint32_t _min_out_ptr_count) { min_out_ptr_count = _min_out_ptr_count; }
+        uint32_t get_min_out_ptr_count () { return min_out_ptr_count; }
+        void set_max_out_ptr_count (uint32_t _max_out_ptr_count) { max_out_ptr_count = _max_out_ptr_count; }
+        uint32_t get_max_out_ptr_count () { return max_out_ptr_count; }
 
         // Arrays section - defines arrays' sizes, their kind, base type probability
         uint32_t get_min_array_size () { return min_array_size; }
@@ -512,24 +486,12 @@ class GenPolicy {
         uint32_t max_mix_array_count;
         uint32_t min_out_array_count;
         uint32_t max_out_array_count;
-        uint32_t min_inp_pointer_count;
-        uint32_t max_inp_pointer_count;
-        uint32_t min_mix_pointer_count;
-        uint32_t max_mix_pointer_count;
-        uint32_t min_out_pointer_count;
-        uint32_t max_out_pointer_count;
-        uint32_t min_inp_const_memb_ptr_count;
-        uint32_t max_inp_const_memb_ptr_count;
-        uint32_t min_mix_const_memb_ptr_count;
-        uint32_t max_mix_const_memb_ptr_count;
-        uint32_t min_out_const_memb_ptr_count;
-        uint32_t max_out_const_memb_ptr_count;
-        uint32_t min_inp_memb_ptr_count;
-        uint32_t max_inp_memb_ptr_count;
-        uint32_t min_mix_memb_ptr_count;
-        uint32_t max_mix_memb_ptr_count;
-        uint32_t min_out_memb_ptr_count;
-        uint32_t max_out_memb_ptr_count;
+        uint32_t min_inp_ptr_count;
+        uint32_t max_inp_ptr_count;
+        uint32_t min_mix_ptr_count;
+        uint32_t max_mix_ptr_count;
+        uint32_t min_out_ptr_count;
+        uint32_t max_out_ptr_count;
 
         // Array
         uint32_t min_array_size;

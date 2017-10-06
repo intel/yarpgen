@@ -36,11 +36,13 @@ class SymbolTable {
         using MemberVector = std::vector<std::shared_ptr<MemberExpr>>;
         using ExprVector = std::vector<std::shared_ptr<Expr>>;
         using DerefExprVector = std::vector<std::shared_ptr<DereferenceExpr>>;
+        using PointerVector = std::vector<std::shared_ptr<Pointer>>;
 
         struct PointersInfo {
-            std::vector<std::shared_ptr<Pointer>> ptr;
-            std::vector<std::shared_ptr<Expr>> init_expr;
-            std::vector<std::shared_ptr<DereferenceExpr>> deref_expr;
+            PointerVector ptr;
+            ExprVector init_expr;
+            // deref_expr represents dereference up to base variable
+            DerefExprVector deref_expr;
         };
 
         SymbolTable () {}
@@ -50,16 +52,18 @@ class SymbolTable {
         void add_array_type (std::shared_ptr<ArrayType> _array_type) { array_type.push_back(_array_type); }
         auto& get_array_types() { return array_type; }
 
-        void add_variable (std::shared_ptr<ScalarVariable> _var) { variable.push_back (_var); }
+        void add_variable (std::shared_ptr<ScalarVariable> _var);
         void add_struct (std::shared_ptr<Struct> _struct);
         void add_array (std::shared_ptr<Array> _array);
-        void add_ptr_to_var (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr);
-        void add_ptr_to_member (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr, MembVecID vec_id);
+        void add_pointer(std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr);
 
         ExprVector get_var_use_exprs_in_arrays();
         ExprVector get_var_use_exprs_from_vars();
-        ExprVector get_deref_expr_to_vars();
-        ExprVector get_all_var_use_exprs();
+        // ignore_tmp_objs allows to exclude from output temporary objects
+        // (e.g. std::_Bit_reference from std::vector<bool> [0])
+        ExprVector get_all_var_use_exprs(bool ignore_tmp_objs = false);
+
+        DerefExprVector& get_deref_exprs() { return pointers.deref_expr; }
 
         auto& get_members_in_structs() { return std::get<ALL>(members_in_structs); }
         auto& get_const_members_in_structs() { return std::get<CONST>(members_in_structs); }
@@ -69,8 +73,9 @@ class SymbolTable {
         auto& get_const_members_in_arrays() { return std::get<CONST>(members_in_arrays); }
         void del_member_in_arrays(int idx);
 
-        DerefExprVector& get_deref_expr_to_members();
-        DerefExprVector& get_deref_expr_to_const_members();
+        std::vector<std::string> get_lval_ptr_map_keys() { return lval_ptr_map_keys; }
+        std::map<std::string, ExprVector>& get_lval_expr_with_ptr_type() { return lval_expr_with_ptr_type; }
+        std::map<std::string, ExprVector>& get_all_expr_with_ptr_type() { return all_expr_with_ptr_type; }
 
         void emit_variable_extern_decl (std::ostream& stream, std::string offset = "");
         void emit_variable_def (std::ostream& stream, std::string offset = "");
@@ -100,17 +105,33 @@ class SymbolTable {
                                       std::ostream& stream, std::string offset = "");
         void emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var,
                                        std::ostream& stream, std::string offset = "");
-        void var_use_exprs_from_vars_in_arrays(std::vector<std::shared_ptr<Expr>>& ret);
+        void var_use_exprs_from_vars_in_arrays(std::vector<std::shared_ptr<Expr>>& ret, bool ignore_tmp_objs = false);
+        // This function unrolls nested pointers and creates DereferenceExpr at each level
+        std::shared_ptr<DereferenceExpr> deep_deref_expr_from_nest_ptr(std::shared_ptr<DereferenceExpr> expr);
+        // This function adds missing key to ptr_map_key
+        void add_ptr_map_key (std::string& key);
+
+        std::vector<std::shared_ptr<ScalarVariable>> variable;
 
         std::vector<std::shared_ptr<StructType>> struct_type;
         std::vector<std::shared_ptr<Struct>> structs;
         std::tuple<MemberVector, MemberVector> members_in_structs;
-        std::vector<std::shared_ptr<ScalarVariable>> variable;
+
         std::vector<std::shared_ptr<ArrayType>> array_type;
         std::vector<std::shared_ptr<Array>> array;
         std::tuple<MemberVector, MemberVector> members_in_arrays;
-        PointersInfo ptr_to_vars;
-        std::tuple<PointersInfo, PointersInfo> ptr_to_members;
+
+        PointersInfo pointers;
+
+        // This maps hold all expressions which can be assigned to pointer
+        // They are designed to speed up pointers assignment
+        //TODO: nowadays we distinguish pointers by string and it is not the best idea
+        // This one stores only expressions which can be on left side of assignment ("lvalue")
+        std::map<std::string, ExprVector> lval_expr_with_ptr_type;
+        // And this one store all expressions with pointer type
+        std::map<std::string, ExprVector> all_expr_with_ptr_type;
+        // Also we duplicate lval_ptr_expr map's keys in order to speed up random decisions
+        std::vector<std::string> lval_ptr_map_keys;
 };
 
 class Context {

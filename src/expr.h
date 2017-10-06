@@ -35,7 +35,7 @@ class Expr : public Node {
         Expr (Node::NodeID _id, std::shared_ptr<Data> _value, uint32_t _compl) :
               Node(_id), value(_value), complexity(_compl) {}
         Type::TypeID get_type_id () { return value->get_type()->get_type_id (); }
-        std::shared_ptr<Data> get_value ();
+        virtual std::shared_ptr<Data> get_value ();
         uint32_t get_complexity() { return complexity; }
         static void increase_expr_count(uint32_t val) { total_expr_count += val; func_expr_count += val; }
         static uint32_t get_total_expr_count () { return total_expr_count; }
@@ -301,6 +301,7 @@ class DereferenceExpr : public Expr {
     public:
         DereferenceExpr(std::shared_ptr<Expr> expr);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
+        std::shared_ptr<Data> get_value ();
         void emit (std::ostream& stream, std::string offset = "");
 
     private:
