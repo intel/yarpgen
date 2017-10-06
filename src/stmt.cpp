@@ -40,6 +40,7 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
         return;
     if (is_extern)
         ERROR("init of extern var DeclStmt");
+    // Declaration of new variable
     if (data->get_class_id() == Data::VarClassID::VAR) {
         if (init->get_value()->get_class_id() != Data::VarClassID::VAR)
             ERROR("can init only ScalarVariable or Pointer in DeclStmt");
@@ -47,11 +48,14 @@ DeclStmt::DeclStmt (std::shared_ptr<Data> _data, std::shared_ptr<Expr> _init, bo
         std::shared_ptr<TypeCastExpr> cast_type = std::make_shared<TypeCastExpr>(init, data_var->get_type());
         data_var->set_init_value(std::static_pointer_cast<ScalarVariable>(cast_type->get_value())->get_cur_value());
     }
+    // Declaration of new pointer
     else if (data->get_class_id() == Data::VarClassID::POINTER) {
         if (init->get_value()->get_class_id() != Data::VarClassID::POINTER)
             ERROR("can init only ScalarVariable or Pointer in DeclStmt");
         std::shared_ptr<Pointer> data_ptr = std::static_pointer_cast<Pointer>(data);
-        data_ptr->set_pointee(init->get_value());
+        if (!init->get_value()->get_type()->is_ptr_type())
+            ERROR("init of pointer with expression which has non-pointer type");
+        data_ptr->set_pointee(std::static_pointer_cast<Pointer>(init->get_value())->get_pointee());
     }
     else
         ERROR("can init only ScalarVariable or Pointer in DeclStmt");
@@ -64,16 +68,43 @@ std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx,
                                               bool count_up_total) {
     Stmt::increase_stmt_count();
     GenPolicy::add_to_complexity(Node::NodeID::DECL);
+    if (ctx->get_parent_ctx() == nullptr || ctx->get_parent_ctx()->get_local_sym_table() == nullptr)
+        ERROR("no parent context or local_sym_table (DeclStmt)");
 
-    std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
-    std::shared_ptr<Expr> new_init = ArithExpr::generate(ctx, inp);
+    std::shared_ptr<DeclStmt> ret;
+    std::shared_ptr<Expr> new_init;
+
+    // Generate declaration of new variable
+    if (!inp.front()->get_value()->get_type()->is_ptr_type()) {
+        std::shared_ptr<ScalarVariable> new_var = ScalarVariable::generate(ctx);
+        new_init = ArithExpr::generate(ctx, inp);
+        ret = std::make_shared<DeclStmt>(new_var, new_init);
+        ctx->get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
+    }
+    else {
+        // Generate declaration of new pointer
+        NameHandler& name_handler = NameHandler::get_instance();
+        new_init = rand_val_gen->get_rand_elem(inp);
+
+        // Pointer requires shared_ptr to original variable, so we should extract it
+        std::shared_ptr<Data> raw_expr_data;
+        if (new_init->get_id() == Node::NodeID::VAR_USE)
+            raw_expr_data = std::static_pointer_cast<VarUseExpr>(new_init)->get_raw_value();
+        else if (new_init->get_id() == Node::NodeID::MEMBER)
+            raw_expr_data = std::static_pointer_cast<MemberExpr>(new_init)->get_raw_value();
+        else
+            raw_expr_data = new_init->get_value();
+
+        // Nowadays we don't allow casting between pointer of different types, so they should have the same
+        std::shared_ptr<PointerType> new_ptr_type = std::static_pointer_cast<PointerType>(raw_expr_data->get_type());
+        std::shared_ptr<Pointer> new_ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), new_ptr_type);
+
+        ret = std::make_shared<DeclStmt>(new_ptr, new_init);
+        ctx->get_parent_ctx()->get_local_sym_table()->add_pointer(new_ptr, new_init);
+    }
+
     if (count_up_total)
         Expr::increase_expr_count(new_init->get_complexity());
-    std::shared_ptr<DeclStmt> ret =  std::make_shared<DeclStmt>(new_var, new_init);
-    if (ctx->get_parent_ctx() == nullptr || ctx->get_parent_ctx()->get_local_sym_table() == nullptr) {
-        ERROR("no par_ctx or local_sym_table (DeclStmt)");
-    }
-    ctx->get_parent_ctx()->get_local_sym_table()->add_variable(new_var);
     return ret;
 }
 
@@ -189,6 +220,13 @@ void DeclStmt::emit (std::ostream& stream, std::string offset) {
     stream << ";";
 }
 
+// This function returns DereferenceExpr for nested pointers up to base variable
+static std::shared_ptr<DereferenceExpr> deep_deref_expr_from_nest_ptr(std::shared_ptr<DereferenceExpr> expr) {
+    if (!expr->get_value()->get_type()->is_ptr_type())
+        return expr;
+    return deep_deref_expr_from_nest_ptr(std::make_shared<DereferenceExpr>(expr));
+}
+
 // One of the most important generation methods (top-level generator for everything between curve brackets).
 // It acts as a top-level dispatcher for other statement generation functions.
 // Also it initially fills extern symbol table.
@@ -232,10 +270,12 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
             // Create assignment to pointer
             if (out_data_type == GenPolicy::OutDataTypeID::POINTER) {
                 auto ptr_assign_generation = [&ret, &out_data_type, &ctx] (std::shared_ptr<SymbolTable> sym_table) {
+                    // Extract pointer maps from symbol table
                     std::map<std::string, SymbolTable::ExprVector> &lval_map = sym_table->get_lval_expr_with_ptr_type();
                     std::map<std::string, SymbolTable::ExprVector> &all_map = sym_table->get_all_expr_with_ptr_type();
                     std::vector<std::string> ptr_type_keys = sym_table->get_lval_ptr_map_keys();
                     if (!ptr_type_keys.empty()) {
+                        // Pass chosen data to ExprStmt::generate method
                         std::string chosen_key = rand_val_gen->get_rand_elem(ptr_type_keys);
                         std::shared_ptr<Expr> lhs = rand_val_gen->get_rand_elem(lval_map.at(chosen_key));
                         ret->add_stmt(ExprStmt::generate(ctx, all_map.at(chosen_key), lhs, true));
@@ -335,10 +375,41 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
         // DeclStmt or if we want IfStmt, but have reached its depth limit
         else if (gen_id == Node::NodeID::DECL || (ctx->get_if_depth() == p->get_max_if_depth())) {
             std::shared_ptr<Context> decl_ctx = std::make_shared<Context>(*(p), ctx, Node::NodeID::DECL, true);
-            std::shared_ptr<DeclStmt> tmp_decl = DeclStmt::generate(decl_ctx, inp, true);
-            // Add created variable to inp
-            std::shared_ptr<ScalarVariable> tmp_var = std::static_pointer_cast<ScalarVariable>(tmp_decl->get_data());
-            inp.push_back(std::make_shared<VarUseExpr>(tmp_var));
+            std::shared_ptr<DeclStmt> tmp_decl;
+
+            GenPolicy::DeclStmtGenID decl_stmt_id = rand_val_gen->get_rand_id(p->get_decl_stmt_gen_id_prob());
+            if (decl_stmt_id == GenPolicy::DeclStmtGenID::Pointer) {
+                std::map<std::string, ExprVector> ptr_expr_map = extract_all_local_ptr_exprs(ctx);
+
+                // Collect all keys from joined local maps
+                std::vector<std::string> ptr_keys;
+                for (auto const& i: ptr_expr_map)
+                    ptr_keys.push_back(i.first);
+
+                if (!ptr_keys.empty()) {
+                    std::string chosen_ptr_key = rand_val_gen->get_rand_elem(ptr_keys);
+                    std::vector<std::shared_ptr<Expr>> chosen_expr_vec = ptr_expr_map.at(chosen_ptr_key);
+                    // Unite local ptr map with mixed
+                    std::vector<std::shared_ptr<Expr>> mix_ptr_expr_vec = ctx->get_extern_mix_sym_table()->
+                                                                               get_all_expr_with_ptr_type()[chosen_ptr_key];
+                    chosen_expr_vec.insert(chosen_expr_vec.end(), mix_ptr_expr_vec.begin(), mix_ptr_expr_vec.end());
+                    // Pass all chosen data to DeclStmt::generate
+                    tmp_decl = DeclStmt::generate(decl_ctx, chosen_expr_vec, true);
+                    std::shared_ptr<Pointer> tmp_ptr = std::static_pointer_cast<Pointer>(tmp_decl->get_data());
+                    // Add new pointer to inp
+                    std::shared_ptr<VarUseExpr> tmp_ptr_use = std::make_shared<VarUseExpr>(tmp_ptr);
+                    inp.push_back(deep_deref_expr_from_nest_ptr(std::make_shared<DereferenceExpr>(tmp_ptr_use)));
+                }
+                else
+                    // We can't create declaration for new pointer, so fall back to variable
+                    decl_stmt_id = GenPolicy::DeclStmtGenID::Variable;
+            }
+            if (decl_stmt_id == GenPolicy::DeclStmtGenID::Variable) {
+                tmp_decl = DeclStmt::generate(decl_ctx, inp, true);
+                // Add created variable to inp
+                std::shared_ptr<ScalarVariable> tmp_var = std::static_pointer_cast<ScalarVariable>(tmp_decl->get_data());
+                inp.push_back(std::make_shared<VarUseExpr>(tmp_var));
+            }
             ret->add_stmt(tmp_decl);
         }
         // IfStmt
@@ -349,6 +420,20 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
     }
     return ret;
 }
+
+// This function extracts pointer map from local symbol table of current Context and all it's predecessors.
+std::map<std::string, ScopeStmt::ExprVector> ScopeStmt::extract_all_local_ptr_exprs(std::shared_ptr<Context> ctx) {
+    std::map<std::string, ExprVector> ret = ctx->get_local_sym_table()->get_all_expr_with_ptr_type();
+    if (ctx->get_parent_ctx() != nullptr) {
+        std::map<std::string, ExprVector> parent_map = extract_all_local_ptr_exprs(ctx->get_parent_ctx());
+        for (auto& i : parent_map) {
+            ScopeStmt::ExprVector& ret_vec = ret[i.first];
+            ScopeStmt::ExprVector& parent_vec = i.second;
+            ret_vec.insert(ret_vec.end(), parent_vec.begin(), parent_vec.end());
+        }
+    }
+    return ret;
+};
 
 // CSE shouldn't change during the scope to make generation process easy. In order to achieve this,
 // we use only "input" variables for them and this function extracts such variables from extern symbol table.
@@ -371,9 +456,13 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_from_ctx(std::shared_p
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_locals_from_ctx(std::shared_ptr<Context> ctx) {
     //TODO: add struct members
     std::vector<std::shared_ptr<Expr>> ret = ctx->get_local_sym_table()->get_all_var_use_exprs();
+    std::vector<std::shared_ptr<DereferenceExpr>>& deref_expr = ctx->get_local_sym_table()->get_deref_exprs();
+    ret.insert(ret.end(), deref_expr.begin(), deref_expr.end());
 
-    if (ctx->get_parent_ctx() != nullptr)
-        ret = extract_locals_from_ctx(ctx->get_parent_ctx());
+    if (ctx->get_parent_ctx() != nullptr) {
+        std::vector<std::shared_ptr<Expr>> parent_locals = extract_locals_from_ctx(ctx->get_parent_ctx());
+        ret.insert(ret.end(), parent_locals.begin(), parent_locals.end());
+    }
 
     return ret;
 }

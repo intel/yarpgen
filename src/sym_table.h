@@ -109,7 +109,8 @@ class SymbolTable {
         // This function unrolls nested pointers and creates DereferenceExpr at each level
         std::shared_ptr<DereferenceExpr> deep_deref_expr_from_nest_ptr(std::shared_ptr<DereferenceExpr> expr);
         // This function adds missing key to ptr_map_key
-        void add_ptr_map_key (std::string& key);
+        void add_to_lval_map(std::string& key, std::shared_ptr<Expr> expr);
+        void add_to_all_map(std::string& key, std::shared_ptr<Expr> expr);
 
         std::vector<std::shared_ptr<ScalarVariable>> variable;
 

@@ -31,8 +31,8 @@ void SymbolTable::add_variable (std::shared_ptr<ScalarVariable> _var) {
     std::shared_ptr<VarUseExpr> var_use_expr = std::make_shared<VarUseExpr>(_var);
     std::shared_ptr<ReferenceExpr> var_ref_expr = std::make_shared<ReferenceExpr>(var_use_expr);
     std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(var_ref_expr->get_value()->get_type());
-    std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
-    all_expr_with_ptr_type[ptr_key].push_back(var_ref_expr);
+    std::string ptr_key = ptr_type->get_simple_name() + ptr_type->get_type_suffix();
+    add_to_all_map(ptr_key, var_ref_expr);
 }
 
 void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {
@@ -71,9 +71,8 @@ void SymbolTable::form_struct_member_expr (std::tuple<MemberVector, MemberVector
                 // We also need to store ReferenceExpr to this MemberExpr
                 std::shared_ptr<ReferenceExpr> memb_ref_expr = std::make_shared<ReferenceExpr>(member_expr);
                 std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(memb_ref_expr->get_value()->get_type());
-                std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
-                all_expr_with_ptr_type[ptr_key].push_back(memb_ref_expr);
-
+                std::string ptr_key = ptr_type->get_simple_name() + ptr_type->get_type_suffix();
+                add_to_all_map(ptr_key, memb_ref_expr);
             }
         }
     }
@@ -94,38 +93,42 @@ std::shared_ptr<DereferenceExpr> SymbolTable::deep_deref_expr_from_nest_ptr(std:
         return expr;
     // We store DereferenceExpr at each level
     std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(expr->get_value()->get_type());
-    std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
-    add_ptr_map_key(ptr_key);
-    lval_expr_with_ptr_type[ptr_key].push_back(expr);
-    all_expr_with_ptr_type [ptr_key].push_back(expr);
+    std::string ptr_key = ptr_type->get_simple_name() + ptr_type->get_type_suffix();
+    add_to_lval_map(ptr_key, expr);
+    add_to_all_map(ptr_key, expr);
 
     return deep_deref_expr_from_nest_ptr(std::make_shared<DereferenceExpr>(expr));
 }
 
-void SymbolTable::add_ptr_map_key (std::string& key) {
+void SymbolTable::add_to_lval_map(std::string& key, std::shared_ptr<Expr> expr) {
+    lval_expr_with_ptr_type[key].push_back(expr);
     if (std::find(lval_ptr_map_keys.begin(), lval_ptr_map_keys.end(), key) == lval_ptr_map_keys.end())
         lval_ptr_map_keys.push_back(key);
 }
 
+void SymbolTable::add_to_all_map(std::string& key, std::shared_ptr<Expr> expr) {
+    all_expr_with_ptr_type[key].push_back(expr);
+}
+
 void SymbolTable::add_pointer(std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr) {
-    if (init_expr->get_id() != Node::NodeID::VAR_USE && init_expr->get_id() != Node::NodeID::MEMBER)
-        ERROR("can add only VarUseExpr or MemberExpr");
+    if (init_expr->get_id() != Node::NodeID::VAR_USE && init_expr->get_id() != Node::NodeID::MEMBER &&
+        init_expr->get_id() != Node::NodeID::DEREFERENCE && init_expr->get_id() != Node::NodeID::REFERENCE)
+        ERROR("can add only VarUseExpr or MemberExpr or DereferenceExpr or ReferenceExpr");
     pointers.ptr.push_back(ptr);
     pointers.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
 
     // For every pointer we need to store pointer itself
     std::shared_ptr<VarUseExpr> ptr_use_expr = std::make_shared<VarUseExpr>(ptr);
     std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(ptr->get_type());
-    std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
-    add_ptr_map_key(ptr_key);
-    lval_expr_with_ptr_type[ptr_key].push_back(ptr_use_expr);
-    all_expr_with_ptr_type [ptr_key].push_back(ptr_use_expr);
+    std::string ptr_key = ptr_type->get_simple_name() + ptr_type->get_type_suffix();
+    add_to_lval_map(ptr_key, ptr_use_expr);
+    add_to_all_map(ptr_key, ptr_use_expr);
 
     // Also we need to store ReferenceExpr to it
     std::shared_ptr<ReferenceExpr> ptr_ref_expr = std::make_shared<ReferenceExpr>(ptr_use_expr);
     ptr_type = std::static_pointer_cast<PointerType>(ptr_ref_expr->get_value()->get_type());
-    ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
-    all_expr_with_ptr_type[ptr_key].push_back(ptr_ref_expr);
+    ptr_key = ptr_type->get_simple_name() + ptr_type->get_type_suffix();
+    add_to_all_map(ptr_key, ptr_ref_expr);
 
     // And also all DereferenceExpr
     std::shared_ptr<DereferenceExpr> deref_expr = std::make_shared<DereferenceExpr>(ptr_use_expr);

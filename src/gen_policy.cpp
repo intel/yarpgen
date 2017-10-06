@@ -333,6 +333,10 @@ void GenPolicy::init_from_config () {
 
     max_if_depth = MAX_IF_DEPTH;
 
+    decl_stmt_gen_id_prob.emplace_back(Probability<GenPolicy::DeclStmtGenID>(GenPolicy::DeclStmtGenID::Variable, 80));
+    decl_stmt_gen_id_prob.emplace_back(Probability<GenPolicy::DeclStmtGenID>(GenPolicy::DeclStmtGenID::Pointer, 20));
+    rand_val_gen->shuffle_prob(decl_stmt_gen_id_prob);
+
     max_test_complexity = MAX_TEST_COMPLEXITY;
 
     default_was_loaded = true;

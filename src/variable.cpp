@@ -229,6 +229,17 @@ Pointer::Pointer(std::string _name, std::shared_ptr<Data> _pointee) :
     type = std::make_shared<PointerType>(pointee->get_type());
 }
 
+Pointer::Pointer(std::string _name, std::shared_ptr<PointerType> _type) :
+                 Data (_name, _type, Data::VarClassID::POINTER), pointee(nullptr) {
+}
+
+void Pointer::set_pointee (std::shared_ptr<Data> _pointee) {
+    std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(type);
+    if (ptr_type->get_pointee_type()->get_int_type_id() != _pointee->get_type()->get_int_type_id())
+        ERROR("pointer type and pointee type do not match");
+    pointee = _pointee;
+}
+
 void Pointer::dbg_dump () {
     std::cout << "name: " << name << std::endl;
     std::cout << "pointer type: " << std::endl;
