@@ -2166,3 +2166,9 @@ void PointerType::dbg_dump() {
     std::cout << "Pointee type:\n";
     pointee_type->dbg_dump();
 }
+
+bool yarpgen::is_pointers_compatible (std::shared_ptr<PointerType> type_a, std::shared_ptr<PointerType> type_b) {
+    //TODO: will it work?
+    return type_a->get_simple_name() + type_a->get_type_suffix() ==
+           type_b->get_simple_name() + type_b->get_type_suffix();
+}

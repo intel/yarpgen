@@ -615,4 +615,7 @@ class PointerType : public Type {
         std::shared_ptr<Type> pointee_type;
         uint32_t depth;
 };
+
+// This function checks if we can assign one pointer type to another
+bool is_pointers_compatible (std::shared_ptr<PointerType> type_a, std::shared_ptr<PointerType> type_b);
 }

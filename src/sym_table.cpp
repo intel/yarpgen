@@ -25,6 +25,16 @@ limitations under the License.
 using namespace yarpgen;
 
 
+void SymbolTable::add_variable (std::shared_ptr<ScalarVariable> _var) {
+    variable.push_back (_var);
+    // We also need to store ReferenceExpr to this variable
+    std::shared_ptr<VarUseExpr> var_use_expr = std::make_shared<VarUseExpr>(_var);
+    std::shared_ptr<ReferenceExpr> var_ref_expr = std::make_shared<ReferenceExpr>(var_use_expr);
+    std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(var_ref_expr->get_value()->get_type());
+    std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
+    all_expr_with_ptr_type[ptr_key].push_back(var_ref_expr);
+}
+
 void SymbolTable::add_struct (std::shared_ptr<Struct> _struct) {
     structs.push_back(_struct);
     form_struct_member_expr(members_in_structs, nullptr, _struct);
@@ -54,6 +64,16 @@ void SymbolTable::form_struct_member_expr (std::tuple<MemberVector, MemberVector
                 if (!is_static && !ignore_const) {
                     std::get<CONST>(ret).push_back(member_expr);
                 }
+
+                // Can't take address of bit-field
+                if (member_expr->get_value()->get_type()->get_is_bit_field())
+                    continue;
+                // We also need to store ReferenceExpr to this MemberExpr
+                std::shared_ptr<ReferenceExpr> memb_ref_expr = std::make_shared<ReferenceExpr>(member_expr);
+                std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(memb_ref_expr->get_value()->get_type());
+                std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
+                all_expr_with_ptr_type[ptr_key].push_back(memb_ref_expr);
+
             }
         }
     }
@@ -68,28 +88,48 @@ void SymbolTable::add_array (std::shared_ptr<Array> _array) {
             form_struct_member_expr(members_in_arrays, nullptr, std::static_pointer_cast<Struct>(_array->get_element(i)));
 }
 
-void SymbolTable::add_ptr_to_var (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr) {
-    if (init_expr->get_id() != Node::NodeID::VAR_USE)
-        ERROR("can add only VarUseExpr");
-    ptr_to_vars.ptr.push_back(ptr);
-    ptr_to_vars.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
-    ptr_to_vars.deref_expr.push_back(std::make_shared<DereferenceExpr>(std::make_shared<VarUseExpr>(ptr)));
+
+std::shared_ptr<DereferenceExpr> SymbolTable::deep_deref_expr_from_nest_ptr(std::shared_ptr<DereferenceExpr> expr) {
+    if (!expr->get_value()->get_type()->is_ptr_type())
+        return expr;
+    // We store DereferenceExpr at each level
+    std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(expr->get_value()->get_type());
+    std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
+    add_ptr_map_key(ptr_key);
+    lval_expr_with_ptr_type[ptr_key].push_back(expr);
+    all_expr_with_ptr_type [ptr_key].push_back(expr);
+
+    return deep_deref_expr_from_nest_ptr(std::make_shared<DereferenceExpr>(expr));
 }
 
-void SymbolTable::add_ptr_to_member (std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr, MembVecID vec_id) {
-    if (init_expr->get_id() != Node::NodeID::MEMBER)
-        ERROR("can add only MemberExpr");
-    PointersInfo& pointers = std::get<ALL>(ptr_to_members);
-    pointers.ptr.push_back(ptr);
-    pointers.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
-    pointers.deref_expr.push_back(std::make_shared<DereferenceExpr>(std::make_shared<VarUseExpr>(ptr)));
-    if (vec_id != CONST)
-        return;
+void SymbolTable::add_ptr_map_key (std::string& key) {
+    if (std::find(lval_ptr_map_keys.begin(), lval_ptr_map_keys.end(), key) == lval_ptr_map_keys.end())
+        lval_ptr_map_keys.push_back(key);
+}
 
-    pointers = std::get<CONST>(ptr_to_members);
+void SymbolTable::add_pointer(std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr> init_expr) {
+    if (init_expr->get_id() != Node::NodeID::VAR_USE && init_expr->get_id() != Node::NodeID::MEMBER)
+        ERROR("can add only VarUseExpr or MemberExpr");
     pointers.ptr.push_back(ptr);
     pointers.init_expr.push_back(std::make_shared<ReferenceExpr>(init_expr));
-    pointers.deref_expr.push_back(std::make_shared<DereferenceExpr>(std::make_shared<VarUseExpr>(ptr)));
+
+    // For every pointer we need to store pointer itself
+    std::shared_ptr<VarUseExpr> ptr_use_expr = std::make_shared<VarUseExpr>(ptr);
+    std::shared_ptr<PointerType> ptr_type = std::static_pointer_cast<PointerType>(ptr->get_type());
+    std::string ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
+    add_ptr_map_key(ptr_key);
+    lval_expr_with_ptr_type[ptr_key].push_back(ptr_use_expr);
+    all_expr_with_ptr_type [ptr_key].push_back(ptr_use_expr);
+
+    // Also we need to store ReferenceExpr to it
+    std::shared_ptr<ReferenceExpr> ptr_ref_expr = std::make_shared<ReferenceExpr>(ptr_use_expr);
+    ptr_type = std::static_pointer_cast<PointerType>(ptr_ref_expr->get_value()->get_type());
+    ptr_key = ptr_type->get_name() + ptr_type->get_type_suffix();
+    all_expr_with_ptr_type[ptr_key].push_back(ptr_ref_expr);
+
+    // And also all DereferenceExpr
+    std::shared_ptr<DereferenceExpr> deref_expr = std::make_shared<DereferenceExpr>(ptr_use_expr);
+    pointers.deref_expr.push_back(deep_deref_expr_from_nest_ptr(deref_expr));
 }
 
 void SymbolTable::del_member_in_structs(int idx) {
@@ -102,20 +142,17 @@ void SymbolTable::del_member_in_arrays(int idx) {
     member_exprs.erase(member_exprs.begin() + idx);
 }
 
-SymbolTable::DerefExprVector& SymbolTable::get_deref_expr_to_members() {
-    return std::get<ALL>(ptr_to_members).deref_expr;
-}
-
-SymbolTable::DerefExprVector& SymbolTable::get_deref_expr_to_const_members() {
-    return std::get<CONST>(ptr_to_members).deref_expr;
-}
-
-void SymbolTable::var_use_exprs_from_vars_in_arrays (std::vector<std::shared_ptr<Expr>>& ret) {
+void SymbolTable::var_use_exprs_from_vars_in_arrays (std::vector<std::shared_ptr<Expr>>& ret, bool ignore_tmp_objs) {
     for (auto const& array_iter : array) {
         std::shared_ptr<ArrayType> array_iter_type = std::static_pointer_cast<ArrayType>(array_iter->get_type());
-        if (array_iter_type->get_base_type()->is_int_type())
+        if (array_iter_type->get_base_type()->is_int_type()) {
+            if (ignore_tmp_objs && array_iter_type->get_kind() == ArrayType::Kind::STD_VEC &&
+                array_iter_type->get_base_type()->get_int_type_id() == IntegerType::IntegerTypeID::BOOL)
+                continue;
+
             for (int i = 0; i < array_iter->get_elements_count(); ++i)
                 ret.emplace_back(std::make_shared<VarUseExpr>(array_iter->get_element(i)));
+        }
     }
 }
 
@@ -132,18 +169,9 @@ SymbolTable::ExprVector SymbolTable::get_var_use_exprs_in_arrays () {
     return ret;
 }
 
-SymbolTable::ExprVector SymbolTable::get_deref_expr_to_vars() {
-    std::vector<std::shared_ptr<Expr>> ret;
-    for (auto const& i : ptr_to_vars.deref_expr)
-        ret.push_back(i);
-    return ret;
-}
-
-SymbolTable::ExprVector SymbolTable::get_all_var_use_exprs() {
+SymbolTable::ExprVector SymbolTable::get_all_var_use_exprs(bool ignore_tmp_objs) {
     std::vector<std::shared_ptr<Expr>> ret = get_var_use_exprs_from_vars();
-    std::vector<std::shared_ptr<Expr>> deref_exprs = get_deref_expr_to_vars();
-    ret.insert(ret.end(), deref_exprs.begin(), deref_exprs.end());
-    var_use_exprs_from_vars_in_arrays(ret);
+    var_use_exprs_from_vars_in_arrays(ret, ignore_tmp_objs);
     return ret;
 }
 
@@ -330,41 +358,29 @@ void SymbolTable::emit_array_check (std::ostream& stream, std::string offset) {
 }
 
 void SymbolTable::emit_ptr_extern_decl (std::ostream& stream, std::string offset) {
-    auto emitter = [&stream, &offset] (SymbolTable::PointersInfo ptrs_info) {
-        for (int i = 0; i < ptrs_info.ptr.size(); ++i) {
-            DeclStmt decl (ptrs_info.ptr.at(i), nullptr, true);
-            stream << offset;
-            decl.emit(stream);
-            stream << "\n";
-        }
-    };
-    emitter(ptr_to_vars);
-    emitter(std::get<ALL>(ptr_to_members));
+    for (int i = 0; i < pointers.ptr.size(); ++i) {
+        DeclStmt decl (pointers.ptr.at(i), nullptr, true);
+        stream << offset;
+        decl.emit(stream);
+        stream << "\n";
+    }
 }
 
 void SymbolTable::emit_ptr_def (std::ostream& stream, std::string offset) {
-    auto emitter = [&stream, &offset] (SymbolTable::PointersInfo ptrs_info) {
-        for (int i = 0; i < ptrs_info.ptr.size(); ++i) {
-            DeclStmt decl (ptrs_info.ptr.at(i), ptrs_info.init_expr.at(i));
-            stream << offset;
-            decl.emit(stream);
-            stream << "\n";
-        }
-    };
-    emitter(ptr_to_vars);
-    emitter(std::get<ALL>(ptr_to_members));
+    for (int i = 0; i < pointers.ptr.size(); ++i) {
+        DeclStmt decl (pointers.ptr.at(i), pointers.init_expr.at(i));
+        stream << offset;
+        decl.emit(stream);
+        stream << "\n";
+    }
 }
 
 void SymbolTable::emit_ptr_check (std::ostream& stream, std::string offset) {
-    auto emitter = [&stream, &offset] (SymbolTable::PointersInfo ptrs_info) {
-        for (int i = 0; i < ptrs_info.ptr.size(); ++i) {
-            stream << offset + "hash(&seed, ";
-            ptrs_info.deref_expr.at(i)->emit(stream);
-            stream << ");\n";
-        }
-    };
-    emitter(ptr_to_vars);
-    emitter(std::get<ALL>(ptr_to_members));
+    for (int i = 0; i < pointers.ptr.size(); ++i) {
+        stream << offset + "hash(&seed, ";
+        pointers.deref_expr.at(i)->emit(stream);
+        stream << ");\n";
+    }
 }
 
 Context::Context (GenPolicy _gen_policy, std::shared_ptr<Context> _parent_ctx, Node::NodeID _self_stmt_id, bool _taken) {

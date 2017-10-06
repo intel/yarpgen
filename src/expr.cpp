@@ -43,9 +43,7 @@ std::shared_ptr<Data> Expr::get_value () {
             return struct_var;
         }
         case Data::VarClassID::POINTER: {
-            std::shared_ptr<Pointer> ptr_var = std::make_shared<Pointer>(*(std::static_pointer_cast<Pointer>(value)));
-            ptr_var->set_name("");
-            return ptr_var;
+            return value;
         }
         //TODO: implement for Array
         case Data::VarClassID::ARRAY:
@@ -109,9 +107,16 @@ AssignExpr::AssignExpr (std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, 
 
 bool AssignExpr::propagate_type () {
     //TODO:StructType check for struct assignment
-    if (value->get_class_id() == Data::VarClassID::VAR &&
+    if (to->get_value()->get_class_id() == Data::VarClassID::VAR &&
         from->get_value()->get_class_id() == Data::VarClassID::VAR) {
         from = std::make_shared<TypeCastExpr>(from, value->get_type(), true);
+    }
+    else if (to->get_value()->get_class_id() == Data::VarClassID::POINTER &&
+             from->get_value()->get_class_id() == Data::VarClassID::POINTER) {
+        std::shared_ptr<PointerType> to_ptr_type = std::static_pointer_cast<PointerType>(to->get_value()->get_type());
+        std::shared_ptr<PointerType> from_ptr_type = std::static_pointer_cast<PointerType>(from->get_value()->get_type());
+        if (!is_pointers_compatible(to_ptr_type, from_ptr_type))
+            ERROR("can't assign pointers of different types (AssignExpr)");
     }
     else {
         ERROR("struct are unsupported (AssignExpr)");
@@ -947,14 +952,15 @@ UB BinaryExpr::propagate_value () {
     std::shared_ptr<ScalarVariable> scalar_rhs = std::static_pointer_cast<ScalarVariable>(arg1->get_value());
     BuiltinType::ScalarTypedVal new_val (scalar_lhs->get_type()->get_int_type_id());
 
-
 /*
     std::cout << "Before prop:" << std::endl;
-    std::cout << arg0->emit() << std::endl;
+    arg0->emit(std::cout);
+    std::cout << std::endl;
     std::cout << "lhs: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value() << std::endl;
     std::cout << "lhs val id: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value().get_int_type_id() << std::endl;
     std::cout << "lhs id: " << arg0->get_value()->get_type()->get_int_type_id() << std::endl;
-    std::cout << arg1->emit() << std::endl;
+    arg1->emit(std::cout);
+    std::cout << std::endl;
     std::cout << "rhs: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value() << std::endl;
     std::cout << "rhs val id: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value().get_int_type_id() << std::endl;
     std::cout << "rhs id: " << arg1->get_value()->get_type()->get_int_type_id() << std::endl;
@@ -1028,10 +1034,16 @@ UB BinaryExpr::propagate_value () {
     else {
         value = std::make_shared<ScalarVariable>("", IntegerType::init(arg0->get_value()->get_type()->get_int_type_id()));
     }
+
 /*
     std::cout << "After prop:" << std::endl;
+    arg0->emit(std::cout);
+    std::cout << std::endl;
     std::cout << "lhs: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value() << std::endl;
+    std::cout << "lhs val id: " << std::static_pointer_cast<ScalarVariable>(arg0->get_value())->get_cur_value().get_int_type_id() << std::endl;
     std::cout << "lhs id: " << arg0->get_value()->get_type()->get_int_type_id() << std::endl;
+    arg1->emit(std::cout);
+    std::cout << std::endl;
     std::cout << "rhs: " << std::static_pointer_cast<ScalarVariable>(arg1->get_value())->get_cur_value() << std::endl;
     std::cout << "rhs id: " << arg1->get_value()->get_type()->get_int_type_id() << std::endl;
     std::cout << "new_val: " << new_val << std::endl;
@@ -1040,6 +1052,7 @@ UB BinaryExpr::propagate_value () {
     std::cout << "ret: " << std::static_pointer_cast<ScalarVariable>(value)->get_cur_value() << std::endl;
     std::cout << "=============" << std::endl;
 */
+
     return new_val.get_ub();
 }
 
@@ -1332,7 +1345,14 @@ ReferenceExpr::ReferenceExpr(std::shared_ptr<Expr> expr) :
     if (ref_expr->get_id() != Node::NodeID::VAR_USE && ref_expr->get_id() != Node::NodeID::MEMBER &&
         ref_expr->get_id() != Node::NodeID::REFERENCE && ref_expr->get_id() != Node::NodeID::DEREFERENCE)
         ERROR("can't make reference to anything but variable or member of structure");
-    value = std::make_shared<Pointer>("", ref_expr->get_value());
+    std::shared_ptr<Data> ref_expr_value;
+    if (ref_expr->get_id() == Node::NodeID::VAR_USE)
+        ref_expr_value = std::static_pointer_cast<VarUseExpr>(ref_expr)->get_raw_value();
+    else if (ref_expr->get_id() == Node::NodeID::MEMBER)
+        ref_expr_value = std::static_pointer_cast<MemberExpr>(ref_expr)->get_raw_value();
+    else
+        ref_expr_value = ref_expr->get_value();
+    value = std::make_shared<Pointer>("", ref_expr_value);
 }
 
 void ReferenceExpr::emit (std::ostream& stream, std::string offset) {
@@ -1357,6 +1377,11 @@ void DereferenceExpr::emit (std::ostream& stream, std::string offset) {
     stream << "*(";
     deref_expr->emit(stream);
     stream << ")";
+}
+
+std::shared_ptr<Data> DereferenceExpr::get_value () {
+    value = std::static_pointer_cast<Pointer>(deref_expr->get_value())->get_pointee();
+    return Expr::get_value();
 }
 
 std::shared_ptr<Expr> DereferenceExpr::set_value (std::shared_ptr<Expr> _expr) {

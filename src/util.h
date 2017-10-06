@@ -21,5 +21,5 @@ limitations under the License.
 #define ERROR(err_message) \
     do { \
         std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ", function " << __func__ << "():\n    " << err_message << std::endl; \
-        exit(-1); \
+        abort(); \
     } while (false)
