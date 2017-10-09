@@ -55,6 +55,58 @@ void Program::generate () {
     }
 }
 
+// Utility function which generates pointers (including nested)
+// only_invariants allows to exclude pointers to non-const members
+inline void ptr_generation (const std::shared_ptr<SymbolTable> &sym_table, uint32_t min_count,
+                            uint32_t max_count, bool only_invariants) {
+    NameHandler& name_handler = NameHandler::get_instance();
+
+    // Collect all suitable VarUseExpr and MemberExpr
+    std::vector<std::shared_ptr<Expr>> all_var_use_exprs = sym_table->get_all_var_use_exprs(true);
+
+    std::vector<std::shared_ptr<MemberExpr>>& members_in_structs =
+            only_invariants ? sym_table->get_const_members_in_structs() : sym_table->get_members_in_structs() ;
+    for (const auto& i : members_in_structs)
+        // Can't take address of bit-field
+        if (!std::static_pointer_cast<MemberExpr>(i)->get_raw_value()->get_type()->get_is_bit_field())
+            all_var_use_exprs.push_back(i);
+
+    std::vector<std::shared_ptr<MemberExpr>>& members_in_arrays =
+            only_invariants ? sym_table->get_const_members_in_arrays() : sym_table->get_members_in_arrays() ;
+    for (const auto& i : members_in_arrays)
+        // Can't take address of bit-field
+        if (!std::static_pointer_cast<MemberExpr>(i)->get_raw_value()->get_type()->get_is_bit_field())
+            all_var_use_exprs.push_back(i);
+
+    // Skip if we don't have any suitable "data" expression
+    if (all_var_use_exprs.empty())
+        return;
+
+    // Choose number of pointers
+    uint32_t ptr_count = rand_val_gen->get_rand_value(min_count, max_count);
+    for (uint32_t i = 0; i < ptr_count; ++i) {
+        std::shared_ptr<Expr>& picked_expr = rand_val_gen->get_rand_elem(all_var_use_exprs);
+
+        // Extract shared_ptr to raw value of picked expression
+        std::shared_ptr<Data> data;
+        if (picked_expr->get_id() == Node::NodeID::VAR_USE) {
+            std::shared_ptr<VarUseExpr> var_use_expr = std::static_pointer_cast<VarUseExpr>(picked_expr);
+            data = var_use_expr->get_raw_value();
+        }
+        else if (picked_expr->get_id() == Node::NodeID::MEMBER) {
+            std::shared_ptr<MemberExpr> member_expr = std::static_pointer_cast<MemberExpr>(picked_expr);
+            data = member_expr->get_raw_value();
+        }
+        else
+            ERROR("bad NodeID");
+
+        // Create new pointer
+        std::shared_ptr<Pointer> new_ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), data);
+        sym_table->add_pointer(new_ptr, picked_expr);
+        all_var_use_exprs.push_back(std::make_shared<VarUseExpr>(new_ptr));
+    }
+};
+
 // This function initially fills extern symbol table with inp and mix variables. It also creates type structs definitions.
 void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     auto p = ctx->get_gen_policy();
@@ -168,58 +220,6 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
         std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
         ctx->get_extern_out_sym_table()->add_array(new_array);
     }
-
-    NameHandler& name_handler = NameHandler::get_instance();
-
-    // Utility function which generates pointers (including nested)
-    // only_invariants allows to exclude pointers to non-const members
-    auto ptr_generation = [&name_handler] (std::shared_ptr<SymbolTable> sym_table,
-                                           uint32_t min_count, uint32_t max_count,
-                                           bool only_invariants) {
-        // Collect all suitable VarUseExpr and MemberExpr
-        std::vector<std::shared_ptr<Expr>> all_var_use_exprs = sym_table->get_all_var_use_exprs(true);
-
-        std::vector<std::shared_ptr<MemberExpr>>& members_in_structs =
-                only_invariants ? sym_table->get_const_members_in_structs() : sym_table->get_members_in_structs() ;
-        all_var_use_exprs.insert(all_var_use_exprs.end(), members_in_structs.begin(), members_in_structs.end());
-
-        std::vector<std::shared_ptr<MemberExpr>>& members_in_arrays =
-                only_invariants ? sym_table->get_const_members_in_arrays() : sym_table->get_members_in_arrays() ;
-        all_var_use_exprs.insert(all_var_use_exprs.end(), members_in_arrays.begin(), members_in_arrays.end());
-
-        // Skip if we don't have any suitable "data" expression
-        if (all_var_use_exprs.empty())
-            return;
-
-        // Choose number of pointers
-        uint32_t ptr_count = rand_val_gen->get_rand_value(min_count, max_count);
-        for (uint32_t i = 0; i < ptr_count; ++i) {
-            std::shared_ptr<Expr>& picked_expr = rand_val_gen->get_rand_elem(all_var_use_exprs);
-
-            // Extract shared_ptr to raw value of picked expression
-            std::shared_ptr<Data> data;
-            if (picked_expr->get_id() == Node::NodeID::VAR_USE) {
-                std::shared_ptr<VarUseExpr> var_use_expr = std::static_pointer_cast<VarUseExpr>(picked_expr);
-                data = var_use_expr->get_raw_value();
-            }
-            else if (picked_expr->get_id() == Node::NodeID::MEMBER) {
-                std::shared_ptr<MemberExpr> member_expr = std::static_pointer_cast<MemberExpr>(picked_expr);
-                // Can't take address of bit-field
-                if (member_expr->get_raw_value()->get_type()->get_is_bit_field()) {
-                    ptr_count++;
-                    continue;
-                }
-                data = member_expr->get_raw_value();
-            }
-            else
-                ERROR("bad NodeID");
-
-            // Create new pointer
-            std::shared_ptr<Pointer> new_ptr = std::make_shared<Pointer>(name_handler.get_ptr_var_name(), data);
-            sym_table->add_pointer(new_ptr, picked_expr);
-            all_var_use_exprs.push_back(std::make_shared<VarUseExpr>(new_ptr));
-        }
-    };
 
     // Generate random number of random input pointers (and exclude pointers to non-ivariant data)
     ptr_generation(ctx->get_extern_inp_sym_table(), p->get_min_inp_ptr_count(), p->get_max_inp_ptr_count(), true);
