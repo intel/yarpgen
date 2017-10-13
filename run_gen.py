@@ -61,35 +61,37 @@ script_start_time = datetime.datetime.now()  # We should init variable, so let's
 
 known_build_fails = { \
 # clang
-    "SelectionDAGISel": "Assertion `NodeToMatch\-\>getOpcode\(\) != ISD::DELETED_NODE && \"NodeToMatch was removed partway through selection\"'", \
-    "replaceAllUses" : "replaceAllUses of value with new value of different type", \
-    "FoldCONCAT_VECTORS" : "Concatenation of vectors with inconsistent value types", \
-    "PromoteIntRes_SETCC" : "Integer type overpromoted", \
-    "Cannot_select_urem" : "Cannot select.*urem", \
-    "Cannot_select_pcmpeq" : "Cannot select.*X86ISD::PCMPEQ", \
-    "Binary_operator_types_must_match": "Binary operator types must match", \
-    "DAGCombiner_AddToWorklist": "Deleted Node added to Worklist", \
-    "SDNode_getOperand": "Invalid child # of SDNode", \
-    "DELETED_NODE_CSEMap": "DELETED_NODE in CSEMap!", \
-    "VerifyScheduledSequence": "The number of nodes scheduled doesn't match the expected number", \
-    "physreg_copy": "Cannot emit physreg copy instruction", \
-    "deleted_cfg_edge": "Deleted edge still exists in the CFG", \
+    "Assertion `NodeToMatch\-\>getOpcode\(\) != ISD::DELETED_NODE && \"NodeToMatch was removed partway through selection\"'": "SelectionDAGISel", \
+    "replaceAllUses of value with new value of different type": "replaceAllUses", \
+    "Concatenation of vectors with inconsistent value types": "FoldCONCAT_VECTORS", \
+    "Integer type overpromoted": "PromoteIntRes_SETCC", \
+    "Cannot select.*urem": "Cannot_select_urem", \
+    "Cannot select.*X86ISD::PCMPEQ": "Cannot_select_pcmpeq", \
+    "Binary operator types must match": "Binary_operator_types_must_match", \
+    "Deleted Node added to Worklist": "DAGCombiner_AddToWorklist", \
+    "Invalid child # of SDNode": "SDNode_getOperand", \
+    "DELETED_NODE in CSEMap!": "DELETED_NODE_CSEMap", \
+    "The number of nodes scheduled doesn't match the expected number": "VerifyScheduledSequence", \
+    "Cannot emit physreg copy instruction": "physreg_copy", \
+    "Deleted edge still exists in the CFG": "deleted_cfg_edge", \
 # gcc
-    "compute_live_loop_exits" : "compute_live_loop_exits", \
+    "compute_live_loop_exits": "compute_live_loop_exits", \
     "ubsan_instrument_division": "ubsan_instrument_division", \
-    "verify_gimple_assignment": "non-trivial conversion at assignment", \
-    "verify_gimple_shift": "type mismatch in shift expression", \
-    "verify_gimple_binary": "type mismatch in binary expression", \
-    "REG_BR_PROB": "REG_BR_PROB does not match", \
-    "build_low_bits_mask": "in build_low_bits_mask", \
-    "verify_gimple_conversion_in_unary": "non-trivial conversion in unary operation", \
-    "verify_gimple_register_size": "conversion of register to a different size", \
-    "decompose": "in decompose", \
-    "verify_gimple_unary_conversion": "mismatching comparison operand types", \
-    "qsort": "qsort checking failed", \
+    "non-trivial conversion at assignment": "verify_gimple_assignment", \
+    "type mismatch in shift expression": "verify_gimple_shift", \
+    "type mismatch in binary expression": "verify_gimple_binary", \
+    "REG_BR_PROB does not match": "REG_BR_PROB", \
+    "in build_low_bits_mask": "build_low_bits_mask", \
+    "non-trivial conversion in unary operation": "verify_gimple_conversion_in_unary", \
+    "conversion of register to a different size": "verify_gimple_register_size", \
+    "in decompose": "decompose", \
+    "mismatching comparison operand types": "verify_gimple_unary_conversion", \
+    "qsort checking failed": "qsort", \
 # problem with available memory
-    "memory_problem": "std::bad_alloc", \
-    "memory_problem": "Cannot allocate memory" \
+    "bad_alloc": "memory_problem", \
+    "out of memory": "memory_problem", \
+    "Out of memory": "memory_problem", \
+    "Cannot allocate memory": "memory_problem" \
 }
 
 ###############################################################################
@@ -941,7 +943,7 @@ class TestRun(object):
                    test_name="S_"+str(self.test.seed))
 
     def classify_build_fail(self):
-        for tag, reg_expr in known_build_fails.items():
+        for reg_expr, tag in known_build_fails.items():
             if re.search(reg_expr, str(self.build_stderr, "utf-8")):
                 return tag
         return None
