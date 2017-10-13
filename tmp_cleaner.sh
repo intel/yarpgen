@@ -23,6 +23,7 @@ find /tmp -user $current_user -name "driver*.cpp" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "driver*.o" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "func*.cpp" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "func*.sh" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "f-*.sh" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "hash*.cpp" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "init*.cpp" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "init*.sh" -type f -mmin +60 -delete
@@ -35,5 +36,6 @@ find /tmp -user $current_user -name "data.*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "creduce*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "tmp*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "cc*" -type f -mmin +60 -delete
+find /tmp -user $current_user -name "symbolizer*" -type f -mmin +60 -delete
 find /tmp -user $current_user -name "??????????" -type f -mmin +60 -delete
 echo "tmp_cleaner was run" >> cleaner.log
