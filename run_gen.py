@@ -74,6 +74,8 @@ known_build_fails = { \
     "The number of nodes scheduled doesn't match the expected number": "VerifyScheduledSequence", \
     "Cannot emit physreg copy instruction": "physreg_copy", \
     "Deleted edge still exists in the CFG": "deleted_cfg_edge", \
+    "Cannot convert from scalar to/from vector": "vec_convert", \
+    "Invalid constantexpr cast!": "constexpr_cast", \
 # gcc
     "compute_live_loop_exits": "compute_live_loop_exits", \
     "ubsan_instrument_division": "ubsan_instrument_division", \
