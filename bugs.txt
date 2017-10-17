@@ -1,4 +1,14 @@
 LLVM:
+34959 - Incorrect predication in SKX, opt-bisect blames SLP Vectorizer
+34947 - -O0 crash: assertion "Cannot BITCAST between types of different sizes!"
+34934 - UNREACHABLE at LegalizeDAG.cpp: "Unexpected request for libcall!" (x86_64, SKX)
+34856 - Assertion on vector code: "Invalid constantexpr cast!"
+34855 - Cannot select shl and srl for v2i64
+34841 - InstCombine - Assertion "Cannot convert from scalar to/from vector"
+34838 - InstCombine - Assertion "Compare known true or false was not folded"
+34837 - UNREACHABLE in DAGTypeLegalizer::PromoteIntegerResult
+34830 - Clang failing with "Cannot emit physreg copy instruction"
+34828 - Assertion in VirtRegRewriter: `toIndex_(n) < storage_.size() && "index out of bounds!"'
 34787 - Assertion `TN->getNumChildren() == 0 && "Not a tree leaf"'
 34782 - Assertion "Deleted edge still exists in the CFG!"
 34381 - Clang produces incorrect code at -O0
@@ -55,6 +65,8 @@ LLVM:
 25517 - [AVX-512] llc generates incorrect code
 
 GCC:
+82576 - sbitmap_vector_alloc()
+82413 - [8 Regression] -O0 crash (ICE in decompose, at tree.h:5179)
 82381 - [8 Regression] internal compiler error: qsort checking failed
 82353 - [8 Regression] runtime ubsan crash
 82192 - [5/6/7/8 Regression] gcc produces incorrect code with -O2 and bit-field
