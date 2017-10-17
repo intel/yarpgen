@@ -89,11 +89,13 @@ known_build_fails = { \
     "in decompose": "decompose", \
     "mismatching comparison operand types": "verify_gimple_unary_conversion", \
     "qsort checking failed": "qsort", \
+    "in immed_wide_int_const, at emit-rtl.c": "immed_wide_int_const", \
 # problem with available memory
     "bad_alloc": "memory_problem", \
     "out of memory": "memory_problem", \
     "Out of memory": "memory_problem", \
-    "Cannot allocate memory": "memory_problem" \
+    "Cannot allocate memory": "memory_problem", \
+    "Killed": "killed"
 }
 
 ###############################################################################
