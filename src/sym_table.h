@@ -35,14 +35,14 @@ class SymbolTable {
 
         using MemberVector = std::vector<std::shared_ptr<MemberExpr>>;
         using ExprVector = std::vector<std::shared_ptr<Expr>>;
-        using DerefExprVector = std::vector<std::shared_ptr<DereferenceExpr>>;
+        using ExprStarVector = std::vector<std::shared_ptr<ExprStar>>;
         using PointerVector = std::vector<std::shared_ptr<Pointer>>;
 
         struct PointersInfo {
             PointerVector ptr;
             ExprVector init_expr;
-            // deref_expr represents dereference up to base variable
-            DerefExprVector deref_expr;
+            // expr_star represents dereference up to base variable
+            ExprStarVector deref_expr;
         };
 
         SymbolTable () {}
@@ -63,7 +63,7 @@ class SymbolTable {
         // (e.g. std::_Bit_reference from std::vector<bool> [0])
         ExprVector get_all_var_use_exprs(bool ignore_tmp_objs = false);
 
-        DerefExprVector& get_deref_exprs() { return pointers.deref_expr; }
+        ExprStarVector& get_deref_exprs() { return pointers.deref_expr; }
 
         auto& get_members_in_structs() { return std::get<ALL>(members_in_structs); }
         auto& get_const_members_in_structs() { return std::get<CONST>(members_in_structs); }
@@ -106,8 +106,8 @@ class SymbolTable {
         void emit_single_struct_check (std::shared_ptr<MemberExpr> parent_memb_expr, std::shared_ptr<Struct> struct_var,
                                        std::ostream& stream, std::string offset = "");
         void var_use_exprs_from_vars_in_arrays(std::vector<std::shared_ptr<Expr>>& ret, bool ignore_tmp_objs = false);
-        // This function unrolls nested pointers and creates DereferenceExpr at each level
-        std::shared_ptr<DereferenceExpr> deep_deref_expr_from_nest_ptr(std::shared_ptr<DereferenceExpr> expr);
+        // This function unrolls nested pointers and creates ExprStar at each level
+        std::shared_ptr<ExprStar> deep_deref_expr_from_nest_ptr(std::shared_ptr<ExprStar> expr);
         // This function adds missing key to ptr_map_key
         void add_to_lval_map(std::string& key, std::shared_ptr<Expr> expr);
         void add_to_all_map(std::string& key, std::shared_ptr<Expr> expr);

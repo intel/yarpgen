@@ -283,23 +283,23 @@ class MemberExpr : public Expr {
         uint64_t identifier;
 };
 
-// Reference expression - represents taking the address of any object
-class ReferenceExpr : public Expr {
+// AddressOf expression - represents taking the address of any object
+class AddressOfExpr : public Expr {
     public:
-        ReferenceExpr(std::shared_ptr<Expr> expr);
+        AddressOfExpr(std::shared_ptr<Expr> expr);
         void emit (std::ostream& stream, std::string offset = "");
 
     private:
         bool propagate_type () { return true; }
         UB propagate_value () { return NoUB; }
 
-        std::shared_ptr<Expr> ref_expr;
+        std::shared_ptr<Expr> addr_of_expr;
 };
 
-// Dereference expression - represents dereference of a pointer
-class DereferenceExpr : public Expr {
+// ExprStar - represents dereference of a pointer
+class ExprStar : public Expr {
     public:
-        DereferenceExpr(std::shared_ptr<Expr> expr);
+        ExprStar(std::shared_ptr<Expr> expr);
         std::shared_ptr<Expr> set_value (std::shared_ptr<Expr> _expr);
         std::shared_ptr<Data> get_value ();
         void emit (std::ostream& stream, std::string offset = "");
@@ -308,7 +308,7 @@ class DereferenceExpr : public Expr {
         bool propagate_type () { return true; }
         UB propagate_value () { return NoUB; }
 
-        std::shared_ptr<Expr> deref_expr;
+        std::shared_ptr<Expr> expr_star;
 };
 
 // Stub expression - serves as helper function for unimplemented features
