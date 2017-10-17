@@ -220,11 +220,11 @@ void DeclStmt::emit (std::ostream& stream, std::string offset) {
     stream << ";";
 }
 
-// This function returns DereferenceExpr for nested pointers up to base variable
-static std::shared_ptr<DereferenceExpr> deep_deref_expr_from_nest_ptr(std::shared_ptr<DereferenceExpr> expr) {
+// This function returns ExprStar for nested pointers up to base variable
+static std::shared_ptr<ExprStar> deep_deref_expr_from_nest_ptr(std::shared_ptr<ExprStar> expr) {
     if (!expr->get_value()->get_type()->is_ptr_type())
         return expr;
-    return deep_deref_expr_from_nest_ptr(std::make_shared<DereferenceExpr>(expr));
+    return deep_deref_expr_from_nest_ptr(std::make_shared<ExprStar>(expr));
 }
 
 // One of the most important generation methods (top-level generator for everything between curve brackets).
@@ -398,7 +398,7 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                     std::shared_ptr<Pointer> tmp_ptr = std::static_pointer_cast<Pointer>(tmp_decl->get_data());
                     // Add new pointer to inp
                     std::shared_ptr<VarUseExpr> tmp_ptr_use = std::make_shared<VarUseExpr>(tmp_ptr);
-                    inp.push_back(deep_deref_expr_from_nest_ptr(std::make_shared<DereferenceExpr>(tmp_ptr_use)));
+                    inp.push_back(deep_deref_expr_from_nest_ptr(std::make_shared<ExprStar>(tmp_ptr_use)));
                 }
                 else
                     // We can't create declaration for new pointer, so fall back to variable
@@ -456,7 +456,7 @@ std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_inp_from_ctx(std::shared_p
 std::vector<std::shared_ptr<Expr>> ScopeStmt::extract_locals_from_ctx(std::shared_ptr<Context> ctx) {
     //TODO: add struct members
     std::vector<std::shared_ptr<Expr>> ret = ctx->get_local_sym_table()->get_all_var_use_exprs();
-    std::vector<std::shared_ptr<DereferenceExpr>>& deref_expr = ctx->get_local_sym_table()->get_deref_exprs();
+    std::vector<std::shared_ptr<ExprStar>>& deref_expr = ctx->get_local_sym_table()->get_deref_exprs();
     ret.insert(ret.end(), deref_expr.begin(), deref_expr.end());
 
     if (ctx->get_parent_ctx() != nullptr) {

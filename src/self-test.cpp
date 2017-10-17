@@ -360,16 +360,16 @@ void self_test () {
     std::cout << "\n====================="<< std::endl;
 
     std::shared_ptr<VarUseExpr> pointee_var_use_expr = std::make_shared<VarUseExpr>(pointee);
-    std::shared_ptr<ReferenceExpr> ref_expr = std::make_shared<ReferenceExpr>(pointee_var_use_expr);
-    ref_expr->emit(std::cout);
+    std::shared_ptr<AddressOfExpr> addr_of_expr = std::make_shared<AddressOfExpr>(pointee_var_use_expr);
+    addr_of_expr->emit(std::cout);
     std::cout << std::endl;
-    ref_expr->get_value()->dbg_dump();
+    addr_of_expr->get_value()->dbg_dump();
     std::cout << "\n====================="<< std::endl;
 
-    DereferenceExpr deref_expr (ref_expr);
-    deref_expr.emit(std::cout);
+    ExprStar expr_star (addr_of_expr);
+    expr_star.emit(std::cout);
     std::cout << std::endl;
-    deref_expr.get_value()->dbg_dump();
+    expr_star.get_value()->dbg_dump();
     std::cout << "\n====================="<< std::endl;
     */
     std::shared_ptr<ScalarVariable> pointee_1 = std::make_shared<ScalarVariable>("var_1",
@@ -384,7 +384,7 @@ void self_test () {
                                                                                  IntegerType::init(IntegerType::ULINT));
     std::shared_ptr<Pointer> pointer_2 = std::make_shared<Pointer>("ptr_2", pointee_2);
     std::shared_ptr<VarUseExpr> ptr_2_use = std::make_shared<VarUseExpr>(pointer_2);
-    std::shared_ptr<DereferenceExpr> ptr_2_deref = std::make_shared<DereferenceExpr>(ptr_2_use);
+    std::shared_ptr<ExprStar> ptr_2_deref = std::make_shared<ExprStar>(ptr_2_use);
 
     //std::shared_ptr<AssignExpr> ptr_assign = std::make_shared<AssignExpr>(ptr_2_use, ptr_1_use);
     //pointer_2->dbg_dump();
@@ -394,8 +394,8 @@ void self_test () {
 
     std::shared_ptr<Pointer> ptr_to_ptr_2 = std::make_shared<Pointer>("ptr_to_ptr_2", pointer_2);
     std::shared_ptr<VarUseExpr> ptr_to_ptr_2_use = std::make_shared<VarUseExpr>(ptr_to_ptr_2);
-    std::shared_ptr<DereferenceExpr> ptr_to_ptr_2_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_2_use);
-    std::shared_ptr<DereferenceExpr> ptr_to_ptr_2_deref_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_2_deref);
+    std::shared_ptr<ExprStar> ptr_to_ptr_2_deref = std::make_shared<ExprStar>(ptr_to_ptr_2_use);
+    std::shared_ptr<ExprStar> ptr_to_ptr_2_deref_deref = std::make_shared<ExprStar>(ptr_to_ptr_2_deref);
 
     std::shared_ptr<AssignExpr> ptr_to_assign = std::make_shared<AssignExpr>(ptr_to_ptr_2_use, ptr_to_ptr_1_use);
     //ptr_to_ptr_2->dbg_dump();
@@ -413,12 +413,12 @@ void self_test () {
     std::cout << pointee_1->get_cur_value() << std::endl;
     */
 
-    std::shared_ptr<DereferenceExpr> ptr_to_ptr_1_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_1_use);
+    std::shared_ptr<ExprStar> ptr_to_ptr_1_deref = std::make_shared<ExprStar>(ptr_to_ptr_1_use);
     ptr_to_ptr_1_deref->emit(std::cout);
     std::cout << std::endl;
     ptr_to_ptr_1_deref->get_value()->get_type()->dbg_dump();
 
-    std::shared_ptr<DereferenceExpr> ptr_to_ptr_1_deref_deref = std::make_shared<DereferenceExpr>(ptr_to_ptr_1_deref);
+    std::shared_ptr<ExprStar> ptr_to_ptr_1_deref_deref = std::make_shared<ExprStar>(ptr_to_ptr_1_deref);
     ptr_to_ptr_1_deref_deref->emit(std::cout);
     std::cout << std::endl;
     ptr_to_ptr_1_deref_deref->get_value()->get_type()->dbg_dump();

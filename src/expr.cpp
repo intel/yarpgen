@@ -136,7 +136,7 @@ UB AssignExpr::propagate_value () {
         from = std::static_pointer_cast<MemberExpr>(to)->set_value(from);
     }
     else if (to->get_id() == Node::NodeID::DEREFERENCE) {
-        from = std::static_pointer_cast<DereferenceExpr>(to)->set_value(from);
+        from = std::static_pointer_cast<ExprStar>(to)->set_value(from);
     }
     else {
         ERROR("can assign only to variable (AssignExpr)");
@@ -1340,61 +1340,61 @@ MemberExpr::MemberExpr(std::shared_ptr<MemberExpr> _member_expr, uint64_t _ident
     propagate_value();
 }
 
-ReferenceExpr::ReferenceExpr(std::shared_ptr<Expr> expr) :
-        Expr(Node::NodeID::REFERENCE, nullptr, 1), ref_expr(expr) {
-    if (ref_expr->get_id() != Node::NodeID::VAR_USE && ref_expr->get_id() != Node::NodeID::MEMBER &&
-        ref_expr->get_id() != Node::NodeID::REFERENCE && ref_expr->get_id() != Node::NodeID::DEREFERENCE)
+AddressOfExpr::AddressOfExpr(std::shared_ptr<Expr> expr) :
+        Expr(Node::NodeID::REFERENCE, nullptr, 1), addr_of_expr(expr) {
+    if (addr_of_expr->get_id() != Node::NodeID::VAR_USE && addr_of_expr->get_id() != Node::NodeID::MEMBER &&
+        addr_of_expr->get_id() != Node::NodeID::REFERENCE && addr_of_expr->get_id() != Node::NodeID::DEREFERENCE)
         ERROR("can't make reference to anything but variable or member of structure");
-    std::shared_ptr<Data> ref_expr_value;
-    if (ref_expr->get_id() == Node::NodeID::VAR_USE)
-        ref_expr_value = std::static_pointer_cast<VarUseExpr>(ref_expr)->get_raw_value();
-    else if (ref_expr->get_id() == Node::NodeID::MEMBER)
-        ref_expr_value = std::static_pointer_cast<MemberExpr>(ref_expr)->get_raw_value();
+    std::shared_ptr<Data> addr_of_expr_value;
+    if (addr_of_expr->get_id() == Node::NodeID::VAR_USE)
+        addr_of_expr_value = std::static_pointer_cast<VarUseExpr>(addr_of_expr)->get_raw_value();
+    else if (addr_of_expr->get_id() == Node::NodeID::MEMBER)
+        addr_of_expr_value = std::static_pointer_cast<MemberExpr>(addr_of_expr)->get_raw_value();
     else
-        ref_expr_value = ref_expr->get_value();
-    value = std::make_shared<Pointer>("", ref_expr_value);
+        addr_of_expr_value = addr_of_expr->get_value();
+    value = std::make_shared<Pointer>("", addr_of_expr_value);
 }
 
-void ReferenceExpr::emit (std::ostream& stream, std::string offset) {
+void AddressOfExpr::emit (std::ostream& stream, std::string offset) {
     stream << offset;
     stream << "&(";
-    ref_expr->emit(stream);
+    addr_of_expr->emit(stream);
     stream << ")";
 }
 
-DereferenceExpr::DereferenceExpr(std::shared_ptr<Expr> expr) :
-        Expr(Node::NodeID::DEREFERENCE, nullptr, 1), deref_expr(expr) {
-    if (deref_expr->get_id() != Node::NodeID::VAR_USE && deref_expr->get_id() != Node::NodeID::MEMBER &&
-        deref_expr->get_id() != Node::NodeID::REFERENCE && deref_expr->get_id() != Node::NodeID::DEREFERENCE)
+ExprStar::ExprStar(std::shared_ptr<Expr> expr) :
+        Expr(Node::NodeID::DEREFERENCE, nullptr, 1), expr_star(expr) {
+    if (expr_star->get_id() != Node::NodeID::VAR_USE && expr_star->get_id() != Node::NodeID::MEMBER &&
+        expr_star->get_id() != Node::NodeID::REFERENCE && expr_star->get_id() != Node::NodeID::DEREFERENCE)
         ERROR("pointer can be stored only in variable or member of structure");
-    if (!deref_expr->get_value()->get_type()->is_ptr_type())
+    if (!expr_star->get_value()->get_type()->is_ptr_type())
         ERROR("can dereference only pointer");
-    value = std::static_pointer_cast<Pointer>(deref_expr->get_value())->get_pointee();
+    value = std::static_pointer_cast<Pointer>(expr_star->get_value())->get_pointee();
 }
 
-void DereferenceExpr::emit (std::ostream& stream, std::string offset) {
+void ExprStar::emit (std::ostream& stream, std::string offset) {
     stream << offset;
     stream << "*(";
-    deref_expr->emit(stream);
+    expr_star->emit(stream);
     stream << ")";
 }
 
-std::shared_ptr<Data> DereferenceExpr::get_value () {
-    value = std::static_pointer_cast<Pointer>(deref_expr->get_value())->get_pointee();
+std::shared_ptr<Data> ExprStar::get_value () {
+    value = std::static_pointer_cast<Pointer>(expr_star->get_value())->get_pointee();
     return Expr::get_value();
 }
 
-std::shared_ptr<Expr> DereferenceExpr::set_value (std::shared_ptr<Expr> _expr) {
+std::shared_ptr<Expr> ExprStar::set_value (std::shared_ptr<Expr> _expr) {
     std::shared_ptr<Data> _new_value = _expr->get_value();
     if (_new_value->get_class_id() != value->get_class_id())
-        ERROR("different Data::VarClassID (DereferenceExpr)");
+        ERROR("different Data::VarClassID (ExprStar)");
 
     switch (value->get_class_id()) {
         case Data::VarClassID::VAR:
             if (value->get_type()->get_int_type_id() != _new_value->get_type()->get_int_type_id())
-                ERROR("can't assign different types (DereferenceExpr)");
+                ERROR("can't assign different types (ExprStar)");
             if (value->get_type()->get_is_bit_field())
-                ERROR("pointer can't reference bit-field (DereferenceExpr)");
+                ERROR("pointer can't reference bit-field (ExprStar)");
             std::static_pointer_cast<ScalarVariable>(value)->set_cur_value(std::static_pointer_cast<ScalarVariable>(_new_value)->get_cur_value());
             return _expr;
             break;
@@ -1403,21 +1403,21 @@ std::shared_ptr<Expr> DereferenceExpr::set_value (std::shared_ptr<Expr> _expr) {
             std::shared_ptr<Pointer> _new_value_ptr = std::static_pointer_cast<Pointer>(_new_value);
             if (value_ptr->get_pointee()->get_type()->get_int_type_id() !=
                 _new_value_ptr->get_pointee()->get_type()->get_int_type_id()) {
-                ERROR("can't assign different types (DereferenceExpr)");
+                ERROR("can't assign different types (ExprStar)");
             }
             value_ptr->set_pointee(_new_value_ptr->get_pointee());
             return _expr;
         }
         case Data::VarClassID::STRUCT:
             //TODO: implement for Struct
-            ERROR("Struct is unsupported (DereferenceExpr)");
+            ERROR("Struct is unsupported (ExprStar)");
             break;
         case Data::VarClassID::ARRAY:
             //TODO: implement for Array
-            ERROR("Array is unsupported (DereferenceExpr)");
+            ERROR("Array is unsupported (ExprStar)");
             break;
         case Data::VarClassID::MAX_CLASS_ID:
-            ERROR("unsupported Data::VarClassID (DereferenceExpr)");
+            ERROR("unsupported Data::VarClassID (ExprStar)");
     }
-    ERROR("DereferenceExpr::set_value(DereferenceExpr) - data corruption");
+    ERROR("ExprStar::set_value(ExprStar) - data corruption");
 }
