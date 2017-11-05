@@ -83,12 +83,18 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
     opt_num_regex = re.compile(compilers_blame_patterns[fail_target.specs.name][phase_num])
     try:
-        max_opt_num_str = opt_num_regex.findall(str(err_output, "utf-8"))[-1]
+        matches = opt_num_regex.findall(str(err_output, "utf-8"))
+        # Some icc phases may not support going to phase "2", i.e. drilling down to num_case level,
+        # in this case we are done.
+        if phase_num == 2 and not matches:
+            return str(-1)
+        max_opt_num_str = matches[-1]
         remove_brackets_pattern = re.compile("\d+")
         max_opt_num = int(remove_brackets_pattern.findall(max_opt_num_str)[-1])
         common.log_msg(logging.DEBUG, "Max opt num (process " + str(num) + "): " + str(max_opt_num))
     except IndexError:
-        common.log_msg(logging.ERROR, "Can't decode max opt number in \n" + str(err_output, "utf-8")
+        common.log_msg(logging.ERROR, "Can't decode max opt number using \"" + compilers_blame_patterns[fail_target.specs.name][phase_num]
+                       + "\" regexp (phase " + str(phase_num) + ") in the following output:\n" + str(err_output, "utf-8")
                        + " (process " + str(num) + "): ")
         raise
 
