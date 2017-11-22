@@ -210,9 +210,10 @@ void SymbolTable::emit_struct_type_static_memb_def (std::ostream& stream, std::s
     }
 }
 
-void SymbolTable::emit_struct_type_static_memb_init (std::ostream& stream, std::string offset) {
-    for (const auto &i : struct_type)
-        stream << i->get_static_memb_init(offset) + "\n";
+void SymbolTable::emit_struct_type_static_memb_check (std::ostream& stream, std::string offset) {
+    for (const auto &i : struct_type) {
+        stream << i->get_static_memb_check(offset) + "\n";
+    }
 }
 
 void SymbolTable::emit_struct_type_def (std::ostream& stream, std::string offset) {
@@ -245,14 +246,18 @@ void SymbolTable::emit_struct_init (std::ostream& stream, std::string offset) {
 }
 
 void SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> parent_memb_expr,
-                                                  std::shared_ptr<Struct> struct_var,
-                                                  std::ostream& stream, std::string offset) {
+                                           std::shared_ptr<Struct> struct_var,
+                                           std::ostream& stream, std::string offset) {
     for (uint64_t j = 0; j < struct_var->get_member_count(); ++j) {
         std::shared_ptr<MemberExpr> member_expr;
         if  (parent_memb_expr != nullptr)
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
         else
             member_expr = std::make_shared<MemberExpr>(struct_var, j);
+
+        // Static members of struct should be initialized only once
+        if (struct_var->get_member(j)->get_type()->get_is_static())
+            continue;
 
         if (struct_var->get_member(j)->get_type()->is_struct_type()) {
             emit_single_struct_init(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)),
@@ -283,6 +288,10 @@ void SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_m
             member_expr = std::make_shared<MemberExpr>(parent_memb_expr, j);
         else
             member_expr = std::make_shared<MemberExpr>(struct_var, j);
+
+        // Static members are checked separately
+        if (member_expr->get_value()->get_type()->get_is_static())
+            continue;
 
         if (struct_var->get_member(j)->get_type()->is_struct_type())
             emit_single_struct_check(member_expr, std::static_pointer_cast<Struct>(struct_var->get_member(j)),

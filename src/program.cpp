@@ -356,7 +356,6 @@ void Program::emit_main () {
         out_file << "\n\n";
 
         out_file << "void " << NameHandler::common_test_func_prefix << i << "_init () {\n";
-        extern_inp_sym_table.at(i)->emit_struct_type_static_memb_init (out_file, "    ");
         extern_inp_sym_table.at(i)->emit_struct_init(out_file, "    ");
         extern_mix_sym_table.at(i)->emit_struct_init(out_file, "    ");
         extern_out_sym_table.at(i)->emit_struct_init(out_file, "    ");
@@ -365,6 +364,10 @@ void Program::emit_main () {
         // Check
         //////////////////////////////////////////////////////////
         out_file << "void " << NameHandler::common_test_func_prefix << i << "_checksum () {\n";
+
+        // Because struct types are duplicated over all symbol tables,
+        // it is enough to check static members in only one
+        extern_out_sym_table.at(i)->emit_struct_type_static_memb_check(out_file, "    ");
 
         extern_mix_sym_table.at(i)->emit_variable_check(out_file, "    ");
         extern_out_sym_table.at(i)->emit_variable_check(out_file, "    ");

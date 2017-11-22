@@ -106,51 +106,67 @@ std::string StructType::get_definition (std::string offset) {
     return ret;
 }
 
-std::string StructType::get_static_memb_def (std::string offset) {
-    std::string ret;
-    for (const auto& i : members)
-        if (i->get_type()->get_is_static())
-            ret += offset + i->get_type()->get_simple_name() + " " + name + "::" + i->get_name() + ";\n";
-    return ret;
-}
-
-static std::string static_memb_init_from_structs (const std::string& parent_str, std::shared_ptr<Struct> inp_struct);
-
 // This function implements single iteration of loop of static members' initialization emission
-static std::string static_memb_init_iter(const std::string &parent_str, std::shared_ptr<Data> member) {
-    std::string ret = parent_str + member->get_name();
+static std::string static_memb_init_iter(std::shared_ptr<Data> member) {
+    std::string ret;
     if (member->get_class_id() == Data::VAR) {
         ConstExpr init_expr(std::static_pointer_cast<ScalarVariable>(member)->get_init_value());
         std::stringstream sstream;
         init_expr.emit(sstream);
-        ret += " = " + sstream.str() + ";\n";
+        ret += sstream.str();
     } else if (member->get_class_id() == Data::STRUCT) {
         std::shared_ptr<Struct> member_struct = std::static_pointer_cast<Struct>(member);
-        ret = static_memb_init_from_structs(ret + ".", member_struct);
+        // Recursively walk over all members
+        ret += "{";
+        uint64_t member_count = member_struct->get_member_count();
+        for (int i = 0; i < member_count; ++i) {
+            std::shared_ptr<Data> cur_member = member_struct->get_member(i);
+            if (cur_member->get_type()->get_is_static())
+                continue;
+            ret += static_memb_init_iter(cur_member) + (i != member_count - 1 ? ", " : "");
+        }
+        ret += "}";
     } else
         ERROR("bad Data::ClassID");
 
     return ret;
 }
 
-// Helper function which is needed for recursive walk over all nested structures
-static std::string static_memb_init_from_structs (const std::string& parent_str, std::shared_ptr<Struct> inp_struct) {
+std::string StructType::get_static_memb_def (std::string offset) {
     std::string ret;
-    for (int i = 0; i < inp_struct->get_member_count(); ++i) {
-        std::shared_ptr<Data> member = inp_struct->get_member(i);
-        ret += static_memb_init_iter(parent_str, member);
-    }
+    for (const auto& i : members)
+        if (i->get_type()->get_is_static())
+            ret += offset + i->get_type()->get_simple_name() + " " + name + "::" + i->get_name() + " = " +
+                   static_memb_init_iter(i->get_data()) + ";\n";
     return ret;
 }
 
-std::string StructType::get_static_memb_init (std::string offset) {
+// This function implements single iteration of loop of static members' check emission
+static std::string static_memb_check_iter(std::string offset, std::string parent_str, std::shared_ptr<Data> member) {
     std::string ret;
-    for (const auto &i : members) {
-        if (!i->get_type()->get_is_static())
-            continue;
+    parent_str = parent_str + member->get_name();
+    if (member->get_class_id() == Data::VAR)
+        ret += offset + "hash(&seed, " + parent_str + ");\n";
+    else if (member->get_class_id() == Data::STRUCT) {
+        std::shared_ptr<Struct> member_struct = std::static_pointer_cast<Struct>(member);
+        // Recursively walk over all members
+        for (int i = 0; i < member_struct->get_member_count(); ++i) {
+            std::shared_ptr<Data> cur_member = member_struct->get_member(i);
+            if (cur_member->get_type()->get_is_static())
+                continue;
+            ret += static_memb_check_iter(offset, parent_str + ".", cur_member);
+        }
+    } else
+        ERROR("bad Data::ClassID");
 
-        ret += static_memb_init_iter(offset + name + "::", i->get_data());
-    }
+    return ret;
+}
+
+std::string StructType::get_static_memb_check (std::string offset) {
+    std::string ret;
+    for (const auto& i : members)
+        if (i->get_type()->get_is_static())
+        ret += static_memb_check_iter(offset, name + "::", i->get_data());
     return ret;
 }
 

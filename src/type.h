@@ -158,7 +158,7 @@ class StructType : public Type {
         std::string get_definition (std::string offset = "");
         // It returns an out-of-line definition for all static members of the structure
         std::string get_static_memb_def (std::string offset = "");
-        std::string get_static_memb_init (std::string offset = "");
+        std::string get_static_memb_check (std::string offset = "");
 
         void dbg_dump();
 

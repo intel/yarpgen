@@ -82,7 +82,7 @@ class SymbolTable {
         // TODO: rewrite with IR
         void emit_variable_check (std::ostream& stream, std::string offset = "");
         void emit_struct_type_static_memb_def (std::ostream& stream, std::string offset = "");
-        void emit_struct_type_static_memb_init (std::ostream& stream, std::string offset = "");
+        void emit_struct_type_static_memb_check (std::ostream& stream, std::string offset = "");
         void emit_struct_type_def (std::ostream& stream, std::string offset = "");
         void emit_struct_def (std::ostream& stream, std::string offset = "");
         void emit_struct_extern_decl (std::ostream& stream, std::string offset = "");
