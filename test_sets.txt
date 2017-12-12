@@ -37,8 +37,8 @@ clang       | clang++             | clang             | -w                      
 # See https://bugs.llvm.org//show_bug.cgi?id=16404 for more information
 # Note that -fpermissive optiuon for gcc is required to allow reduction of ubsan_gcc fails.
 # Otherwise result of reducion is empty program.
-ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized -Werror=implicitly-unsigned-literal | -march=
-ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -w -Werror=uninitialized -fpermissive | -march=
+ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -Werror=implicitly-unsigned-literal | -march=
+ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive | -march=
 icc         | icpc                | icc               | -w                                                          | -x
 icx         | icpx                | icx               | -w                                                          | -march=
 
