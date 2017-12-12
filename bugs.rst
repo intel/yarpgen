@@ -2,7 +2,8 @@
 LLVM:
 ====================================
 
-
+| `35583 <https://bugs.llvm.org/show_bug.cgi?id=35583>`_ - NewGVN indeterministic crash
+| `35272 <https://bugs.llvm.org/show_bug.cgi?id=35272>`_ - [AVX512] Assertion "Invalid sext node, dst < src!" in llvm::SelectionDAG::getNode()
 | `34959 <https://bugs.llvm.org/show_bug.cgi?id=34959>`_ - Incorrect predication in SKX, opt-bisect blames SLP Vectorizer
 | `34947 <https://bugs.llvm.org/show_bug.cgi?id=34947>`_ - -O0 crash: assertion "Cannot BITCAST between types of different sizes!"
 | `34934 <https://bugs.llvm.org/show_bug.cgi?id=34934>`_ - UNREACHABLE at LegalizeDAG.cpp: "Unexpected request for libcall!" (x86_64, SKX)
@@ -71,8 +72,14 @@ LLVM:
 ====================================
 GCC:
 ====================================
-    
-| `82576 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82576>`_ - sbitmap_vector_alloc()
+
+| `83383 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83383>`_ - Wrong code with a bunch of type conversion and ternary operators
+| `83382 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83382>`_ - UBSAN tiggers false-positive warning [-Werror=uninitialized]
+| `83252 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83252>`_ - [8 Regression] Wrong code with "-march=skylake-avx512 -O3"
+| `83221 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83221>`_ - [8 Regression] qsort comparator not anti-commutative: -2147483648, -2147483648
+| `82957 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82957>`_ - [8 Regression] ICE: in to_cgraph_frequency, at profile-count.c:251
+| `82778 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82778>`_ - crash: insn does not satisfy its constraints
+| `82576 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82576>`_ - sbitmap_vector_alloc() not ready for 64 bits
 | `82413 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82413>`_ - [8 Regression] -O0 crash (ICE in decompose, at tree.h:5179)
 | `82381 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82381>`_ - [8 Regression] internal compiler error: qsort checking failed
 | `82353 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82353>`_ - [8 Regression] runtime ubsan crash
