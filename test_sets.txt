@@ -1,89 +1,283 @@
-###############################################################################
-#
-# Copyright (c) 2016-2017, Intel Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-###############################################################################
-# README:
-# Testing configuration file
-# You can start single-line comment with #. Don't use indentation at the beginning of line!
-# Config can contain only one "Compiler specs" and "Testing sets" blocks!
-# You should always specify "Compiler specs" before "Testing sets"!
-###############################################################################
+[DEFAULT]
+    std: -std=
+    # Will be set later to match language standard
 
-Compiler specs:
-# Spec name - codename for compiler and its options
-# Executable name - name of compiler binary file. It should be in your PATH
-# Common arguments - arguments which will be passed to every compiler run
-# Arch prefix - prefix for specifying different architectures (it will be concatenated with Compiler arch value)
+    src_file_ext
+    # Will be set later
 
-# Spec name | C++ executable name | C executable name | Common arguments                                            | Arch prefix
-gcc         | g++                 | gcc               | -w -fpermissive                                             | -march=
-clang       | clang++             | clang             | -w                                                          | -march=
+    driver_file_name: driver
+    driver_file: %(driver_file_name)s%(src_file_ext)s
+    driver_out_file: %(driver_file_name)s.o
+
+    test_set_prefix
+    # Will be set later
+
+    inp_file_name: func
+    inp_file: func%(src_file_ext)s
+
+    out_file_name: %(test_set_prefix)s_%(inp_file_name)s
+    out_exec_suffix: out
+    out_exec: %(test_set_prefix)s_%(out_exec_suffix)s
+    
+    exec_name
+    # Will be set later
+
+    arch_str: %(arch_prefix)s%(comp_arch)s
+    sde_prefix: sde -%(sde_arch)s --
+
+    driver_compilation: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s -O0 -c -o %(driver_out_file)s %(driver_file)s
+    simple_compilation: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s %(test_set_args)s -c -o %(out_file_name)s.o %(inp_file)s
+    linking: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s %(test_set_args)s -o %(out_exec)s %(driver_out_file)s %(out_file_name)s.o
+    execution: %(sde_prefix)s ./%(out_exec)s
+
+    clang_opt_passes: -consthoist -constprop -correlated-propagation -dce -flattencfg -gvn-hoist -gvn-sink -mergeicmps -nary-reassociate -newgvn -partially-inline-libcalls -scalarizer -sink -structurizecfg
+    # Custom option. It was moved to individual option in order to lower copy-paste.
+
+#########################################################################################
+
+[gcc]
+    spec
+    c_exec_name: gcc
+    cxx_exec_name: g++
+    spec_common_args: -w -fpermissive
+    arch_prefix: -march=
+    comp_stage_1: %(simple_compilation)s
+
+[clang]
+    spec
+    c_exec_name: clang
+    cxx_exec_name: clang++
+    spec_common_args: -w
+    arch_prefix: -march=
+    comp_stage_1: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s %(test_set_args)s -Xclang -disable-llvm-optzns -emit-llvm -c -o %(out_file_name)s.bc %(inp_file)s
+    comp_stage_2: opt %(arch_str)s %(test_set_args)s -o %(out_file_name)s.ll %(out_file_name)s.bc
+    comp_stage_3: %(exec_name)s %(arch_str)s %(spec_common_args)s %(test_set_args)s -c -o %(out_file_name)s.o %(out_file_name)s.ll
+    comp_stage_1_stat: -Xclang -print-stats
+    comp_stage_2_stat: -stats -stats-json -info-output-file=%(inp_file_name)s.stats
+    comp_stage_3_stat: -save-stats
+    merge_stats_files: cat %(inp_file_name)s.stats >> %(test_set_prefix)s_%(inp_file_name)s.stats
+
 # Ubsan is clang or gcc with sanitizer options. It is used for generator check.
 # If you want to use sanitizer with -m32, please make sure that you pass "-rtlib=compiler-rt -lgcc_s" options if you are using clang.
 # Otherwise it may fail with "undefined reference to `__mulodi4'" error message.
 # See https://bugs.llvm.org//show_bug.cgi?id=16404 for more information
 # Note that -fpermissive optiuon for gcc is required to allow reduction of ubsan_gcc fails.
 # Otherwise result of reducion is empty program.
-ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -Werror=implicitly-unsigned-literal | -march=
-ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive | -march=
-icc         | icpc                | icc               | -w                                                          | -x
-icx         | icpx                | icx               | -w                                                          | -march=
 
-Testing sets:
-# Set name - codename for testing set
-# Spec name - codename of spec, it should be described in Compiler specs
-# Arguments - compiler options for this testing set
-# Compiler arch - architecture which will be passed to compiler
-# Sde arch - architecture which will be passed to SDE
+[ubsan_clang]
+    spec
+    c_exec_name: clang
+    cxx_exec_name: clang++
+    spec_common_args: -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -Werror=implicitly-unsigned-literal
+    arch_prefix: -march=
+    comp_stage_1: %(simple_compilation)s
 
-# Set name       | Spec name   | Arguments | Compiler arch  | Sde arch
-ubsan_clang_o0   | ubsan_clang | -O0       |                |
-#ubsan_clang_o2   | ubsan_clang | -O2       |                |
-ubsan_gcc_o0     | ubsan_gcc   | -O0       |                |
-#ubsan_gcc_o2     | ubsan_gcc   | -O2       |                |
+[ubsan_gcc]
+    spec
+    c_exec_name: gcc
+    cxx_exec_name: g++
+    spec_common_args: -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive
+    arch_prefix: -march=
+    comp_stage_1: %(simple_compilation)s
 
-gcc_no_opt       | gcc       | -O0       |                |
-gcc_opt          | gcc       | -O3       |                |
-#gcc_wsm_opt      | gcc       | -O3       | westmere       | wsm
-#gcc_ivb_opt      | gcc       | -O3       | ivybridge      | ivb
-#gcc_hsw_opt      | gcc       | -O3       | haswell        | hsw
-#gcc_bdw_opt      | gcc       | -O3       | broadwell      | bdw
-#gcc_knl_no_opt   | gcc       | -O0       | knl            | knl
-#gcc_knl_opt      | gcc       | -O3       | knl            | knl
-#gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
-#gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
+[icc]
+    spec
+    c_exec_name: icc
+    cxx_exec_name: icpc
+    spec_common_args: -w
+    arch_prefix: -x
+    comp_stage_1: %(simple_compilation)s
 
-clang_no_opt     | clang     | -O0       |                |
-clang_opt        | clang     | -O3       |                |
-#clang_knl_no_opt | clang     | -O0       | knl            | knl
-#clang_knl_opt    | clang     | -O3       | knl            | knl
-#clang_skx_no_opt | clang     | -O0       | skx            | skx
-#clang_skx_opt    | clang     | -O3       | skx            | skx
+[icx]
+    spec
+    c_exec_name: icx
+    cxx_exec_name: icpx
+    spec_common_args: -w
+    arch_prefix: -march=
+    comp_stage_1: %(simple_compilation)s
 
-icc_no_opt       | icc       | -O0       |                |
-icc_opt          | icc       | -O3       |                |
-#icc_knl_no_opt   | icc       | -O0       | MIC-AVX512     | knl
-#icc_knl_opt      | icc       | -O3       | MIC-AVX512     | knl
-#icc_skx_no_opt   | icc       | -O0       | CORE-AVX512    | skx
-#icc_skx_opt      | icc       | -O3       | CORE-AVX512    | skx
+#########################################################################################
 
-icx_no_opt       | icx       | -O0       |                |
-icx_opt          | icx       | -O3       |                |
+[ubsan_clang_o0]
+    test_set
+    corr_spec: ubsan_clang
+    test_set_args: -O0
 
-Options for statistics' capture:
-#Spec name  | Arguments
-ubsan_clang | -save-stats -Xclang -print-stats
-clang       | -save-stats -Xclang -print-stats
+#[ubsan_clang_o2]
+#    test_set
+#    corr_spec: ubsan_clang
+#    test_set_args: -O2
+
+[ubsan_gcc_o0]
+    test_set
+    corr_spec: ubsan_clang
+    test_set_args: -O0
+
+#[ubsan_gcc_o2]
+#    test_set
+#    corr_spec: ubsan_clang
+#    test_set_args: -O2
+
+#########################################################################################
+
+[gcc_no_opt]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O0
+
+[gcc_opt]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O3
+
+#[gcc_wsm_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O3
+#    comp_arch: westmere
+#    sde_arch: wsm
+
+#[gcc_ivb_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O3
+#    comp_arch: ivybridge
+#    sde_arch: ivb
+
+#[gcc_hsw_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O3
+#    comp_arch: haswell
+#    sde_arch: hsw
+
+#[gcc_bdw_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O3
+#    comp_arch: broadwell
+#    sde_arch: bdw
+
+#[gcc_knl_no_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O0
+#    comp_arch: knl
+#    sde_arch: knl
+
+#[gcc_knl_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O3
+#    comp_arch: knl
+#    sde_arch: knl
+
+#[gcc_skx_no_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O0
+#    comp_arch: skylake-avx512
+#    sde_arch: skx
+
+#[gcc_skx_opt]
+#    test_set
+#    corr_spec: gcc
+#    test_set_args: -O3
+#    comp_arch: skylake-avx512
+#    sde_arch: skx
+
+#########################################################################################
+
+[clang_no_opt]
+    test_set
+    corr_spec: clang
+    test_set_args: -O0
+
+[clang_opt]
+    test_set
+    corr_spec: clang
+    test_set_args: -O3
+    comp_stage_2_args: %(clang_opt_passes)s
+
+#[clang_knl_no_opt]
+#    test_set
+#    corr_spec: clang
+#    test_set_args: -O0
+#    comp_arch: knl
+#    sde_arch: knl
+
+#[clang_knl_opt]
+#    test_set
+#    corr_spec: clang
+#    test_set_args: -O3
+#    comp_arch: knl
+#    sde_arch: knl
+#    comp_stage_2_args: %(clang_opt_passes)s
+
+#[clang_skx_no_opt]
+#    test_set
+#    corr_spec: clang
+#    test_set_args: -O0
+#    comp_arch: skx
+#    sde_arch: skx
+
+#[clang_skx_opt]
+#    test_set
+#    corr_spec: clang
+#    test_set_args: -O3
+#    comp_arch: skx
+#    sde_arch: skx
+#    comp_stage_2_args: %(clang_opt_passes)s
+
+#########################################################################################
+
+[icc_no_opt]
+    test_set
+    corr_spec: icc
+    test_set_args: -O0
+    
+[icc_opt]
+    test_set
+    corr_spec: icc
+    test_set_args: -O3
+
+#[icc_knl_no_opt]
+#    test_set
+#    corr_spec: icc
+#    test_set_args: -O0
+#    comp_arch: MIC-AVX512
+#    sde_arch: knl
+
+#[icc_knl_opt]
+#    test_set
+#    corr_spec: icc
+#    test_set_args: -O3
+#    comp_arch: MIC-AVX512
+#    sde_arch: knl
+
+#[icc_skx_no_opt]
+#    test_set
+#    corr_spec: icc
+#    test_set_args: -O0
+#    comp_arch: CORE-AVX512
+#    sde_arch: skx
+
+#[icc_skx_opt]
+#    test_set
+#    corr_spec: icc
+#    test_set_args: -O3
+#    comp_arch: CORE-AVX512
+#    sde_arch: skx
+
+#########################################################################################
+
+[icx_no_opt]
+    test_set
+    corr_spec: icx
+    test_set_args: -O0
+    
+[icx_opt]
+    test_set
+    corr_spec: icx
+    test_set_args: -O3
+

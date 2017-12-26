@@ -203,7 +203,9 @@ class Test(object):
 
         # Files that belongs to generate test. They are hardcoded for now.
         # Generator may report them in output later and we may need to parse it.
-        self.files = gen_test_makefile.sources.value.split() + gen_test_makefile.headers.value.split()
+        self.files = [gen_test_makefile.config_parser.get(gen_test_makefile.default_section, "driver_file"),
+                      gen_test_makefile.config_parser.get(gen_test_makefile.default_section, "inp_file")] + \
+                     gen_test_makefile.headers.value.split()
         self.files.append(gen_test_makefile.Test_Makefile_name)
 
         # Parse generated seed.
@@ -854,12 +856,14 @@ class TestRun(object):
             self.status = self.STATUS_not_run
 
         # parse stats if needed
-        if self.parse_stats and os.path.isfile("func.stats"):
+        stats_file_name = self.target.name + "_func.stats"
+        if self.parse_stats and os.path.isfile(stats_file_name):
             opt_stats = None
             stmt_stats = None
             if "clang" in self.target.specs.name:
-                opt_stats = StatsParser.parse_clang_opt_stats_file("func.stats")
+                opt_stats = StatsParser.parse_clang_opt_stats_file(stats_file_name)
                 stmt_stats = StatsParser.parse_clang_stmt_stats_file(str(self.build_stderr, "utf-8"))
+                os.remove(stats_file_name)
             self.stat.add_stats(opt_stats, self.optset, StatsVault.opt_stats_id)
             self.stat.add_stats(stmt_stats, self.optset, StatsVault.stmt_stats_id)
 
@@ -867,8 +871,6 @@ class TestRun(object):
         expected_files = [source + ".o" for source in gen_test_makefile.sources.value.split()]
         expected_files.append(gen_test_makefile.executable.value)
         expected_files = [self.optset + "_" + e for e in expected_files]
-        if self.parse_stats:
-            expected_files.append("func.stats")
         for f in expected_files:
             if os.path.isfile(f):
                 self.files.append(f)

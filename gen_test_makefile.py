@@ -21,6 +21,7 @@
 
 import argparse
 import collections
+import configparser
 import enum
 import logging
 import os
@@ -41,6 +42,11 @@ test_sets_line = "Testing sets:"
 set_list_len = 5
 stats_capt_opt_line = "Options for statistics' capture:"
 stats_capt_opt_list_len = 2
+
+default_section = "DEFAULT"
+
+config_parser = configparser.ConfigParser(empty_lines_in_values=False, allow_no_value=True)
+config_parser[default_section]["std"] = "-std"
 
 ###############################################################################
 # Section for Test_Makefile parameters
@@ -123,12 +129,15 @@ def get_file_ext():
     return None
 
 def adjust_sources_to_standard():
-    sources.value = re.sub("\s+|$", get_file_ext() + " ", sources.value)
+    config_parser.set(default_section, "src_file_ext", get_file_ext())
 
 def set_standard (std_str):
     global selected_standard
+    global config_parser
     selected_standard = StrToStdId[std_str]
-    std_flags.value += StdID.get_pretty_std_name(selected_standard)
+    std_string = config_parser.get(default_section, "std") + \
+                 StdID.get_pretty_std_name(selected_standard)
+    config_parser.set(default_section, "std", std_string)
     adjust_sources_to_standard()
 
 def get_standard ():
@@ -233,77 +242,72 @@ class StatisticsOptions (object):
 ###############################################################################
 # Section for config parser
 
-
-def skip_line(line):
-    return line.startswith("#") or re.match(r'^\s*$', line)
-
-
-def check_config_list(config_list, fixed_len, message):
-    common.log_msg(logging.DEBUG, "Adding config list: " + str(config_list))
-    if len(config_list) < fixed_len:
-        common.print_and_exit(message + str(config_list))
-    config_list = [x.strip() for x in config_list]
-    return config_list
-
-
-def add_specs(spec_list):
-    spec_list = check_config_list(spec_list, spec_list_len, "Error in spec string, check it: ")
-    try:
-        CompilerSpecs(spec_list[0], spec_list[1], spec_list[2], spec_list[3], spec_list[4])
-        common.log_msg(logging.DEBUG, "Finished adding compiler spec")
-    except KeyError:
-        common.print_and_exit("Can't find key!")
-
-
-def add_sets(set_list):
-    set_list = check_config_list(set_list, set_list_len, "Error in set string, check it: ")
-    try:
-        CompilerTarget(set_list[0], CompilerSpecs.all_comp_specs[set_list[1]], set_list[2],
-                       Arch(set_list[3], SdeArch[set_list[4]]))
-        common.log_msg(logging.DEBUG, "Finished adding testing set")
-    except KeyError:
-        common.print_and_exit("Can't find key!")
-
-
-def add_stats_options(stats_opt_list):
-    stats_opt_list = check_config_list(stats_opt_list, stats_capt_opt_list_len,
-                                       "Error in stats options string, check it: ")
-    try:
-        StatisticsOptions(CompilerSpecs.all_comp_specs[stats_opt_list[0]], stats_opt_list[1])
-        common.log_msg(logging.DEBUG, "Finished adding stats option string")
-    except KeyError:
-        common.print_and_exit("Can't find key!")
-
-
-def read_compiler_specs(config_iter, function, next_section_name=""):
-    for config_line in config_iter:
-        if skip_line(config_line):
-            continue
-        if next_section_name != "" and config_line.startswith(next_section_name):
-            return
-        specs = config_line.split("|")
-        function(specs)
-
-
 def parse_config(file_name):
     # Before parsing, clean old data
     CompilerSpecs.all_comp_specs = dict()
     CompilerTarget.all_targets = []
 
     # Parse
-    config_file = common.check_and_open_file(file_name, "r")
-    config = config_file.read().splitlines()
-    config_file.close()
-    if not any(s.startswith(comp_specs_line) for s in config) or not any(s.startswith(test_sets_line) for s in config):
-        common.print_and_exit("Invalid config file! Check it!")
-    config_iter = iter(config)
-    for config_line in config_iter:
-        if skip_line(config_line):
-            continue
-        if config_line.startswith(comp_specs_line):
-            read_compiler_specs(config_iter, add_specs, test_sets_line)
-            read_compiler_specs(config_iter, add_sets, stats_capt_opt_line)
-            read_compiler_specs(config_iter, add_stats_options)
+    config_parser.read(file_name)
+    set_standard(StdID.get_pretty_std_name(selected_standard))
+
+    for section in config_parser.sections():
+        if config_parser.has_option(section, "spec"):
+            common.log_msg(logging.DEBUG, "Parsing spec: " + str(section))
+
+            # Create CompilerSpecs
+            cxx_exec_name = config_parser.get(section, "cxx_exec_name")
+            c_exec_name = config_parser.get(section, "c_exec_name")
+            CompilerSpecs(name=section, cxx_exec_name=cxx_exec_name,
+                                  c_exec_name=c_exec_name,
+                                  common_args=config_parser.get(section, "spec_common_args"),
+                                  arch_prefix=config_parser.get(section, "arch_prefix"))
+
+            # Set exec_name in config_parser
+            common.log_msg(logging.DEBUG, "Set exec_name")
+            if selected_standard.is_cxx():
+                config_parser.set(section, "exec_name", cxx_exec_name)
+            if selected_standard.is_c():
+                config_parser.set(section, "exec_name", c_exec_name)
+
+        elif config_parser.has_option(section, "test_set"):
+            common.log_msg(logging.DEBUG, "Parsing test set: " + str(section))
+
+            # Set arch parameters in config_parser
+            common.log_msg(logging.DEBUG, "Set arch params")
+            comp_arch_option = (section, "comp_arch")
+            comp_arch = ""
+            if config_parser.has_option(*comp_arch_option):
+                comp_arch = config_parser.get(*comp_arch_option)
+            else:
+                config_parser.set(section, "arch_str", "")
+
+            sde_arch_option = (section, "sde_arch")
+            sde_arch = ""
+            if config_parser.has_option(*sde_arch_option):
+                sde_arch = config_parser.get(*sde_arch_option)
+            else:
+                config_parser.set(section, "sde_prefix", "")
+
+            # Set test prefix
+            config_parser[section]["test_set_prefix"] = section
+
+            # Import all options from corr_spec options to test_set section (needed for correct interpolation)
+            common.log_msg(logging.DEBUG, "Import all options from corr_spec to test_set section")
+            corr_spec = config_parser.get(section, "corr_spec")
+            for j in config_parser.options(corr_spec):
+                if j == "spec":
+                    continue
+                if not config_parser.has_option(section, j) or config_parser.get(section, j, raw=True) is None:
+                    config_parser[section][j] = config_parser.get(corr_spec, j, raw=True)
+
+            # Create CompilerTarget
+            CompilerTarget(name=section, specs=CompilerSpecs.all_comp_specs[corr_spec],
+                                   target_args=config_parser.get(section, "test_set_args"),
+                                   arch=Arch(comp_arch, SdeArch[sde_arch]))
+        else:
+            common.print_and_exit("Invalid config file! Check it! "
+                                  "It may consist of specs, test_sets and default section")
 
 ###############################################################################
 
@@ -346,8 +350,10 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     if config_file is not None:
         parse_config(config_file)
     output = ""
+
     if stat_targets is not None:
         stat_targets = list(set(stat_targets))
+
     # 1. License
     license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
     for license_str in license_file:
@@ -359,84 +365,56 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     output += "#If you want to make a permanent changes, you should edit gen_test_makefile.py\n"
     output += "###############################################################################\n\n"
 
-    # 2. Define common variables
-    for makefile_variable in Makefile_variable_list:
-        test_pwd = ""
-        if creduce_file and makefile_variable.name == "CXXFLAGS":
-            test_pwd = " -I$(TEST_PWD)"
-        output += makefile_variable.name + "=" + makefile_variable.value + test_pwd + "\n"
-    output += "\n"
-
-    # 3. Define build targets
+    # 2. Process all targets
     for target in CompilerTarget.all_targets:
         if only_target is not None and only_target.name != target.name:
             continue
-        compiler_name = None
-        if selected_standard.is_c():
-            compiler_name = target.specs.comp_c_name
-        if selected_standard.is_cxx():
-            compiler_name = target.specs.comp_cxx_name
-        output += target.name + ": " + "COMPILER=" + compiler_name + "\n"
 
-        optflags_str = target.name + ": " + "OPTFLAGS=" + target.args
-        if target.arch.comp_name != "":
-            optflags_str += " " + target.specs.arch_prefix + target.arch.comp_name
-        optflags_str += "\n"
-        output += optflags_str
-        # For performance reasons driver should always be compiled with -O0
-        output += re.sub("-O\d", "-O0", (optflags_str.replace("OPTFLAGS", "DRIVER_OPTFLAGS")))
+        output += target.name + ":\n"
+        # Emit driver compilation
+        output += "\t" + config_parser.get(target.name, "driver_compilation") + "\n"
 
-        if inject_blame_opt is not None:
-            output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
-        #TODO: one day we can decide to use gcc also.
-        if stat_targets is not None:
-            for stat_target in stat_targets:
-                if target.name == stat_target:
-                    output += target.name + ": " + stat_options.name + "=" + \
-                              StatisticsOptions.get_options(target.specs) + "\n"
-                    stat_targets.remove(stat_target)
-        output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
-        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"
-        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
+        # Emit test compilation stages
+        comp_stage_num = 1
+        comp_stage_str = "comp_stage_" + str(comp_stage_num)
+        while config_parser.has_option(target.name, comp_stage_str):
+            # Merge compilation stage arguments if they exist
+            comp_stage_arg_str = "comp_stage_" + str(comp_stage_num) + "_args"
+            if config_parser.has_option(target.name, comp_stage_arg_str):
+                comp_stage = config_parser.get(target.name, comp_stage_str, raw=True)
+                comp_stage_arg = config_parser.get(target.name, comp_stage_arg_str, raw=True)
+                config_parser.set(target.name, comp_stage_str, comp_stage + " " + comp_stage_arg)
 
-    if stat_targets is not None and len(stat_targets) != 0:
-        common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets), forced_duplication=True)
+            comp_stage_stat_str = "comp_stage_" + str(comp_stage_num) + "_stat"
+            if target.name in stat_targets:
+                if not config_parser.has_option(target.name, comp_stage_stat_str):
+                    common.print_and_exit("Can't find stat args for target " + str(target.name))
+                comp_stage = config_parser.get(target.name, comp_stage_str, raw=True)
+                comp_stage_stat = config_parser.get(target.name, comp_stage_stat_str, raw=True)
+                config_parser.set(target.name, comp_stage_str, comp_stage + " " + comp_stage_stat)
 
-    # 4. Force make to rebuild everything
-    # TODO: replace with PHONY
-    output += "FORCE:\n\n"
-    
-    for source in sources.value.split():
-        source_prefix = ""
-        force_str = " FORCE\n"
-        if creduce_file and creduce_file != source:
-            source_prefix = "$(TEST_PWD)/"
-            force_str = "\n"
-        source_name = source.split(".")[0]
-        output += "%" + source_name + ".o: " + source_prefix + source + force_str
-        # For performance reasons driver should always be compiled with -O0
-        optflags_name = "$(OPTFLAGS)" if source_name != "driver" else "$(DRIVER_OPTFLAGS)"
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " -o $@ -c $<"
-        if source_name == "func":
-            output += " $(STATFLAGS) "
-            if inject_blame_opt is not None:
-                output += " $(BLAMEOPTS) "
-        output += "\n\n"
+            # Emit complete compilation stage string
+            output += "\t" + config_parser.get(target.name, comp_stage_str) + "\n"
 
+            # Next iteration
+            comp_stage_num += 1
+            comp_stage_str = "comp_stage_" + str(comp_stage_num)
+
+        if target.name in stat_targets and config_parser.has_option(target.name, "merge_stats_files"):
+            output += "\t" + config_parser.get(target.name, "merge_stats_files") + "\n"
+
+        # Emit linking
+        output += "\t" + config_parser.get(target.name, "linking") + "\n"
+        output += "\n"
+
+        # Emit run string
+        output += "run_" + target.name + ": " + config_parser.get(target.name, "out_exec") + "\n"
+        output += "\t@" + config_parser.get(target.name, "execution") + "\n"
+        output += "\n"
+
+    # 3. Print clean target
     output += "clean:\n"
-    output += "\trm *.o *_$(EXECUTABLE)\n\n"
-
-    # 5. Define run targets
-    native_arch = detect_native_arch()
-    for target in CompilerTarget.all_targets:
-        if only_target is not None and only_target.name != target.name:
-            continue
-        output += "run_" + target.name + ": " + target.name + "_" + executable.value + "\n"
-        output += "\t@"
-        required_sde_arch = define_sde_arch(native_arch, target.arch.sde_arch)
-        if required_sde_arch != "":
-            output += "sde -" + required_sde_arch + " -- "
-        output += "." + os.sep + target.name + "_" + executable.value + "\n\n"
+    output += "\trm *.o *_" + config_parser.get(default_section, "out_exec_suffix") + "\n\n"
 
     out_file = None
     if not os.path.isfile(out_file_name):
