@@ -343,9 +343,10 @@ def detect_native_arch():
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None,
+def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args=None,
                  creduce_file=None, stat_targets=None):
     # Somebody can prepare test specs and target, so we don't need to parse config file
+    common.log_msg(logging.DEBUG, "Trying to generate makefile")
     check_if_std_defined()
     if config_file is not None:
         parse_config(config_file)
@@ -359,13 +360,14 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     for license_str in license_file:
         output += "#" + license_str
     license_file.close()
-    output += "###############################################################################\n" 
+    output += "###############################################################################\n"
 
     output += "#This file was generated automatically.\n"
     output += "#If you want to make a permanent changes, you should edit gen_test_makefile.py\n"
     output += "###############################################################################\n\n"
 
     # 2. Process all targets
+    common.log_msg(logging.DEBUG, "Processing targets")
     for target in CompilerTarget.all_targets:
         if only_target is not None and only_target.name != target.name:
             continue
@@ -378,29 +380,45 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         comp_stage_num = 1
         comp_stage_str = "comp_stage_" + str(comp_stage_num)
         while config_parser.has_option(target.name, comp_stage_str):
+            common.log_msg(logging.DEBUG, "Processing compilation stage #" + str(comp_stage_num))
             # Merge compilation stage arguments if they exist
             comp_stage_arg_str = "comp_stage_" + str(comp_stage_num) + "_args"
-            if config_parser.has_option(target.name, comp_stage_arg_str):
+            if config_file is not None and config_parser.has_option(target.name, comp_stage_arg_str):
                 comp_stage = config_parser.get(target.name, comp_stage_str, raw=True)
                 comp_stage_arg = config_parser.get(target.name, comp_stage_arg_str, raw=True)
                 config_parser.set(target.name, comp_stage_str, comp_stage + " " + comp_stage_arg)
 
             comp_stage_stat_str = "comp_stage_" + str(comp_stage_num) + "_stat"
-            if target.name in stat_targets:
+            if stat_targets is not None and target.name in stat_targets:
                 if not config_parser.has_option(target.name, comp_stage_stat_str):
                     common.print_and_exit("Can't find stat args for target " + str(target.name))
                 comp_stage = config_parser.get(target.name, comp_stage_str, raw=True)
                 comp_stage_stat = config_parser.get(target.name, comp_stage_stat_str, raw=True)
                 config_parser.set(target.name, comp_stage_str, comp_stage + " " + comp_stage_stat)
 
+            resulting_comp_stage_blame_args_str = " "
+            if blame_args is not None and blame_args[comp_stage_num] is not None:
+                comp_stage_blame_str = "comp_stage_" + str(comp_stage_num) + "_blame_args"
+                comp_stage_blame_arg = ""
+                if config_parser.has_option(target.name, comp_stage_blame_str):
+                    comp_stage_blame_arg = config_parser.get(target.name, comp_stage_blame_str, raw=True)
+                comp_stage_blame_arg_list = comp_stage_blame_arg.split("|")
+                for blame_arg_num in range(len(comp_stage_blame_arg_list)):
+                    blame_arg = blame_args[comp_stage_num][blame_arg_num]
+                    if blame_arg is None:
+                        continue
+                    resulting_comp_stage_blame_args_str += comp_stage_blame_arg_list[blame_arg_num].strip() \
+                                                           + str(blame_arg)
+
             # Emit complete compilation stage string
-            output += "\t" + config_parser.get(target.name, comp_stage_str) + "\n"
+            output += "\t" + config_parser.get(target.name, comp_stage_str) + resulting_comp_stage_blame_args_str + "\n"
 
             # Next iteration
             comp_stage_num += 1
             comp_stage_str = "comp_stage_" + str(comp_stage_num)
 
-        if target.name in stat_targets and config_parser.has_option(target.name, "merge_stats_files"):
+        if stat_targets is not None and target.name in stat_targets and \
+           config_parser.has_option(target.name, "merge_stats_files"):
             output += "\t" + config_parser.get(target.name, "merge_stats_files") + "\n"
 
         # Emit linking
@@ -428,7 +446,36 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     out_file.close()
 
 
+def get_blame_args (blame_target, num):
+    common.log_msg(logging.DEBUG, "Trying to match blame target")
+    cant_blame = True
+    for target in CompilerTarget.all_targets:
+        if blame_target.name == target.name:
+            cant_blame = False
+            break
+
+    if cant_blame:
+        common.log_msg(logging.DEBUG, "We can't blame " + blame_target.name + " (process " + str(num) + ")")
+        return None
+
+    blame_args_list = {}
+    comp_stage_num = 1
+    comp_stage_str = "comp_stage_" + str(comp_stage_num)
+    while config_parser.has_option(blame_target.name, comp_stage_str):
+        blame_args_list[comp_stage_num] = None
+        comp_stage_blame_arg_str = "comp_stage_" + str(comp_stage_num) + "_blame_args"
+        if config_parser.has_option(blame_target.name, comp_stage_blame_arg_str):
+            comp_stage_blame_arg = config_parser.get(blame_target.name, comp_stage_blame_arg_str, raw=True)
+            comp_stage_blame_arg_list = comp_stage_blame_arg.split("|")
+            blame_args_list[comp_stage_num] = ([-1] * len(comp_stage_blame_arg_list))
+        comp_stage_num += 1
+        comp_stage_str = "comp_stage_" + str(comp_stage_num)
+    common.log_msg(logging.DEBUG, "Blame args list: " + str(blame_args_list))
+
+    return blame_args_list
+
 ###############################################################################
+
 
 if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") is None:

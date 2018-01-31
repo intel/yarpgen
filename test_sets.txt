@@ -56,6 +56,8 @@
     comp_stage_2_stat: -stats -stats-json -info-output-file=%(inp_file_name)s.stats
     comp_stage_3_stat: -save-stats
     merge_stats_files: cat %(inp_file_name)s.stats >> %(test_set_prefix)s_%(inp_file_name)s.stats
+    comp_stage_2_blame_args: -opt-bisect-limit=
+    comp_stage_3_blame_args: -mllvm -opt-bisect-limit=
 
 # Ubsan is clang or gcc with sanitizer options. It is used for generator check.
 # If you want to use sanitizer with -m32, please make sure that you pass "-rtlib=compiler-rt -lgcc_s" options if you are using clang.
@@ -87,6 +89,7 @@
     spec_common_args: -w
     arch_prefix: -x
     comp_stage_1: %(simple_compilation)s
+    comp_stage_1_blame_args: -from_rtn=0 -to_rtn= | -num_opt= | -num-case=
 
 [icx]
     spec
@@ -95,6 +98,7 @@
     spec_common_args: -w
     arch_prefix: -march=
     comp_stage_1: %(simple_compilation)s
+    comp_stage_1_blame_args: -mllvm -opt-bisect-limit=
 
 #########################################################################################
 
