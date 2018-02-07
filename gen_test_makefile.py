@@ -374,7 +374,16 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
 
         output += target.name + ":\n"
         # Emit driver compilation
-        output += "\t" + config_parser.get(target.name, "driver_compilation") + "\n"
+        driver_file_str_id = "driver_file"
+        old_driver_file_name = ""
+        if creduce_file is not None:
+            old_driver_file_name = config_parser.get(default_section, driver_file_str_id, raw=True)
+            config_parser.set(default_section, driver_file_str_id, "$(TEST_PWD)" + os.sep + old_driver_file_name)
+        output += "\t" + config_parser.get(target.name, "driver_compilation")
+        if creduce_file is not None:
+            output += " -I$(TEST_PWD)"
+            config_parser.set(default_section, driver_file_str_id, old_driver_file_name)
+        output += "\n"
 
         # Emit test compilation stages
         comp_stage_num = 1
@@ -411,7 +420,10 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
                                                            + str(blame_arg)
 
             # Emit complete compilation stage string
-            output += "\t" + config_parser.get(target.name, comp_stage_str) + resulting_comp_stage_blame_args_str + "\n"
+            output += "\t" + config_parser.get(target.name, comp_stage_str) + resulting_comp_stage_blame_args_str
+            if creduce_file is not None and comp_stage_num == 1:
+                output += " -I$(TEST_PWD)"
+            output += "\n"
 
             # Next iteration
             comp_stage_num += 1
