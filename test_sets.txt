@@ -1,39 +1,84 @@
+###############################################################################
+#
+# Copyright (c) 2016-2017, Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+###############################################################################
+# README:
+# Testing configuration file
+# You can start single-line comment with #.
+# Configuration file can contain only DEFAULT section and sections, which are marked as spec or test_set
+###############################################################################
+# Default section of ini file. It contains general common options (e.g. source file names), 
+# as well user-defined common options. Some of the general common options will be defined by scripts later.
+
 [DEFAULT]
+    # Language standard
+    # Will be set later to match the chosen one
     std: -std=
-    # Will be set later to match language standard
 
+    # Source file extension. Will be set later to match language standard.
     src_file_ext
-    # Will be set later
 
+    # Driver's options
     driver_file_name: driver
     driver_file: %(driver_file_name)s%(src_file_ext)s
     driver_out_file: %(driver_file_name)s.o
 
+    # Will be set later for every test set.
     test_set_prefix
-    # Will be set later
 
+    # Input file options
     inp_file_name: func
     inp_file: func%(src_file_ext)s
 
+    # Output file options
     out_file_name: %(test_set_prefix)s_%(inp_file_name)s
     out_exec_suffix: out
     out_exec: %(test_set_prefix)s_%(out_exec_suffix)s
     
-    exec_name
     # Will be set later
+    exec_name
 
-    arch_str: %(arch_prefix)s%(comp_arch)s
+    # Compiler and sde arch options. Will be set later for every test set
+    arch_str: %(arch_prefix)s%(comp_arch)s 
     sde_prefix: sde -%(sde_arch)s --
 
+    # Common compilation and execution strings
     driver_compilation: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s -O0 -c -o %(driver_out_file)s %(driver_file)s
     simple_compilation: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s %(test_set_args)s -c -o %(out_file_name)s.o %(inp_file)s
     linking: %(exec_name)s %(arch_str)s %(std)s %(spec_common_args)s %(test_set_args)s -o %(out_exec)s %(driver_out_file)s %(out_file_name)s.o
     execution: %(sde_prefix)s ./%(out_exec)s
 
+    # Custom option. It was moved to here option in order to reduce copy-paste.
     clang_opt_passes: -consthoist -constprop -correlated-propagation -dce -flattencfg -gvn-hoist -gvn-sink -mergeicmps -nary-reassociate -newgvn -partially-inline-libcalls -scalarizer -sink -structurizecfg
-    # Custom option. It was moved to individual option in order to lower copy-paste.
 
 #########################################################################################
+# Compiler specs. They contain common options for used compilers.
+# Every spec section should be marked with "spec" keyword.
+# It should contain c_exec_name, cxx_exec_name, spec_common_args, arch_prefix and at least one comp_stage_N.
+# It also may have comp_stage_N_stat, merge_stats_files or comp_stage_N_blame_args values.
+# The name of the section defines codename for compiler and its options (we refer to this comiler by this name).
+# c_exec_name, cxx_exec_name - name of compiler binary file. It should be in your PATH
+# spec_common_args - arguments which will be passed to every compiler run
+# arch_prefix - prefix for specifying different architectures (it will be concatenated with comp_arch value from the test_set).
+# comp_stage_N - compilation string. It is highly reccomented to use predefined %(simple_compilation)s, 
+#                unless you need something extremely weird.
+# comp_stage_N_stat - string that describes how to collect statistics from corresponding compilation stage.
+# merge_stats_files - string that describes how to merge files with statistics, before passing them to the parser
+# comp_stage_N_blame_args - blame arguments for corresponding compilation stage 
+#                           (it is used to find out failing optimization)
 
 [gcc]
     spec
@@ -44,6 +89,16 @@
     comp_stage_1: %(simple_compilation)s
 
 [clang]
+    spec
+    c_exec_name: clang
+    cxx_exec_name: clang++
+    spec_common_args: -w
+    arch_prefix: -march=
+    comp_stage_1: %(simple_compilation)s
+    comp_stage_1_stat: -save-stats -Xclang -print-stats
+    comp_stage_1_blame_args: -mllvm -opt-bisect-limit=
+
+[clang_thru_opt]
     spec
     c_exec_name: clang
     cxx_exec_name: clang++
@@ -101,6 +156,21 @@
     comp_stage_1_blame_args: -mllvm -opt-bisect-limit=
 
 #########################################################################################
+# Testing sets. They contain options for testing sets.
+# Every testing set section should be marked with "test_set" keyword.
+# It should contain corr_spec and test_set_args.
+# It also may have comp_arch, sde_arch or comp_stage_N_args.
+# The name of the section defines codename for testing set and its options (we refer to it by this name).
+# Section name - codename for testing set
+# corr_spec - codename of compiler spec, it should be defined somewhere
+# test_set_args - compiler options for this testing set
+# comp_arch - architecture, which will be passed to compiler
+# sde_arch - architecture, which will be passed to SDE
+# comp_stage_N_args - specific arguments, which will be passed to corresponding compilation stage
+#########################################################################################
+
+#########################################################################################
+# UBSan sections
 
 [ubsan_clang_o0]
     test_set
@@ -114,15 +184,16 @@
 
 [ubsan_gcc_o0]
     test_set
-    corr_spec: ubsan_clang
+    corr_spec: ubsan_gcc
     test_set_args: -O0
 
 #[ubsan_gcc_o2]
 #    test_set
-#    corr_spec: ubsan_clang
+#    corr_spec: ubsan_gcc
 #    test_set_args: -O2
 
 #########################################################################################
+# GCC sections
 
 [gcc_no_opt]
     test_set
@@ -191,6 +262,7 @@
 #    sde_arch: skx
 
 #########################################################################################
+# Clang sections
 
 [clang_no_opt]
     test_set
@@ -201,7 +273,6 @@
     test_set
     corr_spec: clang
     test_set_args: -O3
-    comp_stage_2_args: %(clang_opt_passes)s
 
 #[clang_knl_no_opt]
 #    test_set
@@ -216,7 +287,6 @@
 #    test_set_args: -O3
 #    comp_arch: knl
 #    sde_arch: knl
-#    comp_stage_2_args: %(clang_opt_passes)s
 
 #[clang_skx_no_opt]
 #    test_set
@@ -231,9 +301,34 @@
 #    test_set_args: -O3
 #    comp_arch: skx
 #    sde_arch: skx
+
+#########################################################################################
+# Clang through opt sections
+
+[clang_thru_opt_opt]
+    test_set
+    corr_spec: clang_thru_opt
+    test_set_args: -O3
+    comp_stage_2_args: %(clang_opt_passes)s
+
+#[clang_thru_opt_knl_opt]
+#    test_set
+#    corr_spec: clang_thru_opt
+#    test_set_args: -O3
+#    comp_arch: knl
+#    sde_arch: knl
+#    comp_stage_2_args: %(clang_opt_passes)s
+
+#[clang_thru_opt_skx_opt]
+#    test_set
+#    corr_spec: clang_thru_opt
+#    test_set_args: -O3
+#    comp_arch: skx
+#    sde_arch: skx
 #    comp_stage_2_args: %(clang_opt_passes)s
 
 #########################################################################################
+# ICC sections
 
 [icc_no_opt]
     test_set
@@ -274,6 +369,7 @@
 #    sde_arch: skx
 
 #########################################################################################
+# ICX sections
 
 [icx_no_opt]
     test_set

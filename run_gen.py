@@ -205,7 +205,7 @@ class Test(object):
         # Generator may report them in output later and we may need to parse it.
         self.files = [gen_test_makefile.config_parser.get(gen_test_makefile.default_section, "driver_file"),
                       gen_test_makefile.config_parser.get(gen_test_makefile.default_section, "inp_file")] + \
-                     gen_test_makefile.headers.value.split()
+                     gen_test_makefile.headers.split()
         self.files.append(gen_test_makefile.Test_Makefile_name)
 
         # Parse generated seed.
@@ -868,8 +868,8 @@ class TestRun(object):
             self.stat.add_stats(stmt_stats, self.optset, StatsVault.stmt_stats_id)
 
         # update file list
-        expected_files = [source + ".o" for source in gen_test_makefile.sources.value.split()]
-        expected_files.append(gen_test_makefile.executable.value)
+        expected_files = [source + ".o" for source in gen_test_makefile.sources.split()]
+        expected_files.append(gen_test_makefile.executable)
         expected_files = [self.optset + "_" + e for e in expected_files]
         for f in expected_files:
             if os.path.isfile(f):
@@ -1709,7 +1709,7 @@ Use specified folder for testing
                         help='Maximum number of instances to run in parallel. By defaulti, it is set to'
                              ' number of processor in your system')
     parser.add_argument("--config-file", dest="config_file",
-                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
+                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_config_file),
                         type=str, help="Configuration file for testing")
     parser.add_argument("--log-file", dest="log_file", type=str,
                         help="Logfile. By default it's name of output dir + .log")

@@ -32,25 +32,24 @@ import gen_test_makefile
 import run_gen
 
 
-icc_blame_opts = ["-from_rtn=0 -to_rtn=", "-num_opt=", "-num-case="]
 icc_opt_patterns = ["\(\d+\)", "\(\d+\)\s*\n", "DO ANOTHER.*\(\d+\)"]
 icc_opt_name_prefix = "DOING\s*\[\w*\]\s*"
 icc_opt_name_suffix = "\s*\(\d*\)\s*\(last opt\)"
 
-icx_blame_opts = ["-mllvm -opt-bisect-limit="]
 icx_opt_patterns = ["BISECT: running pass \(\d+\)"]
 icx_opt_name_prefix = "BISECT: running pass \(\d+\) "
 icx_opt_name_suffix = " \(.*\)"
 
-clang_blame_opts = ["-mllvm -opt-bisect-limit="]
 clang_opt_patterns = ["BISECT: running pass \(\d+\)"]
 clang_opt_name_prefix = "BISECT: running pass \(\d+\) "
 clang_opt_name_suffix = " \(.*\)"
 
-compilers_blame_patterns = {"icc": icc_opt_patterns, "icx": icx_opt_patterns, "clang": clang_opt_patterns}
-compilers_opt_name_cutter = {"icc": [icc_opt_name_prefix, icc_opt_name_suffix], \
-                             "icx": [icx_opt_name_prefix, icx_opt_name_suffix], \
-                             "clang": [clang_opt_name_prefix, clang_opt_name_suffix]}
+compilers_blame_patterns = {"icc": icc_opt_patterns, "icx": icx_opt_patterns,
+                            "clang": clang_opt_patterns, "clang_thru_opt": clang_opt_patterns}
+compilers_opt_name_cutter = {"icc": [icc_opt_name_prefix, icc_opt_name_suffix],
+                             "icx": [icx_opt_name_prefix, icx_opt_name_suffix],
+                             "clang": [clang_opt_name_prefix, clang_opt_name_suffix],
+                             "clang_thru_opt": [clang_opt_name_prefix, clang_opt_name_suffix]}
 
 blame_test_makefile_name = "Blame_Makefile"
 
@@ -104,47 +103,57 @@ def try_to_run (valid_res, fail_target, num):
     return True
 
 
-def execute_blame_stage(valid_res, fail_target, num, comp_stage, blame_args):
-    if blame_args[comp_stage] is None:
+def execute_blame_stage(valid_res, fail_target, num, comp_stage_num, blame_args):
+    common.log_msg(logging.DEBUG, "Executing blame stage: " + str(comp_stage_num))
+    if blame_args[comp_stage_num] is None:
         return
 
     global blame_result
 
     # 1. First of all, we try to completely disable the stage
     tmp_blame_args = blame_args.copy()
+    # Disable all other blame stages
     for i in tmp_blame_args:
-        if i != comp_stage:
+        if i != comp_stage_num:
             tmp_blame_args[i] = None
-    for i in tmp_blame_args[comp_stage]:
-        tmp_blame_args[comp_stage][i] = 0
+    # Zero out arguments of all blame phases, that correspond to current blame stage
+    for i in tmp_blame_args[comp_stage_num]:
+        tmp_blame_args[comp_stage_num][i] = 0
 
+    common.log_msg(logging.DEBUG, "Blame args for stage: " + str(tmp_blame_args))
     comp_result = try_to_compile(tmp_blame_args, fail_target, 0, 0, -1, num)
+    common.log_msg(logging.DEBUG, "Blame: compilation result: " + str(comp_result))
     if comp_result is False:
-        blame_result[comp_stage] = None
+        blame_result[comp_stage_num] = None
         return False
 
     run_result = try_to_run(valid_res, fail_target, num)
+    common.log_msg(logging.DEBUG, "Blame: run result: " + str(run_result))
     if run_result is False:
-        blame_result[comp_stage] = None
+        blame_result[comp_stage_num] = None
         return False
 
-    # 2. We start phase blaming sequence
-    for i in range(len(blame_result[comp_stage])):
-        blame_result[comp_stage][i] = None
+    # 2. Let's start sequence of blame phases
+    blame_result = tmp_blame_args
+    for i in range(len(blame_result[comp_stage_num])):
+        blame_result[comp_stage_num][i] = None
 
-    for phase_num in range(len(blame_result[comp_stage])):
-        blame_result[comp_stage][phase_num] = -1
-        execute_blame_phase(valid_res, fail_target, num, comp_stage, phase_num)
+    for phase_num in range(len(blame_result[comp_stage_num])):
+        blame_result[comp_stage_num][phase_num] = -1
+        execute_blame_phase(valid_res, fail_target, num, comp_stage_num, phase_num)
 
     return True
 
 
-def execute_blame_phase(valid_res, fail_target, num, comp_stage, phase_num):
+def execute_blame_phase(valid_res, fail_target, num, comp_stage_num, phase_num):
+    common.log_msg(logging.DEBUG, "Executing blame stage: " + str(comp_stage_num) + ":" + str(phase_num))
     global blame_result
+    common.log_msg(logging.DEBUG, "Blame args for phase: " + str(blame_result))
     gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_result)
     ret_code, output, err_output, time_expired, elapsed_time = \
         common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
     opt_num_regex = re.compile(compilers_blame_patterns[fail_target.specs.name][phase_num])
+    # Trying to find out maximum optimization number.
     try:
         matches = opt_num_regex.findall(str(err_output, "utf-8"))
         # Some icc phases may not support going to phase "2", i.e. drilling down to num_case level,
@@ -161,6 +170,7 @@ def execute_blame_phase(valid_res, fail_target, num, comp_stage, phase_num):
                        + " (process " + str(num) + "): ")
         raise
 
+    # Perform binary search of failing optimization
     start_opt = 0
     end_opt = max_opt_num
     cur_opt = max_opt_num
@@ -168,36 +178,22 @@ def execute_blame_phase(valid_res, fail_target, num, comp_stage, phase_num):
     time_to_finish = False
     while not time_to_finish:
         start_opt, end_opt, cur_opt = get_next_step(start_opt, end_opt, cur_opt, failed_flag)
-        blame_result[comp_stage][phase_num] = cur_opt
+        blame_result[comp_stage_num][phase_num] = cur_opt
         common.log_msg(logging.DEBUG, "Previous failed (process " + str(num) + "): " + str(failed_flag))
         failed_flag = False
         eff = ((start_opt + 1) >= cur_opt)  # Earliest fail was found
 
-        common.log_msg(logging.DEBUG, "Trying opt (process " + str(num) + "): " + str(start_opt) + "/" + str(cur_opt) + "/" + str(end_opt))
-        gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_result)
-
-        ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
-        if time_expired or ret_code != 0:
-            dump_exec_output("Compilation failed", ret_code, output, err_output, time_expired, num)
+        common.log_msg(logging.DEBUG, "Blame args for phase: " + str(blame_result))
+        comp_success = try_to_compile(blame_result, fail_target, start_opt, cur_opt, end_opt, num)
+        if not comp_success:
             failed_flag = True
             if not eff:
                 continue
             else:
                 break
 
-        ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd(["make", "-f", blame_test_makefile_name, "run_" + fail_target.name], run_gen.run_timeout, num)
-        if time_expired or ret_code != 0:
-            dump_exec_output("Execution failed", ret_code, output, err_output, time_expired, num)
-            failed_flag = True
-            if not eff:
-                continue
-            else:
-                break
-
-        if str(output, "utf-8").split()[-1] != valid_res:
-            common.log_msg(logging.DEBUG, "Out differs (process " + str(num) + ")")
+        run_success = try_to_run(valid_res, fail_target, num)
+        if not run_success:
             failed_flag = True
             if not eff:
                 continue
@@ -210,9 +206,9 @@ def execute_blame_phase(valid_res, fail_target, num, comp_stage, phase_num):
     if not failed_flag:
         common.log_msg(logging.DEBUG, "Swapping current and end opt (process " + str(num) + ")")
         cur_opt = end_opt
-        blame_result[comp_stage][phase_num] = cur_opt
+        blame_result[comp_stage_num][phase_num] = cur_opt
 
-    common.log_msg(logging.DEBUG, "Finished blame phase, result: " + str(blame_result[comp_stage]) + " (process " + str(num) + ")")
+    common.log_msg(logging.DEBUG, "Finished blame phase, result: " + str(blame_result[comp_stage_num]) + " (process " + str(num) + ")")
 
 
 def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
@@ -222,24 +218,25 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
         global blame_result
         blame_result = blame_args
 
+        # The blame process is divided into blame stages (that corresponds to compilation stages),
+        # which itself are divided into blame phases.
+        # All blame options should be set in the configuration file.
         try:
             for comp_stage in reversed(list(blame_args.keys())):
                 if execute_blame_stage(valid_res, fail_target, num, comp_stage, blame_args):
                     break
-#                execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
-#                blame_str += i
-#                blame_str += execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
-#                blame_str += " "
-#                stage_num += 1
         except Exception as e:
             common.log_msg(logging.ERROR, "Something went wrong while executing blame_opt.py on " + str(fail_dir) +
                            " " + str(e))
             return False
 
+        # Determine name of the failing optimization
+        common.log_msg(logging.DEBUG, "Final blame results: " + str(blame_result))
         gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_result)
         ret_code, stdout, stderr, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
 
+        common.log_msg(logging.DEBUG, "Trying to extract failing optimization name")
         opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
                                       compilers_opt_name_cutter[fail_target.specs.name][1])
         opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[-1]

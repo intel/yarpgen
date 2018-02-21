@@ -33,56 +33,49 @@ import common
 Test_Makefile_name = "Test_Makefile"
 license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
-default_test_sets_file_name = "test_sets.txt"
-
-default_config_file = "test_sets.txt"
-comp_specs_line = "Compiler specs:"
-spec_list_len = 5
-test_sets_line = "Testing sets:"
-set_list_len = 5
-stats_capt_opt_line = "Options for statistics' capture:"
-stats_capt_opt_list_len = 2
-
-default_section = "DEFAULT"
-
-config_parser = configparser.ConfigParser(empty_lines_in_values=False, allow_no_value=True)
-config_parser[default_section]["std"] = "-std"
 
 ###############################################################################
-# Section for Test_Makefile parameters
+# Parameters of configuration file
 
+default_config_file = "test_sets.txt"
 
-class MakefileVariable:
-    """A special class, which should link together name and value of parameters"""
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
+default_section = "DEFAULT"
+std_id = "std"
+src_file_ext_id = "src_file_ext"
+driver_file_str_id = "driver_file"
+out_exec_suffix_id = "out_exec_suffix"
+out_exec_id = "out_exec"
+exec_name_id = "exec_name"
+c_exec_name_id = "c_exec_name"
+cxx_exec_name_id = "cxx_exec_name"
+spec_id = "spec"
+spec_common_args_id = "spec_common_args"
+arch_prefix_id = "arch_prefix"
+test_set_id = "test_set"
+comp_arch_id = "comp_arch"
+arch_str_id = "arch_str"
+sde_arch_id = "sde_arch"
+sde_prefix_id = "sde_prefix"
+test_set_prefix_id = "test_set_prefix"
+corr_spec_id = "corr_spec"
+test_set_args_id = "test_set_args"
+driver_compilation_id = "driver_compilation"
+comp_stage_base_id = "comp_stage_"
+comp_stage_args_id = "_args"
+comp_stage_stat_id = "_stat"
+comp_stage_blame_args_id = "_blame_args"
+merge_stats_files_id = "merge_stats_files"
+linking_id = "linking"
+execution_id = "execution"
 
-# I can't use build-in dictionary, because variables should be ordered
-Makefile_variable_list = []
+config_parser = configparser.ConfigParser(empty_lines_in_values=False, allow_no_value=True)
+config_parser[default_section][std_id] = "-std"
 
-cxx_flags = MakefileVariable("CXXFLAGS", "")
-Makefile_variable_list.append(cxx_flags)
-
-ld_flags = MakefileVariable("LDFLAGS", "")
-Makefile_variable_list.append(ld_flags)
-
-std_flags = MakefileVariable("STDFLAGS", "-std=")
-Makefile_variable_list.append(std_flags)
-
-# File extension will be set later to match selected language standard in adjust_sources_to_standard()
-sources = MakefileVariable("SOURCES", "driver func")
-Makefile_variable_list.append(sources)
-
-headers = MakefileVariable("HEADERS", "init.h")
-Makefile_variable_list.append(headers)
-
-executable = MakefileVariable("EXECUTABLE", "out")
-Makefile_variable_list.append(executable)
-# Makefile_variable_list.append(Makefile_variable("",""))
-
-stat_options = MakefileVariable("STATFLAGS", "")
-Makefile_variable_list.append(stat_options)
+###############################################################################
+# File extension will be set later to match selected language standard
+sources = "driver func"
+headers = "init.h"
+executable = "out"
 
 ###############################################################################
 # Section for language standards
@@ -113,6 +106,7 @@ class StdID(enum.IntEnum):
         if std_id.is_cxx():
             return std_id.name.replace("CXX", "c++")
 
+
 ''' Easy way to convert string to StdID '''
 StrToStdId = collections.OrderedDict()
 for i in StdID:
@@ -121,6 +115,7 @@ for i in StdID:
 
 selected_standard = None
 
+
 def get_file_ext():
     if selected_standard.is_c():
         return ".c"
@@ -128,21 +123,25 @@ def get_file_ext():
         return ".cpp"
     return None
 
+
 def adjust_sources_to_standard():
-    config_parser.set(default_section, "src_file_ext", get_file_ext())
+    config_parser.set(default_section, src_file_ext_id, get_file_ext())
+
 
 def set_standard (std_str):
     global selected_standard
     global config_parser
     selected_standard = StrToStdId[std_str]
-    std_string = config_parser.get(default_section, "std") + \
+    std_string = config_parser.get(default_section, std_id) + \
                  StdID.get_pretty_std_name(selected_standard)
-    config_parser.set(default_section, "std", std_string)
+    config_parser.set(default_section, std_id, std_string)
     adjust_sources_to_standard()
+
 
 def get_standard ():
     global selected_standard
     return StdID.get_pretty_std_name(selected_standard)
+
 
 def check_if_std_defined ():
     if selected_standard is None or \
@@ -161,6 +160,7 @@ class SdeTarget (object):
         self.name = name
         self.enum_value = enum_value
         SdeTarget.all_sde_targets.append(self)
+
 
 SdeArch = dict()
 # This list should be ordered!
@@ -242,6 +242,7 @@ class StatisticsOptions (object):
 ###############################################################################
 # Section for config parser
 
+
 def parse_config(file_name):
     # Before parsing, clean old data
     CompilerSpecs.all_comp_specs = dict()
@@ -252,58 +253,62 @@ def parse_config(file_name):
     set_standard(StdID.get_pretty_std_name(selected_standard))
 
     for section in config_parser.sections():
-        if config_parser.has_option(section, "spec"):
+        if config_parser.has_option(section, spec_id):
+            # Spec parsing
             common.log_msg(logging.DEBUG, "Parsing spec: " + str(section))
 
             # Create CompilerSpecs
-            cxx_exec_name = config_parser.get(section, "cxx_exec_name")
-            c_exec_name = config_parser.get(section, "c_exec_name")
+            cxx_exec_name = config_parser.get(section, cxx_exec_name_id)
+            c_exec_name = config_parser.get(section, c_exec_name_id)
             CompilerSpecs(name=section, cxx_exec_name=cxx_exec_name,
                                   c_exec_name=c_exec_name,
-                                  common_args=config_parser.get(section, "spec_common_args"),
-                                  arch_prefix=config_parser.get(section, "arch_prefix"))
+                                  common_args=config_parser.get(section, spec_common_args_id),
+                                  arch_prefix=config_parser.get(section, arch_prefix_id))
 
             # Set exec_name in config_parser
             common.log_msg(logging.DEBUG, "Set exec_name")
             if selected_standard.is_cxx():
-                config_parser.set(section, "exec_name", cxx_exec_name)
+                config_parser.set(section, exec_name_id, cxx_exec_name)
             if selected_standard.is_c():
-                config_parser.set(section, "exec_name", c_exec_name)
+                config_parser.set(section, exec_name_id, c_exec_name)
 
-        elif config_parser.has_option(section, "test_set"):
+        elif config_parser.has_option(section, test_set_id):
+            # Test set parsing
             common.log_msg(logging.DEBUG, "Parsing test set: " + str(section))
 
             # Set arch parameters in config_parser
             common.log_msg(logging.DEBUG, "Set arch params")
-            comp_arch_option = (section, "comp_arch")
+            # Adjust compiler arch option
+            comp_arch_option = (section, comp_arch_id)
             comp_arch = ""
             if config_parser.has_option(*comp_arch_option):
                 comp_arch = config_parser.get(*comp_arch_option)
             else:
-                config_parser.set(section, "arch_str", "")
+                config_parser.set(section, arch_str_id, "")
 
-            sde_arch_option = (section, "sde_arch")
+            # Adjust sde arch option
+            sde_arch_option = (section, sde_arch_id)
             sde_arch = ""
             if config_parser.has_option(*sde_arch_option):
                 sde_arch = config_parser.get(*sde_arch_option)
             else:
-                config_parser.set(section, "sde_prefix", "")
+                config_parser.set(section, sde_prefix_id, "")
 
             # Set test prefix
-            config_parser[section]["test_set_prefix"] = section
+            config_parser[section][test_set_prefix_id] = section
 
             # Import all options from corr_spec options to test_set section (needed for correct interpolation)
             common.log_msg(logging.DEBUG, "Import all options from corr_spec to test_set section")
-            corr_spec = config_parser.get(section, "corr_spec")
+            corr_spec = config_parser.get(section, corr_spec_id)
             for j in config_parser.options(corr_spec):
-                if j == "spec":
+                if j == spec_id:
                     continue
                 if not config_parser.has_option(section, j) or config_parser.get(section, j, raw=True) is None:
                     config_parser[section][j] = config_parser.get(corr_spec, j, raw=True)
 
             # Create CompilerTarget
             CompilerTarget(name=section, specs=CompilerSpecs.all_comp_specs[corr_spec],
-                                   target_args=config_parser.get(section, "test_set_args"),
+                                   target_args=config_parser.get(section, test_set_args_id),
                                    arch=Arch(comp_arch, SdeArch[sde_arch]))
         else:
             common.print_and_exit("Invalid config file! Check it! "
@@ -374,43 +379,51 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
 
         output += target.name + ":\n"
         # Emit driver compilation
-        driver_file_str_id = "driver_file"
         old_driver_file_name = ""
         if creduce_file is not None:
+            # If we want to use CReduce, we need to add $(TEST_PWD)/ before actual driver's file name
             old_driver_file_name = config_parser.get(default_section, driver_file_str_id, raw=True)
             config_parser.set(default_section, driver_file_str_id, "$(TEST_PWD)" + os.sep + old_driver_file_name)
-        output += "\t" + config_parser.get(target.name, "driver_compilation")
+        output += "\t" + config_parser.get(target.name, driver_compilation_id)
         if creduce_file is not None:
+            # If we want to use CReduce, we need to add $(TEST_PWD)/ before actual output file for driver
             output += " -I$(TEST_PWD)"
             config_parser.set(default_section, driver_file_str_id, old_driver_file_name)
         output += "\n"
 
         # Emit test compilation stages
         comp_stage_num = 1
-        comp_stage_str = "comp_stage_" + str(comp_stage_num)
-        while config_parser.has_option(target.name, comp_stage_str):
-            common.log_msg(logging.DEBUG, "Processing compilation stage #" + str(comp_stage_num))
+        comp_stage_str_id = comp_stage_base_id + str(comp_stage_num)
+        while config_parser.has_option(target.name, comp_stage_str_id):
             # Merge compilation stage arguments if they exist
-            comp_stage_arg_str = "comp_stage_" + str(comp_stage_num) + "_args"
-            if config_file is not None and config_parser.has_option(target.name, comp_stage_arg_str):
-                comp_stage = config_parser.get(target.name, comp_stage_str, raw=True)
-                comp_stage_arg = config_parser.get(target.name, comp_stage_arg_str, raw=True)
-                config_parser.set(target.name, comp_stage_str, comp_stage + " " + comp_stage_arg)
+            common.log_msg(logging.DEBUG, "Processing compilation stage #" + str(comp_stage_num))
 
-            comp_stage_stat_str = "comp_stage_" + str(comp_stage_num) + "_stat"
-            if stat_targets is not None and target.name in stat_targets:
-                if not config_parser.has_option(target.name, comp_stage_stat_str):
+            comp_stage_arg_str_id = comp_stage_base_id + str(comp_stage_num) + comp_stage_args_id
+            if config_file is not None and config_parser.has_option(target.name, comp_stage_arg_str_id):
+                # Extract raw comp_stage string, merge it with comp_stage_args string and put it back
+                comp_stage_str = config_parser.get(target.name, comp_stage_str_id, raw=True)
+                comp_stage_arg_str = config_parser.get(target.name, comp_stage_arg_str_id, raw=True)
+                config_parser.set(target.name, comp_stage_str_id, comp_stage_str + " " + comp_stage_arg_str)
+
+            comp_stage_stat_str_id = comp_stage_base_id + str(comp_stage_num) + comp_stage_stat_id
+            if config_file is not None and stat_targets is not None and target.name in stat_targets:
+                # Extract raw comp_stage string, merge it with comp_stage_stat_args string and put it back
+                if not config_parser.has_option(target.name, comp_stage_stat_str_id):
                     common.print_and_exit("Can't find stat args for target " + str(target.name))
-                comp_stage = config_parser.get(target.name, comp_stage_str, raw=True)
-                comp_stage_stat = config_parser.get(target.name, comp_stage_stat_str, raw=True)
-                config_parser.set(target.name, comp_stage_str, comp_stage + " " + comp_stage_stat)
+                comp_stage_str = config_parser.get(target.name, comp_stage_str_id, raw=True)
+                comp_stage_stat_str = config_parser.get(target.name, comp_stage_stat_str_id, raw=True)
+                config_parser.set(target.name, comp_stage_str_id, comp_stage_str + " " + comp_stage_stat_str)
 
             resulting_comp_stage_blame_args_str = " "
             if blame_args is not None and blame_args[comp_stage_num] is not None:
-                comp_stage_blame_str = "comp_stage_" + str(comp_stage_num) + "_blame_args"
+                # Extract raw comp_stage_blame_args
+                comp_stage_blame_str_id = comp_stage_base_id + str(comp_stage_num) + comp_stage_blame_args_id
                 comp_stage_blame_arg = ""
-                if config_parser.has_option(target.name, comp_stage_blame_str):
-                    comp_stage_blame_arg = config_parser.get(target.name, comp_stage_blame_str, raw=True)
+                if config_parser.has_option(target.name, comp_stage_blame_str_id):
+                    comp_stage_blame_arg = config_parser.get(target.name, comp_stage_blame_str_id, raw=True)
+                # Combine comp_stage string with corresponding blame_args.
+                # We need to store the result separately and merge it manually, because otherwise
+                # comp_str will grow exponentially
                 comp_stage_blame_arg_list = comp_stage_blame_arg.split("|")
                 for blame_arg_num in range(len(comp_stage_blame_arg_list)):
                     blame_arg = blame_args[comp_stage_num][blame_arg_num]
@@ -420,31 +433,32 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
                                                            + str(blame_arg)
 
             # Emit complete compilation stage string
-            output += "\t" + config_parser.get(target.name, comp_stage_str) + resulting_comp_stage_blame_args_str
+            output += "\t" + config_parser.get(target.name, comp_stage_str_id) + resulting_comp_stage_blame_args_str
             if creduce_file is not None and comp_stage_num == 1:
                 output += " -I$(TEST_PWD)"
             output += "\n"
 
             # Next iteration
             comp_stage_num += 1
-            comp_stage_str = "comp_stage_" + str(comp_stage_num)
+            comp_stage_str_id = comp_stage_base_id + str(comp_stage_num)
 
+        # Merge stats files
         if stat_targets is not None and target.name in stat_targets and \
-           config_parser.has_option(target.name, "merge_stats_files"):
-            output += "\t" + config_parser.get(target.name, "merge_stats_files") + "\n"
+           config_parser.has_option(target.name, merge_stats_files_id):
+            output += "\t" + config_parser.get(target.name, merge_stats_files_id) + "\n"
 
         # Emit linking
-        output += "\t" + config_parser.get(target.name, "linking") + "\n"
+        output += "\t" + config_parser.get(target.name, linking_id) + "\n"
         output += "\n"
 
         # Emit run string
-        output += "run_" + target.name + ": " + config_parser.get(target.name, "out_exec") + "\n"
-        output += "\t@" + config_parser.get(target.name, "execution") + "\n"
+        output += "run_" + target.name + ": " + config_parser.get(target.name, out_exec_id) + "\n"
+        output += "\t@" + config_parser.get(target.name, execution_id) + "\n"
         output += "\n"
 
     # 3. Print clean target
     output += "clean:\n"
-    output += "\trm *.o *_" + config_parser.get(default_section, "out_exec_suffix") + "\n\n"
+    output += "\trm *.o *_" + config_parser.get(default_section, out_exec_suffix_id) + "\n\n"
 
     out_file = None
     if not os.path.isfile(out_file_name):
@@ -460,6 +474,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
 
 def get_blame_args (blame_target, num):
     common.log_msg(logging.DEBUG, "Trying to match blame target")
+    # Find out, if we can blame the target
     cant_blame = True
     for target in CompilerTarget.all_targets:
         if blame_target.name == target.name:
@@ -470,18 +485,21 @@ def get_blame_args (blame_target, num):
         common.log_msg(logging.DEBUG, "We can't blame " + blame_target.name + " (process " + str(num) + ")")
         return None
 
+    # Let's extract all blame arguments of the target
     blame_args_list = {}
     comp_stage_num = 1
-    comp_stage_str = "comp_stage_" + str(comp_stage_num)
-    while config_parser.has_option(blame_target.name, comp_stage_str):
+    comp_stage_str_id = comp_stage_base_id + str(comp_stage_num)
+    while config_parser.has_option(blame_target.name, comp_stage_str_id):
         blame_args_list[comp_stage_num] = None
-        comp_stage_blame_arg_str = "comp_stage_" + str(comp_stage_num) + "_blame_args"
+        comp_stage_blame_arg_str = comp_stage_base_id + str(comp_stage_num) + comp_stage_blame_args_id
         if config_parser.has_option(blame_target.name, comp_stage_blame_arg_str):
-            comp_stage_blame_arg = config_parser.get(blame_target.name, comp_stage_blame_arg_str, raw=True)
-            comp_stage_blame_arg_list = comp_stage_blame_arg.split("|")
+            # Extract blame_args string, which corresponds to the compilation stage, divide it and
+            # add result to return value
+            comp_stage_blame_arg_str = config_parser.get(blame_target.name, comp_stage_blame_arg_str, raw=True)
+            comp_stage_blame_arg_list = comp_stage_blame_arg_str.split("|")
             blame_args_list[comp_stage_num] = ([-1] * len(comp_stage_blame_arg_list))
         comp_stage_num += 1
-        comp_stage_str = "comp_stage_" + str(comp_stage_num)
+        comp_stage_str_id = comp_stage_base_id + str(comp_stage_num)
     common.log_msg(logging.DEBUG, "Blame args list: " + str(blame_args_list))
 
     return blame_args_list
@@ -501,7 +519,7 @@ if __name__ == '__main__':
                         help='Language standard. Possible variants are ' + str(list(StrToStdId))[1:-1])
 
     parser.add_argument("--config-file", dest="config_file",
-                        default=os.path.join(common.yarpgen_home, default_test_sets_file_name), type=str,
+                        default=os.path.join(common.yarpgen_home, default_config_file), type=str,
                         help="Configuration file for testing")
     parser.add_argument("-o", "--output", dest="out_file", default=Test_Makefile_name, type=str,
                         help="Output file")

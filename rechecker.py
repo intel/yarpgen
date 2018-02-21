@@ -155,7 +155,7 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--output-dir", dest="out_dir", default="re-checked", type=str,
                         help="Output directory with relevant fails")
     parser.add_argument("--config-file", dest="config_file",
-                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
+                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_config_file),
                         type=str, help="Configuration file for testing")
     parser.add_argument("--target", dest="target", default="clang ubsan_clang gcc", type=str,
                         help="Targets for testing (see test_sets.txt). By default, possible variants are "

@@ -224,7 +224,7 @@ if __name__ == '__main__':
                         help='Maximum number of instances to run in parallel. By default, it is set to'
                              ' number of processor in your system')
     parser.add_argument("--config-file", dest="config_file",
-                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
+                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_config_file),
                         type=str, help="Configuration file for testing")
     parser.add_argument("--stat-log-file", dest="stat_log_file", default="csmith_statistics.log", type=str,
                         help="Logfile for statistics")
