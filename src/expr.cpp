@@ -783,7 +783,7 @@ void BinaryExpr::rebuild (UB ub) {
                 if ((op == Shl) && (lhs_int_type->get_is_signed()) && (ub == UB::ShiftRhsLarge))
                     max_sht_val -= msb((uint64_t)std::static_pointer_cast<ScalarVariable>(lhs->get_value())->get_cur_value().get_abs_val());
                 // Second, we randomly choose value between 0 and maximum rhs value.
-                uint64_t const_val = rand_val_gen->get_rand_value(0UL, max_sht_val);
+                uint64_t const_val = rand_val_gen->get_rand_value(uint64_t(0), max_sht_val);
                 // Third, we combine chosen value with existing rhs
                 uint64_t rhs_abs_val = std::static_pointer_cast<ScalarVariable>(rhs->get_value())->get_cur_value().get_abs_val();
                 std::shared_ptr<IntegerType> rhs_int_type = std::static_pointer_cast<IntegerType>(rhs->get_value()->get_type());
