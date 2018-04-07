@@ -76,6 +76,9 @@ known_build_fails = { \
     "Deleted edge still exists in the CFG": "deleted_cfg_edge", \
     "Cannot convert from scalar to/from vector": "vec_convert", \
     "Invalid constantexpr cast!": "constexpr_cast", \
+    "Value number changed after main loop completed!": "vn_changed_after_loop", \
+    "Memory Def does not dominate it's uses": "mem_def_dn_dom", \
+    "Should have dominated the new access": "dom_new_access", \
 # gcc
     "compute_live_loop_exits": "compute_live_loop_exits", \
     "ubsan_instrument_division": "ubsan_instrument_division", \

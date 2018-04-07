@@ -399,7 +399,9 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
             common.log_msg(logging.DEBUG, "Processing compilation stage #" + str(comp_stage_num))
 
             comp_stage_arg_str_id = comp_stage_base_id + str(comp_stage_num) + comp_stage_args_id
-            if config_file is not None and config_parser.has_option(target.name, comp_stage_arg_str_id):
+            # We assume that config file has been parsed by general makefile generation and blame/creduce doesn't need to care about args 
+            if (blame_args is not None or creduce_file is not None) and \
+               config_file is not None and config_parser.has_option(target.name, comp_stage_arg_str_id):
                 # Extract raw comp_stage string, merge it with comp_stage_args string and put it back
                 comp_stage_str = config_parser.get(target.name, comp_stage_str_id, raw=True)
                 comp_stage_arg_str = config_parser.get(target.name, comp_stage_arg_str_id, raw=True)
