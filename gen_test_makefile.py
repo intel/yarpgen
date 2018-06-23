@@ -71,6 +71,9 @@ execution_id = "execution"
 config_parser = configparser.ConfigParser(empty_lines_in_values=False, allow_no_value=True)
 config_parser[default_section][std_id] = "-std"
 
+was_blamed_once = False
+was_parced_once = False
+
 ###############################################################################
 # File extension will be set later to match selected language standard
 sources = "driver func"
@@ -400,8 +403,12 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, blame_args
 
             comp_stage_arg_str_id = comp_stage_base_id + str(comp_stage_num) + comp_stage_args_id
             # We assume that config file has been parsed by general makefile generation and blame/creduce doesn't need to care about args 
-            if (blame_args is not None or creduce_file is not None) and \
-               config_file is not None and config_parser.has_option(target.name, comp_stage_arg_str_id):
+            global was_blamed_once
+            global was_parced_once
+            if (((creduce_file is not None or config_file is not None)) or \
+                (blame_args is not None and not was_blamed_once)) and not was_parced_once and config_parser.has_option(target.name, comp_stage_arg_str_id):
+                was_parced_once |= creduce_file is not None or config_file is not None
+                was_blamed_once |= blame_args is not None
                 # Extract raw comp_stage string, merge it with comp_stage_args string and put it back
                 comp_stage_str = config_parser.get(target.name, comp_stage_str_id, raw=True)
                 comp_stage_arg_str = config_parser.get(target.name, comp_stage_arg_str_id, raw=True)

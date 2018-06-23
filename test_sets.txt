@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2016-2017, Intel Corporation
+# Copyright (c) 2016-2018, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -200,10 +200,25 @@
     corr_spec: gcc
     test_set_args: -O0
 
+[gcc_opt_o1]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O1
+	
+[gcc_opt_o2]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O2
+	
 [gcc_opt]
     test_set
     corr_spec: gcc
     test_set_args: -O3
+	
+[gcc_opt_os]
+    test_set
+    corr_spec: gcc
+    test_set_args: -Os
 
 #[gcc_wsm_opt]
 #    test_set
@@ -247,20 +262,41 @@
 #    comp_arch: knl
 #    sde_arch: knl
 
-#[gcc_skx_no_opt]
-#    test_set
-#    corr_spec: gcc
-#    test_set_args: -O0
-#    comp_arch: skylake-avx512
-#    sde_arch: skx
+[gcc_skx_no_opt]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O0
+    comp_arch: skylake-avx512
+    sde_arch: skx
 
-#[gcc_skx_opt]
-#    test_set
-#    corr_spec: gcc
-#    test_set_args: -O3
-#    comp_arch: skylake-avx512
-#    sde_arch: skx
+[gcc_skx_opt_o1]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O1
+    comp_arch: skylake-avx512
+    sde_arch: skx
 
+[gcc_skx_opt_o2]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O2
+    comp_arch: skylake-avx512
+    sde_arch: skx
+	
+[gcc_skx_opt]
+    test_set
+    corr_spec: gcc
+    test_set_args: -O3
+    comp_arch: skylake-avx512
+    sde_arch: skx
+
+[gcc_skx_opt_os]
+    test_set
+    corr_spec: gcc
+    test_set_args: -Os
+    comp_arch: skylake-avx512
+    sde_arch: skx
+	
 #########################################################################################
 # Clang sections
 
@@ -269,11 +305,26 @@
     corr_spec: clang
     test_set_args: -O0
 
+[clang_opt_o1]
+    test_set
+    corr_spec: clang
+    test_set_args: -O1
+	
+[clang_opt_o2]
+    test_set
+    corr_spec: clang
+    test_set_args: -O2
+	
 [clang_opt]
     test_set
     corr_spec: clang
     test_set_args: -O3
 
+[clang_opt_os]
+    test_set
+    corr_spec: clang
+    test_set_args: -Os
+	
 #[clang_knl_no_opt]
 #    test_set
 #    corr_spec: clang
@@ -288,20 +339,41 @@
 #    comp_arch: knl
 #    sde_arch: knl
 
-#[clang_skx_no_opt]
-#    test_set
-#    corr_spec: clang
-#    test_set_args: -O0
-#    comp_arch: skx
-#    sde_arch: skx
+[clang_skx_no_opt]
+    test_set
+    corr_spec: clang
+    test_set_args: -O0
+    comp_arch: skx
+    sde_arch: skx
 
-#[clang_skx_opt]
-#    test_set
-#    corr_spec: clang
-#    test_set_args: -O3
-#    comp_arch: skx
-#    sde_arch: skx
+[clang_skx_opt_o1]
+    test_set
+    corr_spec: clang
+    test_set_args: -O1
+    comp_arch: skx
+    sde_arch: skx
+	
+[clang_skx_opt_o2]
+    test_set
+    corr_spec: clang
+    test_set_args: -O2
+    comp_arch: skx
+    sde_arch: skx
+	
+[clang_skx_opt]
+    test_set
+    corr_spec: clang
+    test_set_args: -O3
+    comp_arch: skx
+    sde_arch: skx
 
+[clang_skx_opt_os]
+    test_set
+    corr_spec: clang
+    test_set_args: -Os
+    comp_arch: skx
+    sde_arch: skx
+	
 #########################################################################################
 # Clang through opt sections
 
@@ -319,13 +391,13 @@
 #    sde_arch: knl
 #    comp_stage_2_args: %(clang_opt_passes)s
 
-#[clang_thru_opt_skx_opt]
-#    test_set
-#    corr_spec: clang_thru_opt
-#    test_set_args: -O3
-#    comp_arch: skx
-#    sde_arch: skx
-#    comp_stage_2_args: %(clang_opt_passes)s
+[clang_thru_opt_skx_opt]
+    test_set
+    corr_spec: clang_thru_opt
+    test_set_args: -O3
+    comp_arch: skx
+    sde_arch: skx
+    comp_stage_2_args: %(clang_opt_passes)s
 
 #########################################################################################
 # ICC sections
