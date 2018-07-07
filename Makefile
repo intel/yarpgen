@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2015-2017, Intel Corporation
+# Copyright (c) 2015-2018, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ else
 	BUILD_VERSION=$(GIT_REV)
 endif
 
-CXX=clang++
+CXX?=clang++
 CXXFLAGS=-std=c++14 -Wall -Wpedantic -Werror -DBUILD_DATE="\"$(BUILD_DATE)\"" -DBUILD_VERSION="\"$(BUILD_VERSION)\""
 OPT=-O3
 LDFLAGS=-L./ -std=c++14
