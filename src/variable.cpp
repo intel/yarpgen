@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2017, Intel Corporation
+Copyright (c) 2015-2018, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -188,7 +188,7 @@ void Array::init_elements (std::shared_ptr<Context> ctx) {
         }
     };
 
-    for (int i = 0; i < array_type->get_size(); ++i) {
+    for (unsigned int i = 0; i < array_type->get_size(); ++i) {
         if (base_type->is_int_type())
             var_init(i);
         else if (base_type->is_struct_type())

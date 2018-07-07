@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2017, Intel Corporation
+Copyright (c) 2015-2018, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -112,7 +112,7 @@ std::shared_ptr<DeclStmt> DeclStmt::generate (std::shared_ptr<Context> ctx,
 static void emit_list_init_for_struct(std::ostream &stream, std::shared_ptr<Struct> struct_elem) {
     stream << "{";
     uint64_t member_count = struct_elem->get_member_count();
-    for (int i = 0; i < member_count; ++i) {
+    for (unsigned int i = 0; i < member_count; ++i) {
         std::shared_ptr<Data> member = struct_elem->get_member(i);
         // Skip static members
         if (member->get_type()->get_is_static())
@@ -190,7 +190,7 @@ void DeclStmt::emit (std::ostream& stream, std::string offset) {
             if (array_type->get_kind() == ArrayType::STD_ARR)
                 stream << "{";
 
-            for (int i = 0; i < array_elements_count; ++i) {
+            for (unsigned int i = 0; i < array_elements_count; ++i) {
                 if (array_type->get_base_type()->is_int_type()) {
                     std::shared_ptr<ScalarVariable> elem = std::static_pointer_cast<ScalarVariable>(
                             array->get_element(i));
@@ -433,7 +433,7 @@ std::map<std::string, ScopeStmt::ExprVector> ScopeStmt::extract_all_local_ptr_ex
         }
     }
     return ret;
-};
+}
 
 // CSE shouldn't change during the scope to make generation process easy. In order to achieve this,
 // we use only "input" variables for them and this function extracts such variables from extern symbol table.
