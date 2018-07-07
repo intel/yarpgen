@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2017, Intel Corporation
+Copyright (c) 2015-2018, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ void SymbolTable::add_array (std::shared_ptr<Array> _array) {
     array.push_back(_array);
     std::shared_ptr<Type> base_type = new_array_type->get_base_type();
     if (new_array_type->get_base_type()->is_struct_type())
-        for (int i = 0; i < _array->get_elements_count(); ++i)
+        for (unsigned int i = 0; i < _array->get_elements_count(); ++i)
             form_struct_member_expr(members_in_arrays, nullptr, std::static_pointer_cast<Struct>(_array->get_element(i)));
 }
 
@@ -153,7 +153,7 @@ void SymbolTable::var_use_exprs_from_vars_in_arrays (std::vector<std::shared_ptr
                 array_iter_type->get_base_type()->get_int_type_id() == IntegerType::IntegerTypeID::BOOL)
                 continue;
 
-            for (int i = 0; i < array_iter->get_elements_count(); ++i)
+            for (unsigned int i = 0; i < array_iter->get_elements_count(); ++i)
                 ret.emplace_back(std::make_shared<VarUseExpr>(array_iter->get_element(i)));
         }
     }
@@ -352,7 +352,7 @@ void SymbolTable::emit_array_def (std::ostream& stream, std::string offset) {
 
 void SymbolTable::emit_array_check (std::ostream& stream, std::string offset) {
     for (const auto &i : array)
-        for (int j = 0; j < i->get_elements_count(); ++j) {
+        for (unsigned int j = 0; j < i->get_elements_count(); ++j) {
             std::shared_ptr<Data> array_elem = i->get_element(j);
             switch (array_elem->get_class_id()) {
                 case Data::VAR:
@@ -370,7 +370,7 @@ void SymbolTable::emit_array_check (std::ostream& stream, std::string offset) {
 }
 
 void SymbolTable::emit_ptr_extern_decl (std::ostream& stream, std::string offset) {
-    for (int i = 0; i < pointers.ptr.size(); ++i) {
+    for (unsigned int i = 0; i < pointers.ptr.size(); ++i) {
         DeclStmt decl (pointers.ptr.at(i), nullptr, true);
         stream << offset;
         decl.emit(stream);
@@ -379,7 +379,7 @@ void SymbolTable::emit_ptr_extern_decl (std::ostream& stream, std::string offset
 }
 
 void SymbolTable::emit_ptr_def (std::ostream& stream, std::string offset) {
-    for (int i = 0; i < pointers.ptr.size(); ++i) {
+    for (unsigned int i = 0; i < pointers.ptr.size(); ++i) {
         DeclStmt decl (pointers.ptr.at(i), pointers.init_expr.at(i));
         stream << offset;
         decl.emit(stream);
@@ -388,7 +388,7 @@ void SymbolTable::emit_ptr_def (std::ostream& stream, std::string offset) {
 }
 
 void SymbolTable::emit_ptr_check (std::ostream& stream, std::string offset) {
-    for (int i = 0; i < pointers.ptr.size(); ++i) {
+    for (unsigned int i = 0; i < pointers.ptr.size(); ++i) {
         stream << offset + "hash(&seed, ";
         pointers.deref_expr.at(i)->emit(stream);
         stream << ");\n";

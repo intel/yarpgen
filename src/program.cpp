@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2017, Intel Corporation
+Copyright (c) 2015-2018, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ Program::Program (std::string _out_folder) {
 
 void Program::generate () {
     NameHandler& name_handler = NameHandler::get_instance();
-    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+    for (unsigned int i = 0; i < gen_policy.get_test_func_count(); ++i) {
         name_handler.set_test_func_prefix(i);
 
         extern_inp_sym_table.push_back(std::make_shared<SymbolTable>());
@@ -105,7 +105,7 @@ inline void ptr_generation (const std::shared_ptr<SymbolTable> &sym_table, uint3
         sym_table->add_pointer(new_ptr, picked_expr);
         all_var_use_exprs.push_back(std::make_shared<VarUseExpr>(new_ptr));
     }
-};
+}
 
 // This function initially fills extern symbol table with inp and mix variables. It also creates type structs definitions.
 void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
@@ -194,7 +194,7 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     // Create random number of input arrays
     uint32_t inp_array_count = rand_val_gen->get_rand_value(p->get_min_inp_array_count(),
                                                             p->get_max_inp_array_count());
-    for (int i = 0; i < inp_array_count && array_type_count > 0; ++i) {
+    for (uint32_t i = 0; i < inp_array_count && array_type_count > 0; ++i) {
         std::shared_ptr<ArrayType>& array_type = rand_val_gen->get_rand_elem(ctx->get_extern_inp_sym_table()->
                                                                              get_array_types());
         std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
@@ -204,7 +204,7 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     // Same for mixed arrays
     uint32_t mix_array_count = rand_val_gen->get_rand_value(p->get_min_mix_array_count(),
                                                             p->get_max_mix_array_count());
-    for (int i = 0; i < mix_array_count && array_type_count > 0; ++i) {
+    for (uint32_t i = 0; i < mix_array_count && array_type_count > 0; ++i) {
         std::shared_ptr<ArrayType>& array_type = rand_val_gen->get_rand_elem(ctx->get_extern_mix_sym_table()->
                                                                              get_array_types());
         std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
@@ -214,7 +214,7 @@ void Program::form_extern_sym_table(std::shared_ptr<Context> ctx) {
     // Same for output arrays
     uint32_t out_array_count = rand_val_gen->get_rand_value(p->get_min_out_array_count(),
                                                             p->get_max_out_array_count());
-    for (int i = 0; i < out_array_count && array_type_count > 0; ++i) {
+    for (uint32_t i = 0; i < out_array_count && array_type_count > 0; ++i) {
         std::shared_ptr<ArrayType>& array_type = rand_val_gen->get_rand_elem(ctx->get_extern_out_sym_table()->
                                                                              get_array_types());
         std::shared_ptr<Array> new_array = Array::generate(ctx, array_type);
@@ -249,7 +249,7 @@ void Program::emit_decl () {
     if (options->include_array)
         out_file << "#include <array>\n\n";
 
-    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+    for (unsigned int i = 0; i < gen_policy.get_test_func_count(); ++i) {
         extern_inp_sym_table.at(i)->emit_variable_extern_decl(out_file);
         out_file << "\n\n";
         extern_mix_sym_table.at(i)->emit_variable_extern_decl(out_file);
@@ -287,7 +287,7 @@ void Program::emit_func () {
     out_file.open(out_folder + "/" + "func." + get_file_ext());
     out_file << "#include \"init.h\"\n\n";
 
-    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+    for (unsigned int i = 0; i < gen_policy.get_test_func_count(); ++i) {
         out_file << "void " << NameHandler::common_test_func_prefix << i << "_foo ()\n";
         functions.at(i)->emit(out_file);
         out_file << "\n";
@@ -322,7 +322,7 @@ void Program::emit_main () {
     out_file << "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
     out_file << "}\n\n";
 
-    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+    for (unsigned int i = 0; i < gen_policy.get_test_func_count(); ++i) {
         // Definitions and initialization
         //////////////////////////////////////////////////////////
         extern_inp_sym_table.at(i)->emit_variable_def(out_file);
@@ -391,7 +391,7 @@ void Program::emit_main () {
     out_file << "\n";
     out_file << "int main () {\n";
     std::string tf_prefix;
-    for (int i = 0; i < gen_policy.get_test_func_count(); ++i) {
+    for (unsigned int i = 0; i < gen_policy.get_test_func_count(); ++i) {
         tf_prefix = NameHandler::common_test_func_prefix + std::to_string(i) + "_";
         out_file << "    " << tf_prefix << "init ();\n";
         out_file << "    " << tf_prefix << "foo ();\n";

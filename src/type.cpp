@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2017, Intel Corporation
+Copyright (c) 2015-2018, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ static std::string static_memb_init_iter(std::shared_ptr<Data> member) {
         // Recursively walk over all members
         ret += "{";
         uint64_t member_count = member_struct->get_member_count();
-        for (int i = 0; i < member_count; ++i) {
+        for (unsigned int i = 0; i < member_count; ++i) {
             std::shared_ptr<Data> cur_member = member_struct->get_member(i);
             if (cur_member->get_type()->get_is_static())
                 continue;
@@ -150,7 +150,7 @@ static std::string static_memb_check_iter(std::string offset, std::string parent
     else if (member->get_class_id() == Data::STRUCT) {
         std::shared_ptr<Struct> member_struct = std::static_pointer_cast<Struct>(member);
         // Recursively walk over all members
-        for (int i = 0; i < member_struct->get_member_count(); ++i) {
+        for (unsigned int i = 0; i < member_struct->get_member_count(); ++i) {
             std::shared_ptr<Data> cur_member = member_struct->get_member(i);
             if (cur_member->get_type()->get_is_static())
                 continue;
