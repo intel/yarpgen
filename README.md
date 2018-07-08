@@ -1,6 +1,5 @@
-.. image:: https://travis-ci.org/intel/yarpgen.svg?branch=master :target: https://travis-ci.org/intel/yarpgen
+[![Build Status](https://travis-ci.org/intel/yarpgen.svg?branch=master)](https://travis-ci.org/intel/yarpgen)
 
-====================================
 Yet Another Random Program Generator
 ====================================
 
@@ -32,12 +31,12 @@ To run ``yarpgen`` we recommend using ``run_gen.py`` script, which will run the 
 
 The script will run several compilers with several compiler options and run executables to compare the output results. If the results mismatch, the test program will be saved in "results" folder for your analysis.
 
-Also you may want to test compilers for future hardware, which is not available to you at the moment. The standard way to do that is to download the `Intel® Software Development Emulator <http://www.intel.com/software/sde>`_. ``run_gen.py`` assumes that it is available in your PATH.
+Also you may want to test compilers for future hardware, which is not available to you at the moment. The standard way to do that is to download the [Intel® Software Development Emulator](http://www.intel.com/software/sde). ``run_gen.py`` assumes that it is available in your PATH.
 
 Mailing list
 ------------
 
-To contact authors, ask questions, or leave your feedback please use `yarp-gen mailing list <https://lists.01.org/mailman/listinfo/yarp-gen>`_.
+To contact authors, ask questions, or leave your feedback please use [yarp-gen mailing list](https://lists.01.org/mailman/listinfo/yarp-gen).
 
 People
 ------
