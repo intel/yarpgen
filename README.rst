@@ -1,3 +1,5 @@
+.. image:: https://travis-ci.org/intel/yarpgen.svg?branch=master :target: https://travis-ci.org/intel/yarpgen
+
 ====================================
 Yet Another Random Program Generator
 ====================================
