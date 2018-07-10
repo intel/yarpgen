@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/intel/yarpgen.svg?branch=master)](https://travis-ci.org/intel/yarpgen)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/intel/yarpgen/blob/master/LICENSE.txt)
 
 Yet Another Random Program Generator
 ====================================
