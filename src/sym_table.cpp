@@ -135,12 +135,12 @@ void SymbolTable::add_pointer(std::shared_ptr<Pointer> ptr, std::shared_ptr<Expr
     pointers.deref_expr.push_back(deep_deref_expr_from_nest_ptr(deref_expr));
 }
 
-void SymbolTable::del_member_in_structs(int idx) {
+void SymbolTable::del_member_in_structs(size_t idx) {
     auto& member_exprs = std::get<ALL>(members_in_structs);
     member_exprs.erase(member_exprs.begin() + idx);
 }
 
-void SymbolTable::del_member_in_arrays(int idx) {
+void SymbolTable::del_member_in_arrays(size_t idx) {
     auto& member_exprs = std::get<ALL>(members_in_arrays);
     member_exprs.erase(member_exprs.begin() + idx);
 }

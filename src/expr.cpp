@@ -188,7 +188,7 @@ std::shared_ptr<TypeCastExpr> TypeCastExpr::generate (std::shared_ptr<Context> c
 void TypeCastExpr::emit (std::ostream& stream, std::string offset) {
     std::string ret = offset;
     //TODO: add parameter to gen_policy
-    if (!is_implicit or is_implicit)
+    if (!is_implicit || is_implicit)
         stream << "(" << value->get_type()->get_simple_name() << ") ";
     stream << "(";
     expr->emit(stream);

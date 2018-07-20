@@ -67,11 +67,11 @@ class SymbolTable {
 
         auto& get_members_in_structs() { return std::get<ALL>(members_in_structs); }
         auto& get_const_members_in_structs() { return std::get<CONST>(members_in_structs); }
-        void del_member_in_structs(int idx);
+        void del_member_in_structs(size_t idx);
 
         auto& get_members_in_arrays() { return std::get<ALL>(members_in_arrays); }
         auto& get_const_members_in_arrays() { return std::get<CONST>(members_in_arrays); }
-        void del_member_in_arrays(int idx);
+        void del_member_in_arrays(size_t idx);
 
         std::vector<std::string> get_lval_ptr_map_keys() { return lval_ptr_map_keys; }
         std::map<std::string, ExprVector>& get_lval_expr_with_ptr_type() { return lval_expr_with_ptr_type; }
