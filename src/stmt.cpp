@@ -308,8 +308,8 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
 
                 // This function randomly picks element from vector.
                 // Also it optionally returns picked element's id in ret_rand_num
-                auto pick_elem = [&assign_lhs](auto vector_of_exprs, uint32_t *ret_rand_num = nullptr) {
-                    uint64_t rand_num = rand_val_gen->get_rand_value(0UL, vector_of_exprs.size() - 1);
+                auto pick_elem = [&assign_lhs](auto vector_of_exprs, size_t *ret_rand_num = nullptr) {
+                    size_t rand_num = rand_val_gen->get_rand_value<size_t>(0, vector_of_exprs.size() - 1);
                     assign_lhs = vector_of_exprs.at(rand_num);
                     if (ret_rand_num != nullptr)
                         *ret_rand_num = rand_num;
@@ -330,13 +330,13 @@ std::shared_ptr<ScopeStmt> ScopeStmt::generate (std::shared_ptr<Context> ctx) {
                         pick_elem(ctx->get_extern_out_sym_table()->get_var_use_exprs_in_arrays());
                         // Use member of output struct
                     else if (out_data_type == GenPolicy::OutDataTypeID::MEMBER) {
-                        uint32_t elem_num;
+                        size_t elem_num;
                         pick_elem(ctx->get_extern_out_sym_table()->get_members_in_structs(), &elem_num);
                         ctx->get_extern_out_sym_table()->del_member_in_structs(elem_num);
                     }
                         // Use member of struct in output array
                     else if (out_data_type == GenPolicy::OutDataTypeID::MEMBER_IN_ARRAY) {
-                        uint32_t elem_num;
+                        size_t elem_num;
                         pick_elem(ctx->get_extern_out_sym_table()->get_members_in_arrays(), &elem_num);
                         ctx->get_extern_out_sym_table()->del_member_in_arrays(elem_num);
                     }
