@@ -19,6 +19,7 @@
 image:
   # VS 2013 doesn't support C++14, so it doesn't compile.
   #- Visual Studio 2013
+  - Ubuntu
   - Visual Studio 2015
   - Visual Studio 2017
 
@@ -30,17 +31,31 @@ environment:
   matrix:
     - cmake_arch: x86
     - cmake_arch: x64
+
+for:
+-
+  matrix:
+    only:
+      - image: Ubuntu
+
+  clone_folder: ~/yarpgen
+  build_script:
+    - echo Ubuntu build script
+    - mkdir build; cd build
+    - cmake -DCMAKE_BUILD_TYPE=Release $extra_cmake_flags ..
+    - make -j2
  
 # skip unsupported combinations
 init:
-  - set arch=
-  - if "%cmake_arch%"=="x64" ( set arch= Win64)
-  - echo %arch%
-  - echo %APPVEYOR_BUILD_WORKER_IMAGE%
-  - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( set generator="Visual Studio 15 2017%arch%" )
-  - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" ( set generator="Visual Studio 14 2015%arch%" )
-  - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
-  - echo %generator%
+  - cmd: set arch=
+  - cmd: if "%cmake_arch%"=="x64" ( set arch= Win64)
+  - cmd: echo %arch%
+  - cmd: echo %APPVEYOR_BUILD_WORKER_IMAGE%
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( set generator="Visual Studio 15 2017%arch%" )
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" ( set generator="Visual Studio 14 2015%arch%" )
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
+  - cmd: echo %generator%
+  - sh: if [ "$cmake_arch" = "x86" ]; then export extra_cmake_flags=-DCMAKE_CXX_FLAGS=-m32; sudo apt-get install -y g++-multilib; fi;
 
 before_build:
 - cmd: |-
