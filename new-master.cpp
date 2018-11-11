@@ -165,6 +165,7 @@ std::string Master::emit_check () { // TODO: rewrite with IR
     return ret;
 }
 
+/*
 std::string Master::emit_main () {
     std::string ret = "";
     ret += "#include \"init.h\"\n";
@@ -192,4 +193,59 @@ std::string Master::emit_main () {
     write_file("driver.cpp", ret);
     return ret;
 }
+*/
 
+std::string Master::emit_main() {
+    std::string ret = "";
+    ret += "#include \"init.h\"\n";
+
+    Variable seed = Variable("seed", IntegerType::IntegerTypeID::ULLINT, Type::Mod::NTHG, false);
+    VarUseExpr seed_use;
+    seed_use.set_variable (std::make_shared<Variable> (seed));
+
+    ConstExpr zero_init;
+    zero_init.set_type (IntegerType::IntegerTypeID::ULLINT);
+    zero_init.set_data (0);
+
+    DeclStmt seed_decl;
+    seed_decl.set_data (std::make_shared<Variable> (seed));
+    seed_decl.set_init (std::make_shared<ConstExpr> (zero_init));
+    ret += seed_decl.emit();
+    ret += "\n\n";
+
+    ret += "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
+    ret +=  "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
+    ret += "}\n\n";
+
+    ret += extern_inp_sym_table->emit_variable_def() + "\n\n";
+    ret += extern_out_sym_table->emit_variable_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_array_def() + "\n\n";
+    ret += extern_out_sym_table->emit_array_def() + "\n\n";
+    ret += extern_inp_sym_table->emit_struct_def() + "\n\n";
+
+    ret += "void init () {\n";
+    ret += extern_inp_sym_table->emit_struct_init ("    ");
+    ret += extern_inp_sym_table->emit_array_init ("    ");
+    ret += extern_out_sym_table->emit_array_init ("    ");
+    ret += "}";
+    ret += "\n\n";
+
+    ret += "unsigned long long int checksum () {\n";
+    ret += extern_out_sym_table->emit_variable_check ("    ");
+    ret += extern_out_sym_table->emit_array_check ("    ");
+
+    ret += "    return seed;\n";
+    ret += "}";
+    ret += "\n\n";
+
+    ret += "extern void foo ();\n\n";
+    ret += "int main () {\n";
+    ret += "    init ();\n";
+    ret += "    foo ();\n";
+    ret += "    std::cout << checksum () << std::endl;\n";
+    ret += "    return 0;\n";
+    ret += "}";
+
+    write_file("driver.cpp", ret);
+    return ret;
+}

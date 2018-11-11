@@ -163,7 +163,7 @@ std::string SymbolTable::emit_single_struct_init (std::shared_ptr<MemberExpr> pa
 std::string SymbolTable::emit_variable_check (std::string offset) {
     std::string ret = "";
     for (auto i = variable.begin(); i != variable.end(); ++i) {
-        ret += offset + "hash(seed, " + (*i)->get_name() + ");\n";
+        ret += offset + "hash(&seed, " + (*i)->get_name() + ");\n";
     }
     return ret;
 }
@@ -197,7 +197,7 @@ std::string SymbolTable::emit_array_check (std::string offset) {
     for (auto vdecl : this->array) {
         crosschain::ForEachStmt simple_loop(vdecl->get_data());
         simple_loop.add_single_stmt(std::make_shared<StubStmt>
-            ("hash(seed, " + simple_loop.getVar()->get_name() + ");\n"));
+            ("hash(&seed, " + simple_loop.getVar()->get_name() + ");\n"));
         ss << simple_loop.emit(offset);
     }
 
