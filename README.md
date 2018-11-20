@@ -1,5 +1,5 @@
 [![TravisCI build status (Linux and Mac)](https://travis-ci.org/intel/yarpgen.svg?branch=master)](https://travis-ci.org/intel/yarpgen)
-[![Appveyor build status (Windows and Ubuntu)](https://ci.appveyor.com/api/projects/status/meuyl409mtd4cljb?svg=true)](https://ci.appveyor.com/project/webmasterintel/yarpgen)
+[![Appveyor build status (Windows and Ubuntu)](https://ci.appveyor.com/api/projects/status/meuyl409mtd4cljb/branch/master?svg=true)](https://ci.appveyor.com/project/webmasterintel/yarpgen/branch/master)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/intel/yarpgen/blob/master/LICENSE.txt)
 
 Yet Another Random Program Generator
