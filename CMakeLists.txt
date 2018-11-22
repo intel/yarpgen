@@ -28,6 +28,11 @@ endif()
 
 STRING(TIMESTAMP BUILD_DATE "%Y:%m:%d")
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+    message(STATUS "Build type not specified: Use Release by default.")
+endif(NOT CMAKE_BUILD_TYPE)
+
 find_package(Git)
 set(GIT_HASH "no_version_info")
 if(GIT_FOUND)
