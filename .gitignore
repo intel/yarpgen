@@ -12,3 +12,5 @@ testing_log_*
 gen_test_makefile_log_*
 statistics_*.log
 csmith_statistics_*.log
+
+!*/

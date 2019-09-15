@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2019, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,15 @@ limitations under the License.
 
 #pragma once
 
-#define ERROR(err_message) \
-    do { \
-        std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__ << ", function " << __func__ << "():\n    " << err_message << std::endl; \
-        abort(); \
-    } while (false)
+#include <cstdint>
+
+namespace yarpgen {
+
+class IRValue {
+public:
+    IRValue();
+    explicit IRValue(uint64_t _val);
+    uint64_t value;
+};
+
+}
