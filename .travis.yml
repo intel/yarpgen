@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2018, Intel Corporation
+# Copyright (c) 2018-2019, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,27 +19,29 @@
 language: cpp
 matrix:
   include:
-    # works on Precise and Trusty
+    # Ubuntu 16.04, gcc 9
     - os: linux
+      dist: xenial
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-7
+            - g++-9
       env:
-        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - MATRIX_EVAL="CC=gcc-9 && CXX=g++-9"
 
-    # works on Trusty
+    # Ubuntu 16.04, clang 8
     - os: linux
+      dist: xenial
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-xenial-8
           packages:
-            - clang-5.0
+            - clang-8
       env:
-        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+        - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
 
     # OSX
     - os: osx
