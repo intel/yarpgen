@@ -16,8 +16,8 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
 #ifndef YARPGEN_VERSION_MAJOR
 #define YARPGEN_VERSION_MAJOR "0"
@@ -35,13 +35,14 @@ limitations under the License.
 #define BUILD_VERSION ""
 #endif
 
-static void printVersion () {
-    std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "." << YARPGEN_VERSION_MINOR <<
-                 " (build " << BUILD_VERSION << " on " << BUILD_DATE << ")" << std::endl;
+static void printVersion() {
+    std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
+              << YARPGEN_VERSION_MINOR << " (build " << BUILD_VERSION << " on "
+              << BUILD_DATE << ")" << std::endl;
 }
 
 // This function prints out optional error_message, help and exits
-static void printUsageAndExit (const std::string& error_msg = "") {
+static void printUsageAndExit(const std::string &error_msg = "") {
     int exit_code = 0;
     if (!error_msg.empty()) {
         std::cerr << error_msg << std::endl;
@@ -52,10 +53,10 @@ static void printUsageAndExit (const std::string& error_msg = "") {
     std::cout << "usage: yarpgen\n";
     std::cout << "\t-h, --help                Display this message and exit\n";
     std::cout << "\t-v, --version             Print yarpgen version\n";
-    exit (exit_code);
+    exit(exit_code);
 }
 
-int main (int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     std::vector<std::string> unused_args;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
