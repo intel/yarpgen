@@ -46,5 +46,4 @@ project(YARPGen)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-include_directories(include/yarpgen)
-add_subdirectory(lib)
+add_subdirectory(src)
