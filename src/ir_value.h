@@ -23,10 +23,10 @@ limitations under the License.
 namespace yarpgen {
 
 class IRValue {
-public:
+  public:
     IRValue();
     explicit IRValue(uint64_t _val);
     uint64_t value;
 };
 
-}
+} // namespace yarpgen
