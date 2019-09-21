@@ -19,30 +19,30 @@
 cmake_minimum_required(VERSION 3.6)
 project(YARPGen)
 
-#if(NOT DEFINED YARPGEN_VERSION_MAJOR)
-#    set(YARPGEN_VERSION_MAJOR 1)
-#endif()
-#if(NOT DEFINED YARPGEN_VERSION_MINOR)
-#    set(YARPGEN_VERSION_MINOR 2)
-#endif()
-#
-#STRING(TIMESTAMP BUILD_DATE "%Y:%m:%d")
-#
-#if(NOT CMAKE_BUILD_TYPE)
-#    set(CMAKE_BUILD_TYPE "Release")
-#    message(STATUS "Build type not specified: Use Release by default.")
-#endif(NOT CMAKE_BUILD_TYPE)
-#
-#find_package(Git)
-#set(GIT_HASH "no_version_info")
-#if(GIT_FOUND)
-#    execute_process(
-#            COMMAND ${GIT_EXECUTABLE} log -1 --format=%h HEAD
-#            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-#            OUTPUT_VARIABLE GIT_HASH
-#            OUTPUT_STRIP_TRAILING_WHITESPACE
-#    )
-#endif()
+if(NOT DEFINED YARPGEN_VERSION_MAJOR)
+    set(YARPGEN_VERSION_MAJOR 2)
+endif()
+if(NOT DEFINED YARPGEN_VERSION_MINOR)
+    set(YARPGEN_VERSION_MINOR 0)
+endif()
+
+STRING(TIMESTAMP BUILD_DATE "%Y:%m:%d")
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+    message(STATUS "Build type not specified: Use Release by default.")
+endif(NOT CMAKE_BUILD_TYPE)
+
+find_package(Git)
+set(GIT_HASH "no_version_info")
+if(GIT_FOUND)
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} log -1 --format=%h HEAD
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_HASH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+endif()
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
