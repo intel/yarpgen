@@ -137,6 +137,9 @@ class TypeBool : public IntegralTypeHelper<bool> {
     TypeBool(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
 
+    //  TODO: decouple language representation of the type from back-end type.
+    // I.e. for different languages the name ofter type and the suffix might be
+    // different.
     IntTypeID getIntTypeId() final { return IntTypeID::BOOL; }
     std::string getName() final { return "bool"; }
 
@@ -154,6 +157,119 @@ class TypeSChar : public IntegralTypeHelper<signed char> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::SCHAR; }
     std::string getName() final { return "signed char"; }
+
+    void dbgDump();
+};
+
+class TypeUChar : public IntegralTypeHelper<unsigned char> {
+  public:
+    TypeUChar(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::UCHAR; }
+    std::string getName() final { return "unsigned char"; }
+
+    void dbgDump();
+};
+
+class TypeSShort : public IntegralTypeHelper<short> {
+  public:
+    TypeSShort(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::SHORT; }
+    std::string getName() final { return "short"; }
+
+    void dbgDump();
+};
+
+class TypeUShort : public IntegralTypeHelper<unsigned short> {
+  public:
+    TypeUShort(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::USHORT; }
+    std::string getName() final { return "unsigned short"; }
+
+    void dbgDump();
+};
+
+class TypeSInt : public IntegralTypeHelper<int> {
+  public:
+    TypeSInt(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::INT; }
+    std::string getName() final { return "int"; }
+
+    void dbgDump();
+};
+
+class TypeUInt : public IntegralTypeHelper<unsigned int> {
+  public:
+    TypeUInt(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::UINT; }
+    std::string getName() final { return "unsigned int"; }
+    std::string getLiteralSuffix() final { return "U"; }
+
+    void dbgDump();
+};
+
+//  TODO: add bit mode to command-line options
+#if BIT_MODE64 == true
+class TypeSLong : public IntegralTypeHelper<long long int> {
+#else
+class TypeSLong : public IntegralTypeHelper<int> {
+#endif
+  public:
+    TypeSLong(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::LONG; }
+    std::string getName() final { return "long int"; }
+    std::string getLiteralSuffix() final { return "L"; }
+
+    void dbgDump();
+};
+
+#if BIT_MODE64 == true
+class TypeULong : public IntegralTypeHelper<unsigned long long int> {
+#else
+class TypeULong : public IntegralTypeHelper<unsigned int> {
+#endif
+  public:
+    TypeULong(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::ULONG; }
+    std::string getName() final { return "unsigned long int"; }
+    std::string getLiteralSuffix() final { return "UL"; }
+
+    void dbgDump();
+};
+
+class TypeSLLong : public IntegralTypeHelper<long long int> {
+  public:
+    TypeSLLong(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::LLONG; }
+    std::string getName() final { return "long long int"; }
+    std::string getLiteralSuffix() final { return "LL"; }
+
+    void dbgDump();
+};
+
+class TypeULLong : public IntegralTypeHelper<unsigned long long int> {
+  public:
+    TypeULLong(bool _is_static, CVQualifier _cv_qual)
+        : IntegralTypeHelper(_is_static, _cv_qual) {}
+
+    IntTypeID getIntTypeId() final { return IntTypeID::ULONG; }
+    std::string getName() final { return "unsigned long long int"; }
+    std::string getLiteralSuffix() final { return "ULL"; }
 
     void dbgDump();
 };

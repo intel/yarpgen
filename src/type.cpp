@@ -37,9 +37,34 @@ IntegralType::init(IntegralType::IntTypeID _type_id, bool _is_static,
     case IntTypeID::SCHAR:
         ret = std::make_shared<TypeSChar>(TypeSChar(_is_static, _cv_qual));
         break;
+    case IntTypeID::UCHAR:
+        ret = std::make_shared<TypeUChar>(TypeUChar(_is_static, _cv_qual));
+        break;
+    case IntTypeID::SHORT:
+        ret = std::make_shared<TypeSShort>(TypeSShort(_is_static, _cv_qual));
+        break;
+    case IntTypeID::USHORT:
+        ret = std::make_shared<TypeUShort>(TypeUShort(_is_static, _cv_qual));
+        break;
+    case IntTypeID::INT:
+        ret = std::make_shared<TypeSInt>(TypeSInt(_is_static, _cv_qual));
+        break;
+    case IntTypeID::UINT:
+        ret = std::make_shared<TypeUInt>(TypeUInt(_is_static, _cv_qual));
+        break;
+    case IntTypeID::LONG:
+        ret = std::make_shared<TypeSLong>(TypeSLong(_is_static, _cv_qual));
+        break;
+    case IntTypeID::ULONG:
+        ret = std::make_shared<TypeULong>(TypeULong(_is_static, _cv_qual));
+        break;
+    case IntTypeID::LLONG:
+        ret = std::make_shared<TypeSLLong>(TypeSLLong(_is_static, _cv_qual));
+        break;
+    case IntTypeID::ULLONG:
+        ret = std::make_shared<TypeULLong>(TypeULLong(_is_static, _cv_qual));
+        break;
     case IntTypeID::MAX_INT_TYPE_ID:
-    // TODO: remove it later to create error for unhandled cases
-    default:
         ERROR("Unsupported IntTypeID");
     }
 
@@ -76,3 +101,12 @@ static void dbgDumpHelper(IntegralType::IntTypeID id, const std::string &name,
 
 DBG_DUMP_MACROS(TypeBool)
 DBG_DUMP_MACROS(TypeSChar)
+DBG_DUMP_MACROS(TypeUChar)
+DBG_DUMP_MACROS(TypeSShort)
+DBG_DUMP_MACROS(TypeUShort)
+DBG_DUMP_MACROS(TypeSInt)
+DBG_DUMP_MACROS(TypeUInt)
+DBG_DUMP_MACROS(TypeSLong)
+DBG_DUMP_MACROS(TypeULong)
+DBG_DUMP_MACROS(TypeSLLong)
+DBG_DUMP_MACROS(TypeULLong)
