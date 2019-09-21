@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2018, Intel Corporation
+# Copyright (c) 2019, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,14 +16,15 @@
 #
 ###############################################################################
 
-set(LIB_SRCS type.cpp variable.cpp expr.cpp stmt.cpp gen_policy.cpp sym_table.cpp program.cpp options.cpp)
+set(LIB_SRCS type.cpp ir_value.cpp)
 
-set(SRCS ${LIB_SRCS} main.cpp self-test.cpp)
+set(SRCS ${LIB_SRCS} main.cpp)
 
 add_executable(yarpgen ${SRCS})
 
 target_compile_features(yarpgen PRIVATE cxx_std_14)
-target_compile_definitions(yarpgen PRIVATE BUILD_VERSION="${GIT_HASH}" BUILD_DATE="${BUILD_DATE}")
+target_compile_definitions(yarpgen PRIVATE BUILD_VERSION="${GIT_HASH}" BUILD_DATE="${BUILD_DATE}"
+    YARPGEN_VERSION_MAJOR="${YARPGEN_VERSION_MAJOR}" YARPGEN_VERSION_MINOR="${YARPGEN_VERSION_MINOR}")
 target_compile_options(yarpgen PRIVATE
   #  $<$<CXX_COMPILER_ID:MSVC>:/WX>
   $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>)
