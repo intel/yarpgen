@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 #include <iostream>
 #include <vector>
+#include <string>
 
 #ifndef YARPGEN_VERSION_MAJOR
 #define YARPGEN_VERSION_MAJOR "0"
