@@ -28,6 +28,12 @@ limitations under the License.
 namespace yarpgen {
 
 // Abstract class that serves as a common ancestor for all types.
+// Here by "type" we mean a backend type, which has certain properties
+// and may be instantiated as different language types
+// (i.e. signed 32 bit integer, which may be int, or int32_t).
+// For now we support only one language type per backend type, but
+// that may change in future.
+
 class Type {
 public:
     enum class CVQualifier {
