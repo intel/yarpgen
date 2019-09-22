@@ -28,14 +28,14 @@ class IRValue {
   public:
     union Value {
         bool bool_val;
-        signed char schar_val;
-        unsigned char uchar_val;
-        short shrt_val;
-        unsigned short ushrt_val;
-        int int_val;
-        unsigned int uint_val;
-        long long int llong_val;
-        unsigned long long int ullong_val;
+        int8_t schar_val;
+        uint8_t uchar_val;
+        int16_t shrt_val;
+        uint16_t ushrt_val;
+        int32_t int_val;
+        uint32_t uint_val;
+        int64_t llong_val;
+        uint64_t ullong_val;
     };
 
     IRValue();
@@ -59,20 +59,20 @@ class IRValue {
 
 template <> bool &IRValue::getValueRef();
 
-template <> signed char &IRValue::getValueRef();
+template <> int8_t &IRValue::getValueRef();
 
-template <> unsigned char &IRValue::getValueRef();
+template <> uint8_t &IRValue::getValueRef();
 
-template <> short &IRValue::getValueRef();
+template <> int16_t &IRValue::getValueRef();
 
-template <> unsigned short &IRValue::getValueRef();
+template <> uint16_t &IRValue::getValueRef();
 
-template <> int &IRValue::getValueRef();
+template <> int32_t &IRValue::getValueRef();
 
-template <> unsigned int &IRValue::getValueRef();
+template <> uint32_t &IRValue::getValueRef();
 
-template <> long long int &IRValue::getValueRef();
+template <> int64_t &IRValue::getValueRef();
 
-template <> unsigned long long int &IRValue::getValueRef();
+template <> uint64_t &IRValue::getValueRef();
 
 } // namespace yarpgen

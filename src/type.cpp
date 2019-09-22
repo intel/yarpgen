@@ -53,12 +53,6 @@ std::shared_ptr<IntegralType> IntegralType::init(IntTypeID _type_id,
     case IntTypeID::UINT:
         ret = std::make_shared<TypeUInt>(TypeUInt(_is_static, _cv_qual));
         break;
-    case IntTypeID::LONG:
-        ret = std::make_shared<TypeSLong>(TypeSLong(_is_static, _cv_qual));
-        break;
-    case IntTypeID::ULONG:
-        ret = std::make_shared<TypeULong>(TypeULong(_is_static, _cv_qual));
-        break;
     case IntTypeID::LLONG:
         ret = std::make_shared<TypeSLLong>(TypeSLLong(_is_static, _cv_qual));
         break;
@@ -108,7 +102,5 @@ DBG_DUMP_MACROS(TypeSShort)
 DBG_DUMP_MACROS(TypeUShort)
 DBG_DUMP_MACROS(TypeSInt)
 DBG_DUMP_MACROS(TypeUInt)
-DBG_DUMP_MACROS(TypeSLong)
-DBG_DUMP_MACROS(TypeULong)
 DBG_DUMP_MACROS(TypeSLLong)
 DBG_DUMP_MACROS(TypeULLong)
