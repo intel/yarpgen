@@ -78,23 +78,6 @@ class FPType : public ArithmeticType {
 
 class IntegralType : public ArithmeticType {
   public:
-    enum class IntTypeID {
-        BOOL,
-        // We don't have "char" as a type, because its signedness is
-        // implementation-defined
-        SCHAR,
-        UCHAR,
-        SHORT,
-        USHORT,
-        INT,
-        UINT,
-        LONG,
-        ULONG,
-        LLONG,
-        ULLONG,
-        MAX_INT_TYPE_ID
-    };
-
     IntegralType() : ArithmeticType() {}
     IntegralType(bool _is_static, CVQualifier _cv_qual)
         : ArithmeticType(_is_static, _cv_qual) {}
@@ -111,15 +94,16 @@ class IntegralType : public ArithmeticType {
     init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual);
 
   private:
-    // TODO: we need a folding set for all integer types
+    // TODO: we need a folding set for all of the integer types
 };
 
 template <typename T> class IntegralTypeHelper : public IntegralType {
   public:
+    typedef T value_type;
     IntegralTypeHelper(bool _is_static, CVQualifier _cv_qual)
         : IntegralType(_is_static, _cv_qual) {
-        min = IRValue(std::numeric_limits<T>::min());
-        max = IRValue(std::numeric_limits<T>::max());
+        min.getValueRef<T>() = std::numeric_limits<T>::min();
+        max.getValueRef<T>() = std::numeric_limits<T>::max();
     }
 
     uint32_t getBitSize() override { return sizeof(T) * CHAR_BIT; }
