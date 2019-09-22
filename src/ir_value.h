@@ -18,15 +18,61 @@ limitations under the License.
 
 #pragma once
 
+#include "enums.h"
 #include <cstdint>
 
 namespace yarpgen {
 
+// This class represents all scalar values in Intermediate Representation
 class IRValue {
   public:
+    union Value {
+        bool bool_val;
+        signed char schar_val;
+        unsigned char uchar_val;
+        short shrt_val;
+        unsigned short ushrt_val;
+        int int_val;
+        unsigned int uint_val;
+        long long int llong_val;
+        unsigned long long int ullong_val;
+    };
+
     IRValue();
-    explicit IRValue(uint64_t _val);
-    uint64_t value;
+
+    explicit IRValue(IntTypeID _type_id);
+
+    template <typename T> T &getValueRef();
+
+    IntTypeID getIntTypeID() { return type_id; }
+    UBKind getUBCode() { return ub_code; }
+    void setUBCode(UBKind _ub_code) { ub_code = _ub_code; }
+    void setIsUndefined(bool _undef) { undefined = _undef; }
+    bool isUndefined() { return undefined; }
+
+  private:
+    IntTypeID type_id;
+    Value value;
+    bool undefined;
+    UBKind ub_code;
 };
+
+template <> bool &IRValue::getValueRef();
+
+template <> signed char &IRValue::getValueRef();
+
+template <> unsigned char &IRValue::getValueRef();
+
+template <> short &IRValue::getValueRef();
+
+template <> unsigned short &IRValue::getValueRef();
+
+template <> int &IRValue::getValueRef();
+
+template <> unsigned int &IRValue::getValueRef();
+
+template <> long long int &IRValue::getValueRef();
+
+template <> unsigned long long int &IRValue::getValueRef();
 
 } // namespace yarpgen

@@ -17,18 +17,19 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "type.h"
+#include "enums.h"
+#include "ir_value.h"
 #include "utils.h"
 
 using namespace yarpgen;
 
-std::shared_ptr<IntegralType>
-yarpgen::IntegralType::init(yarpgen::IntegralType::IntTypeID _type_id) {
+std::shared_ptr<IntegralType> yarpgen::IntegralType::init(IntTypeID _type_id) {
     return init(_type_id, false, CVQualifier::NONE);
 }
 
-std::shared_ptr<IntegralType>
-IntegralType::init(IntegralType::IntTypeID _type_id, bool _is_static,
-                   Type::CVQualifier _cv_qual) {
+std::shared_ptr<IntegralType> IntegralType::init(IntTypeID _type_id,
+                                                 bool _is_static,
+                                                 Type::CVQualifier _cv_qual) {
     std::shared_ptr<IntegralType> ret;
     switch (_type_id) {
     case IntTypeID::BOOL:
@@ -71,14 +72,14 @@ IntegralType::init(IntegralType::IntTypeID _type_id, bool _is_static,
     return ret;
 }
 
-static void dbgDumpHelper(IntegralType::IntTypeID id, const std::string &name,
+template <typename T>
+static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, uint32_t bit_size,
-                          bool is_signed, uint64_t &min, uint64_t &max,
-                          bool is_static, ArithmeticType::CVQualifier cv_qual) {
-    std::cout
-        << "int type id:  "
-        << static_cast<std::underlying_type<IntegralType::IntTypeID>::type>(id)
-        << std::endl;
+                          bool is_signed, T &min, T &max, bool is_static,
+                          ArithmeticType::CVQualifier cv_qual) {
+    std::cout << "int type id:  "
+              << static_cast<std::underlying_type<IntTypeID>::type>(id)
+              << std::endl;
     std::cout << "name:         " << name << std::endl;
     std::cout << "bit_size:     " << bit_size << std::endl;
     std::cout << "is_signed:    " << is_signed << std::endl;
@@ -94,9 +95,10 @@ static void dbgDumpHelper(IntegralType::IntTypeID id, const std::string &name,
 
 #define DBG_DUMP_MACROS(type_name)                                             \
     void type_name::dbgDump() {                                                \
-        dbgDumpHelper(getIntTypeId(), getName(), getLiteralSuffix(),           \
-                      getBitSize(), getIsSigned(), min.value, max.value,       \
-                      getIsStatic(), getCVQualifier());                        \
+        dbgDumpHelper(                                                         \
+            getIntTypeId(), getName(), getLiteralSuffix(), getBitSize(),       \
+            getIsSigned(), min.getValueRef<value_type>(),                      \
+            max.getValueRef<value_type>(), getIsStatic(), getCVQualifier());   \
     }
 
 DBG_DUMP_MACROS(TypeBool)

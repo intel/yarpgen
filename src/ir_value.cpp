@@ -20,6 +20,32 @@ limitations under the License.
 
 using namespace yarpgen;
 
-IRValue::IRValue() { value = 0; }
+template <> bool &IRValue::getValueRef() { return value.bool_val; }
+IRValue::IRValue()
+    : type_id(IntTypeID::MAX_INT_TYPE_ID), undefined(true),
+      ub_code(UBKind::NoUB) {
+    value.ullong_val = 0;
+}
 
-IRValue::IRValue(uint64_t _val) { value = _val; }
+IRValue::IRValue(IntTypeID _type_id)
+    : type_id(_type_id), undefined(true), ub_code(UBKind::NoUB) {
+    value.ullong_val = 0;
+}
+
+template <> signed char &IRValue::getValueRef() { return value.schar_val; }
+
+template <> unsigned char &IRValue::getValueRef() { return value.uchar_val; }
+
+template <> short &IRValue::getValueRef() { return value.shrt_val; }
+
+template <> unsigned short &IRValue::getValueRef() { return value.ushrt_val; }
+
+template <> int &IRValue::getValueRef() { return value.int_val; }
+
+template <> unsigned int &IRValue::getValueRef() { return value.uint_val; }
+
+template <> long long int &IRValue::getValueRef() { return value.llong_val; }
+
+template <> unsigned long long int &IRValue::getValueRef() {
+    return value.ullong_val;
+}
