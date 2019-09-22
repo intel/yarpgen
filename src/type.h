@@ -134,7 +134,7 @@ class TypeBool : public IntegralTypeHelper<bool> {
     void dbgDump();
 };
 
-class TypeSChar : public IntegralTypeHelper<signed char> {
+class TypeSChar : public IntegralTypeHelper<int8_t> {
   public:
     TypeSChar(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -145,7 +145,7 @@ class TypeSChar : public IntegralTypeHelper<signed char> {
     void dbgDump();
 };
 
-class TypeUChar : public IntegralTypeHelper<unsigned char> {
+class TypeUChar : public IntegralTypeHelper<uint8_t> {
   public:
     TypeUChar(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -156,7 +156,7 @@ class TypeUChar : public IntegralTypeHelper<unsigned char> {
     void dbgDump();
 };
 
-class TypeSShort : public IntegralTypeHelper<short> {
+class TypeSShort : public IntegralTypeHelper<int16_t> {
   public:
     TypeSShort(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -167,7 +167,7 @@ class TypeSShort : public IntegralTypeHelper<short> {
     void dbgDump();
 };
 
-class TypeUShort : public IntegralTypeHelper<unsigned short> {
+class TypeUShort : public IntegralTypeHelper<uint16_t> {
   public:
     TypeUShort(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -178,7 +178,7 @@ class TypeUShort : public IntegralTypeHelper<unsigned short> {
     void dbgDump();
 };
 
-class TypeSInt : public IntegralTypeHelper<int> {
+class TypeSInt : public IntegralTypeHelper<int32_t> {
   public:
     TypeSInt(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -189,7 +189,7 @@ class TypeSInt : public IntegralTypeHelper<int> {
     void dbgDump();
 };
 
-class TypeUInt : public IntegralTypeHelper<unsigned int> {
+class TypeUInt : public IntegralTypeHelper<uint32_t> {
   public:
     TypeUInt(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -201,40 +201,7 @@ class TypeUInt : public IntegralTypeHelper<unsigned int> {
     void dbgDump();
 };
 
-//  TODO: add bit mode to command-line options
-#if BIT_MODE64 == true
-class TypeSLong : public IntegralTypeHelper<long long int> {
-#else
-class TypeSLong : public IntegralTypeHelper<int> {
-#endif
-  public:
-    TypeSLong(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
-
-    IntTypeID getIntTypeId() final { return IntTypeID::LONG; }
-    std::string getName() final { return "long int"; }
-    std::string getLiteralSuffix() final { return "L"; }
-
-    void dbgDump();
-};
-
-#if BIT_MODE64 == true
-class TypeULong : public IntegralTypeHelper<unsigned long long int> {
-#else
-class TypeULong : public IntegralTypeHelper<unsigned int> {
-#endif
-  public:
-    TypeULong(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
-
-    IntTypeID getIntTypeId() final { return IntTypeID::ULONG; }
-    std::string getName() final { return "unsigned long int"; }
-    std::string getLiteralSuffix() final { return "UL"; }
-
-    void dbgDump();
-};
-
-class TypeSLLong : public IntegralTypeHelper<long long int> {
+class TypeSLLong : public IntegralTypeHelper<int64_t> {
   public:
     TypeSLLong(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
@@ -246,12 +213,12 @@ class TypeSLLong : public IntegralTypeHelper<long long int> {
     void dbgDump();
 };
 
-class TypeULLong : public IntegralTypeHelper<unsigned long long int> {
+class TypeULLong : public IntegralTypeHelper<uint64_t> {
   public:
     TypeULLong(bool _is_static, CVQualifier _cv_qual)
         : IntegralTypeHelper(_is_static, _cv_qual) {}
 
-    IntTypeID getIntTypeId() final { return IntTypeID::ULONG; }
+    IntTypeID getIntTypeId() final { return IntTypeID::ULLONG; }
     std::string getName() final { return "unsigned long long int"; }
     std::string getLiteralSuffix() final { return "ULL"; }
 

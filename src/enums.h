@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace yarpgen {
 
-// All possible Integral Types
+// All possible Integral Types, used as a backend type
 enum class IntTypeID {
     BOOL,
     // We don't have "char" as a type, because its signedness is
@@ -31,14 +31,15 @@ enum class IntTypeID {
     USHORT,
     INT,
     UINT,
-    LONG,
-    ULONG,
+    // We don't have any kind of "long" types,
+    // because their real size depends on the architecture
     LLONG,
     ULLONG,
     MAX_INT_TYPE_ID
 };
 
-// All possible cases of Undefined Behaviour
+// All possible cases of Undefined Behaviour.
+// For now we treat implementation-defined behaviour as undefined behaviour
 // TODO: do we want to allow implementation-defined behaviour?
 enum class UBKind {
     NoUB,
