@@ -22,9 +22,15 @@ set(SRCS ${LIB_SRCS} main.cpp)
 
 add_executable(yarpgen ${SRCS})
 
-target_compile_features(yarpgen PRIVATE cxx_std_14)
+set(STD cxx_std_14)
+set(FLAGS #  $<$<CXX_COMPILER_ID:MSVC>:/WX>
+  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>)
+
+target_compile_features(yarpgen PRIVATE ${STD})
 target_compile_definitions(yarpgen PRIVATE BUILD_VERSION="${GIT_HASH}" BUILD_DATE="${BUILD_DATE}"
     YARPGEN_VERSION_MAJOR="${YARPGEN_VERSION_MAJOR}" YARPGEN_VERSION_MINOR="${YARPGEN_VERSION_MINOR}")
-target_compile_options(yarpgen PRIVATE
-  #  $<$<CXX_COMPILER_ID:MSVC>:/WX>
-  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>)
+target_compile_options(yarpgen PRIVATE ${FLAGS})
+
+add_executable(type_test ${LIB_SRCS} type_test.cpp)
+target_compile_features(type_test PRIVATE ${STD})
+target_compile_options(type_test PRIVATE ${FLAGS})
