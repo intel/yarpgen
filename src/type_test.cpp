@@ -136,19 +136,23 @@ singleAddTest(IntTypeID type_id) {
         if (test_ub) {
             b_min = std::numeric_limits<T>::max() - a.getValueRef<T>() + 1;
             b_max = std::numeric_limits<T>::max();
-        } else {
+        }
+        else {
             b_min = std::numeric_limits<T>::min();
             b_max = std::numeric_limits<T>::max() - a.getValueRef<T>();
         }
-    } else if (a.getValueRef<T>() < 0) {
+    }
+    else if (a.getValueRef<T>() < 0) {
         if (test_ub) {
             b_min = std::numeric_limits<T>::min();
             b_max = std::numeric_limits<T>::min() - a.getValueRef<T>() - 1;
-        } else {
+        }
+        else {
             b_min = std::numeric_limits<T>::min() - a.getValueRef<T>();
             b_max = std::numeric_limits<T>::max();
         }
-    } else {
+    }
+    else {
         b_min = std::numeric_limits<T>::min();
         b_max = std::numeric_limits<T>::max();
     }
@@ -200,19 +204,23 @@ singleSubTest(IntTypeID type_id) {
         if (test_ub) {
             b_min = std::numeric_limits<T>::min();
             b_max = a.getValueRef<T>() - std::numeric_limits<T>::max() - 1;
-        } else {
+        }
+        else {
             b_min = a.getValueRef<T>() - std::numeric_limits<T>::max();
             b_max = std::numeric_limits<T>::max();
         }
-    } else if (a.getValueRef<T>() < 0) {
+    }
+    else if (a.getValueRef<T>() < 0) {
         if (test_ub) {
             b_min = a.getValueRef<T>() - std::numeric_limits<T>::min() + 1;
             b_max = std::numeric_limits<T>::max();
-        } else {
+        }
+        else {
             b_min = std::numeric_limits<T>::min();
             b_max = a.getValueRef<T>() - std::numeric_limits<T>::min();
         }
-    } else {
+    }
+    else {
         b_min = std::numeric_limits<T>::min();
         b_max = std::numeric_limits<T>::max();
     }
@@ -262,7 +270,7 @@ singleMulTest(IntTypeID type_id) {
         test_ub = false;
     }
     else if (a.getValueRef<T>() ==
-               static_cast<T>(-1)) { // Check for special case
+             static_cast<T>(-1)) { // Check for special case
         if (test_ub) {
             b.getValueRef<T>() = std::numeric_limits<T>::min();
         }
@@ -511,8 +519,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
         check_func(a, b, ret);
     }
 
-
-    //Normal case
+    // Normal case
     a_distr =
         std::uniform_int_distribution<LT>(0, std::numeric_limits<LT>::max());
     a.getValueRef<LT>() = a_distr(generator);
