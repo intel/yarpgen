@@ -38,6 +38,13 @@ enum class IntTypeID {
     MAX_INT_TYPE_ID
 };
 
+enum class CVQualifier {
+    NONE,
+    CONST,
+    VOLAT,
+    CONST_VOLAT,
+};
+
 // All possible cases of Undefined Behaviour.
 // For now we treat implementation-defined behaviour as undefined behaviour
 // TODO: do we want to allow implementation-defined behaviour?
