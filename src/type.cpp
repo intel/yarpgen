@@ -27,9 +27,8 @@ std::shared_ptr<IntegralType> yarpgen::IntegralType::init(IntTypeID _type_id) {
     return init(_type_id, false, CVQualifier::NONE);
 }
 
-std::shared_ptr<IntegralType> IntegralType::init(IntTypeID _type_id,
-                                                 bool _is_static,
-                                                 Type::CVQualifier _cv_qual) {
+std::shared_ptr<IntegralType>
+IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual) {
     std::shared_ptr<IntegralType> ret;
     switch (_type_id) {
     case IntTypeID::BOOL:
@@ -70,7 +69,7 @@ template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, uint32_t bit_size,
                           bool is_signed, T &min, T &max, bool is_static,
-                          ArithmeticType::CVQualifier cv_qual) {
+                          CVQualifier cv_qual) {
     std::cout << "int type id:  "
               << static_cast<std::underlying_type<IntTypeID>::type>(id)
               << std::endl;
@@ -80,11 +79,9 @@ static void dbgDumpHelper(IntTypeID id, const std::string &name,
     std::cout << "min:          " << min << suffix << std::endl;
     std::cout << "max:          " << max << suffix << std::endl;
     std::cout << "is_static:    " << is_static << std::endl;
-    std::cout
-        << "cv_qualifier: "
-        << static_cast<std::underlying_type<ArithmeticType::CVQualifier>::type>(
-               cv_qual)
-        << std::endl;
+    std::cout << "cv_qualifier: "
+              << static_cast<std::underlying_type<CVQualifier>::type>(cv_qual)
+              << std::endl;
 }
 
 #define DBG_DUMP_MACROS(type_name)                                             \

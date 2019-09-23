@@ -36,13 +36,6 @@ namespace yarpgen {
 
 class Type {
   public:
-    enum class CVQualifier {
-        NONE,
-        CONST,
-        VOLAT,
-        CONST_VOLAT,
-    };
-
     Type() : is_static(false), cv_qualifier(CVQualifier::NONE) {}
     Type(bool _is_static, CVQualifier _cv_qual)
         : is_static(_is_static), cv_qualifier(_cv_qual) {}
