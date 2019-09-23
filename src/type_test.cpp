@@ -74,7 +74,6 @@ void checkBinaryForUB(IRValue &ret, IRValue &a, IRValue &b,
                       const std::string &test_name) {
     if (ret.getUBCode() == UBKind::NoUB ||
         ret.getValueRef<T>() != static_cast<T>(0)) {
-        std::cout << "DEBUG" << ret.getValueRef<T>() << std::endl;
         std::cout << "ERROR: " << test_name << " " << typeid(T).name();
         std::cout << " ERROR UB: " << a.getValueRef<T>() << " | "
                   << b.getValueRef<T>() << std::endl;
@@ -367,17 +366,23 @@ template <typename T> void singleDivModTest(IntTypeID type_id) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// It is a messy kludge. MSVC doesn't allow to get uniform distribution for
+// anything that is less than int.
 
 template <typename T>
-static typename std::enable_if<std::is_same<T, bool>::value,
-                               std::uniform_int_distribution<int>>::type
+static typename std::enable_if<
+    std::integral_constant<bool, sizeof(T) < sizeof(int32_t)>::value,
+    std::uniform_int_distribution<int>>::type
 getDistribution() {
-    return std::uniform_int_distribution<int>(0, 1);
+    return std::uniform_int_distribution<int32_t>(
+        static_cast<int32_t>(std::numeric_limits<T>::min()),
+        static_cast<int32_t>(std::numeric_limits<T>::max()));
 }
 
 template <typename T>
-static typename std::enable_if<!std::is_same<T, bool>::value,
-                               std::uniform_int_distribution<T>>::type
+static typename std::enable_if<
+    std::integral_constant<bool, sizeof(T) >= sizeof(int32_t)>::value,
+    std::uniform_int_distribution<T>>::type
 getDistribution() {
     return std::uniform_int_distribution<T>(std::numeric_limits<T>::min(),
                                             std::numeric_limits<T>::max());
@@ -467,7 +472,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
         if (ret.getUBCode() == UBKind::NoUB ||
             ret.getValueRef<LT>() != static_cast<LT>(0)) {
             std::cout << "ERROR: " << __FUNCTION__ << typeid(LT).name();
-            std::cout << "ERROR 1: " << a.getValueRef<LT>() << " | "
+            std::cout << "ERROR UB: " << a.getValueRef<LT>() << " | "
                       << b.getValueRef<RT>() << std::endl;
         }
     };
@@ -530,7 +535,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     if (ret.getUBCode() != UBKind::NoUB ||
         ret.getValueRef<LT>() != (a.getValueRef<LT>() >> b.getValueRef<RT>())) {
         std::cout << "ERROR: " << __FUNCTION__ << typeid(LT).name();
-        std::cout << "ERROR 2: " << a.getValueRef<LT>() << " | "
+        std::cout << "ERROR NoUB: " << a.getValueRef<LT>() << " | "
                   << b.getValueRef<RT>() << std::endl;
     }
 
@@ -543,7 +548,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     if (ret.getUBCode() != UBKind::NoUB ||
         ret.getValueRef<LT>() != (a.getValueRef<LT>() << b.getValueRef<RT>())) {
         std::cout << "ERROR: " << __FUNCTION__ << typeid(LT).name();
-        std::cout << "ERROR 2: " << a.getValueRef<LT>() << " | "
+        std::cout << "ERROR NoUB: " << a.getValueRef<LT>() << " | "
                   << b.getValueRef<RT>() << std::endl;
     }
 }
@@ -601,6 +606,23 @@ void singleLogicalNegateTest() {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+template <typename NT, typename OT>
+void singleCastTest(IntTypeID to_type_id, IntTypeID from_type_id) {
+    IRValue a(from_type_id);
+    auto distr = getDistribution<OT>();
+    a.getValueRef<OT>() = distr(generator);
+
+    IRValue res = a.castToType(to_type_id);
+    if (res.getUBCode() != UBKind::NoUB ||
+        res.getValueRef<NT>() != static_cast<NT>(a.getValueRef<OT>())) {
+        std::cout << "ERROR: " << __FUNCTION__ << " " << typeid(NT).name()
+                  << typeid(OT).name();
+        std::cout << " ERROR NoUB: " << a.getValueRef<OT>() << std::endl;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
 
 void ir_value_test() {
     int test_num = 10000000;
@@ -709,6 +731,179 @@ void ir_value_test() {
 
     for (int i = 0; i < test_num; ++i) {
         singleLogicalNegateTest();
+    }
+
+    for (int i = 0; i < test_num; ++i) {
+        singleCastTest<TypeBool::value_type, TypeBool::value_type>(
+            IntTypeID::BOOL, IntTypeID::BOOL);
+        singleCastTest<TypeBool::value_type, TypeSChar::value_type>(
+            IntTypeID::BOOL, IntTypeID::SCHAR);
+        singleCastTest<TypeBool::value_type, TypeUChar::value_type>(
+            IntTypeID::BOOL, IntTypeID::UCHAR);
+        singleCastTest<TypeBool::value_type, TypeSShort::value_type>(
+            IntTypeID::BOOL, IntTypeID::SHORT);
+        singleCastTest<TypeBool::value_type, TypeUShort::value_type>(
+            IntTypeID::BOOL, IntTypeID::USHORT);
+        singleCastTest<TypeBool::value_type, TypeSInt::value_type>(
+            IntTypeID::BOOL, IntTypeID::INT);
+        singleCastTest<TypeBool::value_type, TypeUInt::value_type>(
+            IntTypeID::BOOL, IntTypeID::UINT);
+        singleCastTest<TypeBool::value_type, TypeSLLong::value_type>(
+            IntTypeID::BOOL, IntTypeID::LLONG);
+        singleCastTest<TypeBool::value_type, TypeULLong::value_type>(
+            IntTypeID::BOOL, IntTypeID::ULLONG);
+
+        singleCastTest<TypeSChar::value_type, TypeBool::value_type>(
+            IntTypeID::SCHAR, IntTypeID::BOOL);
+        singleCastTest<TypeSChar::value_type, TypeSChar::value_type>(
+            IntTypeID::SCHAR, IntTypeID::SCHAR);
+        singleCastTest<TypeSChar::value_type, TypeUChar::value_type>(
+            IntTypeID::SCHAR, IntTypeID::UCHAR);
+        singleCastTest<TypeSChar::value_type, TypeSShort::value_type>(
+            IntTypeID::SCHAR, IntTypeID::SHORT);
+        singleCastTest<TypeSChar::value_type, TypeUShort::value_type>(
+            IntTypeID::SCHAR, IntTypeID::USHORT);
+        singleCastTest<TypeSChar::value_type, TypeSInt::value_type>(
+            IntTypeID::SCHAR, IntTypeID::INT);
+        singleCastTest<TypeSChar::value_type, TypeUInt::value_type>(
+            IntTypeID::SCHAR, IntTypeID::UINT);
+        singleCastTest<TypeSChar::value_type, TypeSLLong::value_type>(
+            IntTypeID::SCHAR, IntTypeID::LLONG);
+        singleCastTest<TypeSChar::value_type, TypeULLong::value_type>(
+            IntTypeID::SCHAR, IntTypeID::ULLONG);
+
+        singleCastTest<TypeUChar::value_type, TypeBool::value_type>(
+            IntTypeID::SCHAR, IntTypeID::BOOL);
+        singleCastTest<TypeUChar::value_type, TypeSChar::value_type>(
+            IntTypeID::SCHAR, IntTypeID::SCHAR);
+        singleCastTest<TypeUChar::value_type, TypeUChar::value_type>(
+            IntTypeID::SCHAR, IntTypeID::UCHAR);
+        singleCastTest<TypeUChar::value_type, TypeSShort::value_type>(
+            IntTypeID::SCHAR, IntTypeID::SHORT);
+        singleCastTest<TypeUChar::value_type, TypeUShort::value_type>(
+            IntTypeID::SCHAR, IntTypeID::USHORT);
+        singleCastTest<TypeUChar::value_type, TypeSInt::value_type>(
+            IntTypeID::SCHAR, IntTypeID::INT);
+        singleCastTest<TypeUChar::value_type, TypeUInt::value_type>(
+            IntTypeID::SCHAR, IntTypeID::UINT);
+        singleCastTest<TypeUChar::value_type, TypeSLLong::value_type>(
+            IntTypeID::SCHAR, IntTypeID::LLONG);
+        singleCastTest<TypeUChar::value_type, TypeULLong::value_type>(
+            IntTypeID::SCHAR, IntTypeID::ULLONG);
+
+        singleCastTest<TypeSShort::value_type, TypeBool::value_type>(
+            IntTypeID::SHORT, IntTypeID::BOOL);
+        singleCastTest<TypeSShort::value_type, TypeSChar::value_type>(
+            IntTypeID::SHORT, IntTypeID::SCHAR);
+        singleCastTest<TypeSShort::value_type, TypeUChar::value_type>(
+            IntTypeID::SHORT, IntTypeID::UCHAR);
+        singleCastTest<TypeSShort::value_type, TypeSShort::value_type>(
+            IntTypeID::SHORT, IntTypeID::SHORT);
+        singleCastTest<TypeSShort::value_type, TypeUShort::value_type>(
+            IntTypeID::SHORT, IntTypeID::USHORT);
+        singleCastTest<TypeSShort::value_type, TypeSInt::value_type>(
+            IntTypeID::SHORT, IntTypeID::INT);
+        singleCastTest<TypeSShort::value_type, TypeUInt::value_type>(
+            IntTypeID::SHORT, IntTypeID::UINT);
+        singleCastTest<TypeSShort::value_type, TypeSLLong::value_type>(
+            IntTypeID::SHORT, IntTypeID::LLONG);
+        singleCastTest<TypeSShort::value_type, TypeULLong::value_type>(
+            IntTypeID::SHORT, IntTypeID::ULLONG);
+
+        singleCastTest<TypeUShort::value_type, TypeBool::value_type>(
+            IntTypeID::USHORT, IntTypeID::BOOL);
+        singleCastTest<TypeUShort::value_type, TypeSChar::value_type>(
+            IntTypeID::USHORT, IntTypeID::SCHAR);
+        singleCastTest<TypeUShort::value_type, TypeUChar::value_type>(
+            IntTypeID::USHORT, IntTypeID::UCHAR);
+        singleCastTest<TypeUShort::value_type, TypeSShort::value_type>(
+            IntTypeID::USHORT, IntTypeID::SHORT);
+        singleCastTest<TypeUShort::value_type, TypeUShort::value_type>(
+            IntTypeID::USHORT, IntTypeID::USHORT);
+        singleCastTest<TypeUShort::value_type, TypeSInt::value_type>(
+            IntTypeID::USHORT, IntTypeID::INT);
+        singleCastTest<TypeUShort::value_type, TypeUInt::value_type>(
+            IntTypeID::USHORT, IntTypeID::UINT);
+        singleCastTest<TypeUShort::value_type, TypeSLLong::value_type>(
+            IntTypeID::USHORT, IntTypeID::LLONG);
+        singleCastTest<TypeUShort::value_type, TypeULLong::value_type>(
+            IntTypeID::USHORT, IntTypeID::ULLONG);
+
+        singleCastTest<TypeSInt::value_type, TypeBool::value_type>(
+            IntTypeID::INT, IntTypeID::BOOL);
+        singleCastTest<TypeSInt::value_type, TypeSChar::value_type>(
+            IntTypeID::INT, IntTypeID::SCHAR);
+        singleCastTest<TypeSInt::value_type, TypeUChar::value_type>(
+            IntTypeID::INT, IntTypeID::UCHAR);
+        singleCastTest<TypeSInt::value_type, TypeSShort::value_type>(
+            IntTypeID::INT, IntTypeID::SHORT);
+        singleCastTest<TypeSInt::value_type, TypeUShort::value_type>(
+            IntTypeID::INT, IntTypeID::USHORT);
+        singleCastTest<TypeSInt::value_type, TypeSInt::value_type>(
+            IntTypeID::INT, IntTypeID::INT);
+        singleCastTest<TypeSInt::value_type, TypeUInt::value_type>(
+            IntTypeID::INT, IntTypeID::UINT);
+        singleCastTest<TypeSInt::value_type, TypeSLLong::value_type>(
+            IntTypeID::INT, IntTypeID::LLONG);
+        singleCastTest<TypeSInt::value_type, TypeULLong::value_type>(
+            IntTypeID::INT, IntTypeID::ULLONG);
+
+        singleCastTest<TypeUInt::value_type, TypeBool::value_type>(
+            IntTypeID::UINT, IntTypeID::BOOL);
+        singleCastTest<TypeUInt::value_type, TypeSChar::value_type>(
+            IntTypeID::UINT, IntTypeID::SCHAR);
+        singleCastTest<TypeUInt::value_type, TypeUChar::value_type>(
+            IntTypeID::UINT, IntTypeID::UCHAR);
+        singleCastTest<TypeUInt::value_type, TypeSShort::value_type>(
+            IntTypeID::UINT, IntTypeID::SHORT);
+        singleCastTest<TypeUInt::value_type, TypeUShort::value_type>(
+            IntTypeID::UINT, IntTypeID::USHORT);
+        singleCastTest<TypeUInt::value_type, TypeSInt::value_type>(
+            IntTypeID::UINT, IntTypeID::INT);
+        singleCastTest<TypeUInt::value_type, TypeUInt::value_type>(
+            IntTypeID::UINT, IntTypeID::UINT);
+        singleCastTest<TypeUInt::value_type, TypeSLLong::value_type>(
+            IntTypeID::UINT, IntTypeID::LLONG);
+        singleCastTest<TypeUInt::value_type, TypeULLong::value_type>(
+            IntTypeID::UINT, IntTypeID::ULLONG);
+
+        singleCastTest<TypeSLLong::value_type, TypeBool::value_type>(
+            IntTypeID::LLONG, IntTypeID::BOOL);
+        singleCastTest<TypeSLLong::value_type, TypeSChar::value_type>(
+            IntTypeID::LLONG, IntTypeID::SCHAR);
+        singleCastTest<TypeSLLong::value_type, TypeUChar::value_type>(
+            IntTypeID::LLONG, IntTypeID::UCHAR);
+        singleCastTest<TypeSLLong::value_type, TypeSShort::value_type>(
+            IntTypeID::LLONG, IntTypeID::SHORT);
+        singleCastTest<TypeSLLong::value_type, TypeUShort::value_type>(
+            IntTypeID::LLONG, IntTypeID::USHORT);
+        singleCastTest<TypeSLLong::value_type, TypeSInt::value_type>(
+            IntTypeID::LLONG, IntTypeID::INT);
+        singleCastTest<TypeSLLong::value_type, TypeUInt::value_type>(
+            IntTypeID::LLONG, IntTypeID::UINT);
+        singleCastTest<TypeSLLong::value_type, TypeSLLong::value_type>(
+            IntTypeID::LLONG, IntTypeID::LLONG);
+        singleCastTest<TypeSLLong::value_type, TypeULLong::value_type>(
+            IntTypeID::LLONG, IntTypeID::ULLONG);
+
+        singleCastTest<TypeULLong::value_type, TypeBool::value_type>(
+            IntTypeID::ULLONG, IntTypeID::BOOL);
+        singleCastTest<TypeULLong::value_type, TypeSChar::value_type>(
+            IntTypeID::ULLONG, IntTypeID::SCHAR);
+        singleCastTest<TypeULLong::value_type, TypeUChar::value_type>(
+            IntTypeID::ULLONG, IntTypeID::UCHAR);
+        singleCastTest<TypeULLong::value_type, TypeSShort::value_type>(
+            IntTypeID::ULLONG, IntTypeID::SHORT);
+        singleCastTest<TypeULLong::value_type, TypeUShort::value_type>(
+            IntTypeID::ULLONG, IntTypeID::USHORT);
+        singleCastTest<TypeULLong::value_type, TypeSInt::value_type>(
+            IntTypeID::ULLONG, IntTypeID::INT);
+        singleCastTest<TypeULLong::value_type, TypeUInt::value_type>(
+            IntTypeID::ULLONG, IntTypeID::UINT);
+        singleCastTest<TypeULLong::value_type, TypeSLLong::value_type>(
+            IntTypeID::ULLONG, IntTypeID::LLONG);
+        singleCastTest<TypeULLong::value_type, TypeULLong::value_type>(
+            IntTypeID::ULLONG, IntTypeID::ULLONG);
     }
 }
 

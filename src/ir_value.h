@@ -81,7 +81,7 @@ class IRValue {
     IRValue operator<<(IRValue &rhs);
     IRValue operator>>(IRValue &rhs);
 
-    // TODO: we need cast operator
+    IRValue castToType(IntTypeID to_type);
 
   private:
     IntTypeID type_id;
@@ -164,6 +164,73 @@ template <> uint64_t &IRValue::getValueRef();
         }                                                                      \
     } while (0)
 
+#define CastOperatorWrapperCaseCase(__type_id__, __foo__, __to_value_type__,   \
+                                     __from_value_type__)                      \
+    case (__type_id__):                                                        \
+        func = __foo__<__to_value_type__, __from_value_type__>;                \
+        break;
+
+#define CastOperatorWrapperCase(__type_id__, __foo__, __to_value_type__)       \
+    case __type_id__:                                                          \
+        switch (type_id) {                                                     \
+            CastOperatorWrapperCaseCase(IntTypeID::BOOL, __foo__,              \
+                                         __to_value_type__,                    \
+                                         TypeBool::value_type)                 \
+            CastOperatorWrapperCaseCase(IntTypeID::SCHAR, __foo__,             \
+                                         __to_value_type__,                    \
+                                         TypeSChar::value_type)                \
+            CastOperatorWrapperCaseCase(IntTypeID::UCHAR, __foo__,             \
+                                         __to_value_type__,                    \
+                                         TypeUChar::value_type)                \
+            CastOperatorWrapperCaseCase(IntTypeID::SHORT, __foo__,             \
+                                         __to_value_type__,                    \
+                                         TypeSShort::value_type)               \
+            CastOperatorWrapperCaseCase(IntTypeID::USHORT, __foo__,            \
+                                         __to_value_type__,                    \
+                                         TypeUShort::value_type)               \
+            CastOperatorWrapperCaseCase(IntTypeID::INT, __foo__,               \
+                                         __to_value_type__,                    \
+                                         TypeSInt::value_type)                 \
+            CastOperatorWrapperCaseCase(IntTypeID::UINT, __foo__,              \
+                                         __to_value_type__,                    \
+                                         TypeUInt::value_type)                 \
+            CastOperatorWrapperCaseCase(IntTypeID::LLONG, __foo__,             \
+                                         __to_value_type__,                    \
+                                         TypeSLLong::value_type)               \
+            CastOperatorWrapperCaseCase(IntTypeID::ULLONG, __foo__,            \
+                                         __to_value_type__,                    \
+                                         TypeULLong::value_type)               \
+            default: ERROR(std::string("Bad IntTypeID value: ") +              \
+                           std::to_string(static_cast<int>(type_id)));         \
+        }                                                                      \
+        break;
+
+#define CastOperatorWrapper(__foo__)                                           \
+    do {                                                                       \
+        switch (to_type_id) {                                                  \
+            CastOperatorWrapperCase(IntTypeID::BOOL, __foo__,                  \
+                                     TypeBool::value_type)                     \
+            CastOperatorWrapperCase(IntTypeID::SCHAR, __foo__,                 \
+                                     TypeSChar::value_type)                    \
+            CastOperatorWrapperCase(IntTypeID::UCHAR, __foo__,                 \
+                                     TypeUChar::value_type)                    \
+            CastOperatorWrapperCase(IntTypeID::SHORT, __foo__,                 \
+                                     TypeSShort::value_type)                   \
+            CastOperatorWrapperCase(IntTypeID::USHORT, __foo__,                \
+                                     TypeUShort::value_type)                   \
+            CastOperatorWrapperCase(IntTypeID::INT, __foo__,                   \
+                                     TypeSInt::value_type)                     \
+            CastOperatorWrapperCase(IntTypeID::UINT, __foo__,                  \
+                                     TypeUInt::value_type)                     \
+            CastOperatorWrapperCase(IntTypeID::LLONG, __foo__,                 \
+                                     TypeSLLong::value_type)                   \
+            CastOperatorWrapperCase(IntTypeID::ULLONG, __foo__,                \
+                                     TypeULLong::value_type)                   \
+            default: ERROR(std::string("Bad IntTypeID value: ") +              \
+                           std::to_string(static_cast<int>(type_id)));         \
+        }                                                                      \
+    } while (0)
+
 // clang-format on
 
 //////////////////////////////////////////////////////////////////////////////
@@ -171,19 +238,25 @@ template <> uint64_t &IRValue::getValueRef();
 // The only exception if they work only for single type.
 
 #define UnaryOperatorImpl(__foo__)                                             \
-    std::function<IRValue(IRValue &)> func;                                    \
-    OperatorWrapper(__foo__);                                                  \
-    return IRValue(func(*this));
+    do {                                                                       \
+        std::function<IRValue(IRValue &)> func;                                \
+        OperatorWrapper(__foo__);                                              \
+        return {func(*this)};                                                  \
+    } while (0)
 
 #define BinaryOperatorImpl(__foo__)                                            \
-    std::function<IRValue(IRValue &, IRValue &)> func;                         \
-    OperatorWrapper(__foo__);                                                  \
-    return IRValue(func(*this, rhs));
+    do {                                                                       \
+        std::function<IRValue(IRValue &, IRValue &)> func;                     \
+        OperatorWrapper(__foo__);                                              \
+        return {func(*this, rhs)};                                             \
+    } while (0)
 
 #define ShiftOperatorImpl(__foo__)                                             \
-    std::function<IRValue(IRValue &, IRValue &)> func;                         \
-    ShiftOperatorWrapper(__foo__);                                             \
-    return IRValue(func(*this, rhs));
+    do {                                                                       \
+        std::function<IRValue(IRValue &, IRValue &)> func;                     \
+        ShiftOperatorWrapper(__foo__);                                         \
+        return {func(*this, rhs)};                                             \
+    } while (0)
 
 //////////////////////////////////////////////////////////////////////////////
 // Find the most significant bit
