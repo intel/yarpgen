@@ -499,3 +499,16 @@ static IRValue rightShiftOperator(IRValue &lhs, IRValue &rhs) {
 IRValue IRValue::operator>>(IRValue &rhs) {
     ShiftOperatorImpl(rightShiftOperator);
 }
+
+template <typename NT, typename OT>
+static IRValue castOperatorImpl(IntTypeID to_type_id, IRValue &from) {
+    IRValue ret(to_type_id);
+    ret.getValueRef<NT>() = static_cast<NT>(from.getValueRef<OT>());
+    return ret;
+}
+
+IRValue IRValue::castToType(IntTypeID to_type_id) {
+    std::function<IRValue(IntTypeID, IRValue &)> func;
+    CastOperatorWrapper(castOperatorImpl);
+    return {func(to_type_id, *this)};
+}
