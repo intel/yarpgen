@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018, Intel Corporation
+Copyright (c) 2019, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -716,5 +716,22 @@ int main() {
     uint64_t seed = rd();
     std::cout << "Test seed: " << seed << std::endl;
     generator.seed(seed);
+
     ir_value_test();
+
+    // TODO: we need to find a better way to test types
+    type_test();
+
+    /*
+    // Hash collision check.
+     Make IntegralType::int_type_set public if you want to run it.
+    uint64_t n = IntegralType::int_type_set.bucket_count();
+    for (unsigned i=0; i<n; ++i) {
+        std::cout << "bucket #" << i << " contains: ";
+        for (auto it = IntegralType::int_type_set.begin(i);
+    it!=IntegralType::int_type_set.end(i); ++it) std::cout << "[" <<
+    static_cast<int>(it->first.int_type_id) << ":" << it->second << "] ";
+        std::cout << "\n";
+    }
+    */
 }

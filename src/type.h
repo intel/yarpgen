@@ -22,6 +22,7 @@ limitations under the License.
 #include <limits>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "ir_value.h"
 
@@ -69,6 +70,29 @@ class FPType : public ArithmeticType {
     // TODO: it is a stub for now
 };
 
+// We need a folding set for integral types. There is a fixed number of them.
+// Otherwise we will just waste too much memory, because almost every object in
+// IR has a type. This class is used as a key in the folding set.
+class IntTypeKey {
+  public:
+    IntTypeKey(IntTypeID _int_type_id, bool _is_static,
+               CVQualifier _cv_qualifier);
+    bool operator==(const IntTypeKey &other) const;
+
+    IntTypeID int_type_id;
+    bool is_static;
+    CVQualifier cv_qualifier;
+};
+
+// This class provides a hashing mechanism for folding set.
+class IntTypeKeyHasher {
+  public:
+    std::size_t operator()(const IntTypeKey &key) const;
+
+  private:
+    static size_t hashCombine(size_t &value, size_t &seed);
+};
+
 class IntegralType : public ArithmeticType {
   public:
     IntegralType() : ArithmeticType() {}
@@ -87,7 +111,11 @@ class IntegralType : public ArithmeticType {
     init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual);
 
   private:
-    // TODO: we need a folding set for all of the integer types
+    // There is a fixed small number of possible integral types,
+    // so we use a folding set in order to save memory
+    static std::unordered_map<IntTypeKey, std::shared_ptr<IntegralType>,
+                              IntTypeKeyHasher>
+        int_type_set;
 };
 
 template <typename T> class IntegralTypeHelper : public IntegralType {
