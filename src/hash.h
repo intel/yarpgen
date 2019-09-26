@@ -18,6 +18,8 @@ limitations under the License.
 
 #pragma once
 
+#include <iostream>
+#include <memory>
 #include <vector>
 
 #include "enums.h"
@@ -27,6 +29,7 @@ namespace yarpgen {
 const size_t HASH_SEED = 42;
 
 // Class that is used to calculate various hashes.
+// Right now it is used for folding sets of various types.
 class Hash {
   public:
     Hash() : seed(HASH_SEED) {}
@@ -38,19 +41,35 @@ class Hash {
         hashCombine(std::hash<T>()(value));
     }
 
+    // TODO we don't need separate template for enums, because C++ 14 allows to
+    // pass them to std::hash. The issue here is that Ubuntu 16.04 doesn't
+    // provide a library that supports that. When we switch to Ubuntu 18.04, we
+    // can get rid of this function.
     template <typename T>
     inline typename std::enable_if<!std::is_fundamental<T>::value, void>::type
     operator()(T value) {
+        static_assert(
+            std::is_enum<T>::value,
+            "In current implementation we need to hash only enum type");
         using enum_under_type = typename std::underlying_type<T>::type;
         hashCombine(
             std::hash<enum_under_type>()(static_cast<enum_under_type>(value)));
+    }
+
+    template <typename T> inline void operator()(std::vector<T> value) {
+        Hash hash;
+        for (const auto &elem : value)
+            hash(elem);
+        hashCombine(hash.getSeed());
     }
 
     size_t getSeed() { return seed; }
 
   private:
     // Combine existing seed with a new hash value.
-    void hashCombine(size_t value);
+    void hashCombine(size_t value) {
+        seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
 
     size_t seed;
 };
@@ -90,7 +109,6 @@ class ArrayTypeKey {
     std::shared_ptr<Type> base_type;
     std::vector<size_t> dims;
     ArrayKind kind;
-    int32_t alignment;
     bool is_static;
     CVQualifier cv_qualifier;
 };

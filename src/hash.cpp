@@ -27,10 +27,6 @@ limitations under the License.
 
 using namespace yarpgen;
 
-inline void Hash::hashCombine(size_t value) {
-    seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
 IntTypeKey::IntTypeKey(IntTypeID _int_type_id, bool _is_static,
                        CVQualifier _cv_qualifier)
     : int_type_id(_int_type_id), is_static(_is_static),
@@ -79,7 +75,7 @@ bool ArrayTypeKey::operator==(const ArrayTypeKey &other) const {
     }
 
     return (dims == other.dims) && (kind == other.kind) &&
-           (alignment == other.alignment) && (is_static == other.is_static) &&
+           (is_static == other.is_static) &&
            (cv_qualifier == other.cv_qualifier);
 }
 
@@ -97,10 +93,7 @@ std::size_t ArrayTypeKeyHasher::operator()(const ArrayTypeKey &key) const {
         ERROR("Unsupported base type for array");
     }
 
-    for (const auto &dim : key.dims)
-        hash(dim);
-
-    hash(key.alignment);
+    hash(key.dims);
     hash(key.kind);
     hash(key.is_static);
     hash(key.cv_qualifier);
