@@ -971,7 +971,6 @@ int main() {
     }
     std::cout << "Total int record: " << total_records << std::endl;
 
-
     total_records = 0;
     n = ArrayType::array_type_set.bucket_count();
     for (unsigned i=0; i<n; ++i) {
