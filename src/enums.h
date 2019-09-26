@@ -61,4 +61,14 @@ enum class UBKind {
     MaxUB
 };
 
+// This enum defines possible representation of array
+enum class ArrayKind {
+    C_ARR,
+    // PTR,
+    STD_ARR,
+    STD_VEC,
+    VALARR,
+    MAX_ARRAY_KIND
+};
+
 } // namespace yarpgen

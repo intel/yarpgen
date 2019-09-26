@@ -16,7 +16,7 @@
 #
 ###############################################################################
 
-set(LIB_SRCS type.cpp ir_value.cpp enums.h)
+set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h)
 
 set(SRCS ${LIB_SRCS} main.cpp)
 
