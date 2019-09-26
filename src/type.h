@@ -23,7 +23,10 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
+#include "hash.h"
 #include "ir_value.h"
 
 namespace yarpgen {
@@ -34,7 +37,6 @@ namespace yarpgen {
 // (i.e. signed 32 bit integer, which may be int, or int32_t).
 // For now we support only one language type per backend type, but
 // that may change in future.
-
 class Type {
   public:
     Type() : is_static(false), cv_qualifier(CVQualifier::NONE) {}
@@ -44,6 +46,9 @@ class Type {
 
     virtual std::string getName() = 0;
     virtual void dbgDump() = 0;
+
+    virtual bool isIntType() { return false; }
+    virtual bool isArrayType() { return false; }
 
     bool getIsStatic() { return is_static; }
     void setIsStatic(bool _is_static) { is_static = _is_static; }
@@ -70,34 +75,12 @@ class FPType : public ArithmeticType {
     // TODO: it is a stub for now
 };
 
-// We need a folding set for integral types. There is a fixed number of them.
-// Otherwise we will just waste too much memory, because almost every object in
-// IR has a type. This class is used as a key in the folding set.
-class IntTypeKey {
-  public:
-    IntTypeKey(IntTypeID _int_type_id, bool _is_static,
-               CVQualifier _cv_qualifier);
-    bool operator==(const IntTypeKey &other) const;
-
-    IntTypeID int_type_id;
-    bool is_static;
-    CVQualifier cv_qualifier;
-};
-
-// This class provides a hashing mechanism for folding set.
-class IntTypeKeyHasher {
-  public:
-    std::size_t operator()(const IntTypeKey &key) const;
-
-  private:
-    static size_t hashCombine(size_t &value, size_t &seed);
-};
-
 class IntegralType : public ArithmeticType {
   public:
     IntegralType() : ArithmeticType() {}
     IntegralType(bool _is_static, CVQualifier _cv_qual)
         : ArithmeticType(_is_static, _cv_qual) {}
+    bool isIntType() final { return true; }
     virtual IntTypeID getIntTypeId() = 0;
     virtual uint32_t getBitSize() = 0;
     virtual bool getIsSigned() = 0;
@@ -109,6 +92,9 @@ class IntegralType : public ArithmeticType {
     static std::shared_ptr<IntegralType> init(IntTypeID _type_id);
     static std::shared_ptr<IntegralType>
     init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual);
+
+    static bool isSame(std::shared_ptr<IntegralType> &lhs,
+                       std::shared_ptr<IntegralType> &rhs);
 
   private:
     // There is a fixed small number of possible integral types,
@@ -244,6 +230,53 @@ class TypeULLong : public IntegralTypeHelper<uint64_t> {
     std::string getLiteralSuffix() final { return "ULL"; }
 
     void dbgDump();
+};
+
+// Base class for all of the array-like types (C-style, Vector, Array,
+// ValArray).
+class ArrayType : public Type {
+  public:
+    ArrayType(std::string _name, std::shared_ptr<Type> _base_type,
+              std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual,
+              size_t _uid)
+        : Type(_is_static, _cv_qual), name(std::move(_name)),
+          base_type(std::move(_base_type)), dimensions(std::move(_dims)),
+          kind(ArrayKind::MAX_ARRAY_KIND), uid(_uid) {}
+
+    bool isArrayType() final { return true; }
+    std::string getName() final { return name; }
+    std::shared_ptr<Type> getBaseType() { return base_type; }
+    std::vector<size_t> &getDimensions() { return dimensions; }
+    size_t getUID() { return uid; }
+
+    static bool isSame(const std::shared_ptr<ArrayType> &lhs,
+                       const std::shared_ptr<ArrayType> &rhs);
+
+    void dbgDump() override;
+
+    static std::shared_ptr<ArrayType>
+    init(std::string _name, std::shared_ptr<Type> _base_type,
+         std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual);
+    static std::shared_ptr<ArrayType> init(std::string _name,
+                                           std::shared_ptr<Type> _base_type,
+                                           std::vector<size_t> _dims);
+
+  private:
+    // Folding set for all of the array types.
+    static std::unordered_map<ArrayTypeKey, std::shared_ptr<ArrayType>,
+                              ArrayTypeKeyHasher>
+        array_type_set;
+    // The easiest way to compare array types is to assign a unique identifier
+    // to each of them and then compare it.
+    static size_t uid_counter;
+
+    std::string name;
+    std::shared_ptr<Type> base_type;
+    // Number of elements in each dimension
+    std::vector<size_t> dimensions;
+    // The kind of array that we want to use during lowering process
+    ArrayKind kind;
+    size_t uid;
 };
 
 } // namespace yarpgen

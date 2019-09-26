@@ -16,9 +16,11 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "type.h"
+#include <utility>
+
 #include "enums.h"
 #include "ir_value.h"
+#include "type.h"
 #include "utils.h"
 
 using namespace yarpgen;
@@ -26,41 +28,9 @@ using namespace yarpgen;
 std::unordered_map<IntTypeKey, std::shared_ptr<IntegralType>, IntTypeKeyHasher>
     yarpgen::IntegralType::int_type_set;
 
-IntTypeKey::IntTypeKey(IntTypeID _int_type_id, bool _is_static,
-                       CVQualifier _cv_qualifier)
-    : int_type_id(_int_type_id), is_static(_is_static),
-      cv_qualifier(_cv_qualifier) {}
-
-bool IntTypeKey::operator==(const IntTypeKey &other) const {
-    return (int_type_id == other.int_type_id) &&
-           (is_static == other.is_static) &&
-           (cv_qualifier == other.cv_qualifier);
-}
-
-std::size_t IntTypeKeyHasher::operator()(const IntTypeKey &key) const {
-    // TODO: we have a collisions. We need to think about better hash-function
-    std::size_t hash_seed = 17;
-    using under_type_of_id =
-        std::underlying_type<decltype(key.int_type_id)>::type;
-    using under_type_of_cv_qual =
-        std::underlying_type<decltype(key.cv_qualifier)>::type;
-
-    size_t first_hash = std::hash<under_type_of_id>()(
-        static_cast<under_type_of_id>(key.int_type_id));
-    size_t second_hash = std::hash<decltype(key.is_static)>()(key.is_static);
-    size_t third_hash = std::hash<under_type_of_cv_qual>()(
-        static_cast<under_type_of_cv_qual>(key.cv_qualifier));
-
-    hashCombine(first_hash, hash_seed);
-    hashCombine(second_hash, hash_seed);
-    hashCombine(third_hash, hash_seed);
-    return hash_seed;
-}
-
-size_t IntTypeKeyHasher::hashCombine(size_t &value, size_t &seed) {
-    seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    return seed;
-}
+std::unordered_map<ArrayTypeKey, std::shared_ptr<ArrayType>, ArrayTypeKeyHasher>
+    yarpgen::ArrayType::array_type_set;
+size_t yarpgen::ArrayType::uid_counter = 0;
 
 std::shared_ptr<IntegralType> yarpgen::IntegralType::init(IntTypeID _type_id) {
     return init(_type_id, false, CVQualifier::NONE);
@@ -112,6 +82,13 @@ IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual) {
     return ret;
 }
 
+bool IntegralType::isSame(std::shared_ptr<IntegralType> &lhs,
+                          std::shared_ptr<IntegralType> &rhs) {
+    return (lhs->getIntTypeId() == rhs->getIntTypeId()) &&
+           (lhs->getIsStatic() == rhs->getIsStatic()) &&
+           (lhs->getCVQualifier() == rhs->getCVQualifier());
+}
+
 template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, uint32_t bit_size,
@@ -148,3 +125,51 @@ DBG_DUMP_MACROS(TypeSInt)
 DBG_DUMP_MACROS(TypeUInt)
 DBG_DUMP_MACROS(TypeSLLong)
 DBG_DUMP_MACROS(TypeULLong)
+
+bool ArrayType::isSame(const std::shared_ptr<ArrayType> &lhs,
+                       const std::shared_ptr<ArrayType> &rhs) {
+    return lhs->getUID() == rhs->getUID();
+}
+
+void ArrayType::dbgDump() {
+    std::cout << "Array: " << name << std::endl;
+    std::cout << "Base type: " << std::endl;
+    base_type->dbgDump();
+    std::cout << "Dimensions: [";
+    for (const auto &dim : dimensions) {
+        std::cout << dim << ", ";
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << "Kind: " << static_cast<int>(kind) << std::endl;
+    std::cout << "UID: " << uid << std::endl;
+    std::cout << "is_static:    " << getIsStatic() << std::endl;
+    std::cout << "cv_qualifier: "
+              << static_cast<std::underlying_type<CVQualifier>::type>(
+                     getCVQualifier())
+              << std::endl;
+}
+
+std::shared_ptr<ArrayType> ArrayType::init(std::string _name,
+                                           std::shared_ptr<Type> _base_type,
+                                           std::vector<size_t> _dims) {
+    return init(std::move(_name), std::move(_base_type), std::move(_dims),
+                /* is static */ false, CVQualifier::NONE);
+}
+
+std::shared_ptr<ArrayType> ArrayType::init(std::string _name,
+                                           std::shared_ptr<Type> _base_type,
+                                           std::vector<size_t> _dims,
+                                           bool _is_static,
+                                           CVQualifier _cv_qual) {
+    ArrayTypeKey key(_base_type, _dims, ArrayKind::MAX_ARRAY_KIND, _is_static,
+                     _cv_qual);
+    auto find_res = array_type_set.find(key);
+    if (find_res != array_type_set.end())
+        return find_res->second;
+
+    auto ret = std::make_shared<ArrayType>(_name, _base_type, _dims, _is_static,
+                                           _cv_qual, uid_counter++);
+    array_type_set[key] = ret;
+    return ret;
+}

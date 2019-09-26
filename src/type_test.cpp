@@ -25,7 +25,7 @@ limitations under the License.
 using namespace yarpgen;
 
 void type_test() {
-    // Check for type initialization
+    // Check for int type initialization
     for (auto i = static_cast<int>(IntTypeID::BOOL);
          i < static_cast<int>(IntTypeID::MAX_INT_TYPE_ID); ++i)
         for (auto j = static_cast<int>(CVQualifier::NONE);
@@ -43,6 +43,44 @@ void type_test() {
                 std::shared_ptr<IntegralType> ptr_to_type = IntegralType::init(
                     static_cast<IntTypeID>(i), static_cast<bool>(k),
                     static_cast<CVQualifier>(j));
+                ptr_to_type->dbgDump();
+                std::cout << "-------------------" << std::endl;
+            }
+
+    // Check for array type initialization
+    for (auto i = static_cast<int>(IntTypeID::BOOL);
+         i < static_cast<int>(IntTypeID::MAX_INT_TYPE_ID); ++i)
+        for (auto j = static_cast<int>(CVQualifier::NONE);
+             j <= static_cast<int>(CVQualifier::CONST_VOLAT); ++j)
+            for (int k = false; k <= true; ++k) {
+                std::shared_ptr<IntegralType> ptr_to_int_type =
+                    IntegralType::init(static_cast<IntTypeID>(i),
+                                       static_cast<bool>(k),
+                                       static_cast<CVQualifier>(j));
+                std::vector<size_t> dims = {static_cast<size_t>(i),
+                                            static_cast<size_t>(j),
+                                            static_cast<size_t>(k)};
+                std::shared_ptr<ArrayType> ptr_to_type = ArrayType::init(
+                    "array", ptr_to_int_type, dims, static_cast<bool>(k),
+                    static_cast<CVQualifier>(j));
+            }
+
+    for (auto i = static_cast<int>(IntTypeID::BOOL);
+         i < static_cast<int>(IntTypeID::MAX_INT_TYPE_ID); ++i)
+        for (auto j = static_cast<int>(CVQualifier::NONE);
+             j <= static_cast<int>(CVQualifier::CONST_VOLAT); ++j)
+            for (int k = false; k <= true; ++k) {
+                std::shared_ptr<IntegralType> ptr_to_int_type =
+                    IntegralType::init(static_cast<IntTypeID>(i),
+                                       static_cast<bool>(k),
+                                       static_cast<CVQualifier>(j));
+                std::vector<size_t> dims = {static_cast<size_t>(i),
+                                            static_cast<size_t>(j),
+                                            static_cast<size_t>(k)};
+                std::shared_ptr<ArrayType> ptr_to_type = ArrayType::init(
+                    "array", ptr_to_int_type, dims, static_cast<bool>(k),
+                    static_cast<CVQualifier>(j));
+
                 ptr_to_type->dbgDump();
                 std::cout << "-------------------" << std::endl;
             }
@@ -919,14 +957,33 @@ int main() {
 
     /*
     // Hash collision check.
-     Make IntegralType::int_type_set public if you want to run it.
+    // Make IntegralType::int_type_set public if you want to run it.
+    uint64_t total_records = 0;
     uint64_t n = IntegralType::int_type_set.bucket_count();
     for (unsigned i=0; i<n; ++i) {
         std::cout << "bucket #" << i << " contains: ";
         for (auto it = IntegralType::int_type_set.begin(i);
-    it!=IntegralType::int_type_set.end(i); ++it) std::cout << "[" <<
-    static_cast<int>(it->first.int_type_id) << ":" << it->second << "] ";
+    it!=IntegralType::int_type_set.end(i); ++it) { total_records++; std::cout <<
+    "[" << static_cast<int>(it->first.int_type_id) << ":"
+                      << it->second << "] ";
+        }
+            std::cout << "\n";
+    }
+    std::cout << "Total int record: " << total_records << std::endl;
+
+
+    total_records = 0;
+    n = ArrayType::array_type_set.bucket_count();
+    for (unsigned i=0; i<n; ++i) {
+        std::cout << "bucket #" << i << " contains: ";
+        for (auto it = ArrayType::array_type_set.begin(i);
+             it != ArrayType::array_type_set.end(i); ++it) {
+            total_records++;
+            std::cout << "["
+                      << it->second << "] ";
+        }
         std::cout << "\n";
     }
+    std::cout << "Total array records: " << total_records << std::endl;
     */
 }
