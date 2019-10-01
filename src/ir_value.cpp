@@ -512,3 +512,20 @@ IRValue IRValue::castToType(IntTypeID to_type_id) {
     CastOperatorWrapper(castOperatorImpl);
     return {func(to_type_id, *this)};
 }
+
+std::ostream &yarpgen::operator<<(std::ostream &out, yarpgen::IRValue &val) {
+    switch (val.getIntTypeID()) {
+        OutOperatorCase(IntTypeID::BOOL, bool);
+        OutOperatorCase(IntTypeID::SCHAR, int8_t);
+        OutOperatorCase(IntTypeID::UCHAR, uint8_t);
+        OutOperatorCase(IntTypeID::SHORT, int16_t);
+        OutOperatorCase(IntTypeID::USHORT, uint16_t);
+        OutOperatorCase(IntTypeID::INT, int32_t);
+        OutOperatorCase(IntTypeID::UINT, uint32_t);
+        OutOperatorCase(IntTypeID::LLONG, int64_t);
+        OutOperatorCase(IntTypeID::ULLONG, uint64_t);
+        case IntTypeID::MAX_INT_TYPE_ID:
+            ERROR("Bad IntTypeID");
+    }
+    return out;
+}
