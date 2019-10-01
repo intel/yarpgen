@@ -83,6 +83,8 @@ class IRValue {
 
     IRValue castToType(IntTypeID to_type);
 
+    friend std::ostream &operator<<(std::ostream &out, IRValue &val);
+
   private:
     IntTypeID type_id;
     Value value;
@@ -231,6 +233,9 @@ template <> uint64_t &IRValue::getValueRef();
         }                                                                      \
     } while (0)
 
+#define OutOperatorCase(__type_id__, __type__)                                 \
+    case (__type_id__): out << val.getValueRef<__type__>(); break;
+
 // clang-format on
 
 //////////////////////////////////////////////////////////////////////////////
@@ -272,5 +277,7 @@ template <typename T> inline size_t findMSB(T x) {
     }
     return ret;
 }
+
+std::ostream &operator<<(std::ostream &out, yarpgen::IRValue &val);
 
 } // namespace yarpgen

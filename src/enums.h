@@ -71,4 +71,6 @@ enum class ArrayKind {
     MAX_ARRAY_KIND
 };
 
+enum class DataKind { VAR, ARR, MAX_DATA_KIND };
+
 } // namespace yarpgen

@@ -16,7 +16,7 @@
 #
 ###############################################################################
 
-set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h)
+set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h data.cpp data.h)
 
 set(SRCS ${LIB_SRCS} main.cpp)
 
@@ -34,3 +34,7 @@ target_compile_options(yarpgen PRIVATE ${FLAGS})
 add_executable(type_test ${LIB_SRCS} type_test.cpp)
 target_compile_features(type_test PRIVATE ${STD})
 target_compile_options(type_test PRIVATE ${FLAGS})
+
+add_executable(data_test ${LIB_SRCS} data_test.cpp)
+target_compile_features(data_test PRIVATE ${STD})
+target_compile_options(data_test PRIVATE ${FLAGS})
