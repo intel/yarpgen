@@ -87,3 +87,4 @@ Options for statistics' capture:
 #Spec name  | Arguments
 ubsan_clang | -save-stats -Xclang -print-stats
 clang       | -save-stats -Xclang -print-stats
+gcc         | -fdump-statistics-stats
