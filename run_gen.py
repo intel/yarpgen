@@ -121,6 +121,7 @@ compfail = "compfail"
 compfail_timeout = "compfail_timeout"
 out_dif = "different_output"
 
+gcc_stats_file = None
 
 class StatsParser(object):
     """All parsers should return obtained data in form of list of tuples:
@@ -141,6 +142,21 @@ class StatsParser(object):
                 opt_name = opt_stats_list[0]
                 opt_value = int(opt_stats_list[1])
                 result.append((opt_name, opt_value))
+        common.log_msg(logging.DEBUG, "Finished parsing of optimization statistics file: " + inp_file_name)
+        inp_file.close()
+        return result
+
+    @staticmethod
+    def parse_gcc_opt_stats_file(inp_file_name):
+        common.log_msg(logging.DEBUG, "Parsing optimization statistics file: " + inp_file_name)
+        inp_file = common.check_and_open_file(inp_file_name, 'r')
+        result = []
+        for i in inp_file:
+            opt_stats_line = i.replace("\"", "")
+            opt_stats_list = opt_stats_line.split()
+            opt_name = " ".join(opt_stats_list[1:-1])
+            opt_value = int(opt_stats_list[-1])
+            result.append((opt_name, opt_value))
         common.log_msg(logging.DEBUG, "Finished parsing of optimization statistics file: " + inp_file_name)
         inp_file.close()
         return result
@@ -854,12 +870,24 @@ class TestRun(object):
             self.status = self.STATUS_not_run
 
         # parse stats if needed
-        if self.parse_stats and os.path.isfile("func.stats"):
+        if self.parse_stats:
             opt_stats = None
             stmt_stats = None
-            if "clang" in self.target.specs.name:
+            if "clang" in self.target.specs.name and os.path.isfile("func.stats"):
                 opt_stats = StatsParser.parse_clang_opt_stats_file("func.stats")
                 stmt_stats = StatsParser.parse_clang_stmt_stats_file(str(self.build_stderr, "utf-8"))
+            elif "gcc" in self.target.specs.name:
+                global gcc_stats_file
+                if gcc_stats_file is None:
+                    regex = re.compile("func\.cpp\..")
+                    files = os.listdir(".")
+                    for act_file in files:
+                        if regex.match(act_file) and act_file.endswith(".statistics"):
+                            gcc_stats_file = act_file
+                if os.path.isfile(gcc_stats_file):
+                    opt_stats = StatsParser.parse_gcc_opt_stats_file(gcc_stats_file)
+            else:
+                common.log_msg(logging.ERROR, "Can't parse statistics file")
             self.stat.add_stats(opt_stats, self.optset, StatsVault.opt_stats_id)
             self.stat.add_stats(stmt_stats, self.optset, StatsVault.stmt_stats_id)
 
@@ -1132,6 +1160,7 @@ class StatsVault(object):
         for i in self.stats[id]:
             if i == clang_total_stmt_str:
                 return self.stats[id][i]
+        return None
 
     def get_stats(self, id):
         output = "Parsed " + StatsVault.id_to_str(id) + " stats: " + str(self.stats_num[id]) + "\n"
@@ -1139,10 +1168,11 @@ class StatsVault(object):
             output += "\t" + str(i) + " : " + str(self.stats[id][i]) + "\n"
         return output
 
-    def is_stats_collected(self):
-        return True if self.stats_num[StatsVault.opt_stats_id] and \
-                       self.stats_num[StatsVault.stmt_stats_id] \
-               else False
+    def is_opt_stats_collected(self):
+        return True if self.stats_num[StatsVault.opt_stats_id] else False
+
+    def is_stmt_stats_collected(self):
+        return True if self.stats_num[StatsVault.stmt_stats_id] else False
 
 
 class Statistics (object):
@@ -1212,13 +1242,16 @@ class Statistics (object):
     def get_stats(self, target_name, id):
         return self.stats_vault[target_name].get_stats(id)
 
-    def is_stat_collected(self, target_name):
-        return self.stats_vault[target_name].is_stats_collected()
+    def is_opt_stat_collected(self, target_name):
+        return self.stats_vault[target_name].is_opt_stats_collected()
 
-    def set_collect_stats_enabled(self, val):
+    def is_stmt_stat_collected(self, target_name):
+        return self.stats_vault[target_name].is_stmt_stats_collected()
+
+    def set_collect_stmt_stats_enabled(self, val):
         self.collect_stats_enabled = val
 
-    def get_collect_stats_enabled(self):
+    def get_collect_stmt_stats_enabled(self):
         return self.collect_stats_enabled
 
 MyManager.register("Statistics", Statistics)
@@ -1326,14 +1359,15 @@ def form_statistics(stat, targets, prev_len, tasks=None):
 
     stmt_stats_list = []
     for i in gen_test_makefile.CompilerTarget.all_targets:
-        if stat.is_stat_collected(i.name):
+        if stat.is_opt_stat_collected(i.name):
             verbose_stat_str += "\n=================================\n"
             verbose_stat_str += "Statistics for " + i.name + "\n"
             verbose_stat_str += "Optimization statistics: \n"
             verbose_stat_str += stat.get_stats(i.name, StatsVault.opt_stats_id) + "\n\n"
-            verbose_stat_str += "Statement statistics: \n"
-            verbose_stat_str += stat.get_stats(i.name, StatsVault.stmt_stats_id) + "\n"
-            stmt_stats_list.append(stat.get_total_stats_num(i.name, StatsVault.stmt_stats_id))
+            if stat.is_stmt_stat_collected(i.name):
+                verbose_stat_str += "Statement statistics: \n"
+                verbose_stat_str += stat.get_stats(i.name, StatsVault.stmt_stats_id) + "\n"
+                stmt_stats_list.append(stat.get_total_stats_num(i.name, StatsVault.stmt_stats_id))
     verbose_stat_str += "\n=================================\n"
 
     active = 0
@@ -1356,7 +1390,7 @@ def form_statistics(stat, targets, prev_len, tasks=None):
     stat_str += str(total_runfail) + "/"
     stat_str += str(total_out_dif)
 
-    if stat.get_collect_stats_enabled():
+    if stat.get_collect_stmt_stats_enabled():
         stat_str += " | "
         total_stmt_stats = get_total_stmt_stats(stmt_stats_list)
         stat_str += "SaE: " + add_metrix_prefix(total_stmt_stats) + " | "
@@ -1541,8 +1575,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     stat = manager_obj.Statistics()
     if seeds_option_value:
         stat.enable_seeds()
-    if len(collect_stat.split()) > 0:
-        stat.set_collect_stats_enabled(True)
+    if len(collect_stat.split()) > 0 and "clang" in collect_stat:
+        stat.set_collect_stmt_stats_enabled(True)
 
     start_time = time.time()
     end_time = start_time + timeout * 60
