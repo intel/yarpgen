@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2018, Intel Corporation
+# Copyright (c) 2018-2019, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ image:
   - Ubuntu
   - Visual Studio 2015
   - Visual Studio 2017
+  - Visual Studio 2019
 
 clone_folder: c:\projects\yarpgen
 
@@ -47,10 +48,11 @@ for:
  
 # skip unsupported combinations
 init:
-  - cmd: set arch=
-  - cmd: if "%cmake_arch%"=="x64" ( set arch= Win64)
-  - cmd: echo %arch%
+  - cmd: set "arch=" && set "Aarch=Win32"
+  - cmd: if "%cmake_arch%"=="x64" ( set "arch= Win64" && set "Aarch=x64" )
+  - cmd: echo %arch% && echo %Aarch%
   - cmd: echo %APPVEYOR_BUILD_WORKER_IMAGE%
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" ( set generator="Visual Studio 16 2019" -A %Aarch% )
   - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( set generator="Visual Studio 15 2017%arch%" )
   - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" ( set generator="Visual Studio 14 2015%arch%" )
   - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
