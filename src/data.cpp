@@ -31,7 +31,13 @@ void yarpgen::Array::dbgDump() {
     std::cout << "Array: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
     type->dbgDump();
-    for (const auto &val : vals) {
-        val->dbgDump();
-    }
+    vals->dbgDump();
+}
+
+void yarpgen::Iterator::setParameters(std::shared_ptr<yarpgen::Expr> _start,
+                                      std::shared_ptr<yarpgen::Expr> _end,
+                                      std::shared_ptr<yarpgen::Expr> _step) {
+    start = std::move(_start);
+    end = std::move(_end);
+    step = std::move(_step);
 }

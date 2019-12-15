@@ -16,7 +16,7 @@
 #
 ###############################################################################
 
-set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h data.cpp data.h)
+set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h data.cpp data.h ir_node.h expr.cpp expr.h context.cpp context.h)
 
 set(SRCS ${LIB_SRCS} main.cpp)
 
@@ -38,3 +38,7 @@ target_compile_options(type_test PRIVATE ${FLAGS})
 add_executable(data_test ${LIB_SRCS} data_test.cpp)
 target_compile_features(data_test PRIVATE ${STD})
 target_compile_options(data_test PRIVATE ${FLAGS})
+
+add_executable(expr_test ${LIB_SRCS} expr_test.cpp)
+target_compile_features(expr_test PRIVATE ${STD})
+target_compile_options(expr_test PRIVATE ${FLAGS})
