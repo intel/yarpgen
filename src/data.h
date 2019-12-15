@@ -21,20 +21,25 @@ limitations under the License.
 #include "enums.h"
 #include "type.h"
 #include <string>
+#include <utility>
 
 namespace yarpgen {
 
 class Data {
   public:
     Data(std::string _name, std::shared_ptr<Type> _type)
-        : name(_name), type(_type) {}
+        : name(std::move(_name)), type(std::move(_type)) {}
     virtual ~Data() = default;
 
     std::string getName() { return name; }
+    void setName(std::string _name) { name = std::move(_name); }
     std::shared_ptr<Type> getType() { return type; }
 
     virtual bool isScalarVar() { return false; }
     virtual bool isArray() { return false; }
+    virtual bool isIterator() { return false; }
+
+    virtual DataKind getKind() { return DataKind::MAX_DATA_KIND; }
 
     virtual void dbgDump() = 0;
 
@@ -43,6 +48,9 @@ class Data {
     std::shared_ptr<Type> type;
 };
 
+// Shorthand to make it simpler
+using DataType = std::shared_ptr<Data>;
+
 class ScalarVar : public Data {
   public:
     ScalarVar(std::string _name, const std::shared_ptr<IntegralType> &_type,
@@ -50,8 +58,11 @@ class ScalarVar : public Data {
         : Data(std::move(_name), _type), init_val(_init_value),
           cur_val(_init_value), changed(false) {}
     bool isScalarVar() final { return true; }
+    DataKind getKind() final { return DataKind::VAR; }
+
     IRValue getInitValue() { return init_val; }
     IRValue getCurrentValue() { return cur_val; }
+    void setCurrentValue(IRValue _val) { cur_val = _val; changed = true; }
     bool wasChanged() { return changed; }
 
     void dbgDump() final;
@@ -65,22 +76,50 @@ class ScalarVar : public Data {
 class Array : public Data {
   public:
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
-          std::vector<std::shared_ptr<Data>> _vals)
+          std::shared_ptr<Data> _vals)
         : Data(std::move(_name), _type), vals(std::move(_vals)) {}
-    std::vector<std::shared_ptr<Data>> &getValues() { return vals; }
+    std::shared_ptr<Data> getValues() { return vals; }
+
+    bool isArray() final { return true; }
+    DataKind getKind() final { return DataKind::ARR; }
 
     void dbgDump() final;
 
   private:
-    // We allow elements of the array to have different values.
+    //TODO:
+    // We want elements of the array to have different values.
     // It is the only way to properly test masked instructions and optimizations
     // designed to work with them.
     // Each vector represents a "cluster" with different values that is "copied"
     // over the whole array. The size of the cluster should be smaller than the
-    // typical size of the vector in target architecture. This way we can cover
+    // typical size of the vector of target architecture. This way we can cover
     // all of the interesting cases while preserving the simplicity of
     // the analysis.
-    std::vector<std::shared_ptr<Data>> vals;
+    std::shared_ptr<Data> vals;
+};
+
+class Expr;
+
+class Iterator : public Data {
+  public:
+    Iterator(std::string _name, std::shared_ptr<Type> _type,
+            std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
+            std::shared_ptr<Expr> _step) :
+            Data(std::move(_name), std::move(_type)), start(std::move(_start)),
+            end(std::move(_end)), step(std::move(_step)) {}
+
+    bool isIterator() final { return true; }
+    DataKind getKind() final { return DataKind::ITER; }
+
+    std::shared_ptr<Expr> getStart() { return start; }
+    std::shared_ptr<Expr> getEnd() { return end; }
+    std::shared_ptr<Expr> getStep() { return step; }
+    void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end, std::shared_ptr<Expr> _step);
+
+  private:
+    std::shared_ptr<Expr> start;
+    std::shared_ptr<Expr> end;
+    std::shared_ptr<Expr> step;
 };
 
 } // namespace yarpgen

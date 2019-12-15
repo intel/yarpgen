@@ -71,6 +71,40 @@ enum class ArrayKind {
     MAX_ARRAY_KIND
 };
 
-enum class DataKind { VAR, ARR, MAX_DATA_KIND };
+enum class DataKind { VAR, ARR, ITER, MAX_DATA_KIND };
 
+enum class IRNodeKind {
+    CONST,
+    SCALAR_VAR_USE,
+    ITER_USE,
+    ARRAY_USE,
+    SUBSCRIPT,
+    ASSIGN,
+    UNARY,
+    BINARY,
+    MAX_EXPR_KIND
+};
+
+
+enum class BinaryOp {
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,
+    LT,
+    GT,
+    LE,
+    GE,
+    EQ,
+    NE,
+    LOG_AND,
+    LOG_OR,
+    BIT_AND,
+    BIT_OR,
+    BIT_XOR,
+    SHL,
+    SHR,
+    MAX_BIN_OP
+};
 } // namespace yarpgen

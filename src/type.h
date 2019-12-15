@@ -106,7 +106,7 @@ class IntegralType : public ArithmeticType {
 
 template <typename T> class IntegralTypeHelper : public IntegralType {
   public:
-    typedef T value_type;
+    using value_type = T;
     IntegralTypeHelper(bool _is_static, CVQualifier _cv_qual)
         : IntegralType(_is_static, _cv_qual) {
         min.getValueRef<T>() = std::numeric_limits<T>::min();
@@ -138,7 +138,7 @@ class TypeBool : public IntegralTypeHelper<bool> {
     // std::is_unsigned return true. We treat them as unsigned
     bool getIsSigned() final { return false; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeSChar : public IntegralTypeHelper<int8_t> {
@@ -149,7 +149,7 @@ class TypeSChar : public IntegralTypeHelper<int8_t> {
     IntTypeID getIntTypeId() final { return IntTypeID::SCHAR; }
     std::string getName() final { return "signed char"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeUChar : public IntegralTypeHelper<uint8_t> {
@@ -160,7 +160,7 @@ class TypeUChar : public IntegralTypeHelper<uint8_t> {
     IntTypeID getIntTypeId() final { return IntTypeID::UCHAR; }
     std::string getName() final { return "unsigned char"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeSShort : public IntegralTypeHelper<int16_t> {
@@ -171,7 +171,7 @@ class TypeSShort : public IntegralTypeHelper<int16_t> {
     IntTypeID getIntTypeId() final { return IntTypeID::SHORT; }
     std::string getName() final { return "short"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeUShort : public IntegralTypeHelper<uint16_t> {
@@ -182,7 +182,7 @@ class TypeUShort : public IntegralTypeHelper<uint16_t> {
     IntTypeID getIntTypeId() final { return IntTypeID::USHORT; }
     std::string getName() final { return "unsigned short"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeSInt : public IntegralTypeHelper<int32_t> {
@@ -193,7 +193,7 @@ class TypeSInt : public IntegralTypeHelper<int32_t> {
     IntTypeID getIntTypeId() final { return IntTypeID::INT; }
     std::string getName() final { return "int"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeUInt : public IntegralTypeHelper<uint32_t> {
@@ -205,7 +205,7 @@ class TypeUInt : public IntegralTypeHelper<uint32_t> {
     std::string getName() final { return "unsigned int"; }
     std::string getLiteralSuffix() final { return "U"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeSLLong : public IntegralTypeHelper<int64_t> {
@@ -217,7 +217,7 @@ class TypeSLLong : public IntegralTypeHelper<int64_t> {
     std::string getName() final { return "long long int"; }
     std::string getLiteralSuffix() final { return "LL"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 class TypeULLong : public IntegralTypeHelper<uint64_t> {
@@ -229,7 +229,7 @@ class TypeULLong : public IntegralTypeHelper<uint64_t> {
     std::string getName() final { return "unsigned long long int"; }
     std::string getLiteralSuffix() final { return "ULL"; }
 
-    void dbgDump();
+    void dbgDump() final;
 };
 
 // Base class for all of the array-like types (C-style, Vector, Array,
