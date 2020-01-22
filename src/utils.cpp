@@ -16,20 +16,21 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#include "utils.h"
+#include <memory>
 
-#include "data.h"
-#include <map>
-#include <string>
+using namespace yarpgen;
 
-namespace yarpgen {
+std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
 
-// Class that is used to determine the evaluation context.
-// It allows us to evaluate the same arithmetic tree with different input values.
-class EvalCtx {
-  public:
-    //TODO: we use string as a unique identifier and it is not a right way to do it
-    std::map<std::string, DataType> input;
-};
-
+RandValGen::RandValGen (uint64_t _seed) {
+    if (_seed != 0) {
+        seed = _seed;
+    }
+    else {
+        std::random_device rd;
+        seed = rd ();
+    }
+    std::cout << "/*SEED " << seed << "*/" << std::endl;
+    rand_gen = std::mt19937_64(seed);
 }

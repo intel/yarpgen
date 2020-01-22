@@ -83,7 +83,7 @@ class IRValue {
 
     IRValue castToType(IntTypeID to_type);
 
-    friend std::ostream &operator<<(std::ostream &out, IRValue &val);
+    friend std::ostream& operator<<(std::ostream &out, IRValue &val);
 
   private:
     IntTypeID type_id;

@@ -16,9 +16,9 @@
 #
 ###############################################################################
 
-set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h data.cpp data.h ir_node.h expr.cpp expr.h context.cpp context.h)
+set(LIB_SRCS type.cpp ir_value.cpp enums.h hash.cpp hash.h data.cpp data.h ir_node.h expr.cpp expr.h context.cpp context.h utils.cpp)
 
-set(SRCS ${LIB_SRCS} main.cpp)
+set(SRCS ${LIB_SRCS} main.cpp utils.cpp)
 
 add_executable(yarpgen ${SRCS})
 

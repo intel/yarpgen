@@ -96,6 +96,11 @@ class IntegralType : public ArithmeticType {
     static bool isSame(std::shared_ptr<IntegralType> &lhs,
                        std::shared_ptr<IntegralType> &rhs);
 
+    // Auxiliary function for arithmetic conversions that shows if type a can represent all the values of type b
+    static bool canRepresentType(IntTypeID a, IntTypeID b);
+    //Auxiliary function for arithmetic conversions that find corresponding unsigned type
+    static IntTypeID getCorrUnsigned(IntTypeID id);
+
   private:
     // There is a fixed small number of possible integral types,
     // so we use a folding set in order to save memory
