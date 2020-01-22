@@ -89,6 +89,34 @@ bool IntegralType::isSame(std::shared_ptr<IntegralType> &lhs,
            (lhs->getCVQualifier() == rhs->getCVQualifier());
 }
 
+bool IntegralType::canRepresentType(IntTypeID a, IntTypeID b) {
+    // This functions should be called only after integral promotions, so we don't care about "small" types.
+    // Unfortunately, there is no way to enforce it, so in case of violation it should fail generated tests.
+    //TODO: can we do something about it?
+
+    if (a == IntTypeID::INT && b == IntTypeID::LLONG)
+        return true;
+
+    if (a == IntTypeID::UINT && (b == IntTypeID::ULLONG || b == IntTypeID::LLONG))
+        return true;
+
+    return false;
+}
+
+IntTypeID IntegralType::getCorrUnsigned(IntTypeID id) {
+    // This functions should be called only after integral promotions, so we don't care about "small" types.
+    switch (id) {
+        case IntTypeID::INT:
+        case IntTypeID::UINT:
+            return IntTypeID::UINT;
+        case IntTypeID::LLONG:
+        case IntTypeID::ULLONG:
+            return IntTypeID::ULLONG;
+        default:
+            ERROR("This function should be called only after IntegralPromotions");
+    }
+}
+
 template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, uint32_t bit_size,

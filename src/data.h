@@ -92,7 +92,7 @@ class Array : public Data {
     // designed to work with them.
     // Each vector represents a "cluster" with different values that is "copied"
     // over the whole array. The size of the cluster should be smaller than the
-    // typical size of the vector of target architecture. This way we can cover
+    // typical target architecture vector size. This way we can cover
     // all of the interesting cases while preserving the simplicity of
     // the analysis.
     std::shared_ptr<Data> vals;

@@ -102,7 +102,6 @@ class ScalarVarUseExpr : public VarUseExpr {
     // It is left public in order to use std::make_shared
     explicit ScalarVarUseExpr(std::shared_ptr<Data> _val) : VarUseExpr(std::move(_val)) {}
     static std::shared_ptr<ScalarVarUseExpr> init(std::shared_ptr<Data> _val);
-
     IRNodeKind getKind() final { return IRNodeKind::SCALAR_VAR_USE; }
 
     void setValue(std::shared_ptr<Expr> _expr) final;
@@ -121,9 +120,6 @@ class IterUseExpr : public VarUseExpr {
   public:
     explicit IterUseExpr(std::shared_ptr<Data> _val) : VarUseExpr(std::move(_val)) {}
     static std::shared_ptr<IterUseExpr> init(std::shared_ptr<Data> _iter);
-
-    std::string getName() { return value->getName(); }
-
     IRNodeKind getKind() final { return IRNodeKind::ITER_USE; }
 
     void setValue(std::shared_ptr<Expr> _expr) final;
@@ -138,6 +134,24 @@ class IterUseExpr : public VarUseExpr {
     static std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<IterUseExpr>> iter_use_set;
 };
 
+class TypeCastExpr : public Expr {
+  public:
+    TypeCastExpr(std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _to_type, bool _is_implicit);
+    IRNodeKind getKind() final { return IRNodeKind::TYPE_CAST; }
+
+    bool propagateType() final { return true; }
+    // We assume that if we cast between compatible types we can't cause UB.
+    EvalResType evaluate(EvalCtx &ctx) final { return value; }
+    EvalResType rebuild(EvalCtx &ctx) final { return value; }
+
+    void emit(std::ostream& stream, std::string offset = "") final;
+
+  private:
+    std::shared_ptr<Expr> expr;
+    std::shared_ptr<Type> to_type;
+    bool is_implicit;
+};
+
 class ArithmeticExpr : public Expr {
   public:
     explicit ArithmeticExpr(std::shared_ptr<Data> value) : Expr(std::move(value)) {}
@@ -147,8 +161,8 @@ class ArithmeticExpr : public Expr {
     // Top-level recursive function for expression tree generation
     // static std::shared_ptr<Expr> gen_level (std::shared_ptr<Context> ctx, std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
 
-    std::shared_ptr<Expr> integral_prom (std::shared_ptr<Expr> arg);
-    std::shared_ptr<Expr> conv_to_bool (std::shared_ptr<Expr> arg);
+    std::shared_ptr<Expr> integralProm(std::shared_ptr<Expr> arg);
+    std::shared_ptr<Expr> convToBool(std::shared_ptr<Expr> arg);
 };
 
 class BinaryExpr : public ArithmeticExpr {
@@ -164,6 +178,8 @@ class BinaryExpr : public ArithmeticExpr {
     void emit(std::ostream& stream, std::string offset = "") final;
 
   private:
+    void arithConv();
+
     BinaryOp op;
     std::shared_ptr<Expr> lhs;
     std::shared_ptr<Expr> rhs;

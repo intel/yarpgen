@@ -79,6 +79,7 @@ enum class IRNodeKind {
     ITER_USE,
     ARRAY_USE,
     SUBSCRIPT,
+    TYPE_CAST,
     ASSIGN,
     UNARY,
     BINARY,
