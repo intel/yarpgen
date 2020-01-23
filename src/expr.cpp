@@ -187,7 +187,109 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
     return std::make_shared<TypeCastExpr>(arg, IntegralType::init(IntTypeID::BOOL), true);
 }
 
+
+bool UnaryExpr::propagateType() {
+    arg->propagateType();
+    switch (op) {
+        case UnaryOp::PLUS:
+        case UnaryOp::NEGATE:
+        case UnaryOp::BIT_NOT:
+            arg = integralProm(arg);
+            break;
+        case UnaryOp::LOG_NOT:
+            arg = convToBool(arg);
+            break;
+        case UnaryOp::MAX_UN_OP:
+            ERROR("Bad unary operator");
+            break;
+    }
+    return true;
+}
+
+Expr::EvalResType UnaryExpr::evaluate(EvalCtx &ctx) {
+    assert(arg->getValue()->getKind() == DataKind::VAR && "Unary operations are supported for Scalar Variables only");
+    auto scalar_arg = std::static_pointer_cast<ScalarVar>(arg->getValue());
+    IRValue new_val;
+    switch (op) {
+        case UnaryOp::PLUS:
+            new_val = +scalar_arg->getCurrentValue();
+            break;
+        case UnaryOp::NEGATE:
+            new_val = -scalar_arg->getCurrentValue();
+            break;
+        case UnaryOp::LOG_NOT:
+            new_val = !scalar_arg->getCurrentValue();
+            break;
+        case UnaryOp::BIT_NOT:
+            new_val = ~scalar_arg->getCurrentValue();
+            break;
+        case UnaryOp::MAX_UN_OP:
+            ERROR("Bad unary operator");
+            break;
+    }
+    assert(scalar_arg->getType()->isIntType() && "Unary operations are supported for Scalar Variables of Integral Types only");
+    auto int_type = std::static_pointer_cast<IntegralType>(scalar_arg->getType());
+    value = std::make_shared<ScalarVar>("", int_type, new_val);
+    return value;
+}
+
+Expr::EvalResType UnaryExpr::rebuild(EvalCtx &ctx) {
+    EvalResType eval_res = evaluate(ctx);
+    assert(eval_res->getKind() == DataKind::VAR && "Unary operations are supported for Scalar Variables of Integral Types only");
+    auto eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
+    if (!eval_scalar_res->getCurrentValue().isUndefined()) {
+        value = eval_res;
+        return value;
+    }
+
+    if (op == UnaryOp::NEGATE) {
+        op = UnaryOp::PLUS;
+    }
+    else {
+        ERROR("Something went wrong, this should be unreachable");
+    }
+
+    do {
+        eval_res = evaluate(ctx);
+        eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
+        if (!eval_scalar_res->getCurrentValue().isUndefined())
+            break;
+        rebuild(ctx);
+    }
+    while (eval_scalar_res->getCurrentValue().isUndefined());
+
+    value = eval_res;
+    return value;
+}
+
+void UnaryExpr::emit(std::ostream &stream, std::string offset) {
+    stream << offset << "(";
+    switch (op) {
+        case UnaryOp::PLUS:
+            stream << "+";
+            break;
+        case UnaryOp::NEGATE:
+            stream << "-";
+            break;
+        case UnaryOp::LOG_NOT:
+            stream << "!";
+            break;
+        case UnaryOp::BIT_NOT:
+            stream << "~";
+            break;
+        case UnaryOp::MAX_UN_OP:
+            ERROR("Bad unary operator");
+            break;
+    }
+    stream << "(";
+    arg->emit(stream);
+    stream << "))";
+}
+
 bool BinaryExpr::propagateType() {
+    lhs->propagateType();
+    rhs->propagateType();
+
     switch(op) {
         case BinaryOp::ADD:
         case BinaryOp::SUB:
@@ -371,9 +473,9 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
             break;
     }
 
-    assert(value->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
-    auto scalar_val = std::static_pointer_cast<ScalarVar>(value);
-    scalar_val->setCurrentValue(new_val);
+    assert(lhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Type");
+    auto res_int_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
+    value = std::make_shared<ScalarVar>("", res_int_type, new_val);
     return value;
 }
 
@@ -466,10 +568,10 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 adjust_val.getValueRef<uint64_t>() = new_val;
                 auto const_val = std::make_shared<ConstantExpr>(adjust_val);
                 if (ub == UBKind::ShiftRhsNeg)
-                    rhs = std::make_shared<BinaryExpr>(rhs, const_val, BinaryOp::ADD);
+                    rhs = std::make_shared<BinaryExpr>(BinaryOp::ADD, rhs, const_val);
                 // UBKind::ShiftRhsLarge
                 else
-                    rhs = std::make_shared<BinaryExpr>(rhs, const_val, BinaryOp::SUB);
+                    rhs = std::make_shared<BinaryExpr>(BinaryOp::SUB, rhs, const_val);
             }
             //UBKind::NegShift
             else {
@@ -477,7 +579,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 assert(lhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Types");
                 auto lhs_int_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
                 auto const_val = std::make_shared<ConstantExpr>(lhs_int_type->getMax());
-                lhs = std::make_shared<BinaryExpr>(lhs, const_val, BinaryOp::ADD);
+                lhs = std::make_shared<BinaryExpr>(BinaryOp::ADD, lhs, const_val);
             }
             break;
             case BinaryOp::LT:
@@ -577,3 +679,4 @@ void BinaryExpr::emit(std::ostream &stream, std::string offset) {
     rhs->emit(stream);
     stream << ")";
 }
+
