@@ -165,9 +165,26 @@ class ArithmeticExpr : public Expr {
     std::shared_ptr<Expr> convToBool(std::shared_ptr<Expr> arg);
 };
 
+
+class UnaryExpr : public ArithmeticExpr {
+  public:
+    UnaryExpr(UnaryOp _op, std::shared_ptr<Expr> _expr) : op(_op), arg(std::move(_expr)) {}
+    IRNodeKind getKind() final { return IRNodeKind::UNARY; }
+
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
+
+    void emit(std::ostream& stream, std::string offset = "") final;
+
+  private:
+    UnaryOp op;
+    std::shared_ptr<Expr> arg;
+};
+
 class BinaryExpr : public ArithmeticExpr {
   public:
-    BinaryExpr (std::shared_ptr<Expr> _lhs, std::shared_ptr<Expr> _rhs, BinaryOp _op) :
+    BinaryExpr (BinaryOp _op, std::shared_ptr<Expr> _lhs, std::shared_ptr<Expr> _rhs) :
         op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {}
     IRNodeKind getKind() final { return IRNodeKind::BINARY; }
 

@@ -86,6 +86,13 @@ enum class IRNodeKind {
     MAX_EXPR_KIND
 };
 
+enum class UnaryOp {
+    PLUS,
+    NEGATE,
+    LOG_NOT,
+    BIT_NOT,
+    MAX_UN_OP
+};
 
 enum class BinaryOp {
     ADD,
