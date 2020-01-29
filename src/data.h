@@ -28,12 +28,16 @@ namespace yarpgen {
 class Data {
   public:
     Data(std::string _name, std::shared_ptr<Type> _type)
-        : name(std::move(_name)), type(std::move(_type)) {}
+        : name(std::move(_name)), type(std::move(_type)), ub_code(UBKind::Uninit) {}
     virtual ~Data() = default;
 
     std::string getName() { return name; }
     void setName(std::string _name) { name = std::move(_name); }
     std::shared_ptr<Type> getType() { return type; }
+
+    UBKind getUBCode() { return ub_code; }
+    void setUBCode(UBKind _ub) { ub_code = _ub; }
+    bool hasUB() { return ub_code != UBKind::NoUB; }
 
     virtual bool isScalarVar() { return false; }
     virtual bool isArray() { return false; }
@@ -46,6 +50,10 @@ class Data {
   protected:
     std::string name;
     std::shared_ptr<Type> type;
+    // It is not enough to have UB code just inside the IRValue.
+    // E.g. if we go out of the array bounds of a multidimensional array,
+    // we can't return IRValue and we need to indicate an error.
+    UBKind ub_code;
 };
 
 // Shorthand to make it simpler
@@ -56,13 +64,13 @@ class ScalarVar : public Data {
     ScalarVar(std::string _name, const std::shared_ptr<IntegralType> &_type,
               IRValue _init_value)
         : Data(std::move(_name), _type), init_val(_init_value),
-          cur_val(_init_value), changed(false) {}
+          cur_val(_init_value), changed(false) { ub_code = init_val.getUBCode(); }
     bool isScalarVar() final { return true; }
     DataKind getKind() final { return DataKind::VAR; }
 
     IRValue getInitValue() { return init_val; }
     IRValue getCurrentValue() { return cur_val; }
-    void setCurrentValue(IRValue _val) { cur_val = _val; changed = true; }
+    void setCurrentValue(IRValue _val) { cur_val = _val; ub_code = cur_val.getUBCode(); changed = true; }
     bool wasChanged() { return changed; }
 
     void dbgDump() final;
@@ -76,9 +84,10 @@ class ScalarVar : public Data {
 class Array : public Data {
   public:
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
-          std::shared_ptr<Data> _vals)
-        : Data(std::move(_name), _type), vals(std::move(_vals)) {}
+          std::shared_ptr<Data> _val, uint64_t _size)
+        : Data(std::move(_name), _type), vals(std::move(_val)) { ub_code = vals->getUBCode(); }
     std::shared_ptr<Data> getValues() { return vals; }
+    void setValue(std::shared_ptr<Data> _val) { vals = std::move(_val); ub_code = vals->getUBCode(); }
 
     bool isArray() final { return true; }
     DataKind getKind() final { return DataKind::ARR; }

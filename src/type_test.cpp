@@ -147,7 +147,9 @@ singleAddTest(IntTypeID type_id) {
     auto distr = std::uniform_int_distribution<T>(
         std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     a.getValueRef<T>() = distr(generator);
+    a.setUBCode(UBKind::NoUB);
     b.getValueRef<T>() = distr(generator);
+    b.setUBCode(UBKind::NoUB);
     IRValue ret = a + b;
     checkBinaryNoUB<T>(ret, a, b, std::plus<T>(), __FUNCTION__);
 }
@@ -161,7 +163,7 @@ singleAddTest(IntTypeID type_id) {
     auto a_distr = std::uniform_int_distribution<T>(
         std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     a.getValueRef<T>() = a_distr(generator);
-
+    a.setUBCode(UBKind::NoUB);
     // Determine if we want to test UB
     auto bool_distr = std::uniform_int_distribution<int>(0, 1);
     auto test_ub = static_cast<bool>(bool_distr(generator));
@@ -197,6 +199,7 @@ singleAddTest(IntTypeID type_id) {
     assert(b_min < b_max);
     auto b_distr = std::uniform_int_distribution<T>(b_min, b_max);
     b.getValueRef<T>() = b_distr(generator);
+    b.setUBCode(UBKind::NoUB);
 
     IRValue ret = a + b;
     if (test_ub)
@@ -215,7 +218,9 @@ singleSubTest(IntTypeID type_id) {
     auto distr = std::uniform_int_distribution<T>(
         std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     a.getValueRef<T>() = distr(generator);
+    a.setUBCode(UBKind::NoUB);
     b.getValueRef<T>() = distr(generator);
+    b.setUBCode(UBKind::NoUB);
     IRValue ret = a - b;
     checkBinaryNoUB<T>(ret, a, b, std::minus<T>(), __FUNCTION__);
 }
@@ -229,6 +234,7 @@ singleSubTest(IntTypeID type_id) {
     auto a_distr = std::uniform_int_distribution<T>(
         std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     a.getValueRef<T>() = a_distr(generator);
+    a.setUBCode(UBKind::NoUB);
 
     // Determine if we want to test UB
     auto bool_distr = std::uniform_int_distribution<int>(0, 1);
@@ -265,6 +271,7 @@ singleSubTest(IntTypeID type_id) {
     assert(b_min < b_max);
     auto b_distr = std::uniform_int_distribution<T>(b_min, b_max);
     b.getValueRef<T>() = b_distr(generator);
+    b.setUBCode(UBKind::NoUB);
 
     IRValue ret = a - b;
     if (test_ub)
@@ -283,7 +290,9 @@ singleMulTest(IntTypeID type_id) {
     auto distr = std::uniform_int_distribution<T>(
         std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     a.getValueRef<T>() = distr(generator);
+    a.setUBCode(UBKind::NoUB);
     b.getValueRef<T>() = distr(generator);
+    b.setUBCode(UBKind::NoUB);
     IRValue ret = a * b;
     checkBinaryNoUB<T>(ret, a, b, std::multiplies<T>(), __FUNCTION__);
 }
@@ -297,6 +306,7 @@ singleMulTest(IntTypeID type_id) {
     auto min_max_distr = std::uniform_int_distribution<T>(
         std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     a.getValueRef<T>() = min_max_distr(generator);
+    a.setUBCode(UBKind::NoUB);
 
     // Determine if we want to test UB
     auto bool_distr = std::uniform_int_distribution<int>(0, 1);
@@ -304,18 +314,21 @@ singleMulTest(IntTypeID type_id) {
 
     if (a.getValueRef<T>() == static_cast<T>(0)) {
         b.getValueRef<T>() = min_max_distr(generator);
+        b.setUBCode(UBKind::NoUB);
         test_ub = false;
     }
     else if (a.getValueRef<T>() ==
              static_cast<T>(-1)) { // Check for special case
         if (test_ub) {
             b.getValueRef<T>() = std::numeric_limits<T>::min();
+            b.setUBCode(UBKind::NoUB);
         }
         else {
             auto distr = std::uniform_int_distribution<T>(
                 std::numeric_limits<T>::min() + 1,
                 std::numeric_limits<T>::max());
             b.getValueRef<T>() = distr(generator);
+            b.setUBCode(UBKind::NoUB);
         }
     }
     else {
@@ -343,9 +356,11 @@ singleMulTest(IntTypeID type_id) {
                         std::numeric_limits<T>::max());
             }
             b.getValueRef<T>() = distr(generator);
+            b.setUBCode(UBKind::NoUB);
         }
         else {
             b.getValueRef<T>() = min_max_distr(generator) / a.getValueRef<T>();
+            b.setUBCode(UBKind::NoUB);
         }
     }
 
@@ -373,16 +388,22 @@ template <typename T> void singleDivModTest(IntTypeID type_id) {
         // Test for special case of overflow
         if (std::is_signed<T>::value && bool_distr(generator)) {
             a.getValueRef<T>() = std::numeric_limits<T>::min();
+            a.setUBCode(UBKind::NoUB);
             b.getValueRef<T>() = -1;
+            b.setUBCode(UBKind::NoUB);
         }
         else {
             a.getValueRef<T>() = distr(generator);
+            a.setUBCode(UBKind::NoUB);
             b.getValueRef<T>() = 0;
+            b.setUBCode(UBKind::NoUB);
         }
     }
     else {
         a.getValueRef<T>() = distr(generator);
+        a.setUBCode(UBKind::NoUB);
         b.getValueRef<T>() = distr(generator);
+        b.setUBCode(UBKind::NoUB);
         if ((std::is_signed<T>::value &&
              a.getValueRef<T>() == std::numeric_limits<T>::min() &&
              b.getValueRef<T>() == static_cast<T>(-1)) ||
@@ -435,10 +456,14 @@ template <typename T> void singleCmpTest(IntTypeID type_id) {
     auto bool_distr = std::uniform_int_distribution<int>(0, 1);
     auto distr = getDistribution<T>();
     a.getValueRef<T>() = static_cast<T>(distr(generator));
+    a.setUBCode(UBKind::NoUB);
     b.getValueRef<T>() = static_cast<T>(distr(generator));
+    b.setUBCode(UBKind::NoUB);
 
-    if (bool_distr(generator))
+    if (bool_distr(generator)) {
         b.getValueRef<T>() = a.getValueRef<T>();
+        b.setUBCode(UBKind::NoUB);
+    }
 
     IRValue ret = a < b;
     checkBinaryNoUB<T>(ret, a, b, std::less<T>(), __FUNCTION__);
@@ -467,7 +492,9 @@ void singleLogicalAndOrTest() {
 
     auto bool_distr = std::uniform_int_distribution<int>(0, 1);
     a.getValueRef<bool>() = static_cast<bool>(bool_distr(generator));
+    a.setUBCode(UBKind::NoUB);
     b.getValueRef<bool>() = static_cast<bool>(bool_distr(generator));
+    b.setUBCode(UBKind::NoUB);
 
     IRValue ret = a && b;
     checkBinaryNoUB<bool>(ret, a, b, std::logical_and<>(), __FUNCTION__);
@@ -484,7 +511,9 @@ template <typename T> void singleBitwiseAndOrXorTest(IntTypeID type_id) {
 
     auto distr = getDistribution<T>();
     a.getValueRef<T>() = static_cast<T>(distr(generator));
+    a.setUBCode(UBKind::NoUB);
     b.getValueRef<T>() = static_cast<T>(distr(generator));
+    b.setUBCode(UBKind::NoUB);
 
     IRValue ret = a & b;
     checkBinaryNoUB<T>(ret, a, b, std::bit_and<T>(), __FUNCTION__);
@@ -517,9 +546,11 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
 
     // Rhs is too large (exceeds size of type)
     a.getValueRef<LT>() = a_distr(generator);
+    a.setUBCode(UBKind::NoUB);
     b_distr = std::uniform_int_distribution<RT>(sizeof(LT) * CHAR_BIT,
                                                 std::numeric_limits<RT>::max());
     b.getValueRef<RT>() = b_distr(generator);
+    b.setUBCode(UBKind::NoUB);
     IRValue ret = a << b;
     check_func(a, b, ret);
     ret = a >> b;
@@ -528,9 +559,11 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     // Rhs is negative
     if (std::is_signed<RT>::value) {
         a.getValueRef<LT>() = a_distr(generator);
+        a.setUBCode(UBKind::NoUB);
         b_distr = std::uniform_int_distribution<RT>(
             std::numeric_limits<RT>::min(), -1);
         b.getValueRef<RT>() = b_distr(generator);
+        b.setUBCode(UBKind::NoUB);
         ret = a << b;
         check_func(a, b, ret);
         ret = a >> b;
@@ -540,9 +573,11 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     // Lhs is negative
     if (std::is_signed<LT>::value) {
         b.getValueRef<RT>() = a_distr(generator);
+        b.setUBCode(UBKind::NoUB);
         a_distr = std::uniform_int_distribution<LT>(
             std::numeric_limits<LT>::min(), -1);
         a.getValueRef<LT>() = a_distr(generator);
+        a.setUBCode(UBKind::NoUB);
         ret = a << b;
         check_func(a, b, ret);
         ret = a >> b;
@@ -554,10 +589,12 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     // representation)
     if (std::is_signed<LT>::value) {
         a.getValueRef<LT>() = a_distr(generator);
+        a.setUBCode(UBKind::NoUB);
         size_t max_avail_shft = lhs_bit_size - findMSB(a.getValueRef<LT>());
         b_distr = std::uniform_int_distribution<RT>(
             static_cast<RT>(max_avail_shft), std::numeric_limits<RT>::max());
         b.getValueRef<RT>() = b_distr(generator);
+        b.setUBCode(UBKind::NoUB);
         ret = a << b;
         check_func(a, b, ret);
     }
@@ -566,9 +603,11 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     a_distr =
         std::uniform_int_distribution<LT>(0, std::numeric_limits<LT>::max());
     a.getValueRef<LT>() = a_distr(generator);
+    a.setUBCode(UBKind::NoUB);
     RT b_max = static_cast<RT>(lhs_bit_size) - 1;
     b_distr = std::uniform_int_distribution<RT>(0, b_max);
     b.getValueRef<RT>() = b_distr(generator);
+    b.setUBCode(UBKind::NoUB);
     ret = a >> b;
     if (ret.getUBCode() != UBKind::NoUB ||
         ret.getValueRef<LT>() != (a.getValueRef<LT>() >> b.getValueRef<RT>())) {
@@ -581,6 +620,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
         b_max = lhs_bit_size - findMSB(a.getValueRef<LT>());
     b_distr = std::uniform_int_distribution<RT>(0, b_max);
     b.getValueRef<RT>() = b_distr(generator);
+    b.setUBCode(UBKind::NoUB);
 
     ret = a << b;
     if (ret.getUBCode() != UBKind::NoUB ||
@@ -598,6 +638,7 @@ template <typename T> void singlePlusBitwiseNegateTest(IntTypeID type_id) {
 
     auto distr = getDistribution<T>();
     a.getValueRef<T>() = static_cast<T>(distr(generator));
+    a.setUBCode(UBKind::NoUB);
 
     IRValue ret = +a;
     auto check_plus_func = [](T &a) -> T { return +a; };
@@ -615,13 +656,18 @@ template <typename T> void singleMinusTest(IntTypeID type_id) {
     auto bool_distr = getDistribution<bool>();
     auto distr = getDistribution<T>();
     a.getValueRef<T>() = static_cast<T>(distr(generator));
+    a.setUBCode(UBKind::NoUB);
 
     auto test_ub = std::is_signed<T>::value && bool_distr(generator);
 
-    if (test_ub)
+    if (test_ub) {
         a.getValueRef<T>() = std::numeric_limits<T>::min();
-    else
+        a.setUBCode(UBKind::NoUB);
+    }
+    else {
         a.getValueRef<T>() = static_cast<T>(distr(generator));
+        a.setUBCode(UBKind::NoUB);
+    }
 
     IRValue ret = -a;
 
@@ -638,6 +684,7 @@ void singleLogicalNegateTest() {
 
     auto distr = getDistribution<bool>();
     a.getValueRef<bool>() = static_cast<bool>(distr(generator));
+    a.setUBCode(UBKind::NoUB);
 
     IRValue ret = !a;
     checkUnaryNoUB<bool>(ret, a, std::logical_not<>(), __FUNCTION__);
@@ -650,6 +697,7 @@ void singleCastTest(IntTypeID to_type_id, IntTypeID from_type_id) {
     IRValue a(from_type_id);
     auto distr = getDistribution<OT>();
     a.getValueRef<OT>() = distr(generator);
+    a.setUBCode(UBKind::NoUB);
 
     IRValue res = a.castToType(to_type_id);
     if (res.getUBCode() != UBKind::NoUB ||

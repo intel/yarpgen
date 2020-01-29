@@ -53,8 +53,7 @@ class IRValue {
     IntTypeID getIntTypeID() { return type_id; }
     UBKind getUBCode() { return ub_code; }
     void setUBCode(UBKind _ub_code) { ub_code = _ub_code; }
-    void setIsUndefined(bool _undef) { undefined = _undef; }
-    bool isUndefined() { return undefined; }
+    bool hasUB() { return ub_code != UBKind::NoUB; }
 
     // TODO: we need to add prefix and postfix operators
     IRValue operator+();
@@ -85,10 +84,16 @@ class IRValue {
 
     friend std::ostream& operator<<(std::ostream &out, IRValue &val);
 
+    struct AbsValue {
+        bool isNegative;
+        uint64_t value;
+    };
+    AbsValue getAbsValue();
+    void setValue(AbsValue val);
+
   private:
     IntTypeID type_id;
     Value value;
-    bool undefined;
     UBKind ub_code;
 };
 

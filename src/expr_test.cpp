@@ -23,13 +23,11 @@ using namespace yarpgen;
 
 int main() {
     IRValue start_val (IntTypeID::INT);
-    start_val.getValueRef<int32_t>() = 0;
-    start_val.setIsUndefined(false);
+    start_val.setValue({false, 0});
     auto start_expr = std::make_shared<ConstantExpr>(start_val);
 
    IRValue end_val (IntTypeID::INT);
-   end_val.getValueRef<int32_t>() = 0;
-   end_val.setIsUndefined(false);
+   end_val.setValue({false, 0});
    auto end_expr = std::make_shared<ConstantExpr>(end_val);
 
 

@@ -18,6 +18,8 @@ limitations under the License.
 
 #include "data.h"
 
+#include <utility>
+
 void yarpgen::ScalarVar::dbgDump() {
     std::cout << "Scalar var: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
