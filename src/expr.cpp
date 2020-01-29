@@ -24,6 +24,7 @@ limitations under the License.
 using namespace yarpgen;
 
 std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ScalarVarUseExpr>> yarpgen::ScalarVarUseExpr::scalar_var_use_set;
+std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ArrayUseExpr>> yarpgen::ArrayUseExpr::array_use_set;
 std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<IterUseExpr>> yarpgen::IterUseExpr::iter_use_set;
 
 std::shared_ptr<Data> Expr::getValue() {
@@ -59,7 +60,7 @@ void ConstantExpr::emit(std::ostream& stream, std::string offset) {
     // INT_MIN is defined as -INT_MAX - 1, so we have to do the same
     IRValue one(val.getIntTypeID());
     //TODO: this is not an appropriate way to do it
-    one.getValueRef<uint64_t>() = 1;
+    one.setValue(IRValue::AbsValue {false, 1});
     IRValue min_one_val = min_val + one;
     stream << "(" << min_one_val << " - " << one << ")";
 }
@@ -94,6 +95,42 @@ Expr::EvalResType ScalarVarUseExpr::evaluate(EvalCtx &ctx) {
 }
 
 Expr::EvalResType ScalarVarUseExpr::rebuild(EvalCtx &ctx) {
+    return evaluate(ctx);
+}
+
+std::shared_ptr<ArrayUseExpr> ArrayUseExpr::init(std::shared_ptr<Data> _val) {
+    assert(_val->isArray() && "ArrayUseExpr can be initialized only with Arrays");
+    auto find_res = array_use_set.find(_val);
+    if (find_res != array_use_set.end())
+        return find_res->second;
+
+    auto ret = std::make_shared<ArrayUseExpr>(_val);
+    array_use_set[_val] = ret;
+    return ret;
+}
+
+void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr) {
+    std::shared_ptr<Data> new_val = _expr->getValue();
+    assert(new_val->isArray() && "ArrayUseExpr can store only Arrays");
+    auto new_array = std::static_pointer_cast<Array>(new_val);
+    if (value->getType() != new_array->getType()) {
+        ERROR("Can't assign incompatible types");
+    }
+    auto arr_val = std::static_pointer_cast<Array>(value);
+    arr_val->setValue(new_val);
+}
+
+Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
+    // This Array is defined and we can just return it.
+    auto find_res = ctx.input.find(value->getName());
+    if (find_res != ctx.input.end()) {
+        return find_res->second;
+    }
+
+    return value;
+}
+
+Expr::EvalResType ArrayUseExpr::rebuild(EvalCtx &ctx) {
     return evaluate(ctx);
 }
 
@@ -157,7 +194,7 @@ TypeCastExpr::TypeCastExpr(std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _t
 
 void TypeCastExpr::emit(std::ostream &stream, std::string offset) {
     //TODO: add switch for C++ style conversions and switch for implicit casts
-    stream << "((" << to_type->getName() << ") ";
+    stream << "((" << (is_implicit ? "/* implicit */" : "") << to_type->getName() << ") ";
     expr->emit(stream);
     stream << ")";
 }
@@ -237,7 +274,7 @@ Expr::EvalResType UnaryExpr::rebuild(EvalCtx &ctx) {
     EvalResType eval_res = evaluate(ctx);
     assert(eval_res->getKind() == DataKind::VAR && "Unary operations are supported for Scalar Variables of Integral Types only");
     auto eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
-    if (!eval_scalar_res->getCurrentValue().isUndefined()) {
+    if (!eval_scalar_res->getCurrentValue().hasUB()) {
         value = eval_res;
         return value;
     }
@@ -252,11 +289,11 @@ Expr::EvalResType UnaryExpr::rebuild(EvalCtx &ctx) {
     do {
         eval_res = evaluate(ctx);
         eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
-        if (!eval_scalar_res->getCurrentValue().isUndefined())
+        if (!eval_scalar_res->getCurrentValue().hasUB())
             break;
         rebuild(ctx);
     }
-    while (eval_scalar_res->getCurrentValue().isUndefined());
+    while (eval_scalar_res->getCurrentValue().hasUB());
 
     value = eval_res;
     return value;
@@ -484,7 +521,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
     assert(eval_res->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
 
     auto eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
-    if (!eval_scalar_res->getCurrentValue().isUndefined()) {
+    if (!eval_scalar_res->getCurrentValue().hasUB()) {
         value = eval_res;
         return eval_res;
     }
@@ -508,33 +545,6 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
         case BinaryOp::SHR:
         case BinaryOp::SHL:
             if (ub == UBKind::ShiftRhsLarge || ub == UBKind::ShiftRhsNeg) {
-                // Auxiliary function
-                auto abs_value = [] (IRValue val) -> uint64_t {
-                    switch (val.getIntTypeID()) {
-                        case IntTypeID::BOOL:
-                            return val.getValueRef<bool>();
-                        case IntTypeID::SCHAR:
-                            return std::abs(val.getValueRef<signed char>());
-                        case IntTypeID::UCHAR:
-                            return val.getValueRef<unsigned char>();
-                        case IntTypeID::SHORT:
-                            return std::abs(val.getValueRef<short>());
-                        case IntTypeID::USHORT:
-                            return val.getValueRef<unsigned short>();
-                        case IntTypeID::INT:
-                            return std::abs(val.getValueRef<int>());
-                        case IntTypeID::UINT:
-                            return val.getValueRef<unsigned int>();
-                        case IntTypeID::LLONG:
-                            return std::abs(val.getValueRef<long long int>());
-                        case IntTypeID::ULLONG:
-                            return val.getValueRef<unsigned long long int>();
-                        case IntTypeID::MAX_INT_TYPE_ID:
-                            ERROR("Bad Integral Type code");
-                            break;
-                    }
-                };
-
                 // First of all, we need to find the maximal valid shift value
                 assert(lhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Types");
                 auto lhs_int_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
@@ -543,8 +553,10 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 // We can't shift pass the type size
                 uint64_t max_sht_val = lhs_int_type->getBitSize();
                 // And we can't shift MSB pass the type size
-                if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() && ub == UBKind::ShiftRhsLarge)
-                    max_sht_val -= findMSB(abs_value(lhs_scalar_var->getCurrentValue()));
+                if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() && ub == UBKind::ShiftRhsLarge) {
+                    IRValue::AbsValue lhs_abs_val = lhs_scalar_var->getCurrentValue().getAbsValue();
+                    max_sht_val -= findMSB(lhs_abs_val.value);
+                }
 
                 // Secondly, we choose a new shift value in a valid range
                 uint64_t new_val = rand_val_gen->getRandValue(0UL, max_sht_val);
@@ -554,18 +566,18 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 auto rhs_int_type = std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
                 assert(rhs->getValue()->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
                 auto rhs_scalar_var = std::static_pointer_cast<ScalarVar>(rhs->getValue());
+                IRValue::AbsValue rhs_abs_val = rhs_scalar_var->getCurrentValue().getAbsValue();
                 if (ub == UBKind::ShiftRhsNeg)
-                    //TODO: it won't work for INT_MIN
-                    new_val = std::min(new_val + abs_value(rhs_scalar_var->getCurrentValue()),
-                                       static_cast<uint64_t>(rhs_int_type->getBitSize()));
+                    // TODO: it won't work for INT_MIN
+                    new_val = std::min(new_val + rhs_abs_val.value, static_cast<uint64_t>(rhs_int_type->getBitSize()));
                 // UBKind::ShiftRhsLarge
                 else
-                    new_val = abs_value(rhs_scalar_var->getCurrentValue()) - new_val;
+                    new_val = rhs_abs_val.value - new_val;
+
 
                 // Finally, we need to make changes to the program
                 IRValue adjust_val = IRValue(rhs_int_type->getIntTypeId());
-                //TODO: We need to check that it actually works as intended
-                adjust_val.getValueRef<uint64_t>() = new_val;
+                adjust_val.setValue(IRValue::AbsValue {false, new_val});
                 auto const_val = std::make_shared<ConstantExpr>(adjust_val);
                 if (ub == UBKind::ShiftRhsNeg)
                     rhs = std::make_shared<BinaryExpr>(BinaryOp::ADD, rhs, const_val);
@@ -602,11 +614,11 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
     do {
         eval_res = evaluate(ctx);
         eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
-        if (!eval_scalar_res->getCurrentValue().isUndefined())
+        if (!eval_scalar_res->getCurrentValue().hasUB())
             break;
         rebuild(ctx);
     }
-    while (eval_scalar_res->getCurrentValue().isUndefined());
+    while (eval_scalar_res->getCurrentValue().hasUB());
 
     value = eval_res;
     return eval_res;
@@ -680,3 +692,146 @@ void BinaryExpr::emit(std::ostream &stream, std::string offset) {
     stream << ")";
 }
 
+bool SubscriptExpr::propagateType() {
+    array->propagateType();
+    idx->propagateType();
+    return true;
+}
+
+bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
+                             EvalCtx &ctx) {
+    if (idx_val->isScalarVar()) {
+        auto scalar_var = std::static_pointer_cast<ScalarVar>(idx_val);
+        IRValue idx_scalar_val = scalar_var->getCurrentValue();
+        idx_int_type_id = idx_scalar_val.getIntTypeID();
+        IRValue zero(idx_scalar_val.getIntTypeID());
+        zero.setValue({false, 0});
+        IRValue size(idx_scalar_val.getIntTypeID());
+        size.setValue({false, dim});
+        return (zero <= idx_scalar_val).getValueRef<bool>() &&
+               (idx_scalar_val <= size).getValueRef<bool>();
+    }
+    else if (idx_val->isIterator()) {
+        auto iter_var = std::static_pointer_cast<Iterator>(idx_val);
+        return inBounds(dim, iter_var->getStart()->evaluate(ctx), ctx) &&
+               inBounds(dim, iter_var->getEnd()->evaluate(ctx), ctx);
+    }
+    else {
+        ERROR("We can use only Scalar Variables or Iterator as index");
+    }
+    return false;
+}
+
+Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
+    propagateType();
+
+    EvalResType array_eval_res = array->evaluate(ctx);
+    if (!array_eval_res->getType()->isArrayType()) {
+        ERROR("Subscription operation is supported only for Array");
+    }
+    auto array_type = std::static_pointer_cast<ArrayType>(array_eval_res->getType());
+
+    IRNodeKind base_expr_kind = array->getKind();
+    if (base_expr_kind == IRNodeKind::ARRAY_USE)
+        active_dim = 0;
+    else if (base_expr_kind == IRNodeKind::SUBSCRIPT) {
+        auto base_expr = std::static_pointer_cast<SubscriptExpr>(array);
+        active_dim = base_expr->getActiveDim() + 1;
+    }
+    else
+        ERROR("Bad base expression for Subscription operation");
+
+    active_size = array_type->getDimensions().at(active_dim);
+    UBKind ub_code = UBKind::NoUB;
+
+    EvalResType idx_eval_res = idx->evaluate(ctx);
+    if (!inBounds(active_size, idx_eval_res, ctx))
+        ub_code = UBKind::OutOfBounds;
+
+    if (active_dim < array_type->getDimensions().size())
+        value = array_eval_res;
+    else {
+        auto array_val = std::static_pointer_cast<Array>(array_eval_res);
+        value = array_val->getValues();
+    }
+
+    value->setUBCode(ub_code);
+
+    return value;
+}
+
+Expr::EvalResType SubscriptExpr::rebuild(EvalCtx &ctx) {
+    EvalResType eval_res = evaluate(ctx);
+    if (!eval_res->hasUB())
+        return eval_res;
+
+    assert(eval_res->getUBCode() == UBKind::OutOfBounds && "Every other UB should be handled before");
+
+    IRValue active_size_val (idx_int_type_id);
+    active_size_val.setValue({false, active_size});
+    auto size_constant = std::make_shared<ConstantExpr>(active_size_val);
+    idx = std::make_shared<BinaryExpr>(BinaryOp::MOD, idx, size_constant);
+
+    eval_res = evaluate(ctx);
+    assert(eval_res->hasUB() && "All of the UB should be fixed by now");
+    value = eval_res;
+    return eval_res;
+}
+
+void SubscriptExpr::emit(std::ostream &stream, std::string offset) {
+    stream << offset;
+    //TODO: it may cause some problems in the future
+    array->emit(stream);
+    stream << " [";
+    idx->emit(stream);
+    stream << "]";
+}
+
+bool AssignmentExpr::propagateType() {
+    to->propagateType();
+    from->propagateType();
+    //We need to cast the type of the expression, but we can't always do it here.
+    // The problem is that the type of the Subscript Expression is unknown utill we evaluate it.
+    return true;
+}
+
+Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
+    propagateType();
+    EvalResType to_eval_res = to->evaluate(ctx);
+    //TODO: we don't need to always do it
+    from = std::make_shared<TypeCastExpr>(from, to_eval_res->getType(), /*is_implicit*/ true);
+    EvalResType from_eval_res = from->evaluate(ctx);
+    if (to_eval_res->getKind() != from_eval_res->getKind())
+        ERROR("We can't assign incompatible data types");
+
+    if (!taken)
+        return from_eval_res;
+
+    if (to->getKind() == IRNodeKind::SCALAR_VAR_USE) {
+        auto to_scalar = std::static_pointer_cast<ScalarVarUseExpr>(to);
+        to_scalar->setValue(from);
+    }
+    else if (to->getKind() == IRNodeKind::ITER_USE) {
+        auto to_iter = std::static_pointer_cast<IterUseExpr>(to);
+        to_iter->setValue(from);
+    }
+    else if (to->getKind() == IRNodeKind::ARRAY_USE) {
+        auto to_array = std::static_pointer_cast<ArrayUseExpr>(to);
+        to_array->setValue(from);
+    }
+    else
+        ERROR("Bad IRNodeKind");
+
+    return from_eval_res;
+}
+
+Expr::EvalResType AssignmentExpr::rebuild(EvalCtx &ctx) {
+    return evaluate(ctx);
+}
+
+void AssignmentExpr::emit(std::ostream &stream, std::string offset) {
+    stream << offset;
+    to->emit(stream);
+    stream << " = ";
+    from->emit(stream);
+}

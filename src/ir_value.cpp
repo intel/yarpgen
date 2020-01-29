@@ -22,13 +22,13 @@ limitations under the License.
 using namespace yarpgen;
 
 IRValue::IRValue()
-    : type_id(IntTypeID::MAX_INT_TYPE_ID), undefined(true),
-      ub_code(UBKind::NoUB) {
+    : type_id(IntTypeID::MAX_INT_TYPE_ID),
+      ub_code(UBKind::Uninit) {
     value.ullong_val = 0;
 }
 
 IRValue::IRValue(IntTypeID _type_id)
-    : type_id(_type_id), undefined(true), ub_code(UBKind::NoUB) {
+    : type_id(_type_id), ub_code(UBKind::Uninit) {
     value.ullong_val = 0;
 }
 
@@ -53,11 +53,15 @@ IRValue IRValue::operator+() { return {*this}; }
 //////////////////////////////////////////////////////////////////////////////
 template <typename T> static IRValue minusOperator(IRValue &operand) {
     IRValue ret(operand.getIntTypeID());
+    if (operand.hasUB())
+        return ret;
     if (std::is_signed<T>::value &&
         operand.getValueRef<T>() == std::numeric_limits<T>::min())
         ret.setUBCode(UBKind::SignOvf);
-    else
+    else {
         ret.getValueRef<T>() = -operand.getValueRef<T>();
+        ret.setUBCode(UBKind::NoUB);
+    }
     return ret;
 }
 
@@ -69,7 +73,10 @@ static IRValue logicalNegationOperator(IRValue &operand) {
     assert(operand.getIntTypeID() == IntTypeID::BOOL &&
            "Logical negation is defined only for boolean type!");
     IRValue ret(operand.getIntTypeID());
+    if (operand.hasUB())
+        return ret;
     ret.getValueRef<bool>() = !operand.getValueRef<bool>();
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -79,7 +86,10 @@ IRValue IRValue::operator!() { return logicalNegationOperator(*this); }
 
 template <typename T> static IRValue bitwiseNegationOperator(IRValue &operand) {
     IRValue ret(operand.getIntTypeID());
+    if (operand.hasUB())
+        return ret;
     ret.getValueRef<T>() = ~operand.getValueRef<T>();
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -94,9 +104,10 @@ addOperator(IRValue &lhs, IRValue &rhs) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     ret.getValueRef<T>() = lhs.getValueRef<T>() + rhs.getValueRef<T>();
-    assert(ret.getUBCode() == UBKind::NoUB &&
-           "Addition of two unsigned values can't cause UB");
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -107,6 +118,8 @@ addOperator(IRValue &lhs, IRValue &rhs) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     using unsigned_T = typename std::make_unsigned<T>::type;
     auto ua = static_cast<unsigned_T>(lhs.getValueRef<T>());
     auto ub = static_cast<unsigned_T>(rhs.getValueRef<T>());
@@ -114,8 +127,10 @@ addOperator(IRValue &lhs, IRValue &rhs) {
     ua = (ua >> std::numeric_limits<T>::digits) + std::numeric_limits<T>::max();
     if (static_cast<T>((ua ^ ub) | ~(ub ^ u_tmp)) >= 0)
         ret.setUBCode(UBKind::SignOvf);
-    else
+    else {
         ret.getValueRef<T>() = lhs.getValueRef<T>() + rhs.getValueRef<T>();
+        ret.setUBCode(UBKind::NoUB);
+    }
     return ret;
 }
 
@@ -130,9 +145,10 @@ subOperator(IRValue &lhs, IRValue &rhs) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     ret.getValueRef<T>() = lhs.getValueRef<T>() - rhs.getValueRef<T>();
-    assert(ret.getUBCode() == UBKind::NoUB &&
-           "Subtraction of two unsigned values can't cause UB");
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -143,6 +159,8 @@ subOperator(IRValue &lhs, IRValue &rhs) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     using unsigned_T = typename std::make_unsigned<T>::type;
     auto ua = static_cast<unsigned_T>(lhs.getValueRef<T>());
     auto ub = static_cast<unsigned_T>(rhs.getValueRef<T>());
@@ -150,8 +168,10 @@ subOperator(IRValue &lhs, IRValue &rhs) {
     ua = (ua >> std::numeric_limits<T>::digits) + std::numeric_limits<T>::max();
     if (static_cast<T>((ua ^ ub) & (ua ^ u_tmp)) < 0)
         ret.setUBCode(UBKind::SignOvf);
-    else
+    else {
         ret.getValueRef<T>() = static_cast<T>(u_tmp);
+        ret.setUBCode(UBKind::NoUB);
+    }
     return ret;
 }
 
@@ -209,12 +229,13 @@ mulOperator(IRValue &lhs, IRValue &rhs) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     // GCC doesn't like bool * bool. This function should be never called with T
     // = bool, so we need this kludge to suppress warning
     auto foo = std::multiplies<T>();
     ret.getValueRef<T>() = foo(lhs.getValueRef<T>(), rhs.getValueRef<T>());
-    assert(ret.getUBCode() == UBKind::NoUB &&
-           "Multiplication of two unsigned values can't cause UB");
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -225,6 +246,8 @@ mulOperator(IRValue &lhs, IRValue &rhs) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
 
     auto special_check = [](IRValue &a, IRValue &b) -> bool {
         return (a.getValueRef<T>() == std::numeric_limits<T>::min() &&
@@ -237,6 +260,8 @@ mulOperator(IRValue &lhs, IRValue &rhs) {
         ret.setUBCode(UBKind::SignOvfMin);
     else if (!checkMulIsOk<T>(lhs.getValueRef<T>(), rhs.getValueRef<T>(), ret))
         ret.setUBCode(UBKind::SignOvf);
+    else
+        ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -251,10 +276,14 @@ divModImpl(IRValue &lhs, IRValue &rhs, std::function<T(T &, T &)> op) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     if (rhs.getValueRef<T>() == 0)
         ret.setUBCode(UBKind::ZeroDiv);
-    else
+    else {
         ret.getValueRef<T>() = op(lhs.getValueRef<T>(), rhs.getValueRef<T>());
+        ret.setUBCode(UBKind::NoUB);
+    }
     return ret;
 }
 
@@ -265,6 +294,8 @@ divModImpl(IRValue &lhs, IRValue &rhs, std::function<T(T &, T &)> op) {
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
 
     auto special_check = [](IRValue &a, IRValue &b) -> bool {
         return (a.getValueRef<T>() == std::numeric_limits<T>::min() &&
@@ -277,8 +308,10 @@ divModImpl(IRValue &lhs, IRValue &rhs, std::function<T(T &, T &)> op) {
         ret.setUBCode(UBKind::ZeroDiv);
     else if (special_check(lhs, rhs) || special_check(rhs, lhs))
         ret.setUBCode(UBKind::SignOvf);
-    else
+    else {
         ret.getValueRef<T>() = op(lhs.getValueRef<T>(), rhs.getValueRef<T>());
+        ret.setUBCode(UBKind::NoUB);
+    }
     return ret;
 }
 
@@ -303,7 +336,10 @@ static IRValue cmpEqImpl(IRValue &lhs, IRValue &rhs,
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(IntTypeID::BOOL);
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     ret.getValueRef<bool>() = op(lhs.getValueRef<T>(), rhs.getValueRef<T>());
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -365,8 +401,11 @@ static IRValue logicalAndOrImpl(IRValue &lhs, IRValue &rhs,
         ERROR("Logical And/Or expressions are defined only for bool values");
 
     IRValue ret(IntTypeID::BOOL);
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     ret.getValueRef<bool>() =
         op(lhs.getValueRef<bool>(), rhs.getValueRef<bool>());
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -395,7 +434,10 @@ static IRValue bitwiseAndOrXorImpl(IRValue &lhs, IRValue &rhs,
         ERROR("Can perform operation only on IRValues with the same IntTypeID");
 
     IRValue ret(rhs.getIntTypeID());
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
     ret.getValueRef<T>() = op(lhs.getValueRef<T>(), rhs.getValueRef<T>());
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -450,7 +492,10 @@ template <typename T, typename U>
 static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
     IRValue ret = shiftOperatorCommonChecks<T, U>(lhs, rhs);
 
-    if (ret.getUBCode() != UBKind::NoUB)
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
+
+    if (ret.getUBCode() == UBKind::ShiftRhsNeg || ret.getUBCode() == UBKind::ShiftRhsLarge)
         return ret;
 
     if (std::is_signed<T>::value && lhs.getValueRef<T>() < 0) {
@@ -470,6 +515,7 @@ static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
     assert(ret.getUBCode() == UBKind::NoUB &&
            "Ret can't has an UB. All of the cases should be handled earlier.");
     ret.getValueRef<T>() = lhs.getValueRef<T>() << rhs.getValueRef<U>();
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -480,8 +526,10 @@ IRValue IRValue::operator<<(IRValue &rhs) {
 template <typename T, typename U>
 static IRValue rightShiftOperator(IRValue &lhs, IRValue &rhs) {
     IRValue ret = shiftOperatorCommonChecks<T, U>(lhs, rhs);
+    if (lhs.hasUB() || rhs.hasUB())
+        return ret;
 
-    if (ret.getUBCode() != UBKind::NoUB)
+    if (ret.getUBCode() == UBKind::ShiftRhsNeg || ret.getUBCode() == UBKind::ShiftRhsLarge)
         return ret;
 
     if (std::is_signed<T>::value && lhs.getValueRef<T>() < 0) {
@@ -493,6 +541,7 @@ static IRValue rightShiftOperator(IRValue &lhs, IRValue &rhs) {
     assert(ret.getUBCode() == UBKind::NoUB &&
            "Ret can't has an UB. All of the cases should be handled earlier.");
     ret.getValueRef<T>() = lhs.getValueRef<T>() >> rhs.getValueRef<U>();
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -503,7 +552,10 @@ IRValue IRValue::operator>>(IRValue &rhs) {
 template <typename NT, typename OT>
 static IRValue castOperatorImpl(IntTypeID to_type_id, IRValue &from) {
     IRValue ret(to_type_id);
+    if (from.hasUB())
+        return ret;
     ret.getValueRef<NT>() = static_cast<NT>(from.getValueRef<OT>());
+    ret.setUBCode(UBKind::NoUB);
     return ret;
 }
 
@@ -528,4 +580,84 @@ std::ostream &yarpgen::operator<<(std::ostream &out, yarpgen::IRValue &val) {
             ERROR("Bad IntTypeID");
     }
     return out;
+}
+
+
+IRValue::AbsValue IRValue::getAbsValue() {
+    AbsValue ret {false, 0};
+    //TODO: function can be called on value wich is undefined and we need somehow to pass this information
+    switch (type_id) {
+        //TODO: use defines to make it shorter
+        case IntTypeID::BOOL:
+            ret.value = value.bool_val;
+            break;
+        case IntTypeID::SCHAR:
+            ret.isNegative = value.schar_val < 0;
+            ret.value = value.schar_val;
+            break;
+        case IntTypeID::UCHAR:
+            ret.isNegative = value.uchar_val < 0;
+            break;
+        case IntTypeID::SHORT:
+            ret.isNegative = value.shrt_val < 0;
+            ret.value = value.schar_val;
+            break;
+        case IntTypeID::USHORT:
+            ret.isNegative = value.ushrt_val < 0;
+            break;
+        case IntTypeID::INT:
+            ret.isNegative = value.int_val < 0;
+            ret.value = value.int_val;
+            break;
+        case IntTypeID::UINT:
+            ret.isNegative = value.uint_val < 0;
+            break;
+        case IntTypeID::LLONG:
+            ret.isNegative = value.llong_val < 0;
+            ret.value = value.ullong_val;
+            break;
+        case IntTypeID::ULLONG:
+            ret.isNegative = value.ullong_val < 0;
+            break;
+        case IntTypeID::MAX_INT_TYPE_ID:
+            ERROR("Bad IntTypeID");
+            break;
+    }
+    return ret;
+}
+
+void IRValue::setValue(IRValue::AbsValue val) {
+    switch (type_id) {
+        case IntTypeID::BOOL:
+            value.bool_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::SCHAR:
+            value.schar_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::UCHAR:
+            value.uchar_val = val.value * (val.isNegative ? -1 : 1);
+        break;
+        case IntTypeID::SHORT:
+            value.schar_val = val.value * (val.isNegative ? -1 : 1);
+        break;
+        case IntTypeID::USHORT:
+            value.ushrt_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::INT:
+            value.int_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::UINT:
+            value.uint_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::LLONG:
+            value.ullong_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::ULLONG:
+            value.ullong_val = val.value * (val.isNegative ? -1 : 1);
+            break;
+        case IntTypeID::MAX_INT_TYPE_ID:
+            ERROR("Bad IntTypeID");
+            break;
+    }
+    ub_code = UBKind::NoUB;
 }

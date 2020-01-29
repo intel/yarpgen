@@ -50,6 +50,7 @@ enum class CVQualifier {
 // TODO: do we want to allow implementation-defined behaviour?
 enum class UBKind {
     NoUB,
+    Uninit,        // Uninitialized
     // NullPtr,       // nullptr ptr dereference
     SignOvf,       // Signed overflow
     SignOvfMin,    // Special case of signed overflow: INT_MIN * (-1)
@@ -58,6 +59,7 @@ enum class UBKind {
     ShiftRhsLarge, // Shift by large value
     NegShift,      // Shift of negative value
     NoMemeber,     // Can't find member of structure
+    OutOfBounds,   // Access out of the bounds
     MaxUB
 };
 

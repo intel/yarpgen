@@ -116,6 +116,24 @@ class ScalarVarUseExpr : public VarUseExpr {
     static std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ScalarVarUseExpr>> scalar_var_use_set;
 };
 
+class ArrayUseExpr : public VarUseExpr {
+  public:
+    explicit ArrayUseExpr(std::shared_ptr<Data> _val) : VarUseExpr(std::move(_val)) {}
+    static std::shared_ptr<ArrayUseExpr> init(std::shared_ptr<Data> _val);
+    IRNodeKind getKind() final { return IRNodeKind::ARRAY_USE; }
+
+    void setValue(std::shared_ptr<Expr> _expr) final;
+
+    bool propagateType() final { return true; }
+    EvalResType evaluate(EvalCtx& ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
+
+    void emit(std::ostream& stream, std::string offset = "") final { stream << offset << value->getName(); };
+
+  private:
+    static std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ArrayUseExpr>> array_use_set;
+};
+
 class IterUseExpr : public VarUseExpr {
   public:
     explicit IterUseExpr(std::shared_ptr<Data> _val) : VarUseExpr(std::move(_val)) {}
@@ -201,4 +219,48 @@ class BinaryExpr : public ArithmeticExpr {
     std::shared_ptr<Expr> lhs;
     std::shared_ptr<Expr> rhs;
 };
+
+class SubscriptExpr : public Expr {
+  public:
+    SubscriptExpr(std::shared_ptr<Expr> _arr, std::shared_ptr<Expr> _idx) :
+        array(std::move(_arr)), idx(std::move(_idx)), active_dim(0), active_size(-1), idx_int_type_id(IntTypeID::MAX_INT_TYPE_ID) {}
+    IRNodeKind getKind() final { return IRNodeKind::SUBSCRIPT; }
+
+    size_t getActiveDim() { return active_dim; }
+
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
+
+    void emit(std::ostream& stream, std::string offset = "") final;
+
+  private:
+    bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);
+
+    std::shared_ptr<Expr> array;
+    std::shared_ptr<Expr> idx;
+    size_t active_dim;
+    // Auxiliary fields that prevents double computation
+    size_t active_size;
+    IntTypeID idx_int_type_id;
+};
+
+class AssignmentExpr : public Expr {
+  public:
+    AssignmentExpr(std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from, bool _taken = true) :
+        to(std::move(_to)), from(std::move(_from)), taken(_taken) {}
+    IRNodeKind getKind() final { return IRNodeKind::ASSIGN; }
+
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
+
+    void emit(std::ostream& stream, std::string offset = "") final;
+
+  private:
+    std::shared_ptr<Expr> to;
+    std::shared_ptr<Expr> from;
+    bool taken;
+};
+
 }
