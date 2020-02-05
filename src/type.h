@@ -112,10 +112,15 @@ class IntegralType : public ArithmeticType {
 template <typename T> class IntegralTypeHelper : public IntegralType {
   public:
     using value_type = T;
-    IntegralTypeHelper(bool _is_static, CVQualifier _cv_qual)
+    IntegralTypeHelper(IntTypeID type_id, bool _is_static, CVQualifier _cv_qual)
         : IntegralType(_is_static, _cv_qual) {
+        min = IRValue(type_id);
         min.getValueRef<T>() = std::numeric_limits<T>::min();
+        min.setUBCode(UBKind::NoUB);
+
+        max = IRValue(type_id);
         max.getValueRef<T>() = std::numeric_limits<T>::max();
+        max.setUBCode(UBKind::NoUB);
     }
 
     uint32_t getBitSize() override { return sizeof(T) * CHAR_BIT; }
@@ -131,7 +136,7 @@ template <typename T> class IntegralTypeHelper : public IntegralType {
 class TypeBool : public IntegralTypeHelper<bool> {
   public:
     TypeBool(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     //  TODO: decouple language representation of the type from back-end type.
     // I.e. for different languages the name ofter type and the suffix might be
@@ -149,7 +154,7 @@ class TypeBool : public IntegralTypeHelper<bool> {
 class TypeSChar : public IntegralTypeHelper<int8_t> {
   public:
     TypeSChar(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::SCHAR; }
     std::string getName() final { return "signed char"; }
@@ -160,7 +165,7 @@ class TypeSChar : public IntegralTypeHelper<int8_t> {
 class TypeUChar : public IntegralTypeHelper<uint8_t> {
   public:
     TypeUChar(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::UCHAR; }
     std::string getName() final { return "unsigned char"; }
@@ -171,7 +176,7 @@ class TypeUChar : public IntegralTypeHelper<uint8_t> {
 class TypeSShort : public IntegralTypeHelper<int16_t> {
   public:
     TypeSShort(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::SHORT; }
     std::string getName() final { return "short"; }
@@ -182,7 +187,7 @@ class TypeSShort : public IntegralTypeHelper<int16_t> {
 class TypeUShort : public IntegralTypeHelper<uint16_t> {
   public:
     TypeUShort(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::USHORT; }
     std::string getName() final { return "unsigned short"; }
@@ -193,7 +198,7 @@ class TypeUShort : public IntegralTypeHelper<uint16_t> {
 class TypeSInt : public IntegralTypeHelper<int32_t> {
   public:
     TypeSInt(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::INT; }
     std::string getName() final { return "int"; }
@@ -204,7 +209,7 @@ class TypeSInt : public IntegralTypeHelper<int32_t> {
 class TypeUInt : public IntegralTypeHelper<uint32_t> {
   public:
     TypeUInt(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::UINT; }
     std::string getName() final { return "unsigned int"; }
@@ -216,7 +221,7 @@ class TypeUInt : public IntegralTypeHelper<uint32_t> {
 class TypeSLLong : public IntegralTypeHelper<int64_t> {
   public:
     TypeSLLong(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::LLONG; }
     std::string getName() final { return "long long int"; }
@@ -228,7 +233,7 @@ class TypeSLLong : public IntegralTypeHelper<int64_t> {
 class TypeULLong : public IntegralTypeHelper<uint64_t> {
   public:
     TypeULLong(bool _is_static, CVQualifier _cv_qual)
-        : IntegralTypeHelper(_is_static, _cv_qual) {}
+        : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::ULLONG; }
     std::string getName() final { return "unsigned long long int"; }
@@ -241,15 +246,12 @@ class TypeULLong : public IntegralTypeHelper<uint64_t> {
 // ValArray).
 class ArrayType : public Type {
   public:
-    ArrayType(std::string _name, std::shared_ptr<Type> _base_type,
-              std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual,
+    ArrayType(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual,
               size_t _uid)
-        : Type(_is_static, _cv_qual), name(std::move(_name)),
-          base_type(std::move(_base_type)), dimensions(std::move(_dims)),
+        : Type(_is_static, _cv_qual), base_type(std::move(_base_type)), dimensions(std::move(_dims)),
           kind(ArrayKind::MAX_ARRAY_KIND), uid(_uid) {}
 
     bool isArrayType() final { return true; }
-    std::string getName() final { return name; }
     std::shared_ptr<Type> getBaseType() { return base_type; }
     std::vector<size_t> &getDimensions() { return dimensions; }
     size_t getUID() { return uid; }
@@ -257,13 +259,12 @@ class ArrayType : public Type {
     static bool isSame(const std::shared_ptr<ArrayType> &lhs,
                        const std::shared_ptr<ArrayType> &rhs);
 
+    std::string getName() override;
     void dbgDump() override;
 
     static std::shared_ptr<ArrayType>
-    init(std::string _name, std::shared_ptr<Type> _base_type,
-         std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual);
-    static std::shared_ptr<ArrayType> init(std::string _name,
-                                           std::shared_ptr<Type> _base_type,
+    init(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual);
+    static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims);
 
   private:
@@ -275,7 +276,6 @@ class ArrayType : public Type {
     // to each of them and then compare it.
     static size_t uid_counter;
 
-    std::string name;
     std::shared_ptr<Type> base_type;
     // Number of elements in each dimension
     std::vector<size_t> dimensions;

@@ -629,7 +629,7 @@ IRValue::AbsValue IRValue::getAbsValue() {
 void IRValue::setValue(IRValue::AbsValue val) {
     switch (type_id) {
         case IntTypeID::BOOL:
-            value.bool_val = val.value * (val.isNegative ? -1 : 1);
+            value.bool_val = val.value;
             break;
         case IntTypeID::SCHAR:
             value.schar_val = val.value * (val.isNegative ? -1 : 1);
@@ -650,7 +650,7 @@ void IRValue::setValue(IRValue::AbsValue val) {
             value.uint_val = val.value * (val.isNegative ? -1 : 1);
             break;
         case IntTypeID::LLONG:
-            value.ullong_val = val.value * (val.isNegative ? -1 : 1);
+            value.llong_val = val.value * (val.isNegative ? -1 : 1);
             break;
         case IntTypeID::ULLONG:
             value.ullong_val = val.value * (val.isNegative ? -1 : 1);

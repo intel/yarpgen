@@ -84,10 +84,11 @@ class ScalarVar : public Data {
 class Array : public Data {
   public:
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
-          std::shared_ptr<Data> _val, uint64_t _size)
-        : Data(std::move(_name), _type), vals(std::move(_val)) { ub_code = vals->getUBCode(); }
-    std::shared_ptr<Data> getValues() { return vals; }
-    void setValue(std::shared_ptr<Data> _val) { vals = std::move(_val); ub_code = vals->getUBCode(); }
+          std::shared_ptr<Data> _val);
+    std::shared_ptr<Data> getInitValues() { return init_vals; }
+    std::shared_ptr<Data> getCurrentValues() { return cur_vals; }
+    void setValue(std::shared_ptr<Data> _val);
+    bool wasChanged() { return was_changed; }
 
     bool isArray() final { return true; }
     DataKind getKind() final { return DataKind::ARR; }
@@ -104,7 +105,9 @@ class Array : public Data {
     // typical target architecture vector size. This way we can cover
     // all of the interesting cases while preserving the simplicity of
     // the analysis.
-    std::shared_ptr<Data> vals;
+    std::shared_ptr<Data> init_vals;
+    std::shared_ptr<Data> cur_vals;
+    bool was_changed;
 };
 
 class Expr;
