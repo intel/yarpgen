@@ -551,7 +551,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 assert(lhs->getValue()->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
                 auto lhs_scalar_var = std::static_pointer_cast<ScalarVar>(lhs->getValue());
                 // We can't shift pass the type size
-                uint64_t max_sht_val = lhs_int_type->getBitSize();
+                size_t max_sht_val = lhs_int_type->getBitSize();
                 // And we can't shift MSB pass the type size
                 if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() && ub == UBKind::ShiftRhsLarge) {
                     IRValue::AbsValue lhs_abs_val = lhs_scalar_var->getCurrentValue().getAbsValue();
@@ -559,7 +559,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 }
 
                 // Secondly, we choose a new shift value in a valid range
-                uint64_t new_val = rand_val_gen->getRandValue(0UL, max_sht_val);
+                size_t new_val = rand_val_gen->getRandValue(static_cast<size_t>(0), max_sht_val);
 
                 // Thirdly, we need to combine the chosen value with the existing one
                 assert(rhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Types");
