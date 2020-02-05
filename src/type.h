@@ -82,7 +82,7 @@ class IntegralType : public ArithmeticType {
         : ArithmeticType(_is_static, _cv_qual) {}
     bool isIntType() final { return true; }
     virtual IntTypeID getIntTypeId() = 0;
-    virtual uint32_t getBitSize() = 0;
+    virtual size_t getBitSize() = 0;
     virtual bool getIsSigned() = 0;
     virtual IRValue getMin() = 0;
     virtual IRValue getMax() = 0;
@@ -123,7 +123,7 @@ template <typename T> class IntegralTypeHelper : public IntegralType {
         max.setUBCode(UBKind::NoUB);
     }
 
-    uint32_t getBitSize() override { return sizeof(T) * CHAR_BIT; }
+    size_t getBitSize() override { return sizeof(T) * CHAR_BIT; }
     bool getIsSigned() override { return std::is_signed<T>::value; }
     IRValue getMin() override { return min; }
     IRValue getMax() override { return max; }
