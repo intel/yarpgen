@@ -160,7 +160,7 @@ bool ArrayType::isSame(const std::shared_ptr<ArrayType> &lhs,
 }
 
 void ArrayType::dbgDump() {
-    std::cout << "Array: " << name << std::endl;
+    std::cout << "Array: " << std::endl;
     std::cout << "Base type: " << std::endl;
     base_type->dbgDump();
     std::cout << "Dimensions: [";
@@ -178,15 +178,13 @@ void ArrayType::dbgDump() {
               << std::endl;
 }
 
-std::shared_ptr<ArrayType> ArrayType::init(std::string _name,
-                                           std::shared_ptr<Type> _base_type,
+std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims) {
-    return init(std::move(_name), std::move(_base_type), std::move(_dims),
+    return init(std::move(_base_type), std::move(_dims),
                 /* is static */ false, CVQualifier::NONE);
 }
 
-std::shared_ptr<ArrayType> ArrayType::init(std::string _name,
-                                           std::shared_ptr<Type> _base_type,
+std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims,
                                            bool _is_static,
                                            CVQualifier _cv_qual) {
@@ -196,8 +194,13 @@ std::shared_ptr<ArrayType> ArrayType::init(std::string _name,
     if (find_res != array_type_set.end())
         return find_res->second;
 
-    auto ret = std::make_shared<ArrayType>(_name, _base_type, _dims, _is_static,
+    auto ret = std::make_shared<ArrayType>(_base_type, _dims, _is_static,
                                            _cv_qual, uid_counter++);
     array_type_set[key] = ret;
     return ret;
+}
+
+std::string ArrayType::getName() {
+    //TODO: we need a more correct way to do it
+    return base_type->getName() + " *";
 }

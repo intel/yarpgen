@@ -752,7 +752,7 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         value = array_eval_res;
     else {
         auto array_val = std::static_pointer_cast<Array>(array_eval_res);
-        value = array_val->getValues();
+        value = array_val->getCurrentValues();
     }
 
     value->setUBCode(ub_code);

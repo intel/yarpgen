@@ -33,7 +33,30 @@ void yarpgen::Array::dbgDump() {
     std::cout << "Array: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
     type->dbgDump();
-    vals->dbgDump();
+    init_vals->dbgDump();
+    cur_vals->dbgDump();
+}
+
+yarpgen::Array::Array(std::string _name,
+                      const std::shared_ptr<ArrayType> &_type,
+                      std::shared_ptr<Data> _val)
+    : Data(std::move(_name), _type), init_vals(_val), cur_vals(_val), was_changed(false) {
+    if (!type->isArrayType())
+        ERROR("Array variable should have an ArrayType");
+
+    auto array_type = std::static_pointer_cast<ArrayType>(type);
+    if (array_type->getBaseType() != init_vals->getType())
+        ERROR("Can't initialize array with variable of wrong type");
+
+    ub_code = init_vals->getUBCode();
+}
+void yarpgen::Array::setValue(std::shared_ptr<Data> _val) {
+    auto array_type = std::static_pointer_cast<ArrayType>(type);
+    if (array_type->getBaseType() != _val->getType())
+        ERROR("Can't initialize array with variable of wrong type");
+    cur_vals = std::move(_val);
+    ub_code = cur_vals->getUBCode();
+    was_changed = true;
 }
 
 void yarpgen::Iterator::setParameters(std::shared_ptr<yarpgen::Expr> _start,
