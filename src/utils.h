@@ -18,11 +18,15 @@ limitations under the License.
 
 #pragma once
 
+#include "enums.h"
+
 #include <iostream>
 #include <memory>
 #include <random>
 
 namespace yarpgen {
+
+class IRValue;
 
 // Macros for error handling
 #define ERROR(err_message)                                                     \
@@ -46,6 +50,16 @@ class RandValGen {
         std::uniform_int_distribution<long long> dis(from, to);
         return dis(rand_gen);
     }
+
+    template <typename T> T getRandValue() {
+        // See note above about long long hack
+        std::uniform_int_distribution<long long> dis(
+            static_cast<long long>(std::numeric_limits<T>::min()),
+            static_cast<long long>(std::numeric_limits<T>::max()));
+        return dis(rand_gen);
+    }
+
+    IRValue getRandValue(IntTypeID type_id);
 
   private:
     uint64_t seed;
