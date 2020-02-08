@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "utils.h"
+#include "type.h"
 #include <memory>
 
 using namespace yarpgen;
@@ -33,4 +34,35 @@ RandValGen::RandValGen (uint64_t _seed) {
     }
     std::cout << "/*SEED " << seed << "*/" << std::endl;
     rand_gen = std::mt19937_64(seed);
+}
+
+#define RandValueCase(__type_id__, type_name) \
+    case __type_id__: \
+        do { \
+            ret.getValueRef<type_name>() = getRandValue<type_name>(); \
+            break;\
+        } \
+        while (false)
+
+IRValue RandValGen::getRandValue(IntTypeID type_id) {
+    if (type_id == IntTypeID::MAX_INT_TYPE_ID)
+        ERROR("Bad IntTypeID");
+
+    IRValue ret(type_id);
+    switch (type_id) {
+        //TODO: if we use chains of if we can make it simpler
+        RandValueCase(IntTypeID::BOOL, TypeBool::value_type);
+        RandValueCase(IntTypeID::SCHAR, TypeSChar::value_type);
+        RandValueCase(IntTypeID::UCHAR, TypeUChar::value_type);
+        RandValueCase(IntTypeID::SHORT, TypeSShort::value_type);
+        RandValueCase(IntTypeID::USHORT, TypeUShort::value_type);
+        RandValueCase(IntTypeID::INT, TypeSInt::value_type);
+        RandValueCase(IntTypeID::UINT, TypeUInt::value_type);
+        RandValueCase(IntTypeID::LLONG, TypeSLLong::value_type);
+        RandValueCase(IntTypeID::ULLONG, TypeULLong::value_type);
+        case IntTypeID::MAX_INT_TYPE_ID:
+            ERROR("Bad IntTypeID");
+            break;
+    }
+    return ret;
 }
