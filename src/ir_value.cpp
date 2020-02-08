@@ -596,28 +596,28 @@ IRValue::AbsValue IRValue::getAbsValue() {
             ret.value = value.schar_val;
             break;
         case IntTypeID::UCHAR:
-            ret.isNegative = value.uchar_val < 0;
+            ret.value = value.uchar_val;
             break;
         case IntTypeID::SHORT:
             ret.isNegative = value.shrt_val < 0;
-            ret.value = value.schar_val;
+            ret.value = value.shrt_val;
             break;
         case IntTypeID::USHORT:
-            ret.isNegative = value.ushrt_val < 0;
+            ret.value = value.ushrt_val;
             break;
         case IntTypeID::INT:
             ret.isNegative = value.int_val < 0;
             ret.value = value.int_val;
             break;
         case IntTypeID::UINT:
-            ret.isNegative = value.uint_val < 0;
+            ret.value = value.uint_val;
             break;
         case IntTypeID::LLONG:
             ret.isNegative = value.llong_val < 0;
-            ret.value = value.ullong_val;
+            ret.value = value.llong_val;
             break;
         case IntTypeID::ULLONG:
-            ret.isNegative = value.ullong_val < 0;
+            ret.value = value.ullong_val;
             break;
         case IntTypeID::MAX_INT_TYPE_ID:
             ERROR("Bad IntTypeID");
