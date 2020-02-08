@@ -448,7 +448,7 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
     IRValue lhs_val = lhs_scalar_var->getCurrentValue();
     IRValue rhs_val = rhs_scalar_var->getCurrentValue();
 
-    IRValue new_val = IRValue(lhs_val.getIntTypeID());
+    IRValue new_val (lhs_val.getIntTypeID());
 
     switch (op) {
         case BinaryOp::ADD:

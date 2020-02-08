@@ -134,7 +134,7 @@ addOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue IRValue::operator+(IRValue &rhs) { BinaryOperatorImpl(addOperator); }
+IRValue yarpgen::operator+(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(addOperator); }
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -175,7 +175,7 @@ subOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue IRValue::operator-(IRValue &rhs) { BinaryOperatorImpl(subOperator); }
+IRValue yarpgen::operator-(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(subOperator); }
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -265,7 +265,7 @@ mulOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue IRValue::operator*(IRValue &rhs) { BinaryOperatorImpl(mulOperator); }
+IRValue yarpgen::operator*(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(mulOperator); }
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -319,13 +319,13 @@ template <typename T> static IRValue divOperator(IRValue &lhs, IRValue &rhs) {
     return divModImpl<T>(lhs, rhs, std::divides<T>());
 }
 
-IRValue IRValue::operator/(IRValue &rhs) { BinaryOperatorImpl(divOperator); }
+IRValue yarpgen::operator/(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(divOperator); }
 
 template <typename T> static IRValue modOperator(IRValue &lhs, IRValue &rhs) {
     return divModImpl<T>(lhs, rhs, std::modulus<T>());
 }
 
-IRValue IRValue::operator%(IRValue &rhs) { BinaryOperatorImpl(modOperator); }
+IRValue yarpgen::operator%(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(modOperator); }
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -347,14 +347,14 @@ template <typename T> static IRValue lessOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::less<T>());
 }
 
-IRValue IRValue::operator<(IRValue &rhs) { BinaryOperatorImpl(lessOperator); }
+IRValue yarpgen::operator<(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(lessOperator); }
 
 template <typename T>
 static IRValue greaterOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::greater<T>());
 }
 
-IRValue IRValue::operator>(IRValue &rhs) {
+IRValue yarpgen::operator>(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(greaterOperator);
 }
 
@@ -363,7 +363,7 @@ static IRValue lessEqualOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::less_equal<T>());
 }
 
-IRValue IRValue::operator<=(IRValue &rhs) {
+IRValue yarpgen::operator<=(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(lessEqualOperator);
 }
 
@@ -372,7 +372,7 @@ static IRValue greaterEqualOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::greater_equal<T>());
 }
 
-IRValue IRValue::operator>=(IRValue &rhs) {
+IRValue yarpgen::operator>=(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(greaterEqualOperator);
 }
 
@@ -380,14 +380,14 @@ template <typename T> static IRValue equalOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::equal_to<T>());
 }
 
-IRValue IRValue::operator==(IRValue &rhs) { BinaryOperatorImpl(equalOperator); }
+IRValue yarpgen::operator==(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(equalOperator); }
 
 template <typename T>
 static IRValue notEqualOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::not_equal_to<T>());
 }
 
-IRValue IRValue::operator!=(IRValue &rhs) {
+IRValue yarpgen::operator!=(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(notEqualOperator);
 }
 
@@ -417,12 +417,12 @@ IRValue logicalOrOperator(IRValue &lhs, IRValue &rhs) {
     return logicalAndOrImpl(lhs, rhs, std::logical_or<>());
 }
 
-IRValue IRValue::operator&&(IRValue &rhs) {
-    return {logicalAndOperator(*this, rhs)};
+IRValue yarpgen::operator&&(IRValue lhs, IRValue rhs) {
+    return {logicalAndOperator(lhs, rhs)};
 }
 
-IRValue IRValue::operator||(IRValue &rhs) {
-    return {logicalOrOperator(*this, rhs)};
+IRValue yarpgen::operator||(IRValue lhs, IRValue rhs) {
+    return {logicalOrOperator(lhs, rhs)};
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -446,7 +446,7 @@ static IRValue bitwiseAndOperator(IRValue &lhs, IRValue &rhs) {
     return bitwiseAndOrXorImpl<T>(lhs, rhs, std::bit_and<T>());
 }
 
-IRValue IRValue::operator&(IRValue &rhs) {
+IRValue yarpgen::operator&(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(bitwiseAndOperator);
 }
 
@@ -455,7 +455,7 @@ static IRValue bitwiseOrOperator(IRValue &lhs, IRValue &rhs) {
     return bitwiseAndOrXorImpl<T>(lhs, rhs, std::bit_or<T>());
 }
 
-IRValue IRValue::operator|(IRValue &rhs) {
+IRValue yarpgen::operator|(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(bitwiseOrOperator);
 }
 
@@ -464,7 +464,7 @@ static IRValue bitwiseXorOperator(IRValue &lhs, IRValue &rhs) {
     return bitwiseAndOrXorImpl<T>(lhs, rhs, std::bit_xor<T>());
 }
 
-IRValue IRValue::operator^(IRValue &rhs) {
+IRValue yarpgen::operator^(IRValue lhs, IRValue rhs) {
     BinaryOperatorImpl(bitwiseXorOperator);
 }
 
@@ -519,7 +519,7 @@ static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue IRValue::operator<<(IRValue &rhs) {
+IRValue yarpgen::operator<<(IRValue lhs, IRValue rhs) {
     ShiftOperatorImpl(leftShiftOperator);
 }
 
@@ -545,7 +545,7 @@ static IRValue rightShiftOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue IRValue::operator>>(IRValue &rhs) {
+IRValue yarpgen::operator>>(IRValue lhs, IRValue rhs) {
     ShiftOperatorImpl(rightShiftOperator);
 }
 

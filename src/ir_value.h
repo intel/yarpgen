@@ -61,24 +61,24 @@ class IRValue {
     IRValue operator~();
     IRValue operator!();
 
-    IRValue operator+(IRValue &rhs);
-    IRValue operator-(IRValue &rhs);
-    IRValue operator*(IRValue &rhs);
-    IRValue operator/(IRValue &rhs);
-    IRValue operator%(IRValue &rhs);
-    IRValue operator<(IRValue &rhs);
-    IRValue operator>(IRValue &rhs);
-    IRValue operator<=(IRValue &rhs);
-    IRValue operator>=(IRValue &rhs);
-    IRValue operator==(IRValue &rhs);
-    IRValue operator!=(IRValue &rhs);
-    IRValue operator&&(IRValue &rhs);
-    IRValue operator||(IRValue &rhs);
-    IRValue operator&(IRValue &rhs);
-    IRValue operator|(IRValue &rhs);
-    IRValue operator^(IRValue &rhs);
-    IRValue operator<<(IRValue &rhs);
-    IRValue operator>>(IRValue &rhs);
+    friend IRValue operator+(IRValue lhs, IRValue rhs);
+    friend IRValue operator-(IRValue lhs, IRValue rhs);
+    friend IRValue operator*(IRValue lhs, IRValue rhs);
+    friend IRValue operator/(IRValue lhs, IRValue rhs);
+    friend IRValue operator%(IRValue lhs, IRValue rhs);
+    friend IRValue operator<(IRValue lhs, IRValue rhs);
+    friend IRValue operator>(IRValue lhs, IRValue rhs);
+    friend IRValue operator<=(IRValue lhs, IRValue rhs);
+    friend IRValue operator>=(IRValue lhs, IRValue rhs);
+    friend IRValue operator==(IRValue lhs, IRValue rhs);
+    friend IRValue operator!=(IRValue lhs, IRValue rhs);
+    friend IRValue operator&&(IRValue lhs, IRValue rhs);
+    friend IRValue operator||(IRValue lhs, IRValue rhs);
+    friend IRValue operator&(IRValue lhs, IRValue rhs);
+    friend IRValue operator|(IRValue lhs, IRValue rhs);
+    friend IRValue operator^(IRValue lhs, IRValue rhs);
+    friend IRValue operator<<(IRValue lhs, IRValue rhs);
+    friend IRValue operator>>(IRValue lhs, IRValue rhs);
 
     IRValue castToType(IntTypeID to_type);
 
@@ -114,9 +114,9 @@ template <> uint64_t &IRValue::getValueRef();
 #define OperatorWrapperCase(__type_id__, __foo__)                              \
     case (__type_id__): func = __foo__; break;
 
-#define OperatorWrapper(__foo__)                                               \
+#define OperatorWrapper(__foo__, __type_id__)                                  \
     do {                                                                       \
-        switch (type_id) {                                                     \
+        switch (__type_id__) {                                                     \
             OperatorWrapperCase(IntTypeID::INT,  __foo__<TypeSInt::value_type>)\
             OperatorWrapperCase(IntTypeID::UINT,                               \
                                 __foo__<TypeUInt::value_type>)                 \
@@ -125,7 +125,7 @@ template <> uint64_t &IRValue::getValueRef();
             OperatorWrapperCase(IntTypeID::ULLONG,                             \
                                 __foo__<TypeULLong::value_type>)               \
             default: ERROR(std::string("Bad IntTypeID value: ") +              \
-                           std::to_string(static_cast<int>(type_id)));         \
+                           std::to_string(static_cast<int>(__type_id__)));     \
         }                                                                      \
     } while (0)
 
@@ -151,13 +151,13 @@ template <> uint64_t &IRValue::getValueRef();
                                          __lhs_value_type__,                   \
                                          TypeULLong::value_type)               \
             default: ERROR(std::string("Bad IntTypeID value: ") +              \
-                           std::to_string(static_cast<int>(type_id)));         \
+                           std::to_string(static_cast<int>(rhs.getIntTypeID())));\
         }                                                                      \
         break;
 
 #define ShiftOperatorWrapper(__foo__)                                          \
     do {                                                                       \
-        switch (type_id) {                                                     \
+        switch (lhs.getIntTypeID()) {                                          \
             ShiftOperatorWrapperCase(IntTypeID::INT, __foo__,                  \
                                      TypeSInt::value_type)                     \
             ShiftOperatorWrapperCase(IntTypeID::UINT, __foo__,                 \
@@ -167,7 +167,7 @@ template <> uint64_t &IRValue::getValueRef();
             ShiftOperatorWrapperCase(IntTypeID::ULLONG, __foo__,               \
                                      TypeULLong::value_type)                   \
             default: ERROR(std::string("Bad IntTypeID value: ") +              \
-                           std::to_string(static_cast<int>(type_id)));         \
+                           std::to_string(static_cast<int>(lhs.getIntTypeID())));\
         }                                                                      \
     } while (0)
 
@@ -250,22 +250,22 @@ template <> uint64_t &IRValue::getValueRef();
 #define UnaryOperatorImpl(__foo__)                                             \
     do {                                                                       \
         std::function<IRValue(IRValue &)> func;                                \
-        OperatorWrapper(__foo__);                                              \
+        OperatorWrapper(__foo__, getIntTypeID());                              \
         return {func(*this)};                                                  \
     } while (0)
 
 #define BinaryOperatorImpl(__foo__)                                            \
     do {                                                                       \
         std::function<IRValue(IRValue &, IRValue &)> func;                     \
-        OperatorWrapper(__foo__);                                              \
-        return {func(*this, rhs)};                                             \
+        OperatorWrapper(__foo__, lhs.getIntTypeID());                          \
+        return {func(lhs, rhs)};                                               \
     } while (0)
 
 #define ShiftOperatorImpl(__foo__)                                             \
     do {                                                                       \
         std::function<IRValue(IRValue &, IRValue &)> func;                     \
         ShiftOperatorWrapper(__foo__);                                         \
-        return {func(*this, rhs)};                                             \
+        return {func(lhs, rhs)};                                               \
     } while (0)
 
 //////////////////////////////////////////////////////////////////////////////
@@ -284,5 +284,24 @@ template <typename T> inline size_t findMSB(T x) {
 }
 
 std::ostream &operator<<(std::ostream &out, yarpgen::IRValue &val);
+//TODO: ideally, rhs should have a const IRValue&, but it causes problem with getValueRef
+IRValue operator+(IRValue lhs, IRValue rhs);
+IRValue operator-(IRValue lhs, IRValue rhs);
+IRValue operator*(IRValue lhs, IRValue rhs);
+IRValue operator/(IRValue lhs, IRValue rhs);
+IRValue operator%(IRValue lhs, IRValue rhs);
+IRValue operator<(IRValue lhs, IRValue rhs);
+IRValue operator>(IRValue lhs, IRValue rhs);
+IRValue operator<=(IRValue lhs, IRValue rhs);
+IRValue operator>=(IRValue lhs, IRValue rhs);
+IRValue operator==(IRValue lhs, IRValue rhs);
+IRValue operator!=(IRValue lhs, IRValue rhs);
+IRValue operator&&(IRValue lhs, IRValue rhs);
+IRValue operator||(IRValue lhs, IRValue rhs);
+IRValue operator&(IRValue lhs, IRValue rhs);
+IRValue operator|(IRValue lhs, IRValue rhs);
+IRValue operator^(IRValue lhs, IRValue rhs);
+IRValue operator<<(IRValue lhs, IRValue rhs);
+IRValue operator>>(IRValue lhs, IRValue rhs);
 
 } // namespace yarpgen
