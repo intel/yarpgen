@@ -512,7 +512,7 @@ static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
         }
     }
 
-    assert(ret.getUBCode() == UBKind::NoUB &&
+    assert(ret.getUBCode() == UBKind::Uninit &&
            "Ret can't has an UB. All of the cases should be handled earlier.");
     ret.getValueRef<T>() = lhs.getValueRef<T>() << rhs.getValueRef<U>();
     ret.setUBCode(UBKind::NoUB);
@@ -538,7 +538,7 @@ static IRValue rightShiftOperator(IRValue &lhs, IRValue &rhs) {
         return ret;
     }
 
-    assert(ret.getUBCode() == UBKind::NoUB &&
+    assert(ret.getUBCode() == UBKind::Uninit &&
            "Ret can't has an UB. All of the cases should be handled earlier.");
     ret.getValueRef<T>() = lhs.getValueRef<T>() >> rhs.getValueRef<U>();
     ret.setUBCode(UBKind::NoUB);
