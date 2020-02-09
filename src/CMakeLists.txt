@@ -28,6 +28,8 @@ set(LIB_SRCS
     "hash.h"
     "ir_node.h"
     "ir_value.cpp"
+    "stmt.cpp"
+    "stmt.h"
     "type.cpp"
     "utils.cpp"
 )

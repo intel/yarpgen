@@ -85,7 +85,13 @@ enum class IRNodeKind {
     ASSIGN,
     UNARY,
     BINARY,
-    MAX_EXPR_KIND
+    MAX_EXPR_KIND,
+    EXPR,
+    DECL,
+    SCOPE,
+    LOOP_SEQ,
+    LOOP_NEST,
+    MAX_STMT_KIND
 };
 
 enum class UnaryOp {
