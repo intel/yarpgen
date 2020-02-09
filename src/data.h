@@ -129,6 +129,8 @@ class Iterator : public Data {
     void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end, std::shared_ptr<Expr> _step);
 
   private:
+    //TODO: should the expression contain full update on the iterator or only the "meaningful" part?
+    // For know we assume the latter, but it limits expressiveness
     std::shared_ptr<Expr> start;
     std::shared_ptr<Expr> end;
     std::shared_ptr<Expr> step;
