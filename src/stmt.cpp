@@ -28,7 +28,7 @@ void ExprStmt::emit(std::ostream &stream, std::string offset) {
 
 void DeclStmt::emit(std::ostream &stream, std::string offset) {
     stream << offset;
-    //TODO: we need to do the right thing here
+    // TODO: we need to do the right thing here
     stream << data->getType()->getName() << " ";
     stream << data->getName();
     if (init_expr.use_count() != 0) {
@@ -52,11 +52,11 @@ void ScopeStmt::emit(std::ostream &stream, std::string offset) {
 }
 
 void LoopSeqStmt::LoopHead::emit(std::ostream &stream, std::string offset) {
-    //TODO: it will handle simple cases. We need to improve it later.
+    // TODO: it will handle simple cases. We need to improve it later.
     prefix->emit(stream, offset);
     stream << offset << "for (";
 
-    auto place_sep = [this] (auto iter, std::string sep)->std::string {
+    auto place_sep = [this](auto iter, std::string sep) -> std::string {
         return iter != iters.end() - 1 ? std::move(sep) : "";
     };
 

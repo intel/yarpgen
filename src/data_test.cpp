@@ -27,16 +27,15 @@ static const size_t MAX_SIZE = 256;
 static std::random_device rd;
 static std::mt19937 generator;
 
-#define CHECK(cond, msg) \
-    do { \
-        if (!(cond)) { \
-            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__                \
-                      << ", function " << __func__ << "():\n    " << (msg) \
-                      << std::endl; \
-                      abort(); \
-        } \
-    }\
-    while (false)
+#define CHECK(cond, msg)                                                       \
+    do {                                                                       \
+        if (!(cond)) {                                                         \
+            std::cerr << "ERROR at " << __FILE__ << ":" << __LINE__            \
+                      << ", function " << __func__ << "():\n    " << (msg)     \
+                      << std::endl;                                            \
+            abort();                                                           \
+        }                                                                      \
+    } while (false)
 
 void scalarVarTest() {
     // Scalar Variable Test
@@ -48,22 +47,30 @@ void scalarVarTest() {
                 std::shared_ptr<IntegralType> ptr_to_type = IntegralType::init(
                     static_cast<IntTypeID>(i), static_cast<bool>(k),
                     static_cast<CVQualifier>(j));
-                auto scalar_var = std::make_shared<ScalarVar>(std::to_string(i), ptr_to_type, ptr_to_type->getMin());
+                auto scalar_var = std::make_shared<ScalarVar>(
+                    std::to_string(i), ptr_to_type, ptr_to_type->getMin());
                 scalar_var->setCurrentValue(ptr_to_type->getMax());
 
                 CHECK(scalar_var->getName() == std::to_string(i), "Name");
                 CHECK(scalar_var->getType() == ptr_to_type, "Type");
-                CHECK(scalar_var->getUBCode() == ptr_to_type->getMin().getUBCode(), "UB Code");
+                CHECK(scalar_var->getUBCode() ==
+                          ptr_to_type->getMin().getUBCode(),
+                      "UB Code");
                 CHECK(!scalar_var->hasUB(), "Has UB");
 
                 CHECK(scalar_var->isScalarVar(), "ScalarVar identity");
                 CHECK(scalar_var->getKind() == DataKind::VAR, "ScalarVar kind");
 
-                // Comparison operations are defined not for all types, so we need cast trick
-                IRValue init_val = scalar_var->getInitValue().castToType(IntTypeID::ULLONG);
-                IRValue min_val = ptr_to_type->getMin().castToType(IntTypeID::ULLONG);
-                IRValue cur_val = scalar_var->getCurrentValue().castToType(IntTypeID::ULLONG);
-                IRValue max_val = ptr_to_type->getMax().castToType(IntTypeID::ULLONG);
+                // Comparison operations are defined not for all types, so we
+                // need cast trick
+                IRValue init_val =
+                    scalar_var->getInitValue().castToType(IntTypeID::ULLONG);
+                IRValue min_val =
+                    ptr_to_type->getMin().castToType(IntTypeID::ULLONG);
+                IRValue cur_val =
+                    scalar_var->getCurrentValue().castToType(IntTypeID::ULLONG);
+                IRValue max_val =
+                    ptr_to_type->getMax().castToType(IntTypeID::ULLONG);
                 CHECK((init_val == min_val).getValueRef<bool>(), "Init Value");
                 CHECK((cur_val == max_val).getValueRef<bool>(), "CurrentValue");
                 CHECK(scalar_var->wasChanged(), "Was Changed");
@@ -81,30 +88,39 @@ void arrayTest() {
                     static_cast<IntTypeID>(i), static_cast<bool>(k),
                     static_cast<CVQualifier>(j));
 
-                auto scalar_var = std::make_shared<ScalarVar>(std::to_string(i), ptr_to_type, ptr_to_type->getMin());
+                auto scalar_var = std::make_shared<ScalarVar>(
+                    std::to_string(i), ptr_to_type, ptr_to_type->getMin());
 
-                size_t dim_size = std::uniform_int_distribution<size_t>(1, MAX_DIMS)(generator);
+                size_t dim_size = std::uniform_int_distribution<size_t>(
+                    1, MAX_DIMS)(generator);
                 std::vector<size_t> dims;
                 dims.reserve(dim_size);
                 for (size_t l = 0; l < dim_size; ++l)
-                    dims.push_back(std::uniform_int_distribution<size_t>(1, MAX_SIZE)(generator));
-                auto array_type = ArrayType::init(ptr_to_type, dims, static_cast<bool>(k), static_cast<CVQualifier>(k));
+                    dims.push_back(std::uniform_int_distribution<size_t>(
+                        1, MAX_SIZE)(generator));
+                auto array_type =
+                    ArrayType::init(ptr_to_type, dims, static_cast<bool>(k),
+                                    static_cast<CVQualifier>(k));
 
-                auto array = std::make_shared<Array>(std::to_string(i), array_type, scalar_var);
+                auto array = std::make_shared<Array>(std::to_string(i),
+                                                     array_type, scalar_var);
 
                 CHECK(array->getName() == std::to_string(i), "Name");
                 CHECK(array->getType() == array_type, "Type");
-                CHECK(array->getUBCode() == ptr_to_type->getMin().getUBCode(), "UB Code");
+                CHECK(array->getUBCode() == ptr_to_type->getMin().getUBCode(),
+                      "UB Code");
                 CHECK(!array->hasUB(), "Has UB");
 
                 CHECK(array->isArray(), "Array identity");
                 CHECK(array->getKind() == DataKind::ARR, "Array kind");
 
-                auto new_scalar_var = std::make_shared<ScalarVar>(std::to_string(j), ptr_to_type, ptr_to_type->getMax());
+                auto new_scalar_var = std::make_shared<ScalarVar>(
+                    std::to_string(j), ptr_to_type, ptr_to_type->getMax());
                 array->setValue(new_scalar_var);
 
                 CHECK(array->getInitValues() == scalar_var, "Init Value");
-                CHECK(array->getCurrentValues() == new_scalar_var, "CurrentValue");
+                CHECK(array->getCurrentValues() == new_scalar_var,
+                      "CurrentValue");
                 CHECK(array->wasChanged(), "Was Changed");
             }
 }
@@ -116,5 +132,6 @@ int main() {
 
     scalarVarTest();
     arrayTest();
-    //TODO: we need an iterator test, but it is better to add it after expressions test
+    // TODO: we need an iterator test, but it is better to add it after
+    // expressions test
 }

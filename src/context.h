@@ -25,11 +25,13 @@ limitations under the License.
 namespace yarpgen {
 
 // Class that is used to determine the evaluation context.
-// It allows us to evaluate the same arithmetic tree with different input values.
+// It allows us to evaluate the same arithmetic tree with different input
+// values.
 class EvalCtx {
   public:
-    //TODO: we use string as a unique identifier and it is not a right way to do it
+    // TODO: we use string as a unique identifier and it is not a right way to
+    // do it
     std::map<std::string, DataType> input;
 };
 
-}
+} // namespace yarpgen

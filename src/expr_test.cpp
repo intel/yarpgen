@@ -22,13 +22,11 @@ limitations under the License.
 using namespace yarpgen;
 
 int main() {
-    IRValue start_val (IntTypeID::INT);
+    IRValue start_val(IntTypeID::INT);
     start_val.setValue({false, 0});
     auto start_expr = std::make_shared<ConstantExpr>(start_val);
 
-   IRValue end_val (IntTypeID::INT);
-   end_val.setValue({false, 0});
-   auto end_expr = std::make_shared<ConstantExpr>(end_val);
-
-
+    IRValue end_val(IntTypeID::INT);
+    end_val.setValue({false, 0});
+    auto end_expr = std::make_shared<ConstantExpr>(end_val);
 }

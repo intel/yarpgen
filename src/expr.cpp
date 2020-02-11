@@ -16,41 +16,45 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "context.h"
 #include "expr.h"
+#include "context.h"
 #include <algorithm>
 #include <utility>
 
 using namespace yarpgen;
 
-std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ScalarVarUseExpr>> yarpgen::ScalarVarUseExpr::scalar_var_use_set;
-std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ArrayUseExpr>> yarpgen::ArrayUseExpr::array_use_set;
-std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<IterUseExpr>> yarpgen::IterUseExpr::iter_use_set;
+std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ScalarVarUseExpr>>
+    yarpgen::ScalarVarUseExpr::scalar_var_use_set;
+std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ArrayUseExpr>>
+    yarpgen::ArrayUseExpr::array_use_set;
+std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<IterUseExpr>>
+    yarpgen::IterUseExpr::iter_use_set;
 
 std::shared_ptr<Data> Expr::getValue() {
-    //TODO: it might cause some problems in the future, but it is good for now
+    // TODO: it might cause some problems in the future, but it is good for now
     return value;
 }
 
 ConstantExpr::ConstantExpr(IRValue _value) {
-    //TODO: maybe we need a constant data type rather than an anonymous scalar variable
-    value = std::make_shared<ScalarVar>("", IntegralType::init(_value.getIntTypeID()), _value);
+    // TODO: maybe we need a constant data type rather than an anonymous scalar
+    // variable
+    value = std::make_shared<ScalarVar>(
+        "", IntegralType::init(_value.getIntTypeID()), _value);
 }
 
-Expr::EvalResType ConstantExpr::evaluate(EvalCtx &ctx) {
-    return value;
-}
+Expr::EvalResType ConstantExpr::evaluate(EvalCtx &ctx) { return value; }
 
-Expr::EvalResType ConstantExpr::rebuild(EvalCtx &ctx) {
-    return evaluate(ctx);
-}
+Expr::EvalResType ConstantExpr::rebuild(EvalCtx &ctx) { return evaluate(ctx); }
 
-void ConstantExpr::emit(std::ostream& stream, std::string offset) {
-    assert(value->isScalarVar() && "ConstExpr can represent only scalar constant");
+void ConstantExpr::emit(std::ostream &stream, std::string offset) {
+    assert(value->isScalarVar() &&
+           "ConstExpr can represent only scalar constant");
     auto scalar_var = std::static_pointer_cast<ScalarVar>(value);
 
-    assert(scalar_var->getType()->isIntType() && "ConstExpr can represent only scalar integral constant");
-    auto int_type = std::static_pointer_cast<IntegralType>(scalar_var->getType());
+    assert(scalar_var->getType()->isIntType() &&
+           "ConstExpr can represent only scalar integral constant");
+    auto int_type =
+        std::static_pointer_cast<IntegralType>(scalar_var->getType());
 
     IRValue val = scalar_var->getCurrentValue();
     IRValue min_val = int_type->getMin();
@@ -59,14 +63,16 @@ void ConstantExpr::emit(std::ostream& stream, std::string offset) {
 
     // INT_MIN is defined as -INT_MAX - 1, so we have to do the same
     IRValue one(val.getIntTypeID());
-    //TODO: this is not an appropriate way to do it
-    one.setValue(IRValue::AbsValue {false, 1});
+    // TODO: this is not an appropriate way to do it
+    one.setValue(IRValue::AbsValue{false, 1});
     IRValue min_one_val = min_val + one;
     stream << "(" << min_one_val << " - " << one << ")";
 }
 
-std::shared_ptr<ScalarVarUseExpr> ScalarVarUseExpr::init(std::shared_ptr<Data> _val) {
-    assert(_val->isScalarVar() && "ScalarVarUseExpr accepts only scalar variables!");
+std::shared_ptr<ScalarVarUseExpr>
+ScalarVarUseExpr::init(std::shared_ptr<Data> _val) {
+    assert(_val->isScalarVar() &&
+           "ScalarVarUseExpr accepts only scalar variables!");
     auto find_res = scalar_var_use_set.find(_val);
     if (find_res != scalar_var_use_set.end())
         return find_res->second;
@@ -82,7 +88,8 @@ void ScalarVarUseExpr::setValue(std::shared_ptr<Expr> _expr) {
     if (value->getType() != new_val->getType())
         ERROR("Can't assign different types!");
 
-    std::static_pointer_cast<ScalarVar>(value)->setCurrentValue(std::static_pointer_cast<ScalarVar>(new_val)->getCurrentValue());
+    std::static_pointer_cast<ScalarVar>(value)->setCurrentValue(
+        std::static_pointer_cast<ScalarVar>(new_val)->getCurrentValue());
 }
 
 Expr::EvalResType ScalarVarUseExpr::evaluate(EvalCtx &ctx) {
@@ -99,7 +106,8 @@ Expr::EvalResType ScalarVarUseExpr::rebuild(EvalCtx &ctx) {
 }
 
 std::shared_ptr<ArrayUseExpr> ArrayUseExpr::init(std::shared_ptr<Data> _val) {
-    assert(_val->isArray() && "ArrayUseExpr can be initialized only with Arrays");
+    assert(_val->isArray() &&
+           "ArrayUseExpr can be initialized only with Arrays");
     auto find_res = array_use_set.find(_val);
     if (find_res != array_use_set.end())
         return find_res->second;
@@ -130,9 +138,7 @@ Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
     return value;
 }
 
-Expr::EvalResType ArrayUseExpr::rebuild(EvalCtx &ctx) {
-    return evaluate(ctx);
-}
+Expr::EvalResType ArrayUseExpr::rebuild(EvalCtx &ctx) { return evaluate(ctx); }
 
 std::shared_ptr<IterUseExpr> IterUseExpr::init(std::shared_ptr<Data> _iter) {
     assert(_iter->isIterator() && "IterUseExpr accepts only iterators!");
@@ -152,7 +158,8 @@ void IterUseExpr::setValue(std::shared_ptr<Expr> _expr) {
     if (value->getType() != new_iter->getType())
         ERROR("Can't assign different types!");
 
-    std::static_pointer_cast<Iterator>(value)->setParameters(new_iter->getStart(), new_iter->getEnd(), new_iter->getStep());
+    std::static_pointer_cast<Iterator>(value)->setParameters(
+        new_iter->getStart(), new_iter->getEnd(), new_iter->getStep());
 }
 
 Expr::EvalResType IterUseExpr::evaluate(EvalCtx &ctx) {
@@ -165,12 +172,12 @@ Expr::EvalResType IterUseExpr::evaluate(EvalCtx &ctx) {
     return value;
 }
 
-Expr::EvalResType IterUseExpr::rebuild(EvalCtx &ctx) {
-    return evaluate(ctx);
-}
+Expr::EvalResType IterUseExpr::rebuild(EvalCtx &ctx) { return evaluate(ctx); }
 
-TypeCastExpr::TypeCastExpr(std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _to_type, bool _is_implicit) :
-        expr(std::move(_expr)), to_type(std::move(_to_type)), is_implicit(_is_implicit) {
+TypeCastExpr::TypeCastExpr(std::shared_ptr<Expr> _expr,
+                           std::shared_ptr<Type> _to_type, bool _is_implicit)
+    : expr(std::move(_expr)), to_type(std::move(_to_type)),
+      is_implicit(_is_implicit) {
     std::shared_ptr<Type> base_type = expr->getValue()->getType();
     // Check that we try to convert between compatible types.
     if (!((base_type->isIntType() && to_type->isIntType()) ||
@@ -179,22 +186,28 @@ TypeCastExpr::TypeCastExpr(std::shared_ptr<Expr> _expr, std::shared_ptr<Type> _t
     }
 
     if (base_type->isIntType() && expr->getValue()->isScalarVar()) {
-        std::shared_ptr<IntegralType> to_int_type = std::static_pointer_cast<IntegralType>(to_type);
-        value = std::make_shared<ScalarVar>("", to_int_type, IRValue(to_int_type->getIntTypeId()));
-        std::shared_ptr<ScalarVar> scalar_val = std::static_pointer_cast<ScalarVar>(value);
-        std::shared_ptr<ScalarVar> base_scalar_var = std::static_pointer_cast<ScalarVar>(expr->getValue());
-        scalar_val->setCurrentValue(base_scalar_var->getCurrentValue().castToType(to_int_type->getIntTypeId()));
+        std::shared_ptr<IntegralType> to_int_type =
+            std::static_pointer_cast<IntegralType>(to_type);
+        value = std::make_shared<ScalarVar>(
+            "", to_int_type, IRValue(to_int_type->getIntTypeId()));
+        std::shared_ptr<ScalarVar> scalar_val =
+            std::static_pointer_cast<ScalarVar>(value);
+        std::shared_ptr<ScalarVar> base_scalar_var =
+            std::static_pointer_cast<ScalarVar>(expr->getValue());
+        scalar_val->setCurrentValue(
+            base_scalar_var->getCurrentValue().castToType(
+                to_int_type->getIntTypeId()));
     }
     else {
-        //TODO: extend it
+        // TODO: extend it
         ERROR("We can cast only integer scalar variables for now");
     }
-
 }
 
 void TypeCastExpr::emit(std::ostream &stream, std::string offset) {
-    //TODO: add switch for C++ style conversions and switch for implicit casts
-    stream << "((" << (is_implicit ? "/* implicit */" : "") << to_type->getName() << ") ";
+    // TODO: add switch for C++ style conversions and switch for implicit casts
+    stream << "((" << (is_implicit ? "/* implicit */" : "")
+           << to_type->getName() << ") ";
     expr->emit(stream);
     stream << ")";
 }
@@ -205,12 +218,16 @@ std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
     }
 
     //[conv.prom]
-    assert(arg->getValue()->getType()->isIntType() && "Scalar variable can have only Integral Type");
-    std::shared_ptr<IntegralType> int_type = std::static_pointer_cast<IntegralType>(arg->getValue()->getType());
-    if (int_type->getIntTypeId() >= IntTypeID::INT) // can't perform integral promotion
+    assert(arg->getValue()->getType()->isIntType() &&
+           "Scalar variable can have only Integral Type");
+    std::shared_ptr<IntegralType> int_type =
+        std::static_pointer_cast<IntegralType>(arg->getValue()->getType());
+    if (int_type->getIntTypeId() >=
+        IntTypeID::INT) // can't perform integral promotion
         return arg;
-    //TODO: we need to check if type fits in int or unsigned int
-    return std::make_shared<TypeCastExpr>(arg, IntegralType::init(IntTypeID::INT), true);
+    // TODO: we need to check if type fits in int or unsigned int
+    return std::make_shared<TypeCastExpr>(
+        arg, IntegralType::init(IntTypeID::INT), true);
 }
 
 std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
@@ -218,12 +235,13 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
         ERROR("Can perform conversion to bool only on scalar variables");
     }
 
-    std::shared_ptr<IntegralType> int_type = std::static_pointer_cast<IntegralType>(arg->getValue()->getType());
+    std::shared_ptr<IntegralType> int_type =
+        std::static_pointer_cast<IntegralType>(arg->getValue()->getType());
     if (int_type->getIntTypeId() == IntTypeID::BOOL)
         return arg;
-    return std::make_shared<TypeCastExpr>(arg, IntegralType::init(IntTypeID::BOOL), true);
+    return std::make_shared<TypeCastExpr>(
+        arg, IntegralType::init(IntTypeID::BOOL), true);
 }
-
 
 bool UnaryExpr::propagateType() {
     arg->propagateType();
@@ -244,7 +262,8 @@ bool UnaryExpr::propagateType() {
 }
 
 Expr::EvalResType UnaryExpr::evaluate(EvalCtx &ctx) {
-    assert(arg->getValue()->getKind() == DataKind::VAR && "Unary operations are supported for Scalar Variables only");
+    assert(arg->getValue()->getKind() == DataKind::VAR &&
+           "Unary operations are supported for Scalar Variables only");
     auto scalar_arg = std::static_pointer_cast<ScalarVar>(arg->getValue());
     IRValue new_val;
     switch (op) {
@@ -264,15 +283,20 @@ Expr::EvalResType UnaryExpr::evaluate(EvalCtx &ctx) {
             ERROR("Bad unary operator");
             break;
     }
-    assert(scalar_arg->getType()->isIntType() && "Unary operations are supported for Scalar Variables of Integral Types only");
-    auto int_type = std::static_pointer_cast<IntegralType>(scalar_arg->getType());
+    assert(scalar_arg->getType()->isIntType() &&
+           "Unary operations are supported for Scalar Variables of Integral "
+           "Types only");
+    auto int_type =
+        std::static_pointer_cast<IntegralType>(scalar_arg->getType());
     value = std::make_shared<ScalarVar>("", int_type, new_val);
     return value;
 }
 
 Expr::EvalResType UnaryExpr::rebuild(EvalCtx &ctx) {
     EvalResType eval_res = evaluate(ctx);
-    assert(eval_res->getKind() == DataKind::VAR && "Unary operations are supported for Scalar Variables of Integral Types only");
+    assert(eval_res->getKind() == DataKind::VAR &&
+           "Unary operations are supported for Scalar Variables of Integral "
+           "Types only");
     auto eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
     if (!eval_scalar_res->getCurrentValue().hasUB()) {
         value = eval_res;
@@ -292,8 +316,7 @@ Expr::EvalResType UnaryExpr::rebuild(EvalCtx &ctx) {
         if (!eval_scalar_res->getCurrentValue().hasUB())
             break;
         rebuild(ctx);
-    }
-    while (eval_scalar_res->getCurrentValue().hasUB());
+    } while (eval_scalar_res->getCurrentValue().hasUB());
 
     value = eval_res;
     return value;
@@ -327,7 +350,7 @@ bool BinaryExpr::propagateType() {
     lhs->propagateType();
     rhs->propagateType();
 
-    switch(op) {
+    switch (op) {
         case BinaryOp::ADD:
         case BinaryOp::SUB:
         case BinaryOp::MUL:
@@ -365,12 +388,16 @@ bool BinaryExpr::propagateType() {
 }
 
 void BinaryExpr::arithConv() {
-    if (!lhs->getValue()->getType()->isIntType() || !rhs->getValue()->getType()->isIntType()) {
-        ERROR("We assume that we can perform binary operations only in Scalar Variables with integral type");
+    if (!lhs->getValue()->getType()->isIntType() ||
+        !rhs->getValue()->getType()->isIntType()) {
+        ERROR("We assume that we can perform binary operations only in Scalar "
+              "Variables with integral type");
     }
 
-    std::shared_ptr<IntegralType> lhs_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
-    std::shared_ptr<IntegralType> rhs_type = std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
+    std::shared_ptr<IntegralType> lhs_type =
+        std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
+    std::shared_ptr<IntegralType> rhs_type =
+        std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
 
     //[expr.arith.conv]
     // 1.5.1
@@ -379,23 +406,29 @@ void BinaryExpr::arithConv() {
 
     // 1.5.2
     if (lhs_type->getIsSigned() == rhs_type->getIsSigned()) {
-        std::shared_ptr<IntegralType> max_type = IntegralType::init(std::max(lhs_type->getIntTypeId(), rhs_type->getIntTypeId()));
+        std::shared_ptr<IntegralType> max_type = IntegralType::init(
+            std::max(lhs_type->getIntTypeId(), rhs_type->getIntTypeId()));
         if (lhs_type->getIntTypeId() > rhs_type->getIntTypeId())
-            rhs = std::make_shared<TypeCastExpr>(rhs, max_type, /*is_implicit*/ true);
+            rhs = std::make_shared<TypeCastExpr>(rhs, max_type,
+                                                 /*is_implicit*/ true);
         else
-            lhs = std::make_shared<TypeCastExpr>(lhs, max_type, /*is_implicit*/ true);
+            lhs = std::make_shared<TypeCastExpr>(lhs, max_type,
+                                                 /*is_implicit*/ true);
         return;
     }
 
     // 1.5.3
     // Helper function that converts signed type to "bigger" unsigned type
-    auto signed_to_unsigned_conv = [] (std::shared_ptr<IntegralType> &a_type, std::shared_ptr<IntegralType> &b_type,
-                                       std::shared_ptr<Expr> &b_expr) -> bool {
-         if (!a_type->getIsSigned() && (a_type->getIntTypeId() >= b_type->getIntTypeId())) {
-             b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type, /*is_implicit*/ true);
-             return true;
-         }
-         return false;
+    auto signed_to_unsigned_conv = [](std::shared_ptr<IntegralType> &a_type,
+                                      std::shared_ptr<IntegralType> &b_type,
+                                      std::shared_ptr<Expr> &b_expr) -> bool {
+        if (!a_type->getIsSigned() &&
+            (a_type->getIntTypeId() >= b_type->getIntTypeId())) {
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
+                                                    /*is_implicit*/ true);
+            return true;
+        }
+        return false;
     };
     if (signed_to_unsigned_conv(lhs_type, rhs_type, rhs) ||
         signed_to_unsigned_conv(rhs_type, lhs_type, lhs))
@@ -403,10 +436,14 @@ void BinaryExpr::arithConv() {
 
     // 1.5.4
     // Same idea, but for unsigned to signed conversions
-    auto unsigned_to_signed_conv = [] (std::shared_ptr<IntegralType> &a_type, std::shared_ptr<IntegralType> &b_type,
-                                       std::shared_ptr<Expr> &b_expr) -> bool {
-        if (a_type->getIsSigned() && IntegralType::canRepresentType(a_type->getIntTypeId(), b_type->getIntTypeId())) {
-            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type, /*is_implicit*/ true);
+    auto unsigned_to_signed_conv = [](std::shared_ptr<IntegralType> &a_type,
+                                      std::shared_ptr<IntegralType> &b_type,
+                                      std::shared_ptr<Expr> &b_expr) -> bool {
+        if (a_type->getIsSigned() &&
+            IntegralType::canRepresentType(a_type->getIntTypeId(),
+                                           b_type->getIntTypeId())) {
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
+                                                    /*is_implicit*/ true);
             return true;
         }
         return false;
@@ -416,17 +453,22 @@ void BinaryExpr::arithConv() {
         return;
 
     // 1.5.5
-    auto final_conversion = [] (std::shared_ptr<IntegralType> &a_type,
-                                std::shared_ptr<Expr> &a_expr, std::shared_ptr<Expr> &b_expr) -> bool {
+    auto final_conversion = [](std::shared_ptr<IntegralType> &a_type,
+                               std::shared_ptr<Expr> &a_expr,
+                               std::shared_ptr<Expr> &b_expr) -> bool {
         if (a_type->getIsSigned()) {
-            std::shared_ptr<IntegralType> new_type = IntegralType::init(IntegralType::getCorrUnsigned(a_type->getIntTypeId()));
-            a_expr = std::make_shared<TypeCastExpr>(a_expr, new_type, /*is_implicit*/ true);
-            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type, /*is_implicit*/ true);
+            std::shared_ptr<IntegralType> new_type = IntegralType::init(
+                IntegralType::getCorrUnsigned(a_type->getIntTypeId()));
+            a_expr = std::make_shared<TypeCastExpr>(a_expr, new_type,
+                                                    /*is_implicit*/ true);
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type,
+                                                    /*is_implicit*/ true);
             return true;
         }
         return false;
     };
-    if (final_conversion(lhs_type, lhs, rhs) || final_conversion(rhs_type, lhs, rhs))
+    if (final_conversion(lhs_type, lhs, rhs) ||
+        final_conversion(rhs_type, lhs, rhs))
         return;
 
     ERROR("Unreachable: conversions went wrong");
@@ -448,7 +490,7 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
     IRValue lhs_val = lhs_scalar_var->getCurrentValue();
     IRValue rhs_val = rhs_scalar_var->getCurrentValue();
 
-    IRValue new_val (lhs_val.getIntTypeID());
+    IRValue new_val(lhs_val.getIntTypeID());
 
     switch (op) {
         case BinaryOp::ADD:
@@ -510,15 +552,19 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
             break;
     }
 
-    assert(lhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Type");
-    auto res_int_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
+    assert(lhs->getValue()->getType()->isIntType() &&
+           "Binary operations are supported only for Scalar Variables of "
+           "Integral Type");
+    auto res_int_type =
+        std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
     value = std::make_shared<ScalarVar>("", res_int_type, new_val);
     return value;
 }
 
 Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
     std::shared_ptr<Data> eval_res = evaluate(ctx);
-    assert(eval_res->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
+    assert(eval_res->getKind() == DataKind::VAR &&
+           "Binary operations are supported only for Scalar Variables");
 
     auto eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
     if (!eval_scalar_res->getCurrentValue().hasUB()) {
@@ -546,69 +592,94 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
         case BinaryOp::SHL:
             if (ub == UBKind::ShiftRhsLarge || ub == UBKind::ShiftRhsNeg) {
                 // First of all, we need to find the maximal valid shift value
-                assert(lhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Types");
-                auto lhs_int_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
-                assert(lhs->getValue()->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
-                auto lhs_scalar_var = std::static_pointer_cast<ScalarVar>(lhs->getValue());
+                assert(lhs->getValue()->getType()->isIntType() &&
+                       "Binary operations are supported only for Scalar "
+                       "Variables of Integral Types");
+                auto lhs_int_type = std::static_pointer_cast<IntegralType>(
+                    lhs->getValue()->getType());
+                assert(lhs->getValue()->getKind() == DataKind::VAR &&
+                       "Binary operations are supported only for Scalar "
+                       "Variables");
+                auto lhs_scalar_var =
+                    std::static_pointer_cast<ScalarVar>(lhs->getValue());
                 // We can't shift pass the type size
                 size_t max_sht_val = lhs_int_type->getBitSize();
                 // And we can't shift MSB pass the type size
-                if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() && ub == UBKind::ShiftRhsLarge) {
-                    IRValue::AbsValue lhs_abs_val = lhs_scalar_var->getCurrentValue().getAbsValue();
+                if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() &&
+                    ub == UBKind::ShiftRhsLarge) {
+                    IRValue::AbsValue lhs_abs_val =
+                        lhs_scalar_var->getCurrentValue().getAbsValue();
                     max_sht_val -= findMSB(lhs_abs_val.value);
                 }
 
                 // Secondly, we choose a new shift value in a valid range
-                size_t new_val = rand_val_gen->getRandValue(static_cast<size_t>(0), max_sht_val);
+                size_t new_val = rand_val_gen->getRandValue(
+                    static_cast<size_t>(0), max_sht_val);
 
-                // Thirdly, we need to combine the chosen value with the existing one
-                assert(rhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Types");
-                auto rhs_int_type = std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
-                assert(rhs->getValue()->getKind() == DataKind::VAR && "Binary operations are supported only for Scalar Variables");
-                auto rhs_scalar_var = std::static_pointer_cast<ScalarVar>(rhs->getValue());
-                IRValue::AbsValue rhs_abs_val = rhs_scalar_var->getCurrentValue().getAbsValue();
+                // Thirdly, we need to combine the chosen value with the
+                // existing one
+                assert(rhs->getValue()->getType()->isIntType() &&
+                       "Binary operations are supported only for Scalar "
+                       "Variables of Integral Types");
+                auto rhs_int_type = std::static_pointer_cast<IntegralType>(
+                    rhs->getValue()->getType());
+                assert(rhs->getValue()->getKind() == DataKind::VAR &&
+                       "Binary operations are supported only for Scalar "
+                       "Variables");
+                auto rhs_scalar_var =
+                    std::static_pointer_cast<ScalarVar>(rhs->getValue());
+                IRValue::AbsValue rhs_abs_val =
+                    rhs_scalar_var->getCurrentValue().getAbsValue();
                 if (ub == UBKind::ShiftRhsNeg)
                     // TODO: it won't work for INT_MIN
-                    new_val = std::min(new_val + rhs_abs_val.value, static_cast<uint64_t>(rhs_int_type->getBitSize()));
+                    new_val = std::min(
+                        new_val + rhs_abs_val.value,
+                        static_cast<uint64_t>(rhs_int_type->getBitSize()));
                 // UBKind::ShiftRhsLarge
                 else
                     new_val = rhs_abs_val.value - new_val;
 
-
                 // Finally, we need to make changes to the program
                 IRValue adjust_val = IRValue(rhs_int_type->getIntTypeId());
-                adjust_val.setValue(IRValue::AbsValue {false, new_val});
+                adjust_val.setValue(IRValue::AbsValue{false, new_val});
                 auto const_val = std::make_shared<ConstantExpr>(adjust_val);
                 if (ub == UBKind::ShiftRhsNeg)
-                    rhs = std::make_shared<BinaryExpr>(BinaryOp::ADD, rhs, const_val);
+                    rhs = std::make_shared<BinaryExpr>(BinaryOp::ADD, rhs,
+                                                       const_val);
                 // UBKind::ShiftRhsLarge
                 else
-                    rhs = std::make_shared<BinaryExpr>(BinaryOp::SUB, rhs, const_val);
+                    rhs = std::make_shared<BinaryExpr>(BinaryOp::SUB, rhs,
+                                                       const_val);
             }
-            //UBKind::NegShift
+            // UBKind::NegShift
             else {
                 // We can just add maximal value of the type
-                assert(lhs->getValue()->getType()->isIntType() && "Binary operations are supported only for Scalar Variables of Integral Types");
-                auto lhs_int_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
-                auto const_val = std::make_shared<ConstantExpr>(lhs_int_type->getMax());
-                lhs = std::make_shared<BinaryExpr>(BinaryOp::ADD, lhs, const_val);
+                assert(lhs->getValue()->getType()->isIntType() &&
+                       "Binary operations are supported only for Scalar "
+                       "Variables of Integral Types");
+                auto lhs_int_type = std::static_pointer_cast<IntegralType>(
+                    lhs->getValue()->getType());
+                auto const_val =
+                    std::make_shared<ConstantExpr>(lhs_int_type->getMax());
+                lhs =
+                    std::make_shared<BinaryExpr>(BinaryOp::ADD, lhs, const_val);
             }
             break;
-            case BinaryOp::LT:
-            case BinaryOp::GT:
-            case BinaryOp::LE:
-            case BinaryOp::GE:
-            case BinaryOp::EQ:
-            case BinaryOp::NE:
-            case BinaryOp::BIT_AND:
-            case BinaryOp::BIT_OR:
-            case BinaryOp::BIT_XOR:
-            case BinaryOp::LOG_AND:
-            case BinaryOp::LOG_OR:
-                break;
-            case BinaryOp::MAX_BIN_OP:
-                ERROR("Bad binary operator");
-                break;
+        case BinaryOp::LT:
+        case BinaryOp::GT:
+        case BinaryOp::LE:
+        case BinaryOp::GE:
+        case BinaryOp::EQ:
+        case BinaryOp::NE:
+        case BinaryOp::BIT_AND:
+        case BinaryOp::BIT_OR:
+        case BinaryOp::BIT_XOR:
+        case BinaryOp::LOG_AND:
+        case BinaryOp::LOG_OR:
+            break;
+        case BinaryOp::MAX_BIN_OP:
+            ERROR("Bad binary operator");
+            break;
     }
 
     do {
@@ -617,8 +688,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
         if (!eval_scalar_res->getCurrentValue().hasUB())
             break;
         rebuild(ctx);
-    }
-    while (eval_scalar_res->getCurrentValue().hasUB());
+    } while (eval_scalar_res->getCurrentValue().hasUB());
 
     value = eval_res;
     return eval_res;
@@ -686,7 +756,7 @@ void BinaryExpr::emit(std::ostream &stream, std::string offset) {
         case BinaryOp::MAX_BIN_OP:
             ERROR("Bad binary operator");
             break;
-        }
+    }
     stream << "(";
     rhs->emit(stream);
     stream << ")";
@@ -729,7 +799,8 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     if (!array_eval_res->getType()->isArrayType()) {
         ERROR("Subscription operation is supported only for Array");
     }
-    auto array_type = std::static_pointer_cast<ArrayType>(array_eval_res->getType());
+    auto array_type =
+        std::static_pointer_cast<ArrayType>(array_eval_res->getType());
 
     IRNodeKind base_expr_kind = array->getKind();
     if (base_expr_kind == IRNodeKind::ARRAY_USE)
@@ -765,9 +836,10 @@ Expr::EvalResType SubscriptExpr::rebuild(EvalCtx &ctx) {
     if (!eval_res->hasUB())
         return eval_res;
 
-    assert(eval_res->getUBCode() == UBKind::OutOfBounds && "Every other UB should be handled before");
+    assert(eval_res->getUBCode() == UBKind::OutOfBounds &&
+           "Every other UB should be handled before");
 
-    IRValue active_size_val (idx_int_type_id);
+    IRValue active_size_val(idx_int_type_id);
     active_size_val.setValue({false, active_size});
     auto size_constant = std::make_shared<ConstantExpr>(active_size_val);
     idx = std::make_shared<BinaryExpr>(BinaryOp::MOD, idx, size_constant);
@@ -780,7 +852,7 @@ Expr::EvalResType SubscriptExpr::rebuild(EvalCtx &ctx) {
 
 void SubscriptExpr::emit(std::ostream &stream, std::string offset) {
     stream << offset;
-    //TODO: it may cause some problems in the future
+    // TODO: it may cause some problems in the future
     array->emit(stream);
     stream << " [";
     idx->emit(stream);
@@ -790,16 +862,19 @@ void SubscriptExpr::emit(std::ostream &stream, std::string offset) {
 bool AssignmentExpr::propagateType() {
     to->propagateType();
     from->propagateType();
-    //We need to cast the type of the expression, but we can't always do it here.
-    // The problem is that the type of the Subscript Expression is unknown utill we evaluate it.
+    // We need to cast the type of the expression, but we can't always do it
+    // here.
+    // The problem is that the type of the Subscript Expression is unknown utill
+    // we evaluate it.
     return true;
 }
 
 Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
     propagateType();
     EvalResType to_eval_res = to->evaluate(ctx);
-    //TODO: we don't need to always do it
-    from = std::make_shared<TypeCastExpr>(from, to_eval_res->getType(), /*is_implicit*/ true);
+    // TODO: we don't need to always do it
+    from = std::make_shared<TypeCastExpr>(from, to_eval_res->getType(),
+                                          /*is_implicit*/ true);
     EvalResType from_eval_res = from->evaluate(ctx);
     if (to_eval_res->getKind() != from_eval_res->getKind())
         ERROR("We can't assign incompatible data types");

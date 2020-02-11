@@ -22,8 +22,7 @@ limitations under the License.
 using namespace yarpgen;
 
 IRValue::IRValue()
-    : type_id(IntTypeID::MAX_INT_TYPE_ID),
-      ub_code(UBKind::Uninit) {
+    : type_id(IntTypeID::MAX_INT_TYPE_ID), ub_code(UBKind::Uninit) {
     value.ullong_val = 0;
 }
 
@@ -134,7 +133,9 @@ addOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue yarpgen::operator+(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(addOperator); }
+IRValue yarpgen::operator+(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(addOperator);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -175,7 +176,9 @@ subOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue yarpgen::operator-(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(subOperator); }
+IRValue yarpgen::operator-(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(subOperator);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -265,7 +268,9 @@ mulOperator(IRValue &lhs, IRValue &rhs) {
     return ret;
 }
 
-IRValue yarpgen::operator*(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(mulOperator); }
+IRValue yarpgen::operator*(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(mulOperator);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -319,13 +324,17 @@ template <typename T> static IRValue divOperator(IRValue &lhs, IRValue &rhs) {
     return divModImpl<T>(lhs, rhs, std::divides<T>());
 }
 
-IRValue yarpgen::operator/(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(divOperator); }
+IRValue yarpgen::operator/(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(divOperator);
+}
 
 template <typename T> static IRValue modOperator(IRValue &lhs, IRValue &rhs) {
     return divModImpl<T>(lhs, rhs, std::modulus<T>());
 }
 
-IRValue yarpgen::operator%(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(modOperator); }
+IRValue yarpgen::operator%(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(modOperator);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -347,7 +356,9 @@ template <typename T> static IRValue lessOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::less<T>());
 }
 
-IRValue yarpgen::operator<(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(lessOperator); }
+IRValue yarpgen::operator<(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(lessOperator);
+}
 
 template <typename T>
 static IRValue greaterOperator(IRValue &lhs, IRValue &rhs) {
@@ -380,7 +391,9 @@ template <typename T> static IRValue equalOperator(IRValue &lhs, IRValue &rhs) {
     return cmpEqImpl<T>(lhs, rhs, std::equal_to<T>());
 }
 
-IRValue yarpgen::operator==(IRValue lhs, IRValue rhs) { BinaryOperatorImpl(equalOperator); }
+IRValue yarpgen::operator==(IRValue lhs, IRValue rhs) {
+    BinaryOperatorImpl(equalOperator);
+}
 
 template <typename T>
 static IRValue notEqualOperator(IRValue &lhs, IRValue &rhs) {
@@ -495,7 +508,8 @@ static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
     if (lhs.hasUB() || rhs.hasUB())
         return ret;
 
-    if (ret.getUBCode() == UBKind::ShiftRhsNeg || ret.getUBCode() == UBKind::ShiftRhsLarge)
+    if (ret.getUBCode() == UBKind::ShiftRhsNeg ||
+        ret.getUBCode() == UBKind::ShiftRhsLarge)
         return ret;
 
     if (std::is_signed<T>::value && lhs.getValueRef<T>() < 0) {
@@ -529,7 +543,8 @@ static IRValue rightShiftOperator(IRValue &lhs, IRValue &rhs) {
     if (lhs.hasUB() || rhs.hasUB())
         return ret;
 
-    if (ret.getUBCode() == UBKind::ShiftRhsNeg || ret.getUBCode() == UBKind::ShiftRhsLarge)
+    if (ret.getUBCode() == UBKind::ShiftRhsNeg ||
+        ret.getUBCode() == UBKind::ShiftRhsLarge)
         return ret;
 
     if (std::is_signed<T>::value && lhs.getValueRef<T>() < 0) {
@@ -582,12 +597,12 @@ std::ostream &yarpgen::operator<<(std::ostream &out, yarpgen::IRValue &val) {
     return out;
 }
 
-
 IRValue::AbsValue IRValue::getAbsValue() {
-    AbsValue ret {false, 0};
-    //TODO: function can be called on value wich is undefined and we need somehow to pass this information
+    AbsValue ret{false, 0};
+    // TODO: function can be called on value wich is undefined and we need
+    // somehow to pass this information
     switch (type_id) {
-        //TODO: use defines to make it shorter
+        // TODO: use defines to make it shorter
         case IntTypeID::BOOL:
             ret.value = value.bool_val;
             break;
@@ -636,10 +651,10 @@ void IRValue::setValue(IRValue::AbsValue val) {
             break;
         case IntTypeID::UCHAR:
             value.uchar_val = val.value * (val.isNegative ? -1 : 1);
-        break;
+            break;
         case IntTypeID::SHORT:
             value.schar_val = val.value * (val.isNegative ? -1 : 1);
-        break;
+            break;
         case IntTypeID::USHORT:
             value.ushrt_val = val.value * (val.isNegative ? -1 : 1);
             break;

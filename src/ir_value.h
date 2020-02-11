@@ -82,7 +82,7 @@ class IRValue {
 
     IRValue castToType(IntTypeID to_type);
 
-    friend std::ostream& operator<<(std::ostream &out, IRValue &val);
+    friend std::ostream &operator<<(std::ostream &out, IRValue &val);
 
     struct AbsValue {
         bool isNegative;
@@ -284,7 +284,8 @@ template <typename T> inline size_t findMSB(T x) {
 }
 
 std::ostream &operator<<(std::ostream &out, yarpgen::IRValue &val);
-//TODO: ideally, rhs should have a const IRValue&, but it causes problem with getValueRef
+// TODO: ideally, rhs should have a const IRValue&, but it causes problem with
+// getValueRef
 IRValue operator+(IRValue lhs, IRValue rhs);
 IRValue operator-(IRValue lhs, IRValue rhs);
 IRValue operator*(IRValue lhs, IRValue rhs);

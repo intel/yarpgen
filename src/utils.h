@@ -37,7 +37,9 @@ class IRValue;
         abort();                                                               \
     } while (false)
 
-// According to the agreement, Random Value Generator is the only way to get any random value in YARPGen. It is used for different random decisions all over the source code.
+// According to the agreement, Random Value Generator is the only way to get any
+// random value in YARPGen. It is used for different random decisions all over
+// the source code.
 class RandValGen {
   public:
     // Specific seed can be passed to constructor to reproduce the test.
@@ -46,7 +48,12 @@ class RandValGen {
 
     template <typename T> T getRandValue(T from, T to) {
         // Using long long instead of T is a hack.
-        // getRandValue is used with all kind of integer types, including chars. While standard is not allowing it to be used with uniform_int_distribution<> algorithm. Though, clang and gcc ok with it, but VS doesn't compile such code. For details see C++17, $26.5.1.1e [rand.req.genl]. This issue is also discussed in issue 2326 (closed as not a defect and reopened as feature request N4296).
+        // getRandValue is used with all kind of integer types, including chars.
+        // While standard is not allowing it to be used with
+        // uniform_int_distribution<> algorithm. Though, clang and gcc ok with
+        // it, but VS doesn't compile such code. For details see C++17,
+        // $26.5.1.1e [rand.req.genl]. This issue is also discussed in issue
+        // 2326 (closed as not a defect and reopened as feature request N4296).
         std::uniform_int_distribution<long long> dis(from, to);
         return dis(rand_gen);
     }
@@ -72,4 +79,4 @@ template <> inline bool RandValGen::getRandValue<bool>(bool from, bool to) {
 }
 
 extern std::shared_ptr<RandValGen> rand_val_gen;
-}
+} // namespace yarpgen
