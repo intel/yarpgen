@@ -83,43 +83,53 @@ class ScopeStmt : public StmtBlock {
 
 class LoopStmt : public Stmt {};
 
+class LoopHead {
+  public:
+    void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
+        prefix = std::move(_prefix);
+    }
+    void addIterator(std::shared_ptr<Iterator> _iter) {
+        iters.push_back(std::move(_iter));
+    }
+    void addSuffix(std::shared_ptr<StmtBlock> _suffix) {
+        suffix = std::move(_suffix);
+    }
+    void emitPrefix(std::ostream &stream, std::string offset = "");
+    void emitHeader(std::ostream &stream, std::string offset = "");
+    void emitSuffix(std::ostream &stream, std::string offset = "");
+
+  private:
+    std::shared_ptr<StmtBlock> prefix;
+    // Loop iterations space is defined by the iterators that we can use
+    std::vector<std::shared_ptr<Iterator>> iters;
+    std::shared_ptr<StmtBlock> suffix;
+};
+
 class LoopSeqStmt : public LoopStmt {
   public:
-    // TODO: move to private?
-    // TODO: LoopNestStmt have almost the same header. Should we merge them?
-    class LoopHead {
-      public:
-        void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
-            prefix = std::move(_prefix);
-        }
-        void addIterator(std::shared_ptr<Iterator> _iter) {
-            iters.push_back(std::move(_iter));
-        }
-        void addBody(std::shared_ptr<ScopeStmt> _body) {
-            body = std::move(_body);
-        }
-        void addSuffix(std::shared_ptr<StmtBlock> _suffix) {
-            suffix = std::move(_suffix);
-        }
-
-        void emit(std::ostream &stream, std::string offset = "");
-
-      private:
-        std::shared_ptr<StmtBlock> prefix;
-        // Loop iterations space is defined by the iterators that we can use
-        std::vector<std::shared_ptr<Iterator>> iters;
-        std::shared_ptr<ScopeStmt> body;
-        std::shared_ptr<StmtBlock> suffix;
-    };
-
-    void addLoop(std::shared_ptr<LoopHead> _loop) {
+    void
+    addLoop(std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>
+                _loop) {
         loops.push_back(std::move(_loop));
     }
     void emit(std::ostream &stream, std::string offset = "") final;
 
   private:
-    std::vector<std::shared_ptr<LoopHead>> loops;
+    std::vector<
+        std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>>
+        loops;
 };
 
-class LoopNestStmt : public LoopStmt {};
+class LoopNestStmt : public LoopStmt {
+  public:
+    void addLoop(std::shared_ptr<LoopHead> _loop) {
+        loops.push_back(std::move(_loop));
+    }
+    void addBody(std::shared_ptr<ScopeStmt> _body) { body = std::move(_body); }
+    void emit(std::ostream &stream, std::string offset = "") final;
+
+  private:
+    std::vector<std::shared_ptr<LoopHead>> loops;
+    std::shared_ptr<StmtBlock> body;
+};
 } // namespace yarpgen
