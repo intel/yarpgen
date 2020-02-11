@@ -51,11 +51,14 @@ void ScopeStmt::emit(std::ostream &stream, std::string offset) {
     stream << offset << "}";
 }
 
-void LoopSeqStmt::LoopHead::emit(std::ostream &stream, std::string offset) {
-    // TODO: it will handle simple cases. We need to improve it later.
+void LoopHead::emitPrefix(std::ostream &stream, std::string offset) {
     prefix->emit(stream, offset);
-    stream << offset << "for (";
+}
 
+void LoopHead::emitHeader(std::ostream &stream, std::string offset) {
+    stream << offset;
+
+    stream << "for (";
     auto place_sep = [this](auto iter, std::string sep) -> std::string {
         return iter != iters.end() - 1 ? std::move(sep) : "";
     };
@@ -81,14 +84,29 @@ void LoopSeqStmt::LoopHead::emit(std::ostream &stream, std::string offset) {
         place_sep(iter, ",");
     }
     stream << ") ";
+}
 
-    body->emit(stream, offset + "    ");
-
+void LoopHead::emitSuffix(std::ostream &stream, std::string offset) {
     suffix->emit(stream, offset);
 }
 
 void LoopSeqStmt::emit(std::ostream &stream, std::string offset) {
     for (const auto &loop : loops) {
-        loop->emit(stream, offset);
+        loop.first->emitPrefix(stream, offset);
+        loop.first->emitHeader(stream, offset);
+        loop.second->emit(stream, offset + "    ");
+        loop.first->emitSuffix(stream, offset);
     }
+}
+
+void LoopNestStmt::emit(std::ostream &stream, std::string offset) {
+    for (const auto &loop : loops) {
+        loop->emitPrefix(stream, offset);
+        loop->emitHeader(stream, offset);
+    }
+
+    body->emit(stream, offset + "    ");
+
+    for (const auto &loop : loops)
+        loop->emitSuffix(stream, offset);
 }
