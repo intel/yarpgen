@@ -28,7 +28,8 @@ namespace yarpgen {
 class Data {
   public:
     Data(std::string _name, std::shared_ptr<Type> _type)
-        : name(std::move(_name)), type(std::move(_type)), ub_code(UBKind::Uninit) {}
+        : name(std::move(_name)), type(std::move(_type)),
+          ub_code(UBKind::Uninit) {}
     virtual ~Data() = default;
 
     std::string getName() { return name; }
@@ -64,13 +65,19 @@ class ScalarVar : public Data {
     ScalarVar(std::string _name, const std::shared_ptr<IntegralType> &_type,
               IRValue _init_value)
         : Data(std::move(_name), _type), init_val(_init_value),
-          cur_val(_init_value), changed(false) { ub_code = init_val.getUBCode(); }
+          cur_val(_init_value), changed(false) {
+        ub_code = init_val.getUBCode();
+    }
     bool isScalarVar() final { return true; }
     DataKind getKind() final { return DataKind::VAR; }
 
     IRValue getInitValue() { return init_val; }
     IRValue getCurrentValue() { return cur_val; }
-    void setCurrentValue(IRValue _val) { cur_val = _val; ub_code = cur_val.getUBCode(); changed = true; }
+    void setCurrentValue(IRValue _val) {
+        cur_val = _val;
+        ub_code = cur_val.getUBCode();
+        changed = true;
+    }
     bool wasChanged() { return changed; }
 
     void dbgDump() final;
@@ -96,7 +103,7 @@ class Array : public Data {
     void dbgDump() final;
 
   private:
-    //TODO:
+    // TODO:
     // We want elements of the array to have different values.
     // It is the only way to properly test masked instructions and optimizations
     // designed to work with them.
@@ -115,10 +122,10 @@ class Expr;
 class Iterator : public Data {
   public:
     Iterator(std::string _name, std::shared_ptr<Type> _type,
-            std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
-            std::shared_ptr<Expr> _step) :
-            Data(std::move(_name), std::move(_type)), start(std::move(_start)),
-            end(std::move(_end)), step(std::move(_step)) {}
+             std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
+             std::shared_ptr<Expr> _step)
+        : Data(std::move(_name), std::move(_type)), start(std::move(_start)),
+          end(std::move(_end)), step(std::move(_step)) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
@@ -126,10 +133,12 @@ class Iterator : public Data {
     std::shared_ptr<Expr> getStart() { return start; }
     std::shared_ptr<Expr> getEnd() { return end; }
     std::shared_ptr<Expr> getStep() { return step; }
-    void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end, std::shared_ptr<Expr> _step);
+    void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
+                       std::shared_ptr<Expr> _step);
 
   private:
-    //TODO: should the expression contain full update on the iterator or only the "meaningful" part?
+    // TODO: should the expression contain full update on the iterator or only
+    // the "meaningful" part?
     // For know we assume the latter, but it limits expressiveness
     std::shared_ptr<Expr> start;
     std::shared_ptr<Expr> end;

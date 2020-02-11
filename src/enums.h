@@ -50,7 +50,7 @@ enum class CVQualifier {
 // TODO: do we want to allow implementation-defined behaviour?
 enum class UBKind {
     NoUB,
-    Uninit,        // Uninitialized
+    Uninit, // Uninitialized
     // NullPtr,       // nullptr ptr dereference
     SignOvf,       // Signed overflow
     SignOvfMin,    // Special case of signed overflow: INT_MIN * (-1)
@@ -94,13 +94,7 @@ enum class IRNodeKind {
     MAX_STMT_KIND
 };
 
-enum class UnaryOp {
-    PLUS,
-    NEGATE,
-    LOG_NOT,
-    BIT_NOT,
-    MAX_UN_OP
-};
+enum class UnaryOp { PLUS, NEGATE, LOG_NOT, BIT_NOT, MAX_UN_OP };
 
 enum class BinaryOp {
     ADD,

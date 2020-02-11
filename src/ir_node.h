@@ -25,11 +25,13 @@ namespace yarpgen {
 class IRNode {
   public:
     virtual ~IRNode() = default;
-    // This method emits internal representation of the test to a contextual form using recursive calls.
-    // The callee is responsible for all of the wrapping (e.g., parentheses).
-    // The caller is obligated to handle the offset properly.
-    //TODO: in the future we might output the same test using different language constructions
-    virtual void emit(std::ostream& stream, std::string offset = "") = 0;
+    // This method emits internal representation of the test to a contextual
+    // form using recursive calls. The callee is responsible for all of the
+    // wrapping (e.g., parentheses). The caller is obligated to handle the
+    // offset properly.
+    // TODO: in the future we might output the same test using different
+    // language constructions
+    virtual void emit(std::ostream &stream, std::string offset = "") = 0;
 };
 
-}
+} // namespace yarpgen

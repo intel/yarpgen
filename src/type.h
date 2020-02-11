@@ -96,9 +96,11 @@ class IntegralType : public ArithmeticType {
     static bool isSame(std::shared_ptr<IntegralType> &lhs,
                        std::shared_ptr<IntegralType> &rhs);
 
-    // Auxiliary function for arithmetic conversions that shows if type a can represent all the values of type b
+    // Auxiliary function for arithmetic conversions that shows if type a can
+    // represent all the values of type b
     static bool canRepresentType(IntTypeID a, IntTypeID b);
-    //Auxiliary function for arithmetic conversions that find corresponding unsigned type
+    // Auxiliary function for arithmetic conversions that find corresponding
+    // unsigned type
     static IntTypeID getCorrUnsigned(IntTypeID id);
 
   private:
@@ -246,10 +248,11 @@ class TypeULLong : public IntegralTypeHelper<uint64_t> {
 // ValArray).
 class ArrayType : public Type {
   public:
-    ArrayType(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual,
-              size_t _uid)
-        : Type(_is_static, _cv_qual), base_type(std::move(_base_type)), dimensions(std::move(_dims)),
-          kind(ArrayKind::MAX_ARRAY_KIND), uid(_uid) {}
+    ArrayType(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims,
+              bool _is_static, CVQualifier _cv_qual, size_t _uid)
+        : Type(_is_static, _cv_qual), base_type(std::move(_base_type)),
+          dimensions(std::move(_dims)), kind(ArrayKind::MAX_ARRAY_KIND),
+          uid(_uid) {}
 
     bool isArrayType() final { return true; }
     std::shared_ptr<Type> getBaseType() { return base_type; }
@@ -262,8 +265,10 @@ class ArrayType : public Type {
     std::string getName() override;
     void dbgDump() override;
 
-    static std::shared_ptr<ArrayType>
-    init(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims, bool _is_static, CVQualifier _cv_qual);
+    static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
+                                           std::vector<size_t> _dims,
+                                           bool _is_static,
+                                           CVQualifier _cv_qual);
     static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims);
 

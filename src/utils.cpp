@@ -24,25 +24,24 @@ using namespace yarpgen;
 
 std::shared_ptr<RandValGen> yarpgen::rand_val_gen;
 
-RandValGen::RandValGen (uint64_t _seed) {
+RandValGen::RandValGen(uint64_t _seed) {
     if (_seed != 0) {
         seed = _seed;
     }
     else {
         std::random_device rd;
-        seed = rd ();
+        seed = rd();
     }
     std::cout << "/*SEED " << seed << "*/" << std::endl;
     rand_gen = std::mt19937_64(seed);
 }
 
-#define RandValueCase(__type_id__, type_name) \
-    case __type_id__: \
-        do { \
-            ret.getValueRef<type_name>() = getRandValue<type_name>(); \
-            break;\
-        } \
-        while (false)
+#define RandValueCase(__type_id__, type_name)                                  \
+    case __type_id__:                                                          \
+        do {                                                                   \
+            ret.getValueRef<type_name>() = getRandValue<type_name>();          \
+            break;                                                             \
+        } while (false)
 
 IRValue RandValGen::getRandValue(IntTypeID type_id) {
     if (type_id == IntTypeID::MAX_INT_TYPE_ID)
@@ -50,7 +49,7 @@ IRValue RandValGen::getRandValue(IntTypeID type_id) {
 
     IRValue ret(type_id);
     switch (type_id) {
-        //TODO: if we use chains of if we can make it simpler
+        // TODO: if we use chains of if we can make it simpler
         RandValueCase(IntTypeID::BOOL, TypeBool::value_type);
         RandValueCase(IntTypeID::SCHAR, TypeSChar::value_type);
         RandValueCase(IntTypeID::UCHAR, TypeUChar::value_type);

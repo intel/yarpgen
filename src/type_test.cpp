@@ -60,8 +60,9 @@ void type_test() {
                 std::vector<size_t> dims = {static_cast<size_t>(i),
                                             static_cast<size_t>(j),
                                             static_cast<size_t>(k)};
-                std::shared_ptr<ArrayType> ptr_to_type = ArrayType::init(ptr_to_int_type, dims, static_cast<bool>(k),
-                    static_cast<CVQualifier>(j));
+                std::shared_ptr<ArrayType> ptr_to_type =
+                    ArrayType::init(ptr_to_int_type, dims, static_cast<bool>(k),
+                                    static_cast<CVQualifier>(j));
             }
 
     for (auto i = static_cast<int>(IntTypeID::BOOL);
@@ -76,8 +77,9 @@ void type_test() {
                 std::vector<size_t> dims = {static_cast<size_t>(i),
                                             static_cast<size_t>(j),
                                             static_cast<size_t>(k)};
-                std::shared_ptr<ArrayType> ptr_to_type = ArrayType::init(ptr_to_int_type, dims, static_cast<bool>(k),
-                    static_cast<CVQualifier>(j));
+                std::shared_ptr<ArrayType> ptr_to_type =
+                    ArrayType::init(ptr_to_int_type, dims, static_cast<bool>(k),
+                                    static_cast<CVQualifier>(j));
 
                 ptr_to_type->dbgDump();
                 std::cout << "-------------------" << std::endl;

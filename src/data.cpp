@@ -40,7 +40,8 @@ void yarpgen::Array::dbgDump() {
 yarpgen::Array::Array(std::string _name,
                       const std::shared_ptr<ArrayType> &_type,
                       std::shared_ptr<Data> _val)
-    : Data(std::move(_name), _type), init_vals(_val), cur_vals(_val), was_changed(false) {
+    : Data(std::move(_name), _type), init_vals(_val), cur_vals(_val),
+      was_changed(false) {
     if (!type->isArrayType())
         ERROR("Array variable should have an ArrayType");
 

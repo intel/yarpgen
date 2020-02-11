@@ -47,35 +47,39 @@ IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual) {
     // Create type if we can't find it
     std::shared_ptr<IntegralType> ret;
     switch (_type_id) {
-    case IntTypeID::BOOL:
-        ret = std::make_shared<TypeBool>(TypeBool(_is_static, _cv_qual));
-        break;
-    case IntTypeID::SCHAR:
-        ret = std::make_shared<TypeSChar>(TypeSChar(_is_static, _cv_qual));
-        break;
-    case IntTypeID::UCHAR:
-        ret = std::make_shared<TypeUChar>(TypeUChar(_is_static, _cv_qual));
-        break;
-    case IntTypeID::SHORT:
-        ret = std::make_shared<TypeSShort>(TypeSShort(_is_static, _cv_qual));
-        break;
-    case IntTypeID::USHORT:
-        ret = std::make_shared<TypeUShort>(TypeUShort(_is_static, _cv_qual));
-        break;
-    case IntTypeID::INT:
-        ret = std::make_shared<TypeSInt>(TypeSInt(_is_static, _cv_qual));
-        break;
-    case IntTypeID::UINT:
-        ret = std::make_shared<TypeUInt>(TypeUInt(_is_static, _cv_qual));
-        break;
-    case IntTypeID::LLONG:
-        ret = std::make_shared<TypeSLLong>(TypeSLLong(_is_static, _cv_qual));
-        break;
-    case IntTypeID::ULLONG:
-        ret = std::make_shared<TypeULLong>(TypeULLong(_is_static, _cv_qual));
-        break;
-    case IntTypeID::MAX_INT_TYPE_ID:
-        ERROR("Unsupported IntTypeID");
+        case IntTypeID::BOOL:
+            ret = std::make_shared<TypeBool>(TypeBool(_is_static, _cv_qual));
+            break;
+        case IntTypeID::SCHAR:
+            ret = std::make_shared<TypeSChar>(TypeSChar(_is_static, _cv_qual));
+            break;
+        case IntTypeID::UCHAR:
+            ret = std::make_shared<TypeUChar>(TypeUChar(_is_static, _cv_qual));
+            break;
+        case IntTypeID::SHORT:
+            ret =
+                std::make_shared<TypeSShort>(TypeSShort(_is_static, _cv_qual));
+            break;
+        case IntTypeID::USHORT:
+            ret =
+                std::make_shared<TypeUShort>(TypeUShort(_is_static, _cv_qual));
+            break;
+        case IntTypeID::INT:
+            ret = std::make_shared<TypeSInt>(TypeSInt(_is_static, _cv_qual));
+            break;
+        case IntTypeID::UINT:
+            ret = std::make_shared<TypeUInt>(TypeUInt(_is_static, _cv_qual));
+            break;
+        case IntTypeID::LLONG:
+            ret =
+                std::make_shared<TypeSLLong>(TypeSLLong(_is_static, _cv_qual));
+            break;
+        case IntTypeID::ULLONG:
+            ret =
+                std::make_shared<TypeULLong>(TypeULLong(_is_static, _cv_qual));
+            break;
+        case IntTypeID::MAX_INT_TYPE_ID:
+            ERROR("Unsupported IntTypeID");
     }
 
     int_type_set[key] = ret;
@@ -90,21 +94,24 @@ bool IntegralType::isSame(std::shared_ptr<IntegralType> &lhs,
 }
 
 bool IntegralType::canRepresentType(IntTypeID a, IntTypeID b) {
-    // This functions should be called only after integral promotions, so we don't care about "small" types.
-    // Unfortunately, there is no way to enforce it, so in case of violation it should fail generated tests.
-    //TODO: can we do something about it?
+    // This functions should be called only after integral promotions, so we
+    // don't care about "small" types. Unfortunately, there is no way to enforce
+    // it, so in case of violation it should fail generated tests.
+    // TODO: can we do something about it?
 
     if (a == IntTypeID::INT && b == IntTypeID::LLONG)
         return true;
 
-    if (a == IntTypeID::UINT && (b == IntTypeID::ULLONG || b == IntTypeID::LLONG))
+    if (a == IntTypeID::UINT &&
+        (b == IntTypeID::ULLONG || b == IntTypeID::LLONG))
         return true;
 
     return false;
 }
 
 IntTypeID IntegralType::getCorrUnsigned(IntTypeID id) {
-    // This functions should be called only after integral promotions, so we don't care about "small" types.
+    // This functions should be called only after integral promotions, so we
+    // don't care about "small" types.
     switch (id) {
         case IntTypeID::INT:
         case IntTypeID::UINT:
@@ -113,7 +120,8 @@ IntTypeID IntegralType::getCorrUnsigned(IntTypeID id) {
         case IntTypeID::ULLONG:
             return IntTypeID::ULLONG;
         default:
-            ERROR("This function should be called only after IntegralPromotions");
+            ERROR(
+                "This function should be called only after IntegralPromotions");
     }
 }
 
@@ -201,6 +209,6 @@ std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
 }
 
 std::string ArrayType::getName() {
-    //TODO: we need a more correct way to do it
+    // TODO: we need a more correct way to do it
     return base_type->getName() + " *";
 }

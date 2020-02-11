@@ -40,7 +40,7 @@ class ExprStmt : public Stmt {
 
     std::shared_ptr<Expr> getExpr() { return expr; }
 
-    void emit(std::ostream& stream, std::string offset = "") final;
+    void emit(std::ostream &stream, std::string offset = "") final;
 
   private:
     std::shared_ptr<Expr> expr;
@@ -49,9 +49,10 @@ class ExprStmt : public Stmt {
 class DeclStmt : public Stmt {
   public:
     explicit DeclStmt(std::shared_ptr<Data> _data) : data(std::move(_data)) {}
-    DeclStmt(std::shared_ptr<Data> _data, std::shared_ptr<Expr> _expr) : data(std::move(_data)), init_expr(std::move(_expr)) {}
+    DeclStmt(std::shared_ptr<Data> _data, std::shared_ptr<Expr> _expr)
+        : data(std::move(_data)), init_expr(std::move(_expr)) {}
     IRNodeKind getKind() final { return IRNodeKind::DECL; }
-    void emit(std::ostream& stream, std::string offset = "") final;
+    void emit(std::ostream &stream, std::string offset = "") final;
 
   private:
     std::shared_ptr<Data> data;
@@ -61,12 +62,15 @@ class DeclStmt : public Stmt {
 class StmtBlock : public Stmt {
   public:
     StmtBlock() = default;
-    explicit StmtBlock(std::vector<std::shared_ptr<Stmt>> _stmts) : stmts(std::move(_stmts)) {}
+    explicit StmtBlock(std::vector<std::shared_ptr<Stmt>> _stmts)
+        : stmts(std::move(_stmts)) {}
     IRNodeKind getKind() final { return IRNodeKind::DECL; }
 
-    void addStmt(std::shared_ptr<Stmt> stmt) { stmts.push_back(std::move(stmt)); }
+    void addStmt(std::shared_ptr<Stmt> stmt) {
+        stmts.push_back(std::move(stmt));
+    }
 
-    void emit(std::ostream& stream, std::string offset = "") override;
+    void emit(std::ostream &stream, std::string offset = "") override;
 
   private:
     std::vector<std::shared_ptr<Stmt>> stmts;
@@ -74,23 +78,31 @@ class StmtBlock : public Stmt {
 
 class ScopeStmt : public StmtBlock {
   public:
-    void emit(std::ostream& stream, std::string offset = "") final;
+    void emit(std::ostream &stream, std::string offset = "") final;
 };
 
 class LoopStmt : public Stmt {};
 
 class LoopSeqStmt : public LoopStmt {
   public:
-    //TODO: move to private?
-    //TODO: LoopNestStmt have almost the same header. Should we merge them?
+    // TODO: move to private?
+    // TODO: LoopNestStmt have almost the same header. Should we merge them?
     class LoopHead {
       public:
-        void addPrefix(std::shared_ptr<StmtBlock> _prefix) { prefix = std::move(_prefix); }
-        void addIterator(std::shared_ptr<Iterator> _iter) { iters.push_back(std::move(_iter)); }
-        void addBody(std::shared_ptr<ScopeStmt> _body) { body = std::move(_body); }
-        void addSuffix(std::shared_ptr<StmtBlock> _suffix) { suffix = std::move(_suffix); }
+        void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
+            prefix = std::move(_prefix);
+        }
+        void addIterator(std::shared_ptr<Iterator> _iter) {
+            iters.push_back(std::move(_iter));
+        }
+        void addBody(std::shared_ptr<ScopeStmt> _body) {
+            body = std::move(_body);
+        }
+        void addSuffix(std::shared_ptr<StmtBlock> _suffix) {
+            suffix = std::move(_suffix);
+        }
 
-        void emit(std::ostream& stream, std::string offset = "");
+        void emit(std::ostream &stream, std::string offset = "");
 
       private:
         std::shared_ptr<StmtBlock> prefix;
@@ -100,12 +112,14 @@ class LoopSeqStmt : public LoopStmt {
         std::shared_ptr<StmtBlock> suffix;
     };
 
-    void addLoop(std::shared_ptr<LoopHead> _loop) { loops.push_back(std::move(_loop)); }
-    void emit(std::ostream& stream, std::string offset = "") final;
+    void addLoop(std::shared_ptr<LoopHead> _loop) {
+        loops.push_back(std::move(_loop));
+    }
+    void emit(std::ostream &stream, std::string offset = "") final;
 
   private:
     std::vector<std::shared_ptr<LoopHead>> loops;
 };
 
 class LoopNestStmt : public LoopStmt {};
-}
+} // namespace yarpgen
