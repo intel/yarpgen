@@ -37,6 +37,30 @@ class IRValue;
         abort();                                                               \
     } while (false)
 
+// This class links together id (for example, type of unary operator) and its probability.
+// Usually it is used in the form of std::vector<Probability<id>> and defines all possible variants
+// for random decision (probability itself measured in parts, similarly to std::discrete_distribution).
+// Preferably, sum of all probabilities in vector should be 100 (so we can treat 1 part as 1 percent).
+template<typename T>
+class Probability {
+  public:
+    Probability(T _id, uint64_t _prob) : id(_id), prob(_prob) {}
+    T getId() { return id; }
+    uint64_t getProb() { return prob; }
+
+    void increaseProb(uint64_t add_prob) { prob += add_prob; }
+    void zeroProb() { prob = 0; }
+    void setProb(uint64_t _prob) { prob = _prob; }
+    friend std::ostream &operator<<(std::ostream &os, const Probability<T> &prob) {
+        os << prob.id << " : " << prob.prob;
+        return os;
+    }
+
+  private:
+    T id;
+    uint64_t prob;
+};
+
 // According to the agreement, Random Value Generator is the only way to get any
 // random value in YARPGen. It is used for different random decisions all over
 // the source code.
@@ -68,6 +92,19 @@ class RandValGen {
 
     IRValue getRandValue(IntTypeID type_id);
 
+    // Randomly chooses one of IDs, basing on std::vector<Probability<id>>.
+    template<typename T>
+    T getRandId(std::vector<Probability<T>> vec) {
+        std::vector<double> discrete_dis_init;
+        for (auto i : vec)
+            discrete_dis_init.push_back(i.getProb());
+
+        std::discrete_distribution<size_t> discrete_dis(discrete_dis_init.begin(),
+                                                     discrete_dis_init.end());
+        size_t idx = discrete_dis(rand_gen);
+        return vec.at(idx).getId();
+    }
+
   private:
     uint64_t seed;
     std::mt19937_64 rand_gen;
@@ -79,4 +116,26 @@ template <> inline bool RandValGen::getRandValue<bool>(bool from, bool to) {
 }
 
 extern std::shared_ptr<RandValGen> rand_val_gen;
+
+class NameHandler {
+  public:
+    static NameHandler& getInstance() {
+        static NameHandler instance;
+        return instance;
+    }
+    NameHandler(const NameHandler& root) = delete;
+    NameHandler& operator=(const NameHandler&) = delete;
+
+    std::string getStubStmtIdx() { return std::to_string(stub_stmt_idx++); }
+    std::string getVarName() { return "var_" + std::to_string(var_idx++); }
+    std::string getIterName() { return "i_" + std::to_string(iter_idx++); }
+
+  private:
+    NameHandler() : iter_idx(0), stub_stmt_idx(0) {}
+
+    uint32_t var_idx;
+    uint32_t iter_idx;
+    uint32_t stub_stmt_idx;
+
+};
 } // namespace yarpgen

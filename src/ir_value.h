@@ -44,9 +44,14 @@ class IRValue {
         uint64_t ullong_val;
     };
 
-    IRValue();
+    struct AbsValue {
+        bool isNegative;
+        uint64_t value;
+    };
 
+    IRValue();
     explicit IRValue(IntTypeID _type_id);
+    IRValue(IntTypeID _type_id, AbsValue _val);
 
     template <typename T> T &getValueRef();
 
@@ -84,10 +89,6 @@ class IRValue {
 
     friend std::ostream &operator<<(std::ostream &out, IRValue &val);
 
-    struct AbsValue {
-        bool isNegative;
-        uint64_t value;
-    };
     AbsValue getAbsValue();
     void setValue(AbsValue val);
 

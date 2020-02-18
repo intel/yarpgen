@@ -16,11 +16,15 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include "context.h"
 #include "data.h"
+#include "expr.h"
 
 #include <utility>
 
-void yarpgen::ScalarVar::dbgDump() {
+using namespace yarpgen;
+
+void ScalarVar::dbgDump() {
     std::cout << "Scalar var: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
     type->dbgDump();
@@ -29,7 +33,16 @@ void yarpgen::ScalarVar::dbgDump() {
     std::cout << "Was changed: " << changed << std::endl;
 }
 
-void yarpgen::Array::dbgDump() {
+std::shared_ptr<ScalarVar> ScalarVar::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+    IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
+    IRValue init_val = rand_val_gen->getRandValue(type_id);
+    auto int_type = IntegralType::init(type_id);
+    NameHandler& nh = NameHandler::getInstance();
+    return std::make_shared<ScalarVar>(nh.getVarName(), int_type, init_val);
+}
+
+void Array::dbgDump() {
     std::cout << "Array: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
     type->dbgDump();
@@ -37,7 +50,7 @@ void yarpgen::Array::dbgDump() {
     cur_vals->dbgDump();
 }
 
-yarpgen::Array::Array(std::string _name,
+Array::Array(std::string _name,
                       const std::shared_ptr<ArrayType> &_type,
                       std::shared_ptr<Data> _val)
     : Data(std::move(_name), _type), init_vals(_val), cur_vals(_val),
@@ -51,7 +64,7 @@ yarpgen::Array::Array(std::string _name,
 
     ub_code = init_vals->getUBCode();
 }
-void yarpgen::Array::setValue(std::shared_ptr<Data> _val) {
+void Array::setValue(std::shared_ptr<Data> _val) {
     auto array_type = std::static_pointer_cast<ArrayType>(type);
     if (array_type->getBaseType() != _val->getType())
         ERROR("Can't initialize array with variable of wrong type");
@@ -60,10 +73,35 @@ void yarpgen::Array::setValue(std::shared_ptr<Data> _val) {
     was_changed = true;
 }
 
-void yarpgen::Iterator::setParameters(std::shared_ptr<yarpgen::Expr> _start,
-                                      std::shared_ptr<yarpgen::Expr> _end,
-                                      std::shared_ptr<yarpgen::Expr> _step) {
+void Iterator::setParameters(std::shared_ptr<Expr> _start,
+                                      std::shared_ptr<Expr> _end,
+                                      std::shared_ptr<Expr> _step) {
     start = std::move(_start);
     end = std::move(_end);
     step = std::move(_step);
+}
+
+std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+
+    IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
+    auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, 0}});
+    size_t end_val = rand_val_gen->getRandValue(gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+    auto end = std::make_shared<ConstantExpr>(IRValue(type_id, {false, end_val}));
+    size_t step_val = rand_val_gen->getRandId(gen_pol->iters_step_distr);
+    auto step = std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});
+    auto type = IntegralType::init(type_id);
+
+    NameHandler& nh = NameHandler::getInstance();
+
+    auto iter = std::make_shared<Iterator>(nh.getIterName(), type, start, end, step);
+    return iter;
+}
+
+void Iterator::dbgDump() {
+    std::cout << name << std::endl;
+    type->dbgDump();
+    start->emit(std::cout);
+    end->emit(std::cout);
+    end->emit(std::cout);
 }
