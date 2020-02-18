@@ -88,9 +88,11 @@ enum class IRNodeKind {
     MAX_EXPR_KIND,
     EXPR,
     DECL,
+    BLOCK,
     SCOPE,
     LOOP_SEQ,
     LOOP_NEST,
+    STUB,
     MAX_STMT_KIND
 };
 

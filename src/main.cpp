@@ -15,6 +15,9 @@ limitations under the License.
 */
 
 //////////////////////////////////////////////////////////////////////////////
+#include "program.h"
+#include "utils.h"
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -34,6 +37,8 @@ limitations under the License.
 #ifndef BUILD_VERSION
 #define BUILD_VERSION ""
 #endif
+
+using namespace yarpgen;
 
 static void printVersion() {
     std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
@@ -74,6 +79,11 @@ int main(int argc, char *argv[]) {
             unused_string += arg + " ";
         printUsageAndExit(unused_string);
     }
+
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen(42));
+
+    ProgramGenerator new_program;
+    new_program.emit(std::cout);
 
     return 0;
 }

@@ -32,7 +32,7 @@ set(LIB_SRCS
     "stmt.h"
     "type.cpp"
     "utils.cpp"
-)
+        gen_policy.cpp gen_policy.h program.cpp program.h)
 
 
 set(SRCS ${LIB_SRCS} main.cpp)
@@ -59,3 +59,7 @@ target_compile_options(data_test PRIVATE ${FLAGS})
 add_executable(expr_test ${LIB_SRCS} expr_test.cpp)
 target_compile_features(expr_test PRIVATE ${STD})
 target_compile_options(expr_test PRIVATE ${FLAGS})
+
+add_executable(gen_test ${LIB_SRCS} gen_test.cpp)
+target_compile_features(gen_test PRIVATE ${STD})
+target_compile_options(gen_test PRIVATE ${FLAGS})

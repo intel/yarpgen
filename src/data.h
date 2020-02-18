@@ -25,6 +25,9 @@ limitations under the License.
 
 namespace yarpgen {
 
+class GenCtx;
+class PopulateCtx;
+
 class Data {
   public:
     Data(std::string _name, std::shared_ptr<Type> _type)
@@ -82,6 +85,8 @@ class ScalarVar : public Data {
 
     void dbgDump() final;
 
+    static std::shared_ptr<ScalarVar> create(std::shared_ptr<PopulateCtx> ctx);
+
   private:
     IRValue init_val;
     IRValue cur_val;
@@ -135,6 +140,10 @@ class Iterator : public Data {
     std::shared_ptr<Expr> getStep() { return step; }
     void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
                        std::shared_ptr<Expr> _step);
+
+    void dbgDump() final;
+
+    static std::shared_ptr<Iterator> create(std::shared_ptr<GenCtx> ctx);
 
   private:
     // TODO: should the expression contain full update on the iterator or only

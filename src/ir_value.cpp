@@ -31,6 +31,10 @@ IRValue::IRValue(IntTypeID _type_id)
     value.ullong_val = 0;
 }
 
+IRValue::IRValue(IntTypeID _type_id, IRValue::AbsValue _val) : type_id(_type_id), ub_code(UBKind::NoUB) {
+    setValue(_val);
+}
+
 template <> bool &IRValue::getValueRef() { return value.bool_val; }
 template <> int8_t &IRValue::getValueRef() { return value.schar_val; }
 template <> uint8_t &IRValue::getValueRef() { return value.uchar_val; }

@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include "context.h"
 #include "enums.h"
 #include "expr.h"
 #include "ir_node.h"
@@ -41,6 +42,7 @@ class ExprStmt : public Stmt {
     std::shared_ptr<Expr> getExpr() { return expr; }
 
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<ExprStmt> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     std::shared_ptr<Expr> expr;
@@ -64,33 +66,41 @@ class StmtBlock : public Stmt {
     StmtBlock() = default;
     explicit StmtBlock(std::vector<std::shared_ptr<Stmt>> _stmts)
         : stmts(std::move(_stmts)) {}
-    IRNodeKind getKind() final { return IRNodeKind::DECL; }
+    IRNodeKind getKind() override { return IRNodeKind::BLOCK; }
 
     void addStmt(std::shared_ptr<Stmt> stmt) {
         stmts.push_back(std::move(stmt));
     }
 
     void emit(std::ostream &stream, std::string offset = "") override;
+    static std::shared_ptr<StmtBlock>
+    generateStructure(std::shared_ptr<GenCtx> ctx);
+    void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
-  private:
+  protected:
     std::vector<std::shared_ptr<Stmt>> stmts;
 };
 
 class ScopeStmt : public StmtBlock {
   public:
+    IRNodeKind getKind() final { return IRNodeKind::SCOPE; }
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<ScopeStmt>
+    generateStructure(std::shared_ptr<GenCtx> ctx);
 };
 
 class LoopStmt : public Stmt {};
 
 class LoopHead {
   public:
+    std::shared_ptr<StmtBlock> getPrefix() { return prefix; }
     void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
         prefix = std::move(_prefix);
     }
     void addIterator(std::shared_ptr<Iterator> _iter) {
         iters.push_back(std::move(_iter));
     }
+    std::shared_ptr<StmtBlock> getSuffix() { return suffix; }
     void addSuffix(std::shared_ptr<StmtBlock> _suffix) {
         suffix = std::move(_suffix);
     }
@@ -105,14 +115,18 @@ class LoopHead {
     std::shared_ptr<StmtBlock> suffix;
 };
 
+// According to the agreement, a single standalone loop should be represented as a LoopSeqStmt of size one
 class LoopSeqStmt : public LoopStmt {
   public:
-    void
-    addLoop(std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>
-                _loop) {
+    IRNodeKind getKind() final { return IRNodeKind::LOOP_SEQ; }
+    void addLoop(std::pair<std::shared_ptr<LoopHead>,
+                           std::shared_ptr<ScopeStmt>> _loop) {
         loops.push_back(std::move(_loop));
     }
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<LoopSeqStmt>
+    generateStructure(std::shared_ptr<GenCtx> ctx);
+    void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
   private:
     std::vector<
@@ -122,14 +136,31 @@ class LoopSeqStmt : public LoopStmt {
 
 class LoopNestStmt : public LoopStmt {
   public:
+    IRNodeKind getKind() final { return IRNodeKind::LOOP_NEST; }
     void addLoop(std::shared_ptr<LoopHead> _loop) {
         loops.push_back(std::move(_loop));
     }
     void addBody(std::shared_ptr<ScopeStmt> _body) { body = std::move(_body); }
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<LoopNestStmt>
+    generateStructure(std::shared_ptr<GenCtx> ctx);
+    void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
   private:
     std::vector<std::shared_ptr<LoopHead>> loops;
     std::shared_ptr<StmtBlock> body;
+};
+
+class StubStmt : public Stmt {
+  public:
+    explicit StubStmt(std::string _text) : text(std::move(_text)) {}
+    IRNodeKind getKind() final { return IRNodeKind::STUB; }
+
+    void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<StubStmt>
+    generateStructure(std::shared_ptr<GenCtx> ctx);
+
+  private:
+    std::string text;
 };
 } // namespace yarpgen

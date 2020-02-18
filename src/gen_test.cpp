@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019-2020, Intel Corporation
+Copyright (c) 2020, Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,14 +15,20 @@ limitations under the License.
 */
 
 //////////////////////////////////////////////////////////////////////////////
-#include "context.h"
 
-#include <utility>
+#include "context.h"
+#include "stmt.h"
+
+#include <iostream>
 
 using namespace yarpgen;
 
-PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx) :
-    par_ctx(std::move(_par_ctx)), ext_inp_sym_tbl(par_ctx->ext_inp_sym_tbl),
-    ext_out_sym_tbl(par_ctx->ext_out_sym_tbl) {
-    local_sym_tbl = std::make_shared<SymbolTable>();
+int main() {
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen(42));
+
+    auto gen_ctx = std::make_shared<GenCtx>();
+    auto scope_stmt = ScopeStmt::generateStructure(gen_ctx);
+    scope_stmt->emit(std::cout);
+    std::cout << std::endl;
+    return 0;
 }

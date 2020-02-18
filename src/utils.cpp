@@ -40,7 +40,7 @@ RandValGen::RandValGen(uint64_t _seed) {
     case __type_id__:                                                          \
         do {                                                                   \
             ret.getValueRef<type_name>() = getRandValue<type_name>();          \
-            break;                                                             \
+            return ret;                                                        \
         } while (false)
 
 IRValue RandValGen::getRandValue(IntTypeID type_id) {

@@ -58,8 +58,10 @@ void ConstantExpr::emit(std::ostream &stream, std::string offset) {
 
     IRValue val = scalar_var->getCurrentValue();
     IRValue min_val = int_type->getMin();
-    if (!int_type->getIsSigned() || (val != min_val).getValueRef<bool>())
+    if (!int_type->getIsSigned() || (val != min_val).getValueRef<bool>()) {
         stream << val << int_type->getLiteralSuffix();
+        return;
+    }
 
     // INT_MIN is defined as -INT_MAX - 1, so we have to do the same
     IRValue one(val.getIntTypeID());
@@ -241,6 +243,14 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
         return arg;
     return std::make_shared<TypeCastExpr>(
         arg, IntegralType::init(IntTypeID::BOOL), true);
+}
+
+std::shared_ptr<ArithmeticExpr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto inp_var_id = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTablet()->getVars().size() - 1);
+    auto inp_var = ctx->getExtInpSymTablet()->getVars().at(inp_var_id);
+    auto inp_var_expr = std::make_shared<ScalarVarUseExpr>(inp_var);
+    UnaryOp op = rand_val_gen->getRandId(ctx->getGenPolicy()->unary_op_distr);
+    return std::make_shared<UnaryExpr>(op, inp_var_expr);
 }
 
 bool UnaryExpr::propagateType() {
@@ -909,4 +919,12 @@ void AssignmentExpr::emit(std::ostream &stream, std::string offset) {
     to->emit(stream);
     stream << " = ";
     from->emit(stream);
+}
+
+std::shared_ptr<AssignmentExpr> AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto new_var = ScalarVar::create(ctx);
+    ctx->getExtOutSymTablet()->addVar(new_var);
+    auto to = std::make_shared<ScalarVarUseExpr>(new_var);
+    auto from = ArithmeticExpr::create(ctx);
+    return std::make_shared<AssignmentExpr>(to, from);
 }
