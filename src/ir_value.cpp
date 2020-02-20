@@ -31,7 +31,8 @@ IRValue::IRValue(IntTypeID _type_id)
     value.ullong_val = 0;
 }
 
-IRValue::IRValue(IntTypeID _type_id, IRValue::AbsValue _val) : type_id(_type_id), ub_code(UBKind::NoUB) {
+IRValue::IRValue(IntTypeID _type_id, IRValue::AbsValue _val)
+    : type_id(_type_id), ub_code(UBKind::NoUB) {
     setValue(_val);
 }
 

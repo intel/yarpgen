@@ -245,16 +245,22 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
         arg, IntegralType::init(IntTypeID::BOOL), true);
 }
 
-std::shared_ptr<ArithmeticExpr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+std::shared_ptr<ArithmeticExpr>
+ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     DataKind leaf_kind = rand_val_gen->getRandId(gen_pol->arith_leaf_distr);
     std::shared_ptr<Expr> leaf;
-    if (leaf_kind == DataKind::VAR || ctx->getLocalSymTable()->getAvailSubs().empty()) {
-        size_t inp_var_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTable()->getAvailVars().size() - 1);
+    if (leaf_kind == DataKind::VAR ||
+        ctx->getLocalSymTable()->getAvailSubs().empty()) {
+        size_t inp_var_idx = rand_val_gen->getRandValue(
+            static_cast<size_t>(0),
+            ctx->getExtInpSymTable()->getAvailVars().size() - 1);
         leaf = ctx->getExtInpSymTable()->getAvailVars().at(inp_var_idx);
     }
     else if (leaf_kind == DataKind::ARR) {
-        size_t inp_arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getLocalSymTable()->getAvailSubs().size() - 1);
+        size_t inp_arr_idx = rand_val_gen->getRandValue(
+            static_cast<size_t>(0),
+            ctx->getLocalSymTable()->getAvailSubs().size() - 1);
         leaf = ctx->getLocalSymTable()->getAvailSubs().at(inp_arr_idx);
     }
 
@@ -930,7 +936,8 @@ void AssignmentExpr::emit(std::ostream &stream, std::string offset) {
     from->emit(stream);
 }
 
-std::shared_ptr<AssignmentExpr> AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+std::shared_ptr<AssignmentExpr>
+AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     DataKind out_kind = rand_val_gen->getRandId(gen_pol->out_kind_distr);
     std::shared_ptr<Expr> to;

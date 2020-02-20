@@ -16,8 +16,8 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
-#include "context.h"
 #include "data.h"
+#include "context.h"
 #include "expr.h"
 
 #include <utility>
@@ -38,7 +38,7 @@ std::shared_ptr<ScalarVar> ScalarVar::create(std::shared_ptr<PopulateCtx> ctx) {
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
     IRValue init_val = rand_val_gen->getRandValue(type_id);
     auto int_type = IntegralType::init(type_id);
-    NameHandler& nh = NameHandler::getInstance();
+    NameHandler &nh = NameHandler::getInstance();
     return std::make_shared<ScalarVar>(nh.getVarName(), int_type, init_val);
 }
 
@@ -50,9 +50,8 @@ void Array::dbgDump() {
     cur_vals->dbgDump();
 }
 
-Array::Array(std::string _name,
-                      const std::shared_ptr<ArrayType> &_type,
-                      std::shared_ptr<Data> _val)
+Array::Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
+             std::shared_ptr<Data> _val)
     : Data(std::move(_name), _type), init_vals(_val), cur_vals(_val),
       was_changed(false) {
     if (!type->isArrayType())
@@ -74,7 +73,8 @@ void Array::setValue(std::shared_ptr<Data> _val) {
     was_changed = true;
 }
 
-std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx, bool inp) {
+std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
+                                     bool inp) {
     std::vector<std::shared_ptr<Iterator>> used_iters;
     auto array_type = ArrayType::create(ctx, used_iters);
     auto base_type = array_type->getBaseType();
@@ -83,23 +83,26 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx, bool inp)
     auto int_type = std::static_pointer_cast<IntegralType>(base_type);
     IRValue init_val = rand_val_gen->getRandValue(int_type->getIntTypeId());
     auto init_var = std::make_shared<ScalarVar>("", int_type, init_val);
-    NameHandler& nh = NameHandler::getInstance();
-    auto new_array = std::make_shared<Array>(nh.getArrayName(), array_type, init_var);
+    NameHandler &nh = NameHandler::getInstance();
+    auto new_array =
+        std::make_shared<Array>(nh.getArrayName(), array_type, init_var);
     std::shared_ptr<Expr> prev_expr = std::make_shared<ArrayUseExpr>(new_array);
     for (auto &used_iter : used_iters) {
         auto iter_use_expr = std::make_shared<IterUseExpr>(used_iter);
         prev_expr = std::make_shared<SubscriptExpr>(prev_expr, iter_use_expr);
     }
     if (inp)
-        ctx->getLocalSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
+        ctx->getLocalSymTable()->addSubsExpr(
+            std::static_pointer_cast<SubscriptExpr>(prev_expr));
     else
-        ctx->getExtOutSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
+        ctx->getExtOutSymTable()->addSubsExpr(
+            std::static_pointer_cast<SubscriptExpr>(prev_expr));
     return new_array;
 }
 
 void Iterator::setParameters(std::shared_ptr<Expr> _start,
-                                      std::shared_ptr<Expr> _end,
-                                      std::shared_ptr<Expr> _step) {
+                             std::shared_ptr<Expr> _end,
+                             std::shared_ptr<Expr> _step) {
     start = std::move(_start);
     end = std::move(_end);
     step = std::move(_step);
@@ -110,15 +113,19 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx) {
 
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
     auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, 0}});
-    size_t end_val = rand_val_gen->getRandValue(gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
-    auto end = std::make_shared<ConstantExpr>(IRValue(type_id, {false, end_val}));
+    size_t end_val = rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
+                                                gen_pol->iter_end_limit_max);
+    auto end =
+        std::make_shared<ConstantExpr>(IRValue(type_id, {false, end_val}));
     size_t step_val = rand_val_gen->getRandId(gen_pol->iters_step_distr);
-    auto step = std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});
+    auto step =
+        std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});
     auto type = IntegralType::init(type_id);
 
-    NameHandler& nh = NameHandler::getInstance();
+    NameHandler &nh = NameHandler::getInstance();
 
-    auto iter = std::make_shared<Iterator>(nh.getIterName(), type, start, end, step);
+    auto iter =
+        std::make_shared<Iterator>(nh.getIterName(), type, start, end, step);
     return iter;
 }
 

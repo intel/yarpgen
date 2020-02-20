@@ -28,7 +28,8 @@ GenPolicy::GenPolicy() {
 
     scope_stmt_min_num = 2;
     scope_stmt_max_num = 5;
-    uniformProbFromMax(scope_stmt_num_distr, scope_stmt_max_num, scope_stmt_min_num);
+    uniformProbFromMax(scope_stmt_num_distr, scope_stmt_max_num,
+                       scope_stmt_min_num);
 
     min_iters_num = 1;
     max_iters_num = 1;
@@ -40,9 +41,12 @@ GenPolicy::GenPolicy() {
     iters_step_distr.emplace_back(Probability<size_t>{2, 10});
     iters_step_distr.emplace_back(Probability<size_t>{4, 10});
 
-    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 10});
-    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
-    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::STUB, 80});
+    stmt_kind_struct_distr.emplace_back(
+        Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 10});
+    stmt_kind_struct_distr.emplace_back(
+        Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
+    stmt_kind_struct_distr.emplace_back(
+        Probability<IRNodeKind>{IRNodeKind::STUB, 80});
 
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::INT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
@@ -50,7 +54,8 @@ GenPolicy::GenPolicy() {
     min_inp_vars_num = 10;
     max_inp_vars_num = 20;
 
-    stmt_kind_pop_distr.emplace_back(Probability<IRNodeKind>(IRNodeKind::ASSIGN, 20));
+    stmt_kind_pop_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::ASSIGN, 20));
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 20));
 

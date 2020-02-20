@@ -106,7 +106,8 @@ class Array : public Data {
     DataKind getKind() final { return DataKind::ARR; }
 
     void dbgDump() final;
-    static std::shared_ptr<Array> create(std::shared_ptr<PopulateCtx> ctx, bool inp);
+    static std::shared_ptr<Array> create(std::shared_ptr<PopulateCtx> ctx,
+                                         bool inp);
 
   private:
     // TODO:

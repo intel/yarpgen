@@ -48,7 +48,8 @@ class GenPolicy {
     size_t max_iters_num;
     std::vector<Probability<size_t>> iters_num_distr;
 
-    //TODO: we want to replace constant parameters of iterators with something smarter
+    // TODO: we want to replace constant parameters of iterators with something
+    // smarter
 
     // End limits for iterators
     size_t iters_end_limit_min;
@@ -84,7 +85,9 @@ class GenPolicy {
     std::vector<Probability<DataKind>> arith_leaf_distr;
 
   private:
-    template <typename T> void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num, size_t min_num = 0);
+    template <typename T>
+    void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,
+                            size_t min_num = 0);
 };
 
-}
+} // namespace yarpgen
