@@ -14,15 +14,15 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "program.h"
-#include "stmt.h"
 #include "data.h"
+#include "stmt.h"
 #include <fstream>
 #include <memory>
 
 using namespace yarpgen;
 
 ProgramGenerator::ProgramGenerator() {
-// Generate the general structure of the test
+    // Generate the general structure of the test
     auto gen_ctx = std::make_shared<GenCtx>();
     new_test = ScopeStmt::generateStructure(gen_ctx);
 
@@ -32,12 +32,15 @@ ProgramGenerator::ProgramGenerator() {
     auto pop_ctx = std::make_shared<PopulateCtx>();
     auto gen_pol = pop_ctx->getGenPolicy();
 
-    // Create some number of ScalarVariables that we will use to provide input data to the test program
-    size_t inp_vars_num = rand_val_gen->getRandValue(gen_pol->min_inp_vars_num, gen_pol->max_inp_vars_num);
+    // Create some number of ScalarVariables that we will use to provide input
+    // data to the test program
+    size_t inp_vars_num = rand_val_gen->getRandValue(gen_pol->min_inp_vars_num,
+                                                     gen_pol->max_inp_vars_num);
     for (size_t i = 0; i < inp_vars_num; ++i) {
         auto new_var = ScalarVar::create(pop_ctx);
         ext_inp_sym_tbl->addVar(new_var);
-        ext_inp_sym_tbl->addVarExpr(std::make_shared<ScalarVarUseExpr>(new_var));
+        ext_inp_sym_tbl->addVarExpr(
+            std::make_shared<ScalarVarUseExpr>(new_var));
     }
 
     pop_ctx->setExtInpSymTable(ext_inp_sym_tbl);
@@ -47,16 +50,17 @@ ProgramGenerator::ProgramGenerator() {
 }
 
 void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
-    std::ostream& out_file = stream;
+    std::ostream &out_file = stream;
     out_file << "#include <stdio.h>\n\n";
     out_file << "unsigned long long int seed = 0;\n";
-    out_file << "void hash(unsigned long long int *seed, unsigned long long int const v) {\n";
+    out_file << "void hash(unsigned long long int *seed, unsigned long long "
+                "int const v) {\n";
     out_file << "    *seed ^= v + 0x9e3779b9 + ((*seed)<<6) + ((*seed)>>2);\n";
     out_file << "}\n\n";
 }
 
 void ProgramGenerator::emitDecl(std::ostream &stream) {
-    //TODO: create functions to reduce the amount of copy-pasted code
+    // TODO: create functions to reduce the amount of copy-pasted code
     for (auto &var : ext_inp_sym_tbl->getVars()) {
         auto init_val = std::make_shared<ConstantExpr>(var->getInitValue());
         auto decl_stmt = std::make_shared<DeclStmt>(var, init_val);
@@ -102,7 +106,8 @@ void ProgramGenerator::emitInit(std::ostream &stream) {
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         size_t idx = 0;
         for (const auto &dimension : array_type->getDimensions()) {
-            stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx << " < " << dimension << "; ++i_" << idx << ") \n";
+            stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx
+                   << " < " << dimension << "; ++i_" << idx << ") \n";
             offset += "    ";
             idx++;
         }
@@ -111,9 +116,11 @@ void ProgramGenerator::emitInit(std::ostream &stream) {
             stream << "[i_" << i << "] ";
         stream << "= ";
         auto init_var = array->getInitValues();
-        assert(init_var->getKind() == DataKind::VAR && "We support simple array for now");
+        assert(init_var->getKind() == DataKind::VAR &&
+               "We support simple array for now");
         auto init_scalar_var = std::static_pointer_cast<ScalarVar>(init_var);
-        auto init_const = std::make_shared<ConstantExpr>(init_scalar_var->getInitValue());
+        auto init_const =
+            std::make_shared<ConstantExpr>(init_scalar_var->getInitValue());
         init_const->emit(stream);
         stream << ";\n";
     }
@@ -125,7 +132,8 @@ void ProgramGenerator::emitInit(std::ostream &stream) {
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         size_t idx = 0;
         for (const auto &dimension : array_type->getDimensions()) {
-            stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx << " < " << dimension << "; ++i_" << idx << ") \n";
+            stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx
+                   << " < " << dimension << "; ++i_" << idx << ") \n";
             offset += "    ";
             idx++;
         }
@@ -134,9 +142,11 @@ void ProgramGenerator::emitInit(std::ostream &stream) {
             stream << "[i_" << i << "] ";
         stream << "= ";
         auto init_var = array->getInitValues();
-        assert(init_var->getKind() == DataKind::VAR && "We support simple array for now");
+        assert(init_var->getKind() == DataKind::VAR &&
+               "We support simple array for now");
         auto init_scalar_var = std::static_pointer_cast<ScalarVar>(init_var);
-        auto init_const = std::make_shared<ConstantExpr>(init_scalar_var->getInitValue());
+        auto init_const =
+            std::make_shared<ConstantExpr>(init_scalar_var->getInitValue());
         init_const->emit(stream);
         stream << ";\n";
     }
@@ -158,7 +168,8 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         size_t idx = 0;
         for (const auto &dimension : array_type->getDimensions()) {
-            stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx << " < " << dimension << "; ++i_" << idx << ") \n";
+            stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx
+                   << " < " << dimension << "; ++i_" << idx << ") \n";
             offset += "    ";
             idx++;
         }
@@ -172,10 +183,12 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
 
 void ProgramGenerator::emitExtDecl(std::ostream &stream) {
     for (auto &var : ext_inp_sym_tbl->getVars()) {
-        stream << "extern " << var->getType()->getName() << " " << var->getName() << ";\n";
+        stream << "extern " << var->getType()->getName() << " "
+               << var->getName() << ";\n";
     }
     for (auto &var : ext_out_sym_tbl->getVars()) {
-        stream << "extern " << var->getType()->getName() << " " << var->getName() << ";\n";
+        stream << "extern " << var->getType()->getName() << " "
+               << var->getName() << ";\n";
     }
     for (auto &array : ext_inp_sym_tbl->getArrays()) {
         auto type = array->getType();
@@ -203,9 +216,8 @@ void ProgramGenerator::emitExtDecl(std::ostream &stream) {
 
 void ProgramGenerator::emitTest(std::ostream &stream) {
     stream << "#include \"init.h\"\n";
-    stream << "void test() {\n";
-    new_test->emit(stream, "    ");
-    stream << "}\n";
+    stream << "void test() ";
+    new_test->emit(stream);
 }
 
 void ProgramGenerator::emitMain(std::ostream &stream) {

@@ -116,12 +116,14 @@ class LoopHead {
     std::shared_ptr<StmtBlock> suffix;
 };
 
-// According to the agreement, a single standalone loop should be represented as a LoopSeqStmt of size one
+// According to the agreement, a single standalone loop should be represented as
+// a LoopSeqStmt of size one
 class LoopSeqStmt : public LoopStmt {
   public:
     IRNodeKind getKind() final { return IRNodeKind::LOOP_SEQ; }
-    void addLoop(std::pair<std::shared_ptr<LoopHead>,
-                           std::shared_ptr<ScopeStmt>> _loop) {
+    void
+    addLoop(std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>
+                _loop) {
         loops.push_back(std::move(_loop));
     }
     void emit(std::ostream &stream, std::string offset = "") final;

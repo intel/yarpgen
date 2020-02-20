@@ -19,8 +19,8 @@ limitations under the License.
 #pragma once
 
 #include "data.h"
-#include "gen_policy.h"
 #include "expr.h"
+#include "gen_policy.h"
 
 #include <map>
 #include <string>
@@ -41,7 +41,9 @@ class EvalCtx {
 class GenCtx {
   public:
     GenCtx() : loop_depth(0) { gen_policy = std::make_shared<GenPolicy>(); }
-    void setGenPolicy(std::shared_ptr<GenPolicy> gen_pol) { gen_policy = std::move(gen_pol); }
+    void setGenPolicy(std::shared_ptr<GenPolicy> gen_pol) {
+        gen_policy = std::move(gen_pol);
+    }
     std::shared_ptr<GenPolicy> getGenPolicy() { return gen_policy; };
 
     size_t getLoopDepth() { return loop_depth; }
@@ -58,18 +60,30 @@ class SymbolTable {
   public:
     void addVar(std::shared_ptr<ScalarVar> var) { vars.push_back(var); }
     void addArray(std::shared_ptr<Array> array) { arrays.push_back(array); }
-    void addIters(std::vector<std::shared_ptr<Iterator>> iter) {iters.push_back(iter); }
+    void addIters(std::vector<std::shared_ptr<Iterator>> iter) {
+        iters.push_back(iter);
+    }
     void deleteLastIters() { iters.pop_back(); }
 
     std::vector<std::shared_ptr<ScalarVar>> getVars() { return vars; }
     std::vector<std::shared_ptr<Array>> getArrays() { return arrays; }
-    std::vector<std::vector<std::shared_ptr<Iterator>>> getIters() { return iters; }
+    std::vector<std::vector<std::shared_ptr<Iterator>>> getIters() {
+        return iters;
+    }
 
-    void addSubsExpr(std::shared_ptr<SubscriptExpr> expr) { avail_subs.push_back(expr); }
-    std::vector<std::shared_ptr<SubscriptExpr>> getAvailSubs() { return avail_subs; }
+    void addSubsExpr(std::shared_ptr<SubscriptExpr> expr) {
+        avail_subs.push_back(expr);
+    }
+    std::vector<std::shared_ptr<SubscriptExpr>> getAvailSubs() {
+        return avail_subs;
+    }
 
-    void addVarExpr(std::shared_ptr<VarUseExpr> var) { avail_vars.push_back(var); }
-    std::vector<std::shared_ptr<VarUseExpr>> getAvailVars() { return avail_vars; }
+    void addVarExpr(std::shared_ptr<VarUseExpr> var) {
+        avail_vars.push_back(var);
+    }
+    std::vector<std::shared_ptr<VarUseExpr>> getAvailVars() {
+        return avail_vars;
+    }
 
   private:
     std::vector<std::shared_ptr<ScalarVar>> vars;
@@ -79,7 +93,8 @@ class SymbolTable {
     std::vector<std::shared_ptr<VarUseExpr>> avail_vars;
 };
 
-//TODO: should we inherit it from Generation Context or should it be a separate thing?
+// TODO: should we inherit it from Generation Context or should it be a separate
+// thing?
 class PopulateCtx : public GenCtx {
   public:
     PopulateCtx();
@@ -88,8 +103,12 @@ class PopulateCtx : public GenCtx {
     std::shared_ptr<SymbolTable> getExtInpSymTable() { return ext_inp_sym_tbl; }
     std::shared_ptr<SymbolTable> getExtOutSymTable() { return ext_out_sym_tbl; }
     std::shared_ptr<SymbolTable> getLocalSymTable() { return local_sym_tbl; }
-    void setExtInpSymTable(std::shared_ptr<SymbolTable> _sym_table) { ext_inp_sym_tbl = std::move(_sym_table); }
-    void setExtOutSymTable(std::shared_ptr<SymbolTable> _sym_table) { ext_out_sym_tbl = std::move(_sym_table); }
+    void setExtInpSymTable(std::shared_ptr<SymbolTable> _sym_table) {
+        ext_inp_sym_tbl = std::move(_sym_table);
+    }
+    void setExtOutSymTable(std::shared_ptr<SymbolTable> _sym_table) {
+        ext_out_sym_tbl = std::move(_sym_table);
+    }
 
   private:
     std::shared_ptr<PopulateCtx> par_ctx;

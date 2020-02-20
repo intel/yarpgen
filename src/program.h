@@ -39,4 +39,4 @@ class ProgramGenerator {
     std::shared_ptr<ScopeStmt> new_test;
 };
 
-}
+} // namespace yarpgen

@@ -21,12 +21,13 @@ limitations under the License.
 
 using namespace yarpgen;
 
-PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx) :
-    par_ctx(std::move(_par_ctx)), ext_inp_sym_tbl(par_ctx->ext_inp_sym_tbl),
-    ext_out_sym_tbl(par_ctx->ext_out_sym_tbl) {
+PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
+    : par_ctx(std::move(_par_ctx)), ext_inp_sym_tbl(par_ctx->ext_inp_sym_tbl),
+      ext_out_sym_tbl(par_ctx->ext_out_sym_tbl) {
     local_sym_tbl = std::make_shared<SymbolTable>();
     if (par_ctx.use_count() != 0) {
-        local_sym_tbl = std::make_shared<SymbolTable>(*(par_ctx->getLocalSymTable()));
+        local_sym_tbl =
+            std::make_shared<SymbolTable>(*(par_ctx->getLocalSymTable()));
         loop_depth = par_ctx->getLoopDepth();
     }
 }

@@ -274,8 +274,9 @@ class ArrayType : public Type {
                                            CVQualifier _cv_qual);
     static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims);
-    static std::shared_ptr<ArrayType> create(std::shared_ptr<PopulateCtx> ctx,
-                                             std::vector<std::shared_ptr<Iterator>> &used_iters);
+    static std::shared_ptr<ArrayType>
+    create(std::shared_ptr<PopulateCtx> ctx,
+           std::vector<std::shared_ptr<Iterator>> &used_iters);
 
   private:
     // Folding set for all of the array types.

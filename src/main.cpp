@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
         printUsageAndExit(unused_string);
     }
 
-    //TODO: we need to be able to pass the seed from outside
+    // TODO: we need to be able to pass the seed from outside
     rand_val_gen = std::make_shared<RandValGen>(RandValGen(0));
 
     ProgramGenerator new_program;

@@ -193,7 +193,8 @@ class ArithmeticExpr : public Expr {
         : Expr(std::move(value)) {}
     ArithmeticExpr() = default;
 
-    static std::shared_ptr<ArithmeticExpr> create(std::shared_ptr<PopulateCtx> ctx);
+    static std::shared_ptr<ArithmeticExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
 
   protected:
     // Top-level recursive function for expression tree generation
@@ -280,7 +281,8 @@ class AssignmentExpr : public Expr {
     EvalResType rebuild(EvalCtx &ctx) final;
 
     void emit(std::ostream &stream, std::string offset = "") final;
-    static std::shared_ptr<AssignmentExpr> create(std::shared_ptr<PopulateCtx> ctx);
+    static std::shared_ptr<AssignmentExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     std::shared_ptr<Expr> to;

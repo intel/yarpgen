@@ -32,8 +32,8 @@ class IRNode {
     // TODO: in the future we might output the same test using different
     // language constructions
     virtual void emit(std::ostream &stream, std::string offset = "") = 0;
-    //TODO: make it pure virtual later
-    virtual void populate(std::shared_ptr<PopulateCtx> ctx) {};
+    // TODO: make it pure virtual later
+    virtual void populate(std::shared_ptr<PopulateCtx> ctx){};
 };
 
 } // namespace yarpgen
