@@ -29,6 +29,7 @@ class ProgramGenerator {
   private:
     void emitCheckFunc(std::ostream &stream);
     void emitDecl(std::ostream &stream);
+    void emitInit(std::ostream &stream);
     void emitCheck(std::ostream &stream);
     void emitTest(std::ostream &stream);
     void emitMain(std::ostream &stream);

@@ -72,6 +72,17 @@ class GenPolicy {
     // Unary operator distribution
     std::vector<Probability<UnaryOp>> unary_op_distr;
 
+    // Number of new arrays that we create in each loop scope
+    size_t min_new_arr_num;
+    size_t max_new_arr_num;
+    std::vector<Probability<size_t>> new_arr_num_distr;
+
+    // Output kind probability
+    std::vector<Probability<DataKind>> out_kind_distr;
+
+    // Arithmetic trees leaf distribution
+    std::vector<Probability<DataKind>> arith_leaf_distr;
+
   private:
     template <typename T> void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num, size_t min_num = 0);
 };

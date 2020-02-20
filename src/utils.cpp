@@ -40,6 +40,7 @@ RandValGen::RandValGen(uint64_t _seed) {
     case __type_id__:                                                          \
         do {                                                                   \
             ret.getValueRef<type_name>() = getRandValue<type_name>();          \
+            ret.setUBCode(UBKind::NoUB);                                       \
             return ret;                                                        \
         } while (false)
 

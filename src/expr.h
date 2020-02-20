@@ -29,6 +29,7 @@ limitations under the License.
 namespace yarpgen {
 
 class EvalCtx;
+class PopulateCtx;
 
 // Common ancestor for all classes that represent various expressions
 class Expr : public IRNode {

@@ -24,16 +24,18 @@ set(LIB_SRCS
     "enums.h"
     "expr.cpp"
     "expr.h"
+    "gen_policy.cpp"
+    "gen_policy.h"
     "hash.cpp"
     "hash.h"
     "ir_node.h"
     "ir_value.cpp"
+    "program.cpp"
+    "program.h"
     "stmt.cpp"
     "stmt.h"
     "type.cpp"
-    "utils.cpp"
-        gen_policy.cpp gen_policy.h program.cpp program.h)
-
+    "utils.cpp")
 
 set(SRCS ${LIB_SRCS} main.cpp)
 

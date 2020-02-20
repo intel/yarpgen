@@ -16,8 +16,11 @@ limitations under the License.
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include "context.h"
 #include <utility>
 
+#include "data.h"
+#include "expr.h"
 #include "enums.h"
 #include "ir_value.h"
 #include "type.h"
@@ -211,4 +214,30 @@ std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
 std::string ArrayType::getName() {
     // TODO: we need a more correct way to do it
     return base_type->getName() + " *";
+}
+
+std::shared_ptr<ArrayType> ArrayType::create(std::shared_ptr<PopulateCtx> ctx,
+                                             std::vector<std::shared_ptr<Iterator>> &used_iters) {
+    auto gen_pol = ctx->getGenPolicy();
+    IntTypeID base_type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
+    auto base_type = IntegralType::init(base_type_id);
+    std::vector<size_t> dims;
+    dims.reserve(ctx->getLoopDepth());
+    assert(ctx->getLocalSymTable()->getIters().size() == ctx->getLoopDepth() && "Each loop should have an iterator");
+    auto avail_iters = ctx->getLocalSymTable()->getIters();
+    EvalCtx eval_ctx;
+    used_iters.reserve(ctx->getLoopDepth());
+    for (size_t i = 0; i < ctx->getLoopDepth(); ++i) {
+        size_t new_dim_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), avail_iters.at(i).size() - 1);
+        std::shared_ptr<Iterator> iter = avail_iters.at(i).at(new_dim_idx);
+        used_iters.push_back(iter);
+        Expr::EvalResType end_var = iter->getEnd()->evaluate(eval_ctx);
+        assert(end_var->getKind() == DataKind::VAR && "We can deal only with simple iterators for now.");
+        IRValue end_val = std::static_pointer_cast<ScalarVar>(end_var)->getCurrentValue();
+        IRValue::AbsValue end_abs_val = end_val.getAbsValue();
+        if (end_abs_val.isNegative)
+            ERROR("End value can't be negative for now.");
+        dims.push_back(end_abs_val.value + 1);
+    }
+    return init(base_type, dims);
 }

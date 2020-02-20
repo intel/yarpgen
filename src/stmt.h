@@ -100,6 +100,7 @@ class LoopHead {
     void addIterator(std::shared_ptr<Iterator> _iter) {
         iters.push_back(std::move(_iter));
     }
+    std::vector<std::shared_ptr<Iterator>> getIterators() { return iters; }
     std::shared_ptr<StmtBlock> getSuffix() { return suffix; }
     void addSuffix(std::shared_ptr<StmtBlock> _suffix) {
         suffix = std::move(_suffix);
