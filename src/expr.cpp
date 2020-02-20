@@ -246,11 +246,20 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
 }
 
 std::shared_ptr<ArithmeticExpr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
-    auto inp_var_id = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTablet()->getVars().size() - 1);
-    auto inp_var = ctx->getExtInpSymTablet()->getVars().at(inp_var_id);
-    auto inp_var_expr = std::make_shared<ScalarVarUseExpr>(inp_var);
+    auto gen_pol = ctx->getGenPolicy();
+    DataKind leaf_kind = rand_val_gen->getRandId(gen_pol->arith_leaf_distr);
+    std::shared_ptr<Expr> leaf;
+    if (leaf_kind == DataKind::VAR || ctx->getExtInpSymTable()->getAvailSubs().empty()) {
+        size_t inp_var_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTable()->getAvailVars().size() - 1);
+        leaf = ctx->getExtInpSymTable()->getAvailVars().at(inp_var_idx);
+    }
+    else if (leaf_kind == DataKind::ARR) {
+        size_t inp_arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTable()->getAvailSubs().size() - 1);
+        leaf = ctx->getExtInpSymTable()->getAvailSubs().at(inp_arr_idx);
+    }
+
     UnaryOp op = rand_val_gen->getRandId(ctx->getGenPolicy()->unary_op_distr);
-    return std::make_shared<UnaryExpr>(op, inp_var_expr);
+    return std::make_shared<UnaryExpr>(op, leaf);
 }
 
 bool UnaryExpr::propagateType() {
@@ -922,9 +931,22 @@ void AssignmentExpr::emit(std::ostream &stream, std::string offset) {
 }
 
 std::shared_ptr<AssignmentExpr> AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
-    auto new_var = ScalarVar::create(ctx);
-    ctx->getExtOutSymTablet()->addVar(new_var);
-    auto to = std::make_shared<ScalarVarUseExpr>(new_var);
+    auto gen_pol = ctx->getGenPolicy();
+    DataKind out_kind = rand_val_gen->getRandId(gen_pol->out_kind_distr);
+    std::shared_ptr<Expr> to;
+    if (out_kind == DataKind::VAR || ctx->getLoopDepth() == 0) {
+        auto new_var = ScalarVar::create(ctx);
+        ctx->getExtOutSymTable()->addVar(new_var);
+        to = std::make_shared<ScalarVarUseExpr>(new_var);
+    }
+    else if (out_kind == DataKind::ARR) {
+        auto new_array = Array::create(ctx, false);
+        ctx->getExtOutSymTable()->addArray(new_array);
+        to = ctx->getExtOutSymTable()->getAvailSubs().back();
+    }
+    else
+        ERROR("Bad data kind for assignment");
+
     auto from = ArithmeticExpr::create(ctx);
     return std::make_shared<AssignmentExpr>(to, from);
 }

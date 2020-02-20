@@ -78,6 +78,14 @@ std::shared_ptr<StmtBlock> StmtBlock::generateStructure(std::shared_ptr<GenCtx> 
 
 void StmtBlock::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
+
+    if (ctx->getLoopDepth() != 0) {
+        size_t new_arrays_num = rand_val_gen->getRandId(gen_pol->new_arr_num_distr);
+        for (size_t i = 0; i < new_arrays_num; ++i) {
+            ctx->getExtInpSymTable()->addArray(Array::create(ctx, true));
+        }
+    }
+
     for (auto & stmt : stmts) {
         if (stmt->getKind() != IRNodeKind::STUB)
             stmt->populate(ctx);
@@ -182,7 +190,12 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         auto loop_head = loop.first;
         if (loop_head->getPrefix().use_count() != 0)
             loop_head->getPrefix()->populate(ctx);
-        loop.second->populate(ctx);
+        auto new_ctx = std::make_shared<PopulateCtx>(ctx);
+        new_ctx->incLoopDepth(1);
+        new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
+        loop.second->populate(new_ctx);
+        new_ctx->decLoopDepth(1);
+        new_ctx->getLocalSymTable()->deleteLastIters();
         if (loop_head->getSuffix().use_count() != 0)
             loop_head->getSuffix()->populate(ctx);
     }
@@ -231,15 +244,21 @@ std::shared_ptr<LoopNestStmt> LoopNestStmt::generateStructure(std::shared_ptr<Ge
 
     return new_loop_nest;
 }
+
 void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
+    auto new_ctx = std::make_shared<PopulateCtx>(ctx);
     for (auto &loop : loops) {
         if (loop->getPrefix().use_count() != 0)
-            loop->getPrefix()->populate(ctx);
+            loop->getPrefix()->populate(new_ctx);
+        new_ctx->incLoopDepth(1);
+        new_ctx->getLocalSymTable()->addIters(loop->getIterators());
     }
-    body->populate(ctx);
+    body->populate(new_ctx);
     for (auto &loop : loops) {
+        new_ctx->decLoopDepth(1);
+        new_ctx->getLocalSymTable()->deleteLastIters();
         if (loop->getSuffix().use_count() != 0)
-            loop->getSuffix()->populate(ctx);
+            loop->getSuffix()->populate(new_ctx);
     }
 }
 

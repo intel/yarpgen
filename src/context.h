@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "data.h"
 #include "gen_policy.h"
+#include "expr.h"
 
 #include <map>
 #include <string>
@@ -47,8 +48,7 @@ class GenCtx {
     void incLoopDepth(size_t change) { loop_depth += change; }
     void decLoopDepth(size_t change) { loop_depth -= change; }
 
-
-  private:
+  protected:
     std::shared_ptr<GenPolicy> gen_policy;
     // Current loop depth
     size_t loop_depth;
@@ -58,26 +58,36 @@ class SymbolTable {
   public:
     void addVar(std::shared_ptr<ScalarVar> var) { vars.push_back(var); }
     void addArray(std::shared_ptr<Array> array) { arrays.push_back(array); }
-    void addIter(std::shared_ptr<Iterator> iter) {iters.push_back(iter); }
+    void addIters(std::vector<std::shared_ptr<Iterator>> iter) {iters.push_back(iter); }
+    void deleteLastIters() { iters.pop_back(); }
 
     std::vector<std::shared_ptr<ScalarVar>> getVars() { return vars; }
     std::vector<std::shared_ptr<Array>> getArrays() { return arrays; }
-    std::vector<std::shared_ptr<Iterator>> getIters() { return iters; }
+    std::vector<std::vector<std::shared_ptr<Iterator>>> getIters() { return iters; }
+
+    void addSubsExpr(std::shared_ptr<SubscriptExpr> expr) { avail_subs.push_back(expr); }
+    std::vector<std::shared_ptr<SubscriptExpr>> getAvailSubs() { return avail_subs; }
+
+    void addVarExpr(std::shared_ptr<VarUseExpr> var) { avail_vars.push_back(var); }
+    std::vector<std::shared_ptr<VarUseExpr>> getAvailVars() { return avail_vars; }
 
   private:
     std::vector<std::shared_ptr<ScalarVar>> vars;
     std::vector<std::shared_ptr<Array>> arrays;
-    std::vector<std::shared_ptr<Iterator>> iters;
+    std::vector<std::vector<std::shared_ptr<Iterator>>> iters;
+    std::vector<std::shared_ptr<SubscriptExpr>> avail_subs;
+    std::vector<std::shared_ptr<VarUseExpr>> avail_vars;
 };
 
 //TODO: should we inherit it from Generation Context or should it be a separate thing?
 class PopulateCtx : public GenCtx {
   public:
-    PopulateCtx() = default;
-    PopulateCtx(std::shared_ptr<PopulateCtx> ctx);
+    PopulateCtx();
+    explicit PopulateCtx(std::shared_ptr<PopulateCtx> ctx);
 
-    std::shared_ptr<SymbolTable> getExtInpSymTablet() { return ext_inp_sym_tbl; }
-    std::shared_ptr<SymbolTable> getExtOutSymTablet() { return ext_out_sym_tbl; }
+    std::shared_ptr<SymbolTable> getExtInpSymTable() { return ext_inp_sym_tbl; }
+    std::shared_ptr<SymbolTable> getExtOutSymTable() { return ext_out_sym_tbl; }
+    std::shared_ptr<SymbolTable> getLocalSymTable() { return local_sym_tbl; }
     void setExtInpSymTable(std::shared_ptr<SymbolTable> _sym_table) { ext_inp_sym_tbl = std::move(_sym_table); }
     void setExtOutSymTable(std::shared_ptr<SymbolTable> _sym_table) { ext_out_sym_tbl = std::move(_sym_table); }
 

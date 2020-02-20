@@ -64,6 +64,7 @@ Array::Array(std::string _name,
 
     ub_code = init_vals->getUBCode();
 }
+
 void Array::setValue(std::shared_ptr<Data> _val) {
     auto array_type = std::static_pointer_cast<ArrayType>(type);
     if (array_type->getBaseType() != _val->getType())
@@ -71,6 +72,29 @@ void Array::setValue(std::shared_ptr<Data> _val) {
     cur_vals = std::move(_val);
     ub_code = cur_vals->getUBCode();
     was_changed = true;
+}
+
+std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx, bool inp) {
+    std::vector<std::shared_ptr<Iterator>> used_iters;
+    auto array_type = ArrayType::create(ctx, used_iters);
+    auto base_type = array_type->getBaseType();
+    if (!base_type->isIntType())
+        ERROR("We support only array of integers for now");
+    auto int_type = std::static_pointer_cast<IntegralType>(base_type);
+    IRValue init_val = rand_val_gen->getRandValue(int_type->getIntTypeId());
+    auto init_var = std::make_shared<ScalarVar>("", int_type, init_val);
+    NameHandler& nh = NameHandler::getInstance();
+    auto new_array = std::make_shared<Array>(nh.getArrayName(), array_type, init_var);
+    std::shared_ptr<Expr> prev_expr = std::make_shared<ArrayUseExpr>(new_array);
+    for (auto &used_iter : used_iters) {
+        auto iter_use_expr = std::make_shared<IterUseExpr>(used_iter);
+        prev_expr = std::make_shared<SubscriptExpr>(prev_expr, iter_use_expr);
+    }
+    if (inp)
+        ctx->getExtInpSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
+    else
+        ctx->getExtOutSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
+    return new_array;
 }
 
 void Iterator::setParameters(std::shared_ptr<Expr> _start,

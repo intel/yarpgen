@@ -23,6 +23,7 @@ limitations under the License.
 #include <iostream>
 #include <memory>
 #include <random>
+#include <string>
 
 namespace yarpgen {
 
@@ -128,12 +129,14 @@ class NameHandler {
 
     std::string getStubStmtIdx() { return std::to_string(stub_stmt_idx++); }
     std::string getVarName() { return "var_" + std::to_string(var_idx++); }
+    std::string getArrayName() { return "arr_" + std::to_string(arr_idx++); }
     std::string getIterName() { return "i_" + std::to_string(iter_idx++); }
 
   private:
     NameHandler() : iter_idx(0), stub_stmt_idx(0) {}
 
     uint32_t var_idx;
+    uint32_t arr_idx;
     uint32_t iter_idx;
     uint32_t stub_stmt_idx;
 

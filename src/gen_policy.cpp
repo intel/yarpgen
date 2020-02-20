@@ -34,15 +34,15 @@ GenPolicy::GenPolicy() {
     max_iters_num = 1;
     uniformProbFromMax(iters_num_distr, max_iters_num, min_iters_num);
 
-    iters_end_limit_min = 50;
-    iter_end_limit_max = 100;
+    iters_end_limit_min = 10;
+    iter_end_limit_max = 25;
     iters_step_distr.emplace_back(Probability<size_t>{1, 10});
     iters_step_distr.emplace_back(Probability<size_t>{2, 10});
     iters_step_distr.emplace_back(Probability<size_t>{4, 10});
 
-    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 20});
-    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 20});
-    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::STUB, 20});
+    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 10});
+    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
+    stmt_kind_struct_distr.emplace_back(Probability<IRNodeKind>{IRNodeKind::STUB, 80});
 
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::INT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
@@ -53,6 +53,16 @@ GenPolicy::GenPolicy() {
     stmt_kind_pop_distr.emplace_back(Probability<IRNodeKind>(IRNodeKind::ASSIGN, 20));
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 20));
+
+    min_new_arr_num = 2;
+    max_new_arr_num = 4;
+    uniformProbFromMax(new_arr_num_distr, max_new_arr_num, min_new_arr_num);
+
+    out_kind_distr.emplace_back(Probability<DataKind>(DataKind::VAR, 20));
+    out_kind_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 20));
+
+    arith_leaf_distr.emplace_back(Probability<DataKind>(DataKind::VAR, 20));
+    arith_leaf_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 20));
 }
 
 template <typename T>
