@@ -249,13 +249,13 @@ std::shared_ptr<ArithmeticExpr> ArithmeticExpr::create(std::shared_ptr<PopulateC
     auto gen_pol = ctx->getGenPolicy();
     DataKind leaf_kind = rand_val_gen->getRandId(gen_pol->arith_leaf_distr);
     std::shared_ptr<Expr> leaf;
-    if (leaf_kind == DataKind::VAR || ctx->getExtInpSymTable()->getAvailSubs().empty()) {
+    if (leaf_kind == DataKind::VAR || ctx->getLocalSymTable()->getAvailSubs().empty()) {
         size_t inp_var_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTable()->getAvailVars().size() - 1);
         leaf = ctx->getExtInpSymTable()->getAvailVars().at(inp_var_idx);
     }
     else if (leaf_kind == DataKind::ARR) {
-        size_t inp_arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getExtInpSymTable()->getAvailSubs().size() - 1);
-        leaf = ctx->getExtInpSymTable()->getAvailSubs().at(inp_arr_idx);
+        size_t inp_arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0), ctx->getLocalSymTable()->getAvailSubs().size() - 1);
+        leaf = ctx->getLocalSymTable()->getAvailSubs().at(inp_arr_idx);
     }
 
     UnaryOp op = rand_val_gen->getRandId(ctx->getGenPolicy()->unary_op_distr);

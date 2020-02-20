@@ -23,14 +23,14 @@ namespace yarpgen {
 class ProgramGenerator {
   public:
     ProgramGenerator();
-    static std::shared_ptr<ScopeStmt> generate();
-    void emit(std::ostream& stream);
+    void emit();
 
   private:
     void emitCheckFunc(std::ostream &stream);
     void emitDecl(std::ostream &stream);
     void emitInit(std::ostream &stream);
     void emitCheck(std::ostream &stream);
+    void emitExtDecl(std::ostream &stream);
     void emitTest(std::ostream &stream);
     void emitMain(std::ostream &stream);
 

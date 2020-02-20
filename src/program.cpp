@@ -170,13 +170,46 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
     stream << "}\n";
 }
 
+void ProgramGenerator::emitExtDecl(std::ostream &stream) {
+    for (auto &var : ext_inp_sym_tbl->getVars()) {
+        stream << "extern " << var->getType()->getName() << " " << var->getName() << ";\n";
+    }
+    for (auto &var : ext_out_sym_tbl->getVars()) {
+        stream << "extern " << var->getType()->getName() << " " << var->getName() << ";\n";
+    }
+    for (auto &array : ext_inp_sym_tbl->getArrays()) {
+        auto type = array->getType();
+        assert(type->isArrayType() && "Array should have an Array type");
+        auto array_type = std::static_pointer_cast<ArrayType>(type);
+        stream << "extern " << array_type->getBaseType()->getName() << " ";
+        stream << array->getName() << " ";
+        for (const auto &dimension : array_type->getDimensions()) {
+            stream << "[" << dimension << "] ";
+        }
+        stream << ";\n";
+    }
+    for (auto &array : ext_out_sym_tbl->getArrays()) {
+        auto type = array->getType();
+        assert(type->isArrayType() && "Array should have an Array type");
+        auto array_type = std::static_pointer_cast<ArrayType>(type);
+        stream << "extern " << array_type->getBaseType()->getName() << " ";
+        stream << array->getName() << " ";
+        for (const auto &dimension : array_type->getDimensions()) {
+            stream << "[" << dimension << "] ";
+        }
+        stream << ";\n";
+    }
+}
+
 void ProgramGenerator::emitTest(std::ostream &stream) {
+    stream << "#include \"init.h\"\n";
     stream << "void test() {\n";
     new_test->emit(stream, "    ");
     stream << "}\n";
 }
 
 void ProgramGenerator::emitMain(std::ostream &stream) {
+    stream << "void test();\n";
     stream << "int main() {\n";
     stream << "    init();\n";
     stream << "    test();\n";
@@ -185,11 +218,21 @@ void ProgramGenerator::emitMain(std::ostream &stream) {
     stream << "}\n";
 }
 
-void ProgramGenerator::emit(std::ostream &stream) {
-    emitCheckFunc(stream);
-    emitDecl(stream);
-    emitInit(stream);
-    emitCheck(stream);
-    emitTest(stream);
-    emitMain(stream);
+void ProgramGenerator::emit() {
+    std::ofstream out_file;
+    out_file.open("driver.cpp");
+    emitCheckFunc(out_file);
+    emitDecl(out_file);
+    emitInit(out_file);
+    emitCheck(out_file);
+    emitMain(out_file);
+    out_file.close();
+
+    out_file.open("func.cpp");
+    emitTest(out_file);
+    out_file.close();
+
+    out_file.open("init.h");
+    emitExtDecl(out_file);
+    out_file.close();
 }
