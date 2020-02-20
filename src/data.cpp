@@ -91,7 +91,7 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx, bool inp)
         prev_expr = std::make_shared<SubscriptExpr>(prev_expr, iter_use_expr);
     }
     if (inp)
-        ctx->getExtInpSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
+        ctx->getLocalSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
     else
         ctx->getExtOutSymTable()->addSubsExpr(std::static_pointer_cast<SubscriptExpr>(prev_expr));
     return new_array;
