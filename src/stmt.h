@@ -72,6 +72,8 @@ class StmtBlock : public Stmt {
         stmts.push_back(std::move(stmt));
     }
 
+    std::vector<std::shared_ptr<Stmt>> getStmts() { return stmts; }
+
     void emit(std::ostream &stream, std::string offset = "") override;
     static std::shared_ptr<StmtBlock>
     generateStructure(std::shared_ptr<GenCtx> ctx);

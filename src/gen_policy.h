@@ -70,9 +70,6 @@ class GenPolicy {
     size_t min_inp_vars_num;
     size_t max_inp_vars_num;
 
-    // Unary operator distribution
-    std::vector<Probability<UnaryOp>> unary_op_distr;
-
     // Number of new arrays that we create in each loop scope
     size_t min_new_arr_num;
     size_t max_new_arr_num;
@@ -81,8 +78,14 @@ class GenPolicy {
     // Output kind probability
     std::vector<Probability<DataKind>> out_kind_distr;
 
-    // Arithmetic trees leaf distribution
-    std::vector<Probability<DataKind>> arith_leaf_distr;
+    // Maximal depth of arithmetic expression
+    size_t max_arith_depth;
+    // Distribution of nodes in arithmetic expression
+    std::vector<Probability<IRNodeKind>> arith_node_distr;
+    // Unary operator distribution
+    std::vector<Probability<UnaryOp>> unary_op_distr;
+    // Binary operator distribution
+    std::vector<Probability<BinaryOp>> binary_op_distr;
 
   private:
     template <typename T>

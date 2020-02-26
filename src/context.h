@@ -78,10 +78,10 @@ class SymbolTable {
         return avail_subs;
     }
 
-    void addVarExpr(std::shared_ptr<VarUseExpr> var) {
+    void addVarExpr(std::shared_ptr<ScalarVarUseExpr> var) {
         avail_vars.push_back(var);
     }
-    std::vector<std::shared_ptr<VarUseExpr>> getAvailVars() {
+    std::vector<std::shared_ptr<ScalarVarUseExpr>> getAvailVars() {
         return avail_vars;
     }
 
@@ -90,7 +90,7 @@ class SymbolTable {
     std::vector<std::shared_ptr<Array>> arrays;
     std::vector<std::vector<std::shared_ptr<Iterator>>> iters;
     std::vector<std::shared_ptr<SubscriptExpr>> avail_subs;
-    std::vector<std::shared_ptr<VarUseExpr>> avail_vars;
+    std::vector<std::shared_ptr<ScalarVarUseExpr>> avail_vars;
 };
 
 // TODO: should we inherit it from Generation Context or should it be a separate
@@ -110,10 +110,15 @@ class PopulateCtx : public GenCtx {
         ext_out_sym_tbl = std::move(_sym_table);
     }
 
+    size_t getArithDepth() { return arith_depth; }
+    void incArithDepth() { arith_depth++; }
+    void decArithDepth() { arith_depth--; }
+
   private:
     std::shared_ptr<PopulateCtx> par_ctx;
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
     std::shared_ptr<SymbolTable> ext_out_sym_tbl;
     std::shared_ptr<SymbolTable> local_sym_tbl;
+    size_t arith_depth;
 };
 } // namespace yarpgen

@@ -119,8 +119,10 @@ void ScopeStmt::emit(std::ostream &stream, std::string offset) {
 std::shared_ptr<ScopeStmt>
 ScopeStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     // TODO: will that work?
-    return std::static_pointer_cast<ScopeStmt>(
-        StmtBlock::generateStructure(std::move(ctx)));
+    auto new_scope = std::make_shared<ScopeStmt>();
+    auto stmt_block = StmtBlock::generateStructure(std::move(ctx));
+    new_scope->stmts = stmt_block->getStmts();
+    return new_scope;
 }
 
 void LoopHead::emitPrefix(std::ostream &stream, std::string offset) {
