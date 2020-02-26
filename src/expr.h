@@ -85,6 +85,8 @@ class ConstantExpr : public Expr {
     EvalResType rebuild(EvalCtx &ctx) final;
 
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<ConstantExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     // TODO: add various buffers to increase tests expressiveness
@@ -115,6 +117,8 @@ class ScalarVarUseExpr : public VarUseExpr {
     void emit(std::ostream &stream, std::string offset = "") final {
         stream << offset << value->getName();
     };
+    static std::shared_ptr<ScalarVarUseExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     static std::unordered_map<std::shared_ptr<Data>,
@@ -174,12 +178,14 @@ class TypeCastExpr : public Expr {
                  bool _is_implicit);
     IRNodeKind getKind() final { return IRNodeKind::TYPE_CAST; }
 
-    bool propagateType() final { return true; }
+    bool propagateType() final;
     // We assume that if we cast between compatible types we can't cause UB.
-    EvalResType evaluate(EvalCtx &ctx) final { return value; }
-    EvalResType rebuild(EvalCtx &ctx) final { return value; }
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
 
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<TypeCastExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     std::shared_ptr<Expr> expr;
@@ -193,8 +199,7 @@ class ArithmeticExpr : public Expr {
         : Expr(std::move(value)) {}
     ArithmeticExpr() = default;
 
-    static std::shared_ptr<ArithmeticExpr>
-    create(std::shared_ptr<PopulateCtx> ctx);
+    static std::shared_ptr<Expr> create(std::shared_ptr<PopulateCtx> ctx);
 
   protected:
     // Top-level recursive function for expression tree generation
@@ -207,8 +212,7 @@ class ArithmeticExpr : public Expr {
 
 class UnaryExpr : public ArithmeticExpr {
   public:
-    UnaryExpr(UnaryOp _op, std::shared_ptr<Expr> _expr)
-        : op(_op), arg(std::move(_expr)) {}
+    UnaryExpr(UnaryOp _op, std::shared_ptr<Expr> _expr);
     IRNodeKind getKind() final { return IRNodeKind::UNARY; }
 
     bool propagateType() final;
@@ -216,6 +220,7 @@ class UnaryExpr : public ArithmeticExpr {
     EvalResType rebuild(EvalCtx &ctx) final;
 
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<UnaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     UnaryOp op;
@@ -225,8 +230,7 @@ class UnaryExpr : public ArithmeticExpr {
 class BinaryExpr : public ArithmeticExpr {
   public:
     BinaryExpr(BinaryOp _op, std::shared_ptr<Expr> _lhs,
-               std::shared_ptr<Expr> _rhs)
-        : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {}
+               std::shared_ptr<Expr> _rhs);
     IRNodeKind getKind() final { return IRNodeKind::BINARY; }
 
     bool propagateType() final;
@@ -234,6 +238,7 @@ class BinaryExpr : public ArithmeticExpr {
     EvalResType rebuild(EvalCtx &ctx) final;
 
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<BinaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     void arithConv();
@@ -245,9 +250,7 @@ class BinaryExpr : public ArithmeticExpr {
 
 class SubscriptExpr : public Expr {
   public:
-    SubscriptExpr(std::shared_ptr<Expr> _arr, std::shared_ptr<Expr> _idx)
-        : array(std::move(_arr)), idx(std::move(_idx)), active_dim(0),
-          active_size(-1), idx_int_type_id(IntTypeID::MAX_INT_TYPE_ID) {}
+    SubscriptExpr(std::shared_ptr<Expr> _arr, std::shared_ptr<Expr> _idx);
     IRNodeKind getKind() final { return IRNodeKind::SUBSCRIPT; }
 
     size_t getActiveDim() { return active_dim; }
@@ -257,6 +260,8 @@ class SubscriptExpr : public Expr {
     EvalResType rebuild(EvalCtx &ctx) final;
 
     void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<SubscriptExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);

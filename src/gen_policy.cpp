@@ -66,8 +66,44 @@ GenPolicy::GenPolicy() {
     out_kind_distr.emplace_back(Probability<DataKind>(DataKind::VAR, 20));
     out_kind_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 20));
 
-    arith_leaf_distr.emplace_back(Probability<DataKind>(DataKind::VAR, 20));
-    arith_leaf_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 20));
+    max_arith_depth = 3;
+
+    //    arith_node_distr.emplace_back(Probability<IRNodeKind>(IRNodeKind::CONST,
+    //    20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::SCALAR_VAR_USE, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::SUBSCRIPT, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::TYPE_CAST, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::UNARY, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::BINARY, 20));
+
+    unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
+    unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 25));
+    unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::LOG_NOT, 25));
+    unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::BIT_NOT, 25));
+
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::ADD, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SUB, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::MUL, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::DIV, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::MOD, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::LT, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::GT, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::LE, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::GE, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::EQ, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::NE, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::LOG_AND, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::LOG_OR, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_AND, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_OR, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_XOR, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHL, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHR, 10));
 }
 
 template <typename T>
