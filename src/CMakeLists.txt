@@ -30,12 +30,17 @@ set(LIB_SRCS
     "hash.h"
     "ir_node.h"
     "ir_value.cpp"
+    "ir_value.h"
+    "options.cpp"
+    "options.h"
     "program.cpp"
     "program.h"
     "stmt.cpp"
     "stmt.h"
     "type.cpp"
-    "utils.cpp")
+    "type.h"
+    "utils.cpp"
+    "utils.h")
 
 # Common std and build flags for all executables
 set(STD cxx_std_14)

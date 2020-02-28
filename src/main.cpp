@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 //////////////////////////////////////////////////////////////////////////////
+#include "options.h"
 #include "program.h"
 #include "utils.h"
 
@@ -22,66 +23,14 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-#ifndef YARPGEN_VERSION_MAJOR
-#define YARPGEN_VERSION_MAJOR "0"
-#endif
-
-#ifndef YARPGEN_VERSION_MINOR
-#define YARPGEN_VERSION_MINOR "0"
-#endif
-
-#ifndef BUILD_DATE
-#define BUILD_DATE __DATE__
-#endif
-
-#ifndef BUILD_VERSION
-#define BUILD_VERSION ""
-#endif
-
 using namespace yarpgen;
 
-static void printVersion() {
-    std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
-              << YARPGEN_VERSION_MINOR << " (build " << BUILD_VERSION << " on "
-              << BUILD_DATE << ")" << std::endl;
-}
-
-// This function prints out optional error_message, help and exits
-static void printUsageAndExit(const std::string &error_msg = "") {
-    int exit_code = 0;
-    if (!error_msg.empty()) {
-        std::cerr << error_msg << std::endl;
-        exit_code = -1;
-    }
-
-    printVersion();
-    std::cout << "usage: yarpgen\n";
-    std::cout << "\t-h, --help                Display this message and exit\n";
-    std::cout << "\t-v, --version             Print yarpgen version\n";
-    exit(exit_code);
-}
-
 int main(int argc, char *argv[]) {
-    std::vector<std::string> unused_args;
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "-h" || arg == "--help")
-            printUsageAndExit();
-        else if (arg == "-v" || arg == "--version")
-            printVersion();
-        else
-            unused_args.push_back(arg);
-    }
-
-    if (!unused_args.empty()) {
-        std::string unused_string = "Unused arguments: ";
-        for (const auto &arg : unused_args)
-            unused_string += arg + " ";
-        printUsageAndExit(unused_string);
-    }
+    OptionParser::parse(argc, argv);
 
     // TODO: we need to be able to pass the seed from outside
-    rand_val_gen = std::make_shared<RandValGen>(RandValGen(0));
+    Options &options = Options::getInstance();
+    rand_val_gen = std::make_shared<RandValGen>(RandValGen(options.getSeed()));
 
     ProgramGenerator new_program;
     new_program.emit();

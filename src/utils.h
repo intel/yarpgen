@@ -134,7 +134,7 @@ class NameHandler {
     std::string getIterName() { return "i_" + std::to_string(iter_idx++); }
 
   private:
-    NameHandler() : iter_idx(0), stub_stmt_idx(0) {}
+    NameHandler() : var_idx(0), arr_idx(0), iter_idx(0), stub_stmt_idx(0) {}
 
     uint32_t var_idx;
     uint32_t arr_idx;
