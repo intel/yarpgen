@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "enums.h"
 #include <cstdlib>
 #include <functional>
 #include <map>
@@ -41,7 +42,8 @@ class OptionParser {
     static bool parseLongAndShortArgs(int argc, size_t &argv_iter, char **&argv,
                                       option_t option);
 
-    static size_t parseSeed(std::string seed_str);
+    static void parseSeed(std::string seed_str);
+    static void parseStandard(std::string std);
 
     // Short argument, long argument, has_value, help message, error message,
     // action function
@@ -60,9 +62,13 @@ class Options {
     void setSeed(size_t _seed) { seed = _seed; }
     size_t getSeed() { return seed; }
 
+    void setLangStd(LangStd _std) { std = _std; }
+    LangStd getLangStd() { return std; }
+
   private:
-    Options() : seed(0) {}
+    Options() : seed(0), std(LangStd::CXX) {}
 
     size_t seed;
+    LangStd std;
 };
 } // namespace yarpgen

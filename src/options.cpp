@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "options.h"
+#include "utils.h"
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -52,6 +53,8 @@ std::vector<OptionParser::option_t> yarpgen::OptionParser::opt_codes{
      OptionParser::printVersion},
     {"-s", "--seed", true, "Pass a predefined seed", "Err",
      OptionParser::parseSeed},
+    {"", "--std", true, "Language standard of the test",
+     "Can't recognize standard", OptionParser::parseStandard},
 };
 
 void OptionParser::printVersion(std::string arg) {
@@ -157,13 +160,24 @@ bool OptionParser::parseLongAndShortArgs(int argc, size_t &argv_iter,
            parseShortArg(argc, argv_iter, argv, option);
 }
 
-size_t OptionParser::parseSeed(std::string seed_str) {
+void OptionParser::parseSeed(std::string seed_str) {
     std::stringstream arg_ss(seed_str);
     Options &options = Options::getInstance();
     size_t seed = 0;
     arg_ss >> seed;
     options.setSeed(seed);
-    return 0;
+}
+
+void OptionParser::parseStandard(std::string std) {
+    Options &options = Options::getInstance();
+    if (std == "cpp")
+        options.setLangStd(LangStd::CXX);
+    else if (std == "ispc")
+        options.setLangStd(LangStd::ISPC);
+    else if (std == "sycl")
+        options.setLangStd(LangStd::SYCL);
+    else
+        printHelpAndExit("Bad language standard");
 }
 
 void OptionParser::parse(size_t argc, char *argv[]) {
