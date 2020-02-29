@@ -119,4 +119,7 @@ enum class BinaryOp {
     SHR,
     MAX_BIN_OP
 };
+
+enum class LangStd { CXX, ISPC, SYCL, MAX_LANG_STD };
+
 } // namespace yarpgen
