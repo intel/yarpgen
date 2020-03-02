@@ -37,31 +37,41 @@ set(LIB_SRCS
     "type.cpp"
     "utils.cpp")
 
-set(SRCS ${LIB_SRCS} main.cpp)
-
-add_executable(yarpgen ${SRCS})
-
+# Common std and build flags for all executables
 set(STD cxx_std_14)
 set(FLAGS #  $<$<CXX_COMPILER_ID:MSVC>:/WX>
-  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>)
+  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>
+  -DBUILD_VERSION="${GIT_HASH}" -DBUILD_DATE="${BUILD_DATE}"
+  -DYARPGEN_VERSION_MAJOR="${YARPGEN_VERSION_MAJOR}" -DYARPGEN_VERSION_MINOR="${YARPGEN_VERSION_MINOR}")
 
+# Static library to avoid building sources multiple times
+add_library(yarpgen_lib STATIC ${LIB_SRCS})
+target_compile_features(yarpgen_lib PRIVATE ${STD})
+target_compile_options(yarpgen_lib PRIVATE ${FLAGS})
+
+# Main executable
+add_executable(yarpgen main.cpp)
 target_compile_features(yarpgen PRIVATE ${STD})
-target_compile_definitions(yarpgen PRIVATE BUILD_VERSION="${GIT_HASH}" BUILD_DATE="${BUILD_DATE}"
-    YARPGEN_VERSION_MAJOR="${YARPGEN_VERSION_MAJOR}" YARPGEN_VERSION_MINOR="${YARPGEN_VERSION_MINOR}")
 target_compile_options(yarpgen PRIVATE ${FLAGS})
+target_link_libraries(yarpgen yarpgen_lib)
 
-add_executable(type_test ${LIB_SRCS} type_test.cpp)
+# Test executables
+add_executable(type_test type_test.cpp)
 target_compile_features(type_test PRIVATE ${STD})
 target_compile_options(type_test PRIVATE ${FLAGS})
+target_link_libraries(type_test yarpgen_lib)
 
-add_executable(data_test ${LIB_SRCS} data_test.cpp)
+add_executable(data_test data_test.cpp)
 target_compile_features(data_test PRIVATE ${STD})
 target_compile_options(data_test PRIVATE ${FLAGS})
+target_link_libraries(data_test yarpgen_lib)
 
-add_executable(expr_test ${LIB_SRCS} expr_test.cpp)
+add_executable(expr_test expr_test.cpp)
 target_compile_features(expr_test PRIVATE ${STD})
 target_compile_options(expr_test PRIVATE ${FLAGS})
+target_link_libraries(expr_test yarpgen_lib)
 
-add_executable(gen_test ${LIB_SRCS} gen_test.cpp)
+add_executable(gen_test gen_test.cpp)
 target_compile_features(gen_test PRIVATE ${STD})
 target_compile_options(gen_test PRIVATE ${FLAGS})
+target_link_libraries(gen_test yarpgen_lib)
