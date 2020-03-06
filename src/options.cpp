@@ -46,15 +46,45 @@ using namespace yarpgen;
 
 static const size_t PADDING = 25;
 
-std::vector<OptionParser::option_t> yarpgen::OptionParser::opt_codes{
-    {"-h", "--help", false, "Display help message", "Err",
-     OptionParser::printHelpAndExit},
-    {"-v", "--version", false, "Print YARPGen version", "Err",
-     OptionParser::printVersion},
-    {"-s", "--seed", true, "Pass a predefined seed", "Err",
-     OptionParser::parseSeed},
-    {"", "--std", true, "Language standard of the test",
-     "Can't recognize standard", OptionParser::parseStandard},
+// Short argument, long argument, has_value, help message, error message,
+// action function, default, possible values
+std::vector<OptionDescr> yarpgen::OptionParser::options_set{
+    {OptionKind::HELP,
+     "-h",
+     "--help",
+     false,
+     "Display help message",
+     "Unreachable Error",
+     OptionParser::printHelpAndExit,
+     "",
+     {}},
+    {OptionKind::VERSION,
+     "-v",
+     "--version",
+     false,
+     "Print YARPGen version",
+     "Unreachable Error",
+     OptionParser::printVersion,
+     "",
+     {}},
+    {OptionKind::SEED,
+     "-s",
+     "--seed",
+     true,
+     "Pass a predefined seed (0 is reserved for random)",
+     "Unreachable Error",
+     OptionParser::parseSeed,
+     "0",
+     {}},
+    {OptionKind::STD,
+     "",
+     "--std",
+     true,
+     "Language standard of the test",
+     "Can't recognize standard",
+     OptionParser::parseStandard,
+     "cpp",
+     {"cpp", "ispc", "sycl"}},
 };
 
 void OptionParser::printVersion(std::string arg) {
@@ -76,7 +106,7 @@ void OptionParser::printHelpAndExit(std::string error_msg) {
                            bool sep = true, int num_printed = -1) -> size_t {
         if (item.empty())
             return 0;
-        if (num_printed > 0)
+        if (num_printed >= 0)
             std::cout << std::string(PADDING - num_printed, ' ');
         std::string output =
             item + (value ? "=<value>" : "") + (sep ? ", " : "");
@@ -84,13 +114,26 @@ void OptionParser::printHelpAndExit(std::string error_msg) {
         return output.size();
     };
 
-    for (auto &item : opt_codes) {
+    for (auto &item : options_set) {
         size_t num_printed = 0;
         std::cout << "\t";
-        num_printed += print_helper(std::get<0>(item));
-        num_printed +=
-            print_helper(std::get<1>(item), std::get<2>(item), false);
-        print_helper(std::get<3>(item), false, false, num_printed);
+        num_printed += print_helper(item.getShortArg());
+        num_printed += print_helper(item.getLongArg(), item.hasValue(), false);
+        print_helper(item.getHelpMsg(), false, false, num_printed);
+        if (!item.getDefaultVal().empty())
+            std::cout << " (Default: " << item.getDefaultVal() << ")";
+        if (!item.getAvailVals().empty()) {
+            std::cout << std::endl;
+            std::stringstream ss;
+            // TODO: we need to figure out what is the origin of this additional
+            // space
+            ss << "\t Possible values: ";
+            for (const auto &avail_val : item.getAvailVals()) {
+                ss << avail_val
+                   << (avail_val != item.getAvailVals().back() ? ", " : "");
+            }
+            print_helper(ss.str(), false, false, 0);
+        }
         std::cout << std::endl;
     }
 
@@ -104,15 +147,15 @@ bool OptionParser::optionStartsWith(char *option, const char *test) {
 // This function handles command-line options in form of "-short_arg <value>"
 // and performs action(<value>)
 bool OptionParser::parseShortArg(size_t argc, size_t &argv_iter, char **&argv,
-                                 option_t option) {
-    std::string short_arg = std::get<0>(option);
-    bool has_value = std::get<2>(option);
-    auto action = std::get<5>(option);
+                                 OptionDescr option) {
+    std::string short_arg = option.getShortArg();
+    bool has_value = option.hasValue();
+    auto action = option.getAction();
     if (!strcmp(argv[argv_iter], short_arg.c_str())) {
         if (has_value)
             argv_iter++;
         if (argv_iter == argc)
-            printHelpAndExit(std::move(std::get<4>(option)));
+            printHelpAndExit(option.getErrMsg());
         else {
             if (has_value)
                 action(argv[argv_iter]);
@@ -127,16 +170,16 @@ bool OptionParser::parseShortArg(size_t argc, size_t &argv_iter, char **&argv,
 // This function handles command-line options in form of "--long_arg=<value>"
 // and performs action(<value>)
 bool OptionParser::parseLongArg(size_t &argv_iter, char **&argv,
-                                option_t option) {
-    std::string long_arg = std::get<1>(option);
-    bool has_value = std::get<2>(option);
-    auto action = std::get<5>(option);
+                                OptionDescr option) {
+    std::string long_arg = option.getLongArg();
+    bool has_value = option.hasValue();
+    auto action = option.getAction();
     if (has_value)
         long_arg = long_arg + "=";
     if (optionStartsWith(argv[argv_iter], long_arg.c_str())) {
         if (has_value) {
             if (strlen(argv[argv_iter]) == long_arg.size())
-                printHelpAndExit(std::move(std::get<4>(option)));
+                printHelpAndExit(option.getErrMsg());
             else {
                 action(argv[argv_iter] + long_arg.size());
                 return true;
@@ -148,14 +191,14 @@ bool OptionParser::parseLongArg(size_t &argv_iter, char **&argv,
                 return true;
             }
             else
-                printHelpAndExit(std::move(std::get<4>(option)));
+                printHelpAndExit(option.getErrMsg());
         }
     }
     return false;
 }
 
 bool OptionParser::parseLongAndShortArgs(int argc, size_t &argv_iter,
-                                         char **&argv, option_t option) {
+                                         char **&argv, OptionDescr option) {
     return parseLongArg(argv_iter, argv, option) ||
            parseShortArg(argc, argv_iter, argv, option);
 }
@@ -183,12 +226,23 @@ void OptionParser::parseStandard(std::string std) {
 void OptionParser::parse(size_t argc, char *argv[]) {
     for (size_t i = 1; i < argc; ++i) {
         bool parsed = false;
-        for (const auto &item : opt_codes)
+        for (const auto &item : options_set)
             if (parseLongAndShortArgs(argc, i, argv, item)) {
                 parsed = true;
                 break;
             }
         if (!parsed)
             printHelpAndExit("Unknown option: " + std::string(argv[i]));
+    }
+}
+
+void OptionParser::initOptions() {
+    for (auto &item : options_set) {
+        OptionKind kind = item.getKind();
+        std::string def_val = item.getDefaultVal();
+        if (kind == OptionKind::SEED)
+            parseSeed(def_val);
+        else if (kind == OptionKind::STD)
+            parseStandard(def_val);
     }
 }

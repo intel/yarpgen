@@ -21,33 +21,69 @@ limitations under the License.
 #include <cstdlib>
 #include <functional>
 #include <map>
+#include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace yarpgen {
+
+class OptionDescr {
+  public:
+    OptionDescr(OptionKind _kind, std::string _short_arg, std::string _long_arg,
+                bool _has_value, std::string _help_msg, std::string _err_msg,
+                std::function<void(std::string)> _action, std::string _def_val,
+                std::vector<std::string> _values)
+        : kind(_kind), short_arg(std::move(_short_arg)),
+          long_arg(std::move(_long_arg)), has_value(_has_value),
+          help_msg(std::move(_help_msg)), err_msg(std::move(_err_msg)),
+          action(std::move(_action)), def_val(std::move(_def_val)),
+          values(std::move(_values)) {}
+    OptionKind getKind() { return kind; }
+    std::string getShortArg() { return short_arg; }
+    std::string getLongArg() { return long_arg; }
+    bool hasValue() { return has_value; }
+    std::string getHelpMsg() { return help_msg; }
+    std::string getErrMsg() { return err_msg; }
+    std::function<void(std::string)> getAction() { return action; }
+    std::string getDefaultVal() { return def_val; }
+    std::vector<std::string> getAvailVals() { return values; }
+
+  private:
+    OptionKind kind;
+    std::string short_arg;
+    std::string long_arg;
+    bool has_value;
+    std::string help_msg;
+    std::string err_msg;
+    std::function<void(std::string)> action;
+    std::string def_val;
+    std::vector<std::string> values;
+};
+
+class Options;
+
 class OptionParser {
   public:
     static void parse(size_t argc, char *argv[]);
+    // Initialize options with default values
+    static void initOptions();
 
   private:
-    using option_t = std::tuple<std::string, std::string, bool, std::string,
-                                std::string, std::function<void(std::string)>>;
-
     static void printVersion(std::string arg);
     static void printHelpAndExit(std::string error_msg = "");
     static bool optionStartsWith(char *option, const char *test);
     static bool parseShortArg(size_t argc, size_t &argv_iter, char **&argv,
-                              option_t option);
-    static bool parseLongArg(size_t &argv_iter, char **&argv, option_t option);
+                              OptionDescr option);
+    static bool parseLongArg(size_t &argv_iter, char **&argv,
+                             OptionDescr option);
     static bool parseLongAndShortArgs(int argc, size_t &argv_iter, char **&argv,
-                                      option_t option);
+                                      OptionDescr option);
 
     static void parseSeed(std::string seed_str);
     static void parseStandard(std::string std);
 
-    // Short argument, long argument, has_value, help message, error message,
-    // action function
-    static std::vector<option_t> opt_codes;
+    static std::vector<OptionDescr> options_set;
 };
 
 class Options {

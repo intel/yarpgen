@@ -17,6 +17,8 @@ limitations under the License.
 
 using namespace yarpgen;
 
+size_t GenPolicy::leaves_prob_bump = 30;
+
 GenPolicy::GenPolicy() {
     loop_seq_num_lim = 4;
     uniformProbFromMax(loop_seq_num_distr, loop_seq_num_lim, 1);

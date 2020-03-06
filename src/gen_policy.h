@@ -87,6 +87,8 @@ class GenPolicy {
     // Binary operator distribution
     std::vector<Probability<BinaryOp>> binary_op_distr;
 
+    static size_t leaves_prob_bump;
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

@@ -316,7 +316,7 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     ctx->incArithDepth();
     std::shared_ptr<PopulateCtx> active_ctx = ctx;
     if (active_ctx->getArithDepth() == gen_pol->max_arith_depth) {
-        // We can heave only constants, variables and arrays as leaves
+        // We can have only constants, variables and arrays as leaves
         std::vector<Probability<IRNodeKind>> new_node_distr;
         for (auto &item : gen_pol->arith_node_distr) {
             if (item.getId() == IRNodeKind::CONST ||
@@ -331,9 +331,12 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
                 zero_prob = false;
         }
 
+        // If after the option shuffling probability of all appropriate leaves
+        // was set to zero, we need a backup-plan. We just bump it to some
+        // value.
         if (zero_prob) {
             for (auto &item : new_node_distr) {
-                item.increaseProb(30);
+                item.increaseProb(GenPolicy::leaves_prob_bump);
             }
         }
 
