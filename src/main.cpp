@@ -26,6 +26,7 @@ limitations under the License.
 using namespace yarpgen;
 
 int main(int argc, char *argv[]) {
+    OptionParser::initOptions();
     OptionParser::parse(argc, argv);
 
     // TODO: we need to be able to pass the seed from outside

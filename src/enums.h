@@ -120,6 +120,8 @@ enum class BinaryOp {
     MAX_BIN_OP
 };
 
+enum class OptionKind { HELP, VERSION, SEED, STD, MAX_OPTION_ID };
+
 enum class LangStd { CXX, ISPC, SYCL, MAX_LANG_STD };
 
 } // namespace yarpgen
