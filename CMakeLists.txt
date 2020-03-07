@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2018-2019, Intel Corporation
+# Copyright (c) 2018-2020, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,14 +17,9 @@
 ###############################################################################
 
 cmake_minimum_required(VERSION 3.6)
-project(YARPGen)
-
-if(NOT DEFINED YARPGEN_VERSION_MAJOR)
-    set(YARPGEN_VERSION_MAJOR 2)
-endif()
-if(NOT DEFINED YARPGEN_VERSION_MINOR)
-    set(YARPGEN_VERSION_MINOR 0)
-endif()
+project(YARPGen
+        VERSION 2.0
+        LANGUAGES CXX)
 
 STRING(TIMESTAMP BUILD_DATE "%Y:%m:%d")
 
