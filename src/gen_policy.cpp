@@ -106,6 +106,9 @@ GenPolicy::GenPolicy() {
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_XOR, 10));
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHL, 10));
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHR, 10));
+
+    foreach_distr.emplace_back(Probability<bool>(true, 20));
+    foreach_distr.emplace_back(Probability<bool>(false, 80));
 }
 
 template <typename T>

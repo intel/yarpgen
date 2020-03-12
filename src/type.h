@@ -28,6 +28,7 @@ limitations under the License.
 
 #include "hash.h"
 #include "ir_value.h"
+#include "options.h"
 
 namespace yarpgen {
 
@@ -42,12 +43,13 @@ class Iterator;
 // that may change in future.
 class Type {
   public:
-    Type() : is_static(false), cv_qualifier(CVQualifier::NONE) {}
+    Type() : is_static(false), cv_qualifier(CVQualifier::NONE), is_uniform(true) {}
     Type(bool _is_static, CVQualifier _cv_qual)
-        : is_static(_is_static), cv_qualifier(_cv_qual) {}
+        : is_static(_is_static), cv_qualifier(_cv_qual), is_uniform(true) {}
     virtual ~Type() = default;
 
     virtual std::string getName() = 0;
+    virtual std::string getIspcName() { return getName(); }
     virtual void dbgDump() = 0;
 
     virtual bool isIntType() { return false; }
@@ -58,9 +60,21 @@ class Type {
     CVQualifier getCVQualifier() { return cv_qualifier; }
     void setCVQualifier(CVQualifier _cv_qual) { cv_qualifier = _cv_qual; }
 
+    bool isUniform() { return is_uniform; }
+
+    virtual std::shared_ptr<Type> makeVarying() = 0;
+
+  protected:
+    void setIsUniform(bool _is_uniform) { is_uniform = _is_uniform; }
+
   private:
     bool is_static;
     CVQualifier cv_qualifier;
+
+    // ISPC
+    //TODO: arrays themselves aren't uniform or varying
+    bool is_uniform;
+
     // We don't store name here because for compound types it might be tricky to
     // get them.
 };
@@ -94,7 +108,7 @@ class IntegralType : public ArithmeticType {
     // corresponding type
     static std::shared_ptr<IntegralType> init(IntTypeID _type_id);
     static std::shared_ptr<IntegralType>
-    init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual);
+    init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual, bool _is_uniform = true);
 
     static bool isSame(std::shared_ptr<IntegralType> &lhs,
                        std::shared_ptr<IntegralType> &rhs);
@@ -105,6 +119,8 @@ class IntegralType : public ArithmeticType {
     // Auxiliary function for arithmetic conversions that find corresponding
     // unsigned type
     static IntTypeID getCorrUnsigned(IntTypeID id);
+
+    std::shared_ptr<Type> makeVarying() override;
 
   private:
     // There is a fixed small number of possible integral types,
@@ -132,6 +148,17 @@ template <typename T> class IntegralTypeHelper : public IntegralType {
     bool getIsSigned() override { return std::is_signed<T>::value; }
     IRValue getMin() override { return min; }
     IRValue getMax() override { return max; }
+
+    //ISPC
+    std::string getIspcName() override {
+        std::string ret;
+        Options &options = Options::getInstance();
+        if (options.isISPC()) {
+            ret = (isUniform() ? "uniform" : "varying");
+            ret += " ";
+        }
+        return ret + getName();
+    }
 
   protected:
     IRValue min;
@@ -271,12 +298,15 @@ class ArrayType : public Type {
     static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims,
                                            bool _is_static,
-                                           CVQualifier _cv_qual);
+                                           CVQualifier _cv_qual,
+                                           bool _is_uniform = true);
     static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims);
     static std::shared_ptr<ArrayType>
     create(std::shared_ptr<PopulateCtx> ctx,
            std::vector<std::shared_ptr<Iterator>> &used_iters);
+
+    std::shared_ptr<Type> makeVarying() override;
 
   private:
     // Folding set for all of the array types.

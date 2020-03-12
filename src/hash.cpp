@@ -28,20 +28,22 @@ limitations under the License.
 using namespace yarpgen;
 
 IntTypeKey::IntTypeKey(IntTypeID _int_type_id, bool _is_static,
-                       CVQualifier _cv_qualifier)
+                       CVQualifier _cv_qualifier, bool _is_uniform)
     : int_type_id(_int_type_id), is_static(_is_static),
-      cv_qualifier(_cv_qualifier) {}
+      cv_qualifier(_cv_qualifier), is_uniform(_is_uniform) {}
 
 IntTypeKey::IntTypeKey(std::shared_ptr<IntegralType> &item) {
     int_type_id = item->getIntTypeId();
     is_static = item->getIsStatic();
     cv_qualifier = item->getCVQualifier();
+    is_uniform = item->isUniform();
 }
 
 bool IntTypeKey::operator==(const IntTypeKey &other) const {
     return (int_type_id == other.int_type_id) &&
            (is_static == other.is_static) &&
-           (cv_qualifier == other.cv_qualifier);
+           (cv_qualifier == other.cv_qualifier) &&
+           (is_uniform == other.is_uniform);
 }
 
 std::size_t IntTypeKeyHasher::operator()(const IntTypeKey &key) const {
@@ -49,14 +51,15 @@ std::size_t IntTypeKeyHasher::operator()(const IntTypeKey &key) const {
     hash(key.int_type_id);
     hash(key.is_static);
     hash(key.cv_qualifier);
+    hash(key.is_uniform);
     return hash.getSeed();
 }
 
 ArrayTypeKey::ArrayTypeKey(std::shared_ptr<Type> _base_type,
                            std::vector<size_t> _dims, ArrayKind _kind,
-                           bool _is_static, CVQualifier _cv_qual)
+                           bool _is_static, CVQualifier _cv_qual, bool _is_uniform)
     : base_type(std::move(_base_type)), dims(std::move(_dims)), kind(_kind),
-      is_static(_is_static), cv_qualifier(_cv_qual) {}
+      is_static(_is_static), cv_qualifier(_cv_qual), is_uniform(_is_uniform) {}
 
 bool ArrayTypeKey::operator==(const ArrayTypeKey &other) const {
     if (base_type != other.base_type)
@@ -76,7 +79,8 @@ bool ArrayTypeKey::operator==(const ArrayTypeKey &other) const {
 
     return (dims == other.dims) && (kind == other.kind) &&
            (is_static == other.is_static) &&
-           (cv_qualifier == other.cv_qualifier);
+           (cv_qualifier == other.cv_qualifier) &&
+           (is_uniform == other.is_uniform);
 }
 
 std::size_t ArrayTypeKeyHasher::operator()(const ArrayTypeKey &key) const {
@@ -97,6 +101,7 @@ std::size_t ArrayTypeKeyHasher::operator()(const ArrayTypeKey &key) const {
     hash(key.kind);
     hash(key.is_static);
     hash(key.cv_qualifier);
+    hash(key.is_uniform);
 
     return hash.getSeed();
 }

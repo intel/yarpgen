@@ -89,6 +89,10 @@ class GenPolicy {
 
     static size_t leaves_prob_bump;
 
+    // ISPC
+    // Probability to generate loop header as foreach or foreach_tiled
+    std::vector<Probability<bool>> foreach_distr;
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

@@ -111,11 +111,17 @@ class LoopHead {
     void emitHeader(std::ostream &stream, std::string offset = "");
     void emitSuffix(std::ostream &stream, std::string offset = "");
 
+    void setIsForeach() { is_foreach = true; }
+    bool isForeach() { return is_foreach; }
+
   private:
     std::shared_ptr<StmtBlock> prefix;
     // Loop iterations space is defined by the iterators that we can use
     std::vector<std::shared_ptr<Iterator>> iters;
     std::shared_ptr<StmtBlock> suffix;
+
+    // ISPC
+    bool is_foreach;
 };
 
 // According to the agreement, a single standalone loop should be represented as
@@ -124,8 +130,7 @@ class LoopSeqStmt : public LoopStmt {
   public:
     IRNodeKind getKind() final { return IRNodeKind::LOOP_SEQ; }
     void
-    addLoop(std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>
-                _loop) {
+    addLoop(std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>> _loop) {
         loops.push_back(std::move(_loop));
     }
     void emit(std::ostream &stream, std::string offset = "") final;

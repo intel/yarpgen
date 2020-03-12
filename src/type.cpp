@@ -40,9 +40,9 @@ std::shared_ptr<IntegralType> yarpgen::IntegralType::init(IntTypeID _type_id) {
 }
 
 std::shared_ptr<IntegralType>
-IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual) {
+IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual, bool _is_uniform) {
     // Folding set lookup
-    IntTypeKey key(_type_id, _is_static, _cv_qual);
+    IntTypeKey key(_type_id, _is_static, _cv_qual, _is_uniform);
     auto find_result = int_type_set.find(key);
     if (find_result != int_type_set.end())
         return find_result->second;
@@ -85,6 +85,8 @@ IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual) {
             ERROR("Unsupported IntTypeID");
     }
 
+    ret->setIsUniform(_is_uniform);
+
     int_type_set[key] = ret;
     return ret;
 }
@@ -126,6 +128,9 @@ IntTypeID IntegralType::getCorrUnsigned(IntTypeID id) {
             ERROR(
                 "This function should be called only after IntegralPromotions");
     }
+}
+std::shared_ptr<Type> IntegralType::makeVarying() {
+    return init(getIntTypeId(), getIsStatic(), getCVQualifier(), false);
 }
 
 template <typename T>
@@ -198,15 +203,17 @@ std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
 std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims,
                                            bool _is_static,
-                                           CVQualifier _cv_qual) {
+                                           CVQualifier _cv_qual,
+                                           bool _is_uniform) {
     ArrayTypeKey key(_base_type, _dims, ArrayKind::MAX_ARRAY_KIND, _is_static,
-                     _cv_qual);
+                     _cv_qual, _is_uniform);
     auto find_res = array_type_set.find(key);
     if (find_res != array_type_set.end())
         return find_res->second;
 
     auto ret = std::make_shared<ArrayType>(_base_type, _dims, _is_static,
                                            _cv_qual, uid_counter++);
+    ret->setIsUniform(_is_uniform);
     array_type_set[key] = ret;
     return ret;
 }
@@ -245,4 +252,8 @@ ArrayType::create(std::shared_ptr<PopulateCtx> ctx,
         dims.push_back(end_abs_val.value + 1);
     }
     return init(base_type, dims);
+}
+
+std::shared_ptr<Type> ArrayType::makeVarying() {
+    return init(getBaseType()->makeVarying(), getDimensions(), getIsStatic(), getCVQualifier(), false);
 }
