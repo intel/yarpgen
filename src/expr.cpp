@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "expr.h"
 #include "context.h"
+#include "options.h"
 #include <algorithm>
 #include <utility>
 
@@ -209,8 +210,8 @@ bool TypeCastExpr::propagateType() {
 
 void TypeCastExpr::emit(std::ostream &stream, std::string offset) {
     // TODO: add switch for C++ style conversions and switch for implicit casts
-    stream << "((" << (is_implicit ? "/* implicit */" : "")
-           << to_type->getName() << ") ";
+    Options &options = Options::getInstance();
+    stream << "((" << (is_implicit ? "/* implicit */" : "") << (!options.isISPC() ? to_type->getName() : to_type->getIspcName()) << ") ";
     expr->emit(stream);
     stream << ")";
 }
@@ -221,7 +222,16 @@ TypeCastExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     // TODO: we might want to create TypeCastExpr not only to integer types
     IntTypeID to_type = rand_val_gen->getRandId(gen_pol->int_type_distr);
     auto expr = ArithmeticExpr::create(ctx);
-    return std::make_shared<TypeCastExpr>(expr, IntegralType::init(to_type),
+
+    Options &options = Options::getInstance();
+    bool is_uniform = true;
+    if (options.isISPC()) {
+        EvalCtx eval_ctx;
+        EvalResType expr_val = expr->evaluate(eval_ctx);
+        is_uniform = expr_val->getType()->isUniform();
+    }
+
+    return std::make_shared<TypeCastExpr>(expr, IntegralType::init(to_type, false, CVQualifier::NONE, is_uniform),
                                           false);
 }
 
@@ -244,6 +254,13 @@ Expr::EvalResType TypeCastExpr::evaluate(EvalCtx &ctx) {
         scalar_val->setCurrentValue(
             base_scalar_var->getCurrentValue().castToType(
                 to_int_type->getIntTypeId()));
+
+        Options &options = Options::getInstance();
+        if (options.isISPC()) {
+            if (to_int_type->isUniform() && !base_type->isUniform())
+                ERROR("Can't cast varying to uniform");
+        }
+
         value = scalar_val;
     }
     else {
@@ -293,7 +310,7 @@ std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
         return arg;
     // TODO: we need to check if type fits in int or unsigned int
     return std::make_shared<TypeCastExpr>(
-        arg, IntegralType::init(IntTypeID::INT), true);
+        arg, IntegralType::init(IntTypeID::INT, false, CVQualifier::NONE, arg->getValue()->getType()->isUniform()), true);
 }
 
 std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
@@ -306,7 +323,7 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
     if (int_type->getIntTypeId() == IntTypeID::BOOL)
         return arg;
     return std::make_shared<TypeCastExpr>(
-        arg, IntegralType::init(IntTypeID::BOOL), true);
+        arg, IntegralType::init(IntTypeID::BOOL, false, CVQualifier::NONE, arg->getValue()->getType()->isUniform()), true);
 }
 
 std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
@@ -425,7 +442,7 @@ Expr::EvalResType UnaryExpr::evaluate(EvalCtx &ctx) {
            "Unary operations are supported for Scalar Variables of Integral "
            "Types only");
     value = std::make_shared<ScalarVar>(
-        "", IntegralType::init(new_val.getIntTypeID()), new_val);
+        "", IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE, arg->getValue()->getType()->isUniform()), new_val);
     return value;
 }
 
@@ -502,6 +519,10 @@ bool BinaryExpr::propagateType() {
     lhs->propagateType();
     rhs->propagateType();
 
+    Options &options = Options::getInstance();
+    if (options.isISPC())
+        varyingPromotion();
+
     switch (op) {
         case BinaryOp::ADD:
         case BinaryOp::SUB:
@@ -546,10 +567,8 @@ void BinaryExpr::arithConv() {
               "Variables with integral type");
     }
 
-    std::shared_ptr<IntegralType> lhs_type =
-        std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
-    std::shared_ptr<IntegralType> rhs_type =
-        std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
+    auto lhs_type = std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
+    auto rhs_type = std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
 
     //[expr.arith.conv]
     // 1.5.1
@@ -624,6 +643,27 @@ void BinaryExpr::arithConv() {
         return;
 
     ERROR("Unreachable: conversions went wrong");
+}
+
+void BinaryExpr::varyingPromotion() {
+    auto lhs_type = lhs->getValue()->getType();
+    auto rhs_type = rhs->getValue()->getType();
+
+    auto varying_conversion = [] (std::shared_ptr<Type> &a_type,
+                                  std::shared_ptr<Type> &b_type,
+                                  std::shared_ptr<Expr> &b_expr) -> bool {
+        if (!a_type->isUniform() && b_type->isUniform()) {
+            auto new_type = b_type->makeVarying();
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type,
+                                                    /*is_implicit*/ true);
+            return true;
+        }
+        return false;
+    };
+
+    if (varying_conversion(lhs_type, rhs_type, rhs) ||
+        varying_conversion(rhs_type, lhs_type, lhs))
+        return;
 }
 
 Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
@@ -705,7 +745,7 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
     }
 
     value = std::make_shared<ScalarVar>(
-        "", IntegralType::init(new_val.getIntTypeID()), new_val);
+        "", IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE, lhs->getValue()->getType()->isUniform()), new_val);
     return value;
 }
 
@@ -754,7 +794,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 auto lhs_scalar_var =
                     std::static_pointer_cast<ScalarVar>(lhs->getValue());
                 // We can't shift pass the type size
-                size_t max_sht_val = lhs_int_type->getBitSize();
+                size_t max_sht_val = lhs_int_type->getBitSize() - 1;
                 // And we can't shift MSB pass the type size
                 if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() &&
                     ub == UBKind::ShiftRhsLarge) {
@@ -1000,6 +1040,12 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         value = array_val->getCurrentValues();
     }
 
+    Options &options = Options::getInstance();
+    if (options.isISPC()) {
+        if ((!idx->getValue()->getType()->isUniform() || !array->getValue()->getType()->isUniform()) && value->getType()->isUniform())
+            value = value->makeVarying();
+    }
+
     value->setUBCode(ub_code);
 
     return value;
@@ -1109,9 +1155,19 @@ void AssignmentExpr::emit(std::ostream &stream, std::string offset) {
 std::shared_ptr<AssignmentExpr>
 AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
+
+    auto from = ArithmeticExpr::create(ctx);
+
+    EvalCtx eval_ctx;
+    EvalResType from_val = from->evaluate(eval_ctx);
+
     DataKind out_kind = rand_val_gen->getRandId(gen_pol->out_kind_distr);
     std::shared_ptr<Expr> to;
-    if (out_kind == DataKind::VAR || ctx->getLoopDepth() == 0) {
+
+    if (!from_val->getType()->isUniform())
+        out_kind = DataKind::ARR;
+
+    if ((out_kind == DataKind::VAR || ctx->getLoopDepth() == 0)) {
         auto new_var = ScalarVar::create(ctx);
         ctx->getExtOutSymTable()->addVar(new_var);
         to = std::make_shared<ScalarVarUseExpr>(new_var);
@@ -1124,6 +1180,5 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     else
         ERROR("Bad data kind for assignment");
 
-    auto from = ArithmeticExpr::create(ctx);
     return std::make_shared<AssignmentExpr>(to, from);
 }

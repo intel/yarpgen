@@ -100,6 +100,10 @@ class Options {
 
     void setLangStd(LangStd _std) { std = _std; }
     LangStd getLangStd() { return std; }
+    bool isCXX() { return std == LangStd::CXX; }
+    bool isISPC() { return std == LangStd::ISPC; }
+    bool isSYCL() { return std == LangStd::SYCL; }
+
 
   private:
     Options() : seed(0), std(LangStd::CXX) {}

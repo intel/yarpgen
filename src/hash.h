@@ -82,13 +82,14 @@ class IntegralType;
 class IntTypeKey {
   public:
     IntTypeKey(IntTypeID _int_type_id, bool _is_static,
-               CVQualifier _cv_qualifier);
+               CVQualifier _cv_qualifier, bool _is_uniform);
     explicit IntTypeKey(std::shared_ptr<IntegralType> &item);
     bool operator==(const IntTypeKey &other) const;
 
     IntTypeID int_type_id;
     bool is_static;
     CVQualifier cv_qualifier;
+    bool is_uniform;
 };
 
 // This class provides a hashing mechanism for folding set.
@@ -103,7 +104,7 @@ class Type;
 class ArrayTypeKey {
   public:
     ArrayTypeKey(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims,
-                 ArrayKind _kind, bool _is_static, CVQualifier _cv_qual);
+                 ArrayKind _kind, bool _is_static, CVQualifier _cv_qual, bool _is_uniform);
     bool operator==(const ArrayTypeKey &other) const;
 
     std::shared_ptr<Type> base_type;
@@ -111,6 +112,7 @@ class ArrayTypeKey {
     ArrayKind kind;
     bool is_static;
     CVQualifier cv_qualifier;
+    bool is_uniform;
 };
 
 // This class provides a hashing mechanism for folding set.

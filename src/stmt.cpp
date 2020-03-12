@@ -17,6 +17,7 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "stmt.h"
+#include "options.h"
 
 #include <algorithm>
 #include <utility>
@@ -133,32 +134,50 @@ void LoopHead::emitPrefix(std::ostream &stream, std::string offset) {
 void LoopHead::emitHeader(std::ostream &stream, std::string offset) {
     stream << offset;
 
-    stream << "for (";
     auto place_sep = [this](auto iter, std::string sep) -> std::string {
         return iter != iters.end() - 1 ? std::move(sep) : "";
     };
 
-    for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-        stream << (*iter)->getType()->getName() << " ";
-        stream << (*iter)->getName() << " = ";
-        (*iter)->getStart()->emit(stream);
-        stream << place_sep(iter, ", ");
-    }
-    stream << "; ";
+    Options &options = Options::getInstance();
 
-    for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-        stream << (*iter)->getName() << " < ";
-        (*iter)->getEnd()->emit(stream);
-        stream << place_sep(iter, ", ");
-    }
-    stream << "; ";
+    if (!isForeach()) {
+        stream << "for (";
 
-    for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-        stream << (*iter)->getName() << " += ";
-        (*iter)->getStep()->emit(stream);
-        stream << place_sep(iter, ", ");
+        for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
+            stream << (!options.isISPC() ? (*iter)->getType()->getName() : (*iter)->getType()->getIspcName()) << " ";
+            stream << (*iter)->getName() << " = ";
+            (*iter)->getStart()->emit(stream);
+            stream << place_sep(iter, ", ");
+        }
+        stream << "; ";
+
+        for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
+            stream << (*iter)->getName() << " < ";
+            (*iter)->getEnd()->emit(stream);
+            stream << place_sep(iter, ", ");
+        }
+        stream << "; ";
+
+        for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
+            stream << (*iter)->getName() << " += ";
+            (*iter)->getStep()->emit(stream);
+            stream << place_sep(iter, ", ");
+        }
+        stream << ") ";
     }
-    stream << ") ";
+    else {
+        stream << (iters.size() == 1 ? "foreach" : "foreach_tiled") << "(";
+
+        for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
+            stream << (*iter)->getName() << " = ";
+            (*iter)->getStart()->emit(stream);
+            stream << "...";
+            (*iter)->getEnd()->emit(stream);
+            stream << place_sep(iter, ", ");
+        }
+
+        stream << ") ";
+    }
 }
 
 void LoopHead::emitSuffix(std::ostream &stream, std::string offset) {
@@ -183,17 +202,32 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     size_t loop_num = rand_val_gen->getRandId(gen_pol->loop_seq_num_distr);
 
+    Options &options = Options::getInstance();
+
     auto new_loop_seq = std::make_shared<LoopSeqStmt>();
     auto new_ctx = std::make_shared<GenCtx>(*ctx);
     // TODO: is it the right place to do it?
     new_ctx->incLoopDepth(1);
     for (size_t i = 0; i < loop_num; ++i) {
+        bool gen_foreach = false;
         auto new_loop_head = std::make_shared<LoopHead>();
+
+        if (options.isISPC())
+            gen_foreach = !ctx->isInsideForeach() &&
+                rand_val_gen->getRandId(gen_pol->foreach_distr);
+        if (gen_foreach) {
+            new_ctx->setInsideForeach(true);
+            new_loop_head->setIsForeach();
+        }
+
         size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
         for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx)
-            new_loop_head->addIterator(Iterator::create(ctx));
+            new_loop_head->addIterator(Iterator::create(ctx, /*is_uniform*/ !gen_foreach));
         auto new_loop_body = ScopeStmt::generateStructure(new_ctx);
         new_loop_seq->addLoop(std::make_pair(new_loop_head, new_loop_body));
+
+        if (gen_foreach)
+            new_ctx->setInsideForeach(false);
     }
     return new_loop_seq;
 }
@@ -206,9 +240,11 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
         new_ctx->incLoopDepth(1);
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
+        new_ctx->setInsideForeach(loop.first->isForeach());
         loop.second->populate(new_ctx);
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
+        new_ctx->setInsideForeach(false);
         if (loop_head->getSuffix().use_count() != 0)
             loop_head->getSuffix()->populate(ctx);
     }
@@ -245,12 +281,24 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     nest_depth =
         std::min(gen_pol->loop_depth_limit - ctx->getLoopDepth(), nest_depth);
 
+    Options &options = Options::getInstance();
+
     auto new_loop_nest = std::make_shared<LoopNestStmt>();
     for (size_t i = 0; i < nest_depth; ++i) {
         auto new_loop = std::make_shared<LoopHead>();
+
+        bool gen_foreach = false;
+        if (options.isISPC())
+            gen_foreach = !ctx->isInsideForeach() &&
+                          rand_val_gen->getRandId(gen_pol->foreach_distr);
+        if (gen_foreach) {
+            new_loop->setIsForeach();
+            ctx->setInsideForeach(true);
+        }
+
         size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
         for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx)
-            new_loop->addIterator(Iterator::create(ctx));
+            new_loop->addIterator(Iterator::create(ctx, !gen_foreach));
         new_loop_nest->addLoop(new_loop);
     }
 
@@ -268,11 +316,15 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             loop->getPrefix()->populate(new_ctx);
         new_ctx->incLoopDepth(1);
         new_ctx->getLocalSymTable()->addIters(loop->getIterators());
+        if (loop->isForeach())
+            new_ctx->setInsideForeach(true);
     }
     body->populate(new_ctx);
     for (auto &loop : loops) {
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
+        if (loop->isForeach())
+            new_ctx->setInsideForeach(false);
         if (loop->getSuffix().use_count() != 0)
             loop->getSuffix()->populate(new_ctx);
     }

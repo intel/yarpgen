@@ -51,7 +51,16 @@ class Data {
 
     virtual void dbgDump() = 0;
 
+    virtual std::shared_ptr<Data> makeVarying() = 0;
+
   protected:
+    template <typename T>
+    static std::shared_ptr<Data> makeVaryingImpl(T val) {
+        auto ret = std::make_shared<T>(val);
+        ret->type = ret->getType()->makeVarying();
+        return ret;
+    }
+
     std::string name;
     std::shared_ptr<Type> type;
     // It is not enough to have UB code just inside the IRValue.
@@ -87,6 +96,8 @@ class ScalarVar : public Data {
 
     static std::shared_ptr<ScalarVar> create(std::shared_ptr<PopulateCtx> ctx);
 
+    std::shared_ptr<Data> makeVarying() override { return makeVaryingImpl(*this); };
+
   private:
     IRValue init_val;
     IRValue cur_val;
@@ -108,6 +119,8 @@ class Array : public Data {
     void dbgDump() final;
     static std::shared_ptr<Array> create(std::shared_ptr<PopulateCtx> ctx,
                                          bool inp);
+
+    std::shared_ptr<Data> makeVarying() override { return makeVaryingImpl(*this); };
 
   private:
     // TODO:
@@ -145,7 +158,9 @@ class Iterator : public Data {
 
     void dbgDump() final;
 
-    static std::shared_ptr<Iterator> create(std::shared_ptr<GenCtx> ctx);
+    static std::shared_ptr<Iterator> create(std::shared_ptr<GenCtx> ctx, bool is_uniform = true);
+
+    std::shared_ptr<Data> makeVarying() override { return makeVaryingImpl(*this); };
 
   private:
     // TODO: should the expression contain full update on the iterator or only

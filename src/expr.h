@@ -242,6 +242,7 @@ class BinaryExpr : public ArithmeticExpr {
 
   private:
     void arithConv();
+    void varyingPromotion();
 
     BinaryOp op;
     std::shared_ptr<Expr> lhs;

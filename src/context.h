@@ -50,10 +50,16 @@ class GenCtx {
     void incLoopDepth(size_t change) { loop_depth += change; }
     void decLoopDepth(size_t change) { loop_depth -= change; }
 
+    void setInsideForeach(bool _inside) { inside_foreach = _inside; }
+    bool isInsideForeach() { return inside_foreach; }
+
   protected:
     std::shared_ptr<GenPolicy> gen_policy;
     // Current loop depth
     size_t loop_depth;
+
+    // ISPC
+    bool inside_foreach;
 };
 
 class SymbolTable {
