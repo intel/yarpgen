@@ -55,7 +55,7 @@ init:
   - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" ( set generator="Visual Studio 14 2015%arch%" )
   - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
   - cmd: echo %generator%
-  - sh: if [ "$cmake_arch" = "x86" ]; then export extra_cmake_flags=-DCMAKE_CXX_FLAGS=-m32; sudo apt-get install -y g++-multilib; fi;
+  - sh: if [ "$cmake_arch" = "x86" ]; then export extra_cmake_flags=-DCMAKE_CXX_FLAGS=-m32; sudo apt-get update; sudo apt-get install -y g++-multilib; fi;
 
 before_build:
 - cmd: |-
