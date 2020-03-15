@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Copyright (c) 2018, Intel Corporation
+# Copyright (c) 2018-2020, Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,56 +16,92 @@
 #
 ###############################################################################
 
-image:
-  # VS 2013 doesn't support C++14, so it doesn't compile.
-  #- Visual Studio 2013
-  - Ubuntu
-  - Visual Studio 2015
-  - Visual Studio 2017
-
-clone_folder: c:\projects\yarpgen
-
-configuration: Release
+# Minimum VS version is 2015, as it's first to support C++14.
 
 environment:
   matrix:
-    - cmake_arch: x86
-    - cmake_arch: x64
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      cmake_arch: x86
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      cmake_arch: x64
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      GENERATOR: "Visual Studio 14 2015"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      GENERATOR: "Visual Studio 14 2015 Win64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      GENERATOR: "Visual Studio 15 2017"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      GENERATOR: "Visual Studio 15 2017 Win64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      GENERATOR: "Visual Studio 16 2019"
+      ARCH_ARG: "-A Win32"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      GENERATOR: "Visual Studio 16 2019"
+      ARCH_ARG: "-A x64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      GENERATOR: "Visual Studio 16 2019"
+      ARCH_ARG: "-A ARM"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      GENERATOR: "Visual Studio 16 2019"
+      ARCH_ARG: "-A ARM64"
+
 
 for:
 -
   matrix:
     only:
-      - image: Ubuntu
+      - APPVEYOR_BUILD_WORKER_IMAGE: macos
 
-  clone_folder: ~/yarpgen
-  build_script:
-    - echo Ubuntu build script
-    - mkdir build; cd build
-    - cmake -DCMAKE_BUILD_TYPE=Release $extra_cmake_flags ..
-    - make -j2
- 
-# skip unsupported combinations
-init:
-  - cmd: set arch=
-  - cmd: if "%cmake_arch%"=="x64" ( set arch= Win64)
-  - cmd: echo %arch%
-  - cmd: echo %APPVEYOR_BUILD_WORKER_IMAGE%
-  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( set generator="Visual Studio 15 2017%arch%" )
-  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" ( set generator="Visual Studio 14 2015%arch%" )
-  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" ( set generator="Visual Studio 12 2013%arch%" )
-  - cmd: echo %generator%
-  - sh: if [ "$cmake_arch" = "x86" ]; then export extra_cmake_flags=-DCMAKE_CXX_FLAGS=-m32; sudo apt-get update; sudo apt-get install -y g++-multilib; fi;
+  init: |-
+      cmake --version
+  build_script: |-
+      echo macOS build script
+      pwd
+      mkdir build && cd build
+      cmake -DCMAKE_BUILD_TYPE=Release ..
+      make -j4
 
-before_build:
-- cmd: |-
-    mkdir build
-    cd build
-    cmake --version
-    cmake .. -G %generator%
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
 
-build:
-  project: c:\projects\yarpgen\build\YARPGen.sln
-  verbosity: minimal
-  parallel: true
+  init: |-
+      if [ "$cmake_arch" = "x86" ];
+      then
+        export extra_cmake_flags=-DCMAKE_CXX_FLAGS=-m32;
+        sudo apt-get update;
+        sudo apt-get install -y g++-multilib;
+      fi;
+      cmake --version
+
+  build_script: |-
+      echo Ubuntu build script
+      pwd
+      mkdir build && cd build
+      cmake -DCMAKE_BUILD_TYPE=Release $extra_cmake_flags ..
+      make -j4
+
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+
+  # dump environment variable for debug
+  init: |-
+      echo APPVEYOR_BUILD_WORKER_IMAGE: %APPVEYOR_BUILD_WORKER_IMAGE%
+      echo cmake args: %ARCH_ARG% -G "%GENERATOR%"
+      cmake --version
+
+  before_build: |-
+      mkdir build && cd build
+      cmake .. %ARCH_ARG% -G "%GENERATOR%"
+
+  build:
+    project: c:\projects\yarpgen\build\YARPGen.sln
+    verbosity: minimal
+    parallel: true
 
