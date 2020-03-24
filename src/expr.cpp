@@ -59,13 +59,16 @@ void ConstantExpr::emit(std::ostream &stream, std::string offset) {
 
     IRValue val = scalar_var->getCurrentValue();
     IRValue min_val = int_type->getMin();
+    IntTypeID max_type_id = int_type->getIsSigned() ? IntTypeID::LLONG : IntTypeID::ULLONG;
+    val = val.castToType(max_type_id);
+    min_val = min_val.castToType(max_type_id);
     if (!int_type->getIsSigned() || (val != min_val).getValueRef<bool>()) {
         stream << val << int_type->getLiteralSuffix();
         return;
     }
 
     // INT_MIN is defined as -INT_MAX - 1, so we have to do the same
-    IRValue one(val.getIntTypeID());
+    IRValue one(max_type_id);
     // TODO: this is not an appropriate way to do it
     one.setValue(IRValue::AbsValue{false, 1});
     IRValue min_one_val = min_val + one;
@@ -959,6 +962,7 @@ void BinaryExpr::emit(std::ostream &stream, std::string offset) {
     rhs->emit(stream);
     stream << "))";
 }
+
 BinaryExpr::BinaryExpr(BinaryOp _op, std::shared_ptr<Expr> _lhs,
                        std::shared_ptr<Expr> _rhs)
     : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {
@@ -992,6 +996,13 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         zero.setValue({false, 0});
         IRValue size(idx_scalar_val.getIntTypeID());
         size.setValue({false, dim});
+
+        assert(scalar_var->getType()->isIntType() && "Scalar variable can have only integral type for now");
+        auto int_type = std::static_pointer_cast<IntegralType>(scalar_var->getType());
+        IntTypeID max_type_id = int_type->getIsSigned() ? IntTypeID::LLONG : IntTypeID::ULLONG;
+        idx_scalar_val = idx_scalar_val.castToType(max_type_id);
+        zero = zero.castToType(max_type_id);
+        size = size.castToType(max_type_id);
         return (zero <= idx_scalar_val).getValueRef<bool>() &&
                (idx_scalar_val <= size).getValueRef<bool>();
     }

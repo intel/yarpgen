@@ -658,7 +658,7 @@ void IRValue::setValue(IRValue::AbsValue val) {
             value.uchar_val = val.value * (val.isNegative ? -1 : 1);
             break;
         case IntTypeID::SHORT:
-            value.schar_val = val.value * (val.isNegative ? -1 : 1);
+            value.shrt_val = val.value * (val.isNegative ? -1 : 1);
             break;
         case IntTypeID::USHORT:
             value.ushrt_val = val.value * (val.isNegative ? -1 : 1);

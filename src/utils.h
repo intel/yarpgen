@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "enums.h"
 
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <random>
@@ -54,8 +55,8 @@ template <typename T> class Probability {
     void zeroProb() { prob = 0; }
     void setProb(uint64_t _prob) { prob = _prob; }
     friend std::ostream &operator<<(std::ostream &os,
-                                    const Probability<T> &prob) {
-        os << prob.id << " : " << prob.prob;
+                                    const Probability<T> &_prob) {
+        os << _prob.id << " : " << _prob.prob;
         return os;
     }
 
