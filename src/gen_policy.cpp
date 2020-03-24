@@ -50,8 +50,15 @@ GenPolicy::GenPolicy() {
     stmt_kind_struct_distr.emplace_back(
         Probability<IRNodeKind>{IRNodeKind::STUB, 80});
 
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::BOOL, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SCHAR, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UCHAR, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SHORT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::USHORT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::INT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::LLONG, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::ULLONG, 10));
 
     min_inp_vars_num = 10;
     max_inp_vars_num = 20;
@@ -70,8 +77,8 @@ GenPolicy::GenPolicy() {
 
     max_arith_depth = 3;
 
-    //    arith_node_distr.emplace_back(Probability<IRNodeKind>(IRNodeKind::CONST,
-    //    20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::CONST, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::SCALAR_VAR_USE, 20));
     arith_node_distr.emplace_back(
