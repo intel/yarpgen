@@ -104,7 +104,6 @@ class Options {
     bool isISPC() { return std == LangStd::ISPC; }
     bool isSYCL() { return std == LangStd::SYCL; }
 
-
   private:
     Options() : seed(0), std(LangStd::CXX) {}
 

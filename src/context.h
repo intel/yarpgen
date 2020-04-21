@@ -40,7 +40,9 @@ class EvalCtx {
 
 class GenCtx {
   public:
-    GenCtx() : loop_depth(0) { gen_policy = std::make_shared<GenPolicy>(); }
+    GenCtx() : loop_depth(0), inside_foreach(false) {
+        gen_policy = std::make_shared<GenPolicy>();
+    }
     void setGenPolicy(std::shared_ptr<GenPolicy> gen_pol) {
         gen_policy = std::move(gen_pol);
     }
@@ -87,6 +89,7 @@ class SymbolTable {
     void addVarExpr(std::shared_ptr<ScalarVarUseExpr> var) {
         avail_vars.push_back(var);
     }
+
     std::vector<std::shared_ptr<ScalarVarUseExpr>> getAvailVars() {
         return avail_vars;
     }

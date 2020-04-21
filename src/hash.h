@@ -104,7 +104,8 @@ class Type;
 class ArrayTypeKey {
   public:
     ArrayTypeKey(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims,
-                 ArrayKind _kind, bool _is_static, CVQualifier _cv_qual, bool _is_uniform);
+                 ArrayKind _kind, bool _is_static, CVQualifier _cv_qual,
+                 bool _is_uniform);
     bool operator==(const ArrayTypeKey &other) const;
 
     std::shared_ptr<Type> base_type;

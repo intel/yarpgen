@@ -144,7 +144,9 @@ void LoopHead::emitHeader(std::ostream &stream, std::string offset) {
         stream << "for (";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-            stream << (!options.isISPC() ? (*iter)->getType()->getName() : (*iter)->getType()->getIspcName()) << " ";
+            stream << (!options.isISPC() ? (*iter)->getType()->getName()
+                                         : (*iter)->getType()->getIspcName())
+                   << " ";
             stream << (*iter)->getName() << " = ";
             (*iter)->getStart()->emit(stream);
             stream << place_sep(iter, ", ");
@@ -214,7 +216,7 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
 
         if (options.isISPC())
             gen_foreach = !ctx->isInsideForeach() &&
-                rand_val_gen->getRandId(gen_pol->foreach_distr);
+                          rand_val_gen->getRandId(gen_pol->foreach_distr);
         if (gen_foreach) {
             new_ctx->setInsideForeach(true);
             new_loop_head->setIsForeach();
@@ -222,7 +224,8 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
 
         size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
         for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx)
-            new_loop_head->addIterator(Iterator::create(ctx, /*is_uniform*/ !gen_foreach));
+            new_loop_head->addIterator(
+                Iterator::create(ctx, /*is_uniform*/ !gen_foreach));
         auto new_loop_body = ScopeStmt::generateStructure(new_ctx);
         new_loop_seq->addLoop(std::make_pair(new_loop_head, new_loop_body));
 

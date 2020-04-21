@@ -89,6 +89,8 @@ GenPolicy::GenPolicy() {
         Probability<IRNodeKind>(IRNodeKind::UNARY, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::BINARY, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::CALL, 20));
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 25));
@@ -116,6 +118,32 @@ GenPolicy::GenPolicy() {
 
     foreach_distr.emplace_back(Probability<bool>(true, 20));
     foreach_distr.emplace_back(Probability<bool>(false, 80));
+
+    cxx_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::MAX, 20));
+    cxx_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::MIN, 20));
+
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::MAX, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::MIN, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::SELECT, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::ANY, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::ALL, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::NONE, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::RED_MIN, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::RED_MAX, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::RED_EQ, 20));
+    ispc_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::EXTRACT, 20));
 }
 
 template <typename T>

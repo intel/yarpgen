@@ -108,7 +108,8 @@ void Iterator::setParameters(std::shared_ptr<Expr> _start,
     step = std::move(_step);
 }
 
-std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx, bool is_uniform) {
+std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
+                                           bool is_uniform) {
     auto gen_pol = ctx->getGenPolicy();
 
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
@@ -124,7 +125,8 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx, bool is_
     // We can't go pass the maximal value of the type
     end_val = std::min(end_val, int_type->getMax().getAbsValue().value);
     // TODO: ISPC doesn't execute division under mask, so the easiest way to
-    // eliminate UB problems is to make sure that iterator doesn't go outside array boundaries
+    // eliminate UB problems is to make sure that iterator doesn't go outside
+    // array boundaries
     if (!is_uniform)
         end_val = (end_val / 16) * 16;
     auto end =
@@ -135,7 +137,8 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx, bool is_
         step_val = 1;
     // We can't overflow uncontrollably
     // TODO: we need to support controlled overflow and better strategy
-    if ((end_val / step_val + 1) * step_val >= int_type->getMax().getAbsValue().value)
+    if ((end_val / step_val + 1) * step_val >=
+        int_type->getMax().getAbsValue().value)
         step_val = 1;
     auto step =
         std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});

@@ -87,6 +87,9 @@ class GenPolicy {
     // Binary operator distribution
     std::vector<Probability<BinaryOp>> binary_op_distr;
 
+    std::vector<Probability<LibCallKind>> cxx_lib_call_distr;
+    std::vector<Probability<LibCallKind>> ispc_lib_call_distr;
+
     static size_t leaves_prob_bump;
 
     // ISPC

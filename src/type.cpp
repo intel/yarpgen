@@ -39,8 +39,10 @@ std::shared_ptr<IntegralType> yarpgen::IntegralType::init(IntTypeID _type_id) {
     return init(_type_id, false, CVQualifier::NONE);
 }
 
-std::shared_ptr<IntegralType>
-IntegralType::init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual, bool _is_uniform) {
+std::shared_ptr<IntegralType> IntegralType::init(IntTypeID _type_id,
+                                                 bool _is_static,
+                                                 CVQualifier _cv_qual,
+                                                 bool _is_uniform) {
     // Folding set lookup
     IntTypeKey key(_type_id, _is_static, _cv_qual, _is_uniform);
     auto find_result = int_type_set.find(key);
@@ -200,11 +202,9 @@ std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
                 /* is static */ false, CVQualifier::NONE);
 }
 
-std::shared_ptr<ArrayType> ArrayType::init(std::shared_ptr<Type> _base_type,
-                                           std::vector<size_t> _dims,
-                                           bool _is_static,
-                                           CVQualifier _cv_qual,
-                                           bool _is_uniform) {
+std::shared_ptr<ArrayType>
+ArrayType::init(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims,
+                bool _is_static, CVQualifier _cv_qual, bool _is_uniform) {
     ArrayTypeKey key(_base_type, _dims, ArrayKind::MAX_ARRAY_KIND, _is_static,
                      _cv_qual, _is_uniform);
     auto find_res = array_type_set.find(key);
@@ -255,5 +255,6 @@ ArrayType::create(std::shared_ptr<PopulateCtx> ctx,
 }
 
 std::shared_ptr<Type> ArrayType::makeVarying() {
-    return init(getBaseType()->makeVarying(), getDimensions(), getIsStatic(), getCVQualifier(), false);
+    return init(getBaseType()->makeVarying(), getDimensions(), getIsStatic(),
+                getCVQualifier(), false);
 }

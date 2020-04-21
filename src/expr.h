@@ -296,4 +296,204 @@ class AssignmentExpr : public Expr {
     bool taken;
 };
 
+class CallExpr : public Expr {
+  public:
+    IRNodeKind getKind() final { return IRNodeKind::CALL; }
+
+  private:
+};
+
+class LibCallExpr : public CallExpr {
+  public:
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
+
+  protected:
+    // Utility functions to simplify type conversions
+    // You should call propagateType on the arguments beforehand
+    // CXX conversions should be performed before any other
+    static IntTypeID getTopIntID(std::vector<std::shared_ptr<Expr>> args);
+    static void cxxArgPromotion(std::shared_ptr<Expr> &arg, IntTypeID type_id);
+    static bool isAnyArgVarying(std::vector<std::shared_ptr<Expr>> args);
+    static void ispcArgPromotion(std::shared_ptr<Expr> &arg);
+};
+
+class MinMaxCallBase : public LibCallExpr {
+  public:
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final {
+        a->rebuild(ctx);
+        b->rebuild(ctx);
+        return evaluate(ctx);
+    }
+    void emit(std::ostream &stream, std::string offset = "");
+
+  protected:
+    MinMaxCallBase(std::shared_ptr<Expr> _a, std::shared_ptr<Expr> _b,
+                   LibCallKind _kind);
+    static std::shared_ptr<LibCallExpr>
+    createHelper(std::shared_ptr<PopulateCtx> ctx, LibCallKind kind);
+    std::shared_ptr<Expr> a;
+    std::shared_ptr<Expr> b;
+    LibCallKind kind;
+};
+
+class MinCall : public MinMaxCallBase {
+  public:
+    MinCall(std::shared_ptr<Expr> _a, std::shared_ptr<Expr> _b)
+        : MinMaxCallBase(std::move(_a), std::move(_b), LibCallKind::MIN) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return createHelper(std::move(ctx), LibCallKind::MIN);
+    }
+};
+
+class MaxCall : public MinMaxCallBase {
+  public:
+    MaxCall(std::shared_ptr<Expr> _a, std::shared_ptr<Expr> _b)
+        : MinMaxCallBase(std::move(_a), std::move(_b), LibCallKind::MAX) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return createHelper(std::move(ctx), LibCallKind::MAX);
+    }
+};
+
+class SelectCall : public LibCallExpr {
+  public:
+    SelectCall(std::shared_ptr<Expr> _cond, std::shared_ptr<Expr> _true_arg,
+               std::shared_ptr<Expr> _false_arg);
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
+    void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
+
+  private:
+    std::shared_ptr<Expr> cond;
+    std::shared_ptr<Expr> true_arg;
+    std::shared_ptr<Expr> false_arg;
+};
+
+class LogicalReductionBase : public LibCallExpr {
+  public:
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final {
+        arg->rebuild(ctx);
+        return evaluate(ctx);
+    }
+    void emit(std::ostream &stream, std::string offset = "") final;
+
+  protected:
+    LogicalReductionBase(std::shared_ptr<Expr> _arg, LibCallKind _kind);
+    static std::shared_ptr<LibCallExpr>
+    createHelper(std::shared_ptr<PopulateCtx> ctx, LibCallKind kind);
+    std::shared_ptr<Expr> arg;
+    LibCallKind kind;
+};
+
+class AnyCall : public LogicalReductionBase {
+  public:
+    explicit AnyCall(std::shared_ptr<Expr> _arg)
+        : LogicalReductionBase(std::move(_arg), LibCallKind::ANY) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return LogicalReductionBase::createHelper(std::move(ctx),
+                                                  LibCallKind::ANY);
+    }
+};
+
+class AllCall : public LogicalReductionBase {
+  public:
+    explicit AllCall(std::shared_ptr<Expr> _arg)
+        : LogicalReductionBase(std::move(_arg), LibCallKind::ALL) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return LogicalReductionBase::createHelper(std::move(ctx),
+                                                  LibCallKind::ALL);
+    }
+};
+
+class NoneCall : public LogicalReductionBase {
+  public:
+    explicit NoneCall(std::shared_ptr<Expr> _arg)
+        : LogicalReductionBase(std::move(_arg), LibCallKind::NONE) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return LogicalReductionBase::createHelper(std::move(ctx),
+                                                  LibCallKind::NONE);
+    }
+};
+
+class MinMaxEqReductionBase : public LibCallExpr {
+  private:
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final {
+        arg->rebuild(ctx);
+        return evaluate(ctx);
+    }
+    void emit(std::ostream &stream, std::string offset = "") final;
+
+  protected:
+    MinMaxEqReductionBase(std::shared_ptr<Expr> _arg, LibCallKind _kind);
+    static std::shared_ptr<LibCallExpr>
+    createHelper(std::shared_ptr<PopulateCtx> ctx, LibCallKind kind);
+    std::shared_ptr<Expr> arg;
+    LibCallKind kind;
+};
+
+class ReduceMinCall : public MinMaxEqReductionBase {
+  public:
+    ReduceMinCall(std::shared_ptr<Expr> _arg)
+        : MinMaxEqReductionBase(std::move(_arg), LibCallKind::RED_MIN) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return MinMaxEqReductionBase::createHelper(std::move(ctx),
+                                                   LibCallKind::RED_MIN);
+    }
+};
+
+class ReduceMaxCall : public MinMaxEqReductionBase {
+  public:
+    ReduceMaxCall(std::shared_ptr<Expr> _arg)
+        : MinMaxEqReductionBase(std::move(_arg), LibCallKind::RED_MAX) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return MinMaxEqReductionBase::createHelper(std::move(ctx),
+                                                   LibCallKind::RED_MAX);
+    }
+};
+
+class ReduceEqCall : public MinMaxEqReductionBase {
+  public:
+    ReduceEqCall(std::shared_ptr<Expr> _arg)
+        : MinMaxEqReductionBase(std::move(_arg), LibCallKind::RED_EQ) {}
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx) {
+        return MinMaxEqReductionBase::createHelper(std::move(ctx),
+                                                   LibCallKind::RED_EQ);
+    }
+};
+
+class ExtractCall : public LibCallExpr {
+    // TODO: it is not a real extract call. We will always use zero as an index
+  public:
+    ExtractCall(std::shared_ptr<Expr> _arg);
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final {
+        arg->rebuild(ctx);
+        return evaluate(ctx);
+    };
+    void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<LibCallExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
+
+  protected:
+    std::shared_ptr<Expr> arg;
+    std::shared_ptr<Expr> idx;
+};
 } // namespace yarpgen
