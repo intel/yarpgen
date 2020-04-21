@@ -43,7 +43,8 @@ class Iterator;
 // that may change in future.
 class Type {
   public:
-    Type() : is_static(false), cv_qualifier(CVQualifier::NONE), is_uniform(true) {}
+    Type()
+        : is_static(false), cv_qualifier(CVQualifier::NONE), is_uniform(true) {}
     Type(bool _is_static, CVQualifier _cv_qual)
         : is_static(_is_static), cv_qualifier(_cv_qual), is_uniform(true) {}
     virtual ~Type() = default;
@@ -72,7 +73,7 @@ class Type {
     CVQualifier cv_qualifier;
 
     // ISPC
-    //TODO: arrays themselves aren't uniform or varying
+    // TODO: arrays themselves aren't uniform or varying
     bool is_uniform;
 
     // We don't store name here because for compound types it might be tricky to
@@ -107,8 +108,10 @@ class IntegralType : public ArithmeticType {
     // These utility functions take IntegerTypeID and return shared pointer to
     // corresponding type
     static std::shared_ptr<IntegralType> init(IntTypeID _type_id);
-    static std::shared_ptr<IntegralType>
-    init(IntTypeID _type_id, bool _is_static, CVQualifier _cv_qual, bool _is_uniform = true);
+    static std::shared_ptr<IntegralType> init(IntTypeID _type_id,
+                                              bool _is_static,
+                                              CVQualifier _cv_qual,
+                                              bool _is_uniform = true);
 
     static bool isSame(std::shared_ptr<IntegralType> &lhs,
                        std::shared_ptr<IntegralType> &rhs);
@@ -149,18 +152,11 @@ template <typename T> class IntegralTypeHelper : public IntegralType {
     IRValue getMin() override { return min; }
     IRValue getMax() override { return max; }
 
-    //ISPC
-    std::string getIspcName() override {
-        std::string ret;
-        Options &options = Options::getInstance();
-        if (options.isISPC()) {
-            ret = (isUniform() ? "uniform" : "varying");
-            ret += " ";
-        }
-        return ret + getName();
-    }
-
   protected:
+    // ISPC
+    std::string getIspcNameHelper() {
+        return (isUniform() ? "uniform" : "varying") + std::string(" ");
+    }
     IRValue min;
     IRValue max;
 };
@@ -175,6 +171,7 @@ class TypeBool : public IntegralTypeHelper<bool> {
     // different.
     IntTypeID getIntTypeId() final { return IntTypeID::BOOL; }
     std::string getName() final { return "bool"; }
+    std::string getIspcName() final { return getIspcNameHelper() + "bool"; }
 
     // For bool signedness is not defined, so std::is_signed and
     // std::is_unsigned return true. We treat them as unsigned
@@ -190,6 +187,7 @@ class TypeSChar : public IntegralTypeHelper<int8_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::SCHAR; }
     std::string getName() final { return "signed char"; }
+    std::string getIspcName() final { return getIspcNameHelper() + "int8"; }
 
     void dbgDump() final;
 };
@@ -201,6 +199,9 @@ class TypeUChar : public IntegralTypeHelper<uint8_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::UCHAR; }
     std::string getName() final { return "unsigned char"; }
+    std::string getIspcName() final {
+        return getIspcNameHelper() + "unsigned int8";
+    }
 
     void dbgDump() final;
 };
@@ -212,6 +213,7 @@ class TypeSShort : public IntegralTypeHelper<int16_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::SHORT; }
     std::string getName() final { return "short"; }
+    std::string getIspcName() final { return getIspcNameHelper() + "int16"; }
 
     void dbgDump() final;
 };
@@ -223,6 +225,9 @@ class TypeUShort : public IntegralTypeHelper<uint16_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::USHORT; }
     std::string getName() final { return "unsigned short"; }
+    std::string getIspcName() final {
+        return getIspcNameHelper() + "unsigned int16";
+    }
 
     void dbgDump() final;
 };
@@ -234,6 +239,7 @@ class TypeSInt : public IntegralTypeHelper<int32_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::INT; }
     std::string getName() final { return "int"; }
+    std::string getIspcName() final { return getIspcNameHelper() + "int"; }
 
     void dbgDump() final;
 };
@@ -245,6 +251,9 @@ class TypeUInt : public IntegralTypeHelper<uint32_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::UINT; }
     std::string getName() final { return "unsigned int"; }
+    std::string getIspcName() final {
+        return getIspcNameHelper() + "unsigned int";
+    }
     std::string getLiteralSuffix() final { return "U"; }
 
     void dbgDump() final;
@@ -257,6 +266,7 @@ class TypeSLLong : public IntegralTypeHelper<int64_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::LLONG; }
     std::string getName() final { return "long long int"; }
+    std::string getIspcName() final { return getIspcNameHelper() + "int64"; }
     std::string getLiteralSuffix() final { return "LL"; }
 
     void dbgDump() final;
@@ -269,6 +279,9 @@ class TypeULLong : public IntegralTypeHelper<uint64_t> {
 
     IntTypeID getIntTypeId() final { return IntTypeID::ULLONG; }
     std::string getName() final { return "unsigned long long int"; }
+    std::string getIspcName() final {
+        return getIspcNameHelper() + "unsigned int64";
+    }
     std::string getLiteralSuffix() final { return "ULL"; }
 
     void dbgDump() final;
@@ -295,11 +308,9 @@ class ArrayType : public Type {
     std::string getName() override;
     void dbgDump() override;
 
-    static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
-                                           std::vector<size_t> _dims,
-                                           bool _is_static,
-                                           CVQualifier _cv_qual,
-                                           bool _is_uniform = true);
+    static std::shared_ptr<ArrayType>
+    init(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims,
+         bool _is_static, CVQualifier _cv_qual, bool _is_uniform = true);
     static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims);
     static std::shared_ptr<ArrayType>

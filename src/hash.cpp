@@ -57,7 +57,8 @@ std::size_t IntTypeKeyHasher::operator()(const IntTypeKey &key) const {
 
 ArrayTypeKey::ArrayTypeKey(std::shared_ptr<Type> _base_type,
                            std::vector<size_t> _dims, ArrayKind _kind,
-                           bool _is_static, CVQualifier _cv_qual, bool _is_uniform)
+                           bool _is_static, CVQualifier _cv_qual,
+                           bool _is_uniform)
     : base_type(std::move(_base_type)), dims(std::move(_dims)), kind(_kind),
       is_static(_is_static), cv_qualifier(_cv_qual), is_uniform(_is_uniform) {}
 

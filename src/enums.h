@@ -85,6 +85,7 @@ enum class IRNodeKind {
     ASSIGN,
     UNARY,
     BINARY,
+    CALL,
     MAX_EXPR_KIND,
     EXPR,
     DECL,
@@ -118,6 +119,20 @@ enum class BinaryOp {
     SHL,
     SHR,
     MAX_BIN_OP
+};
+
+enum class LibCallKind {
+    MIN,
+    MAX,
+    SELECT,
+    ANY,
+    ALL,
+    NONE,
+    RED_MIN,
+    RED_MAX,
+    RED_EQ,
+    EXTRACT,
+    MAX_LIB_CALL_KIND
 };
 
 enum class OptionKind { HELP, VERSION, SEED, STD, MAX_OPTION_ID };
