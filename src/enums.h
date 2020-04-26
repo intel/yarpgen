@@ -85,6 +85,7 @@ enum class IRNodeKind {
     ASSIGN,
     UNARY,
     BINARY,
+    TERNARY,
     CALL,
     MAX_EXPR_KIND,
     EXPR,

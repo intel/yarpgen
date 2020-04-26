@@ -112,7 +112,7 @@ void StmtBlock::populate(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 void ScopeStmt::emit(std::ostream &stream, std::string offset) {
-    stream << "{\n";
+    stream << offset << "{\n";
     StmtBlock::emit(stream, offset + "    ");
     stream << offset << "}\n";
 }

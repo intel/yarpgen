@@ -29,9 +29,8 @@ int main(int argc, char *argv[]) {
     OptionParser::initOptions();
     OptionParser::parse(argc, argv);
 
-    // TODO: we need to be able to pass the seed from outside
     Options &options = Options::getInstance();
-    rand_val_gen = std::make_shared<RandValGen>(RandValGen(options.getSeed()));
+    rand_val_gen = std::make_shared<RandValGen>(options.getSeed());
 
     ProgramGenerator new_program;
     new_program.emit();
