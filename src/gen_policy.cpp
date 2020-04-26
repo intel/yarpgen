@@ -91,6 +91,8 @@ GenPolicy::GenPolicy() {
         Probability<IRNodeKind>(IRNodeKind::BINARY, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::CALL, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 25));

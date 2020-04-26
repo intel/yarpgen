@@ -123,7 +123,8 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
     size_t end_val = rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
                                                 gen_pol->iter_end_limit_max);
     // We can't go pass the maximal value of the type
-    end_val = std::min((uint64_t) end_val, int_type->getMax().getAbsValue().value);
+    end_val =
+        std::min((uint64_t)end_val, int_type->getMax().getAbsValue().value);
     // TODO: ISPC doesn't execute division under mask, so the easiest way to
     // eliminate UB problems is to make sure that iterator doesn't go outside
     // array boundaries

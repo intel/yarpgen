@@ -202,12 +202,12 @@ class ArithmeticExpr : public Expr {
     static std::shared_ptr<Expr> create(std::shared_ptr<PopulateCtx> ctx);
 
   protected:
-    // Top-level recursive function for expression tree generation
-    // static std::shared_ptr<Expr> gen_level (std::shared_ptr<Context> ctx,
-    // std::vector<std::shared_ptr<Expr>> inp, uint32_t par_depth);
-
     std::shared_ptr<Expr> integralProm(std::shared_ptr<Expr> arg);
     std::shared_ptr<Expr> convToBool(std::shared_ptr<Expr> arg);
+    static void arithConv(std::shared_ptr<Expr> &lhs,
+                          std::shared_ptr<Expr> &rhs);
+    static void varyingPromotion(std::shared_ptr<Expr> &lhs,
+                                 std::shared_ptr<Expr> &rhs);
 };
 
 class UnaryExpr : public ArithmeticExpr {
@@ -241,12 +241,29 @@ class BinaryExpr : public ArithmeticExpr {
     static std::shared_ptr<BinaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
-    void arithConv();
-    void varyingPromotion();
-
     BinaryOp op;
     std::shared_ptr<Expr> lhs;
     std::shared_ptr<Expr> rhs;
+};
+
+class TernaryExpr : public ArithmeticExpr {
+  public:
+    TernaryExpr(std::shared_ptr<Expr> _cond, std::shared_ptr<Expr> _true_br,
+                std::shared_ptr<Expr> _false_br);
+    IRNodeKind getKind() final { return IRNodeKind::TERNARY; }
+
+    bool propagateType() final;
+    EvalResType evaluate(EvalCtx &ctx) final;
+    EvalResType rebuild(EvalCtx &ctx) final;
+
+    void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<TernaryExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
+
+  private:
+    std::shared_ptr<Expr> cond;
+    std::shared_ptr<Expr> true_br;
+    std::shared_ptr<Expr> false_br;
 };
 
 class SubscriptExpr : public Expr {
@@ -309,6 +326,10 @@ class LibCallExpr : public CallExpr {
     create(std::shared_ptr<PopulateCtx> ctx);
 
   protected:
+    // Ternary operator need access to ispc promotion casts.
+    // TODO: should we move them somewhere else?
+    friend class TernaryExpr;
+
     // Utility functions to simplify type conversions
     // You should call propagateType on the arguments beforehand
     // CXX conversions should be performed before any other

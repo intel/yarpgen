@@ -356,6 +356,120 @@ std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
         true);
 }
 
+void ArithmeticExpr::arithConv(std::shared_ptr<Expr> &lhs,
+                               std::shared_ptr<Expr> &rhs) {
+    if (!lhs->getValue()->getType()->isIntType() ||
+        !rhs->getValue()->getType()->isIntType()) {
+        ERROR("We assume that we can perform binary operations only in Scalar "
+              "Variables with integral type");
+    }
+
+    auto lhs_type =
+        std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
+    auto rhs_type =
+        std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
+
+    //[expr.arith.conv]
+    // 1.5.1
+    if (lhs_type->getIntTypeId() == rhs_type->getIntTypeId())
+        return;
+
+    // 1.5.2
+    if (lhs_type->getIsSigned() == rhs_type->getIsSigned()) {
+        std::shared_ptr<IntegralType> max_type =
+            lhs_type->getIntTypeId() > rhs_type->getIntTypeId() ? lhs_type
+                                                                : rhs_type;
+        if (lhs_type->getIntTypeId() > rhs_type->getIntTypeId())
+            rhs = std::make_shared<TypeCastExpr>(rhs, max_type,
+                                                 /*is_implicit*/ true);
+        else
+            lhs = std::make_shared<TypeCastExpr>(lhs, max_type,
+                                                 /*is_implicit*/ true);
+        return;
+    }
+
+    // 1.5.3
+    // Helper function that converts signed type to "bigger" unsigned type
+    auto signed_to_unsigned_conv = [](std::shared_ptr<IntegralType> &a_type,
+                                      std::shared_ptr<IntegralType> &b_type,
+                                      std::shared_ptr<Expr> &b_expr) -> bool {
+        if (!a_type->getIsSigned() &&
+            (a_type->getIntTypeId() >= b_type->getIntTypeId())) {
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
+                                                    /*is_implicit*/ true);
+            return true;
+        }
+        return false;
+    };
+    if (signed_to_unsigned_conv(lhs_type, rhs_type, rhs) ||
+        signed_to_unsigned_conv(rhs_type, lhs_type, lhs))
+        return;
+
+    // 1.5.4
+    // Same idea, but for unsigned to signed conversions
+    auto unsigned_to_signed_conv = [](std::shared_ptr<IntegralType> &a_type,
+                                      std::shared_ptr<IntegralType> &b_type,
+                                      std::shared_ptr<Expr> &b_expr) -> bool {
+        if (a_type->getIsSigned() &&
+            IntegralType::canRepresentType(a_type->getIntTypeId(),
+                                           b_type->getIntTypeId())) {
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
+                                                    /*is_implicit*/ true);
+            return true;
+        }
+        return false;
+    };
+    if (unsigned_to_signed_conv(lhs_type, rhs_type, rhs) ||
+        unsigned_to_signed_conv(rhs_type, lhs_type, lhs))
+        return;
+
+    // 1.5.5
+    auto final_conversion = [](std::shared_ptr<IntegralType> &a_type,
+                               std::shared_ptr<Expr> &a_expr,
+                               std::shared_ptr<Expr> &b_expr) -> bool {
+        if (a_type->getIsSigned()) {
+            std::shared_ptr<IntegralType> new_type = IntegralType::init(
+                IntegralType::getCorrUnsigned(a_type->getIntTypeId()));
+            if (!a_type->isUniform())
+                new_type = std::static_pointer_cast<IntegralType>(
+                    new_type->makeVarying());
+            a_expr = std::make_shared<TypeCastExpr>(a_expr, new_type,
+                                                    /*is_implicit*/ true);
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type,
+                                                    /*is_implicit*/ true);
+            return true;
+        }
+        return false;
+    };
+    if (final_conversion(lhs_type, lhs, rhs) ||
+        final_conversion(rhs_type, lhs, rhs))
+        return;
+
+    ERROR("Unreachable: conversions went wrong");
+}
+
+void ArithmeticExpr::varyingPromotion(std::shared_ptr<Expr> &lhs,
+                                      std::shared_ptr<Expr> &rhs) {
+    auto lhs_type = lhs->getValue()->getType();
+    auto rhs_type = rhs->getValue()->getType();
+
+    auto varying_conversion = [](std::shared_ptr<Type> &a_type,
+                                 std::shared_ptr<Type> &b_type,
+                                 std::shared_ptr<Expr> &b_expr) -> bool {
+        if (!a_type->isUniform() && b_type->isUniform()) {
+            auto new_type = b_type->makeVarying();
+            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type,
+                                                    /*is_implicit*/ true);
+            return true;
+        }
+        return false;
+    };
+
+    if (varying_conversion(lhs_type, rhs_type, rhs) ||
+        varying_conversion(rhs_type, lhs_type, lhs))
+        return;
+}
+
 std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
@@ -397,7 +511,8 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         new_node = ConstantExpr::create(active_ctx);
     }
     else if (node_kind == IRNodeKind::SCALAR_VAR_USE ||
-             active_ctx->getLocalSymTable()->getAvailSubs().empty()) {
+             (active_ctx->getLocalSymTable()->getAvailSubs().empty() &&
+              node_kind == IRNodeKind::SUBSCRIPT)) {
         new_node = ScalarVarUseExpr::create(active_ctx);
     }
     else if (node_kind == IRNodeKind::SUBSCRIPT) {
@@ -414,6 +529,9 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     }
     else if (node_kind == IRNodeKind::CALL) {
         new_node = LibCallExpr::create(active_ctx);
+    }
+    else if (node_kind == IRNodeKind::TERNARY) {
+        new_node = TernaryExpr::create(active_ctx);
     }
     else
         ERROR("Bad node kind");
@@ -557,7 +675,7 @@ bool BinaryExpr::propagateType() {
 
     Options &options = Options::getInstance();
     if (options.isISPC())
-        varyingPromotion();
+        varyingPromotion(lhs, rhs);
 
     switch (op) {
         case BinaryOp::ADD:
@@ -577,7 +695,7 @@ bool BinaryExpr::propagateType() {
             // Arithmetic conversions
             lhs = integralProm(lhs);
             rhs = integralProm(rhs);
-            arithConv();
+            arithConv(lhs, rhs);
             break;
         case BinaryOp::SHL:
         case BinaryOp::SHR:
@@ -594,118 +712,6 @@ bool BinaryExpr::propagateType() {
             break;
     }
     return true;
-}
-
-void BinaryExpr::arithConv() {
-    if (!lhs->getValue()->getType()->isIntType() ||
-        !rhs->getValue()->getType()->isIntType()) {
-        ERROR("We assume that we can perform binary operations only in Scalar "
-              "Variables with integral type");
-    }
-
-    auto lhs_type =
-        std::static_pointer_cast<IntegralType>(lhs->getValue()->getType());
-    auto rhs_type =
-        std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
-
-    //[expr.arith.conv]
-    // 1.5.1
-    if (lhs_type->getIntTypeId() == rhs_type->getIntTypeId())
-        return;
-
-    // 1.5.2
-    if (lhs_type->getIsSigned() == rhs_type->getIsSigned()) {
-        std::shared_ptr<IntegralType> max_type =
-            lhs_type->getIntTypeId() > rhs_type->getIntTypeId() ? lhs_type
-                                                                : rhs_type;
-        if (lhs_type->getIntTypeId() > rhs_type->getIntTypeId())
-            rhs = std::make_shared<TypeCastExpr>(rhs, max_type,
-                                                 /*is_implicit*/ true);
-        else
-            lhs = std::make_shared<TypeCastExpr>(lhs, max_type,
-                                                 /*is_implicit*/ true);
-        return;
-    }
-
-    // 1.5.3
-    // Helper function that converts signed type to "bigger" unsigned type
-    auto signed_to_unsigned_conv = [](std::shared_ptr<IntegralType> &a_type,
-                                      std::shared_ptr<IntegralType> &b_type,
-                                      std::shared_ptr<Expr> &b_expr) -> bool {
-        if (!a_type->getIsSigned() &&
-            (a_type->getIntTypeId() >= b_type->getIntTypeId())) {
-            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
-                                                    /*is_implicit*/ true);
-            return true;
-        }
-        return false;
-    };
-    if (signed_to_unsigned_conv(lhs_type, rhs_type, rhs) ||
-        signed_to_unsigned_conv(rhs_type, lhs_type, lhs))
-        return;
-
-    // 1.5.4
-    // Same idea, but for unsigned to signed conversions
-    auto unsigned_to_signed_conv = [](std::shared_ptr<IntegralType> &a_type,
-                                      std::shared_ptr<IntegralType> &b_type,
-                                      std::shared_ptr<Expr> &b_expr) -> bool {
-        if (a_type->getIsSigned() &&
-            IntegralType::canRepresentType(a_type->getIntTypeId(),
-                                           b_type->getIntTypeId())) {
-            b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
-                                                    /*is_implicit*/ true);
-            return true;
-        }
-        return false;
-    };
-    if (unsigned_to_signed_conv(lhs_type, rhs_type, rhs) ||
-        unsigned_to_signed_conv(rhs_type, lhs_type, lhs))
-        return;
-
-    // 1.5.5
-    auto final_conversion = [](std::shared_ptr<IntegralType> &a_type,
-                               std::shared_ptr<Expr> &a_expr,
-                               std::shared_ptr<Expr> &b_expr) -> bool {
-        if (a_type->getIsSigned()) {
-            std::shared_ptr<IntegralType> new_type = IntegralType::init(
-                IntegralType::getCorrUnsigned(a_type->getIntTypeId()));
-            if (!a_type->isUniform())
-                new_type = std::static_pointer_cast<IntegralType>(
-                    new_type->makeVarying());
-            a_expr = std::make_shared<TypeCastExpr>(a_expr, new_type,
-                                                    /*is_implicit*/ true);
-            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type,
-                                                    /*is_implicit*/ true);
-            return true;
-        }
-        return false;
-    };
-    if (final_conversion(lhs_type, lhs, rhs) ||
-        final_conversion(rhs_type, lhs, rhs))
-        return;
-
-    ERROR("Unreachable: conversions went wrong");
-}
-
-void BinaryExpr::varyingPromotion() {
-    auto lhs_type = lhs->getValue()->getType();
-    auto rhs_type = rhs->getValue()->getType();
-
-    auto varying_conversion = [](std::shared_ptr<Type> &a_type,
-                                 std::shared_ptr<Type> &b_type,
-                                 std::shared_ptr<Expr> &b_expr) -> bool {
-        if (!a_type->isUniform() && b_type->isUniform()) {
-            auto new_type = b_type->makeVarying();
-            b_expr = std::make_shared<TypeCastExpr>(b_expr, new_type,
-                                                    /*is_implicit*/ true);
-            return true;
-        }
-        return false;
-    };
-
-    if (varying_conversion(lhs_type, rhs_type, rhs) ||
-        varying_conversion(rhs_type, lhs_type, lhs))
-        return;
 }
 
 Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
@@ -1008,7 +1014,6 @@ void BinaryExpr::emit(std::ostream &stream, std::string offset) {
 BinaryExpr::BinaryExpr(BinaryOp _op, std::shared_ptr<Expr> _lhs,
                        std::shared_ptr<Expr> _rhs)
     : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {
-    propagateType();
     EvalCtx ctx;
     evaluate(ctx);
 }
@@ -1020,6 +1025,79 @@ BinaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto lhs = ArithmeticExpr::create(ctx);
     auto rhs = ArithmeticExpr::create(ctx);
     return std::make_shared<BinaryExpr>(op, lhs, rhs);
+}
+
+TernaryExpr::TernaryExpr(std::shared_ptr<Expr> _cond,
+                         std::shared_ptr<Expr> _true_br,
+                         std::shared_ptr<Expr> _false_br)
+    : cond(std::move(_cond)), true_br(std::move(_true_br)),
+      false_br(std::move(_false_br)) {
+    EvalCtx ctx;
+    evaluate(ctx);
+}
+
+bool TernaryExpr::propagateType() {
+    cond->propagateType();
+    true_br->propagateType();
+    false_br->propagateType();
+
+    cond = convToBool(cond);
+
+    Options &options = Options::getInstance();
+    if (options.isISPC()) {
+        if (LibCallExpr::isAnyArgVarying({cond})) {
+            LibCallExpr::ispcArgPromotion(true_br);
+            LibCallExpr::ispcArgPromotion(false_br);
+        }
+        varyingPromotion(true_br, false_br);
+    }
+
+    // Arithmetic conversions
+    true_br = integralProm(true_br);
+    false_br = integralProm(false_br);
+    arithConv(true_br, false_br);
+    return true;
+}
+
+Expr::EvalResType TernaryExpr::evaluate(EvalCtx &ctx) {
+    propagateType();
+    EvalResType cond_eval = cond->evaluate(ctx);
+    if (cond_eval->getKind() != DataKind::VAR)
+        ERROR("We support only scalar variables for now");
+
+    IRValue cond_val =
+        std::static_pointer_cast<ScalarVar>(cond_eval)->getCurrentValue();
+    if (cond_val.getValueRef<bool>())
+        value = true_br->evaluate(ctx);
+    else
+        value = false_br->evaluate(ctx);
+    return value;
+}
+
+Expr::EvalResType TernaryExpr::rebuild(EvalCtx &ctx) {
+    cond->rebuild(ctx);
+    true_br->rebuild(ctx);
+    false_br->rebuild(ctx);
+    return evaluate(ctx);
+}
+
+void TernaryExpr::emit(std::ostream &stream, std::string offset) {
+    stream << offset << "((";
+    cond->emit(stream);
+    stream << ") ? (";
+    true_br->emit(stream);
+    stream << ") : (";
+    false_br->emit(stream);
+    stream << "))";
+}
+
+std::shared_ptr<TernaryExpr>
+TernaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto cond = ArithmeticExpr::create(ctx);
+    auto true_br = ArithmeticExpr::create(ctx);
+    auto false_br = ArithmeticExpr::create(ctx);
+
+    return std::make_shared<TernaryExpr>(cond, true_br, false_br);
 }
 
 bool SubscriptExpr::propagateType() {
@@ -1309,7 +1387,7 @@ IntTypeID LibCallExpr::getTopIntID(std::vector<std::shared_ptr<Expr>> args) {
         auto arg_int_type = std::static_pointer_cast<IntegralType>(arg_type);
         // arg->emit(std::cout);
         // std::cout << " | " << static_cast<int>(arg_int_type->getIntTypeId())
-        // << " | ";
+        //<< " | ";
         top_id = std::max(arg_int_type->getIntTypeId(), top_id);
         // std::cout << static_cast<int>(top_id) << " # ";
     }
