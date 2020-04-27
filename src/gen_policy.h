@@ -38,6 +38,9 @@ class GenPolicy {
     // Hard threshold for loop depth
     size_t loop_depth_limit;
 
+    // Hard threshold for if-else dpeth
+    size_t if_else_depth_limit;
+
     // Number of statements in a scope
     size_t scope_stmt_min_num;
     size_t scope_stmt_max_num;
@@ -59,6 +62,9 @@ class GenPolicy {
 
     // Distribution of statements type for structure generation
     std::vector<Probability<IRNodeKind>> stmt_kind_struct_distr;
+
+    // Distribution of "else" branch in ifElseStmt
+    std::vector<Probability<bool>> else_br_distr;
 
     // Distribution of statements type for population generation
     std::vector<Probability<IRNodeKind>> stmt_kind_pop_distr;

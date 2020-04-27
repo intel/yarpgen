@@ -75,6 +75,9 @@ StmtBlock::generateStructure(std::shared_ptr<GenCtx> ctx) {
                  ctx->getLoopDepth() + 2 <= gen_policy->loop_depth_limit) {
             new_stmt = LoopNestStmt::generateStructure(ctx);
         }
+        else if (stmt_kind == IRNodeKind::IF_ELSE &&
+                 ctx->getIfElseDepth() + 1 <= gen_policy->if_else_depth_limit)
+            new_stmt = IfElseStmt::generateStructure(ctx);
         else
             new_stmt = StubStmt::generateStructure(ctx);
         stmts.push_back(new_stmt);
@@ -330,6 +333,66 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             new_ctx->setInsideForeach(false);
         if (loop->getSuffix().use_count() != 0)
             loop->getSuffix()->populate(new_ctx);
+    }
+}
+
+void IfElseStmt::emit(std::ostream &stream, std::string offset) {
+    stream << "if (";
+    // We can dump test structure before populating it
+    if (cond.use_count() != 0)
+        cond->emit(stream);
+    stream << ") ";
+    then_br->emit(stream);
+    if (else_br.use_count() != 0) {
+        stream << "else ";
+        else_br->emit(stream);
+    }
+}
+
+std::shared_ptr<IfElseStmt>
+IfElseStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+    auto new_ctx = std::make_shared<GenCtx>(*ctx);
+    new_ctx->incIfElseDepth();
+    auto then_br = ScopeStmt::generateStructure(new_ctx);
+    bool else_br_exist = rand_val_gen->getRandId(gen_pol->else_br_distr);
+    std::shared_ptr<ScopeStmt> else_br;
+    if (else_br_exist)
+        else_br = ScopeStmt::generateStructure(new_ctx);
+    return std::make_shared<IfElseStmt>(nullptr, then_br, else_br);
+}
+
+void IfElseStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
+    cond = ArithmeticExpr::create(ctx);
+
+    if (!cond->getValue()->isScalarVar()) {
+        ERROR("Can perform conversion to bool only on scalar variables");
+    }
+
+    std::shared_ptr<IntegralType> int_type =
+        std::static_pointer_cast<IntegralType>(cond->getValue()->getType());
+    if (int_type->getIntTypeId() != IntTypeID::BOOL) {
+        cond = std::make_shared<TypeCastExpr>(
+            cond,
+            IntegralType::init(IntTypeID::BOOL, false, CVQualifier::NONE,
+                               cond->getValue()->getType()->isUniform()),
+            true);
+    }
+
+    EvalCtx eval_ctx;
+    std::shared_ptr<Data> cond_eval_res = cond->evaluate(eval_ctx);
+    IRValue cond_val =
+        std::static_pointer_cast<ScalarVar>(cond_eval_res)->getCurrentValue();
+
+    auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
+    new_ctx->incIfElseDepth();
+    bool cond_taken = cond_val.getValueRef<bool>();
+    new_ctx->setTaken(ctx->isTaken() && cond_taken);
+
+    then_br->populate(new_ctx);
+    if (else_br.use_count() != 0) {
+        new_ctx->setTaken(ctx->isTaken() && !cond_taken);
+        else_br->populate(new_ctx);
     }
 }
 

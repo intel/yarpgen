@@ -94,6 +94,7 @@ enum class IRNodeKind {
     SCOPE,
     LOOP_SEQ,
     LOOP_NEST,
+    IF_ELSE,
     STUB,
     MAX_STMT_KIND
 };
