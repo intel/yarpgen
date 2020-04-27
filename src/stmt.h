@@ -162,6 +162,24 @@ class LoopNestStmt : public LoopStmt {
     std::shared_ptr<StmtBlock> body;
 };
 
+class IfElseStmt : public Stmt {
+  public:
+    IfElseStmt(std::shared_ptr<Expr> _cond, std::shared_ptr<ScopeStmt> _then_br,
+               std::shared_ptr<ScopeStmt> _else_br)
+        : cond(std::move(_cond)), then_br(std::move(_then_br)),
+          else_br(std::move(_else_br)) {}
+    IRNodeKind getKind() final { return IRNodeKind::IF_ELSE; }
+    void emit(std::ostream &stream, std::string offset = "") final;
+    static std::shared_ptr<IfElseStmt>
+    generateStructure(std::shared_ptr<GenCtx> ctx);
+    void populate(std::shared_ptr<PopulateCtx> ctx) final;
+
+  private:
+    std::shared_ptr<Expr> cond;
+    std::shared_ptr<ScopeStmt> then_br;
+    std::shared_ptr<ScopeStmt> else_br;
+};
+
 class StubStmt : public Stmt {
   public:
     explicit StubStmt(std::string _text) : text(std::move(_text)) {}

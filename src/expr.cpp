@@ -1319,7 +1319,7 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         to->getValue()->getType()->isUniform())
         from = std::make_shared<ExtractCall>(from);
 
-    return std::make_shared<AssignmentExpr>(to, from);
+    return std::make_shared<AssignmentExpr>(to, from, ctx->isTaken());
 }
 
 std::shared_ptr<LibCallExpr>

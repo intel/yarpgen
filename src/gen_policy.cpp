@@ -28,6 +28,8 @@ GenPolicy::GenPolicy() {
 
     loop_depth_limit = 5;
 
+    if_else_depth_limit = 5;
+
     scope_stmt_min_num = 2;
     scope_stmt_max_num = 5;
     uniformProbFromMax(scope_stmt_num_distr, scope_stmt_max_num,
@@ -48,7 +50,12 @@ GenPolicy::GenPolicy() {
     stmt_kind_struct_distr.emplace_back(
         Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
     stmt_kind_struct_distr.emplace_back(
-        Probability<IRNodeKind>{IRNodeKind::STUB, 80});
+        Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
+    stmt_kind_struct_distr.emplace_back(
+        Probability<IRNodeKind>{IRNodeKind::STUB, 70});
+
+    else_br_distr.emplace_back(Probability<bool>{true, 20});
+    else_br_distr.emplace_back(Probability<bool>{false, 80});
 
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::BOOL, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SCHAR, 10));

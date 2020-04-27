@@ -40,7 +40,7 @@ class EvalCtx {
 
 class GenCtx {
   public:
-    GenCtx() : loop_depth(0), inside_foreach(false) {
+    GenCtx() : loop_depth(0), if_else_depth(0), inside_foreach(false) {
         gen_policy = std::make_shared<GenPolicy>();
     }
     void setGenPolicy(std::shared_ptr<GenPolicy> gen_pol) {
@@ -51,6 +51,9 @@ class GenCtx {
     size_t getLoopDepth() { return loop_depth; }
     void incLoopDepth(size_t change) { loop_depth += change; }
     void decLoopDepth(size_t change) { loop_depth -= change; }
+    size_t getIfElseDepth() { return if_else_depth; }
+    void incIfElseDepth() { if_else_depth++; }
+    void decIfElseDepth() { if_else_depth--; }
 
     void setInsideForeach(bool _inside) { inside_foreach = _inside; }
     bool isInsideForeach() { return inside_foreach; }
@@ -59,6 +62,7 @@ class GenCtx {
     std::shared_ptr<GenPolicy> gen_policy;
     // Current loop depth
     size_t loop_depth;
+    size_t if_else_depth;
 
     // ISPC
     bool inside_foreach;
@@ -123,11 +127,16 @@ class PopulateCtx : public GenCtx {
     void incArithDepth() { arith_depth++; }
     void decArithDepth() { arith_depth--; }
 
+    bool isTaken() { return taken; }
+    void setTaken(bool _taken) { taken = _taken; }
+
   private:
     std::shared_ptr<PopulateCtx> par_ctx;
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
     std::shared_ptr<SymbolTable> ext_out_sym_tbl;
     std::shared_ptr<SymbolTable> local_sym_tbl;
     size_t arith_depth;
+    // If the test will actually execute the code
+    bool taken;
 };
 } // namespace yarpgen
