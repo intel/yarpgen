@@ -29,7 +29,6 @@ LLVM:
 | `33133 <https://bugs.llvm.org/show_bug.cgi?id=33133>`_ - UBSan misses check for "negative_value << 0"
 | `32894 <https://bugs.llvm.org/show_bug.cgi?id=32894>`_ - ICE: "Cannot replace uses of with self" in llvm::SelectionDAG::ReplaceAllUsesWith
 | `32830 <https://bugs.llvm.org/show_bug.cgi?id=32830>`_ - Clang produces incorrect code with -O2 and higher
-| `32646 <https://bugs.llvm.org/show_bug.cgi?id=32646>`_ - UBSAN binary segfaults on correct UB-free test case.
 | `32525 <https://bugs.llvm.org/show_bug.cgi?id=32525>`_ - Assertion is hit: "The number of nodes scheduled doesn't match the expected number!"
 | `32515 <https://bugs.llvm.org/show_bug.cgi?id=32515>`_ - Assertion "DELETED_NODE in CSEMap!" fires a lot with -march=skx
 | `32345 <https://bugs.llvm.org/show_bug.cgi?id=32345>`_ - Assertion `Op.getScalarValueSizeInBits() == BitWidth && "Mask size mismatches value type size!"' failed with -O0.
