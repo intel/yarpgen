@@ -40,13 +40,6 @@ const std::map<std::string, Options::StandardID> Options::str_to_standard = {
     {"c++11", CXX11},
     {"c++14", CXX14},
     {"c++17", CXX17},
-
-    {"opencl_1_0", OpenCL_1_0},
-    {"opencl_1_1", OpenCL_1_1},
-    {"opencl_1_2", OpenCL_1_2},
-    {"opencl_2_0", OpenCL_2_0},
-    {"opencl_2_1", OpenCL_2_1},
-    {"opencl_2_2", OpenCL_2_2},
 };
 
 bool Options::is_c() {
@@ -55,8 +48,4 @@ bool Options::is_c() {
 
 bool Options::is_cxx() {
     return CXX98 <= standard_id && standard_id < MAX_CXXStandardID;
-}
-
-bool Options::is_opencl() {
-    return OpenCL_1_0 <= standard_id && standard_id < MAX_OpenCLStandardID;
 }
