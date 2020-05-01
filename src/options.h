@@ -37,7 +37,6 @@ struct Options {
     enum StandardID {
         C99, C11, MAX_CStandardID,
         CXX98, CXX03, CXX11, CXX14, CXX17, MAX_CXXStandardID,
-        OpenCL_1_0, OpenCL_1_1, OpenCL_1_2, OpenCL_2_0, OpenCL_2_1, OpenCL_2_2, MAX_OpenCLStandardID
     };
 
     // This map matches StandardIDs to string literals for them
@@ -46,7 +45,6 @@ struct Options {
     Options();
     bool is_c ();
     bool is_cxx ();
-    bool is_opencl ();
 
     StandardID standard_id;
     bool mode_64bit;
