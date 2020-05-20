@@ -82,6 +82,8 @@ class OptionParser {
 
     static void parseSeed(std::string seed_str);
     static void parseStandard(std::string std);
+    static void parseAsserts(std::string val);
+    static void parseInpAsArgs(std::string val);
 
     static std::vector<OptionDescr> options_set;
 };
@@ -92,7 +94,7 @@ class Options {
         static Options instance;
         return instance;
     }
-    Options(const Options &root) = delete;
+    Options(const Options &options) = delete;
     Options &operator=(const Options &) = delete;
 
     void setSeed(size_t _seed) { seed = _seed; }
@@ -104,10 +106,20 @@ class Options {
     bool isISPC() { return std == LangStd::ISPC; }
     bool isSYCL() { return std == LangStd::SYCL; }
 
+    void setUseAsserts(OptionLevel val) { use_asserts = val; }
+    OptionLevel useAsserts() { return use_asserts; }
+
+    void setInpAsArgs(OptionLevel val) { inp_as_args = val; }
+    OptionLevel inpAsArgs() { return inp_as_args; }
+
   private:
-    Options() : seed(0), std(LangStd::CXX) {}
+    Options() : seed(0), std(LangStd::CXX), use_asserts(OptionLevel::SOME),
+                inp_as_args(OptionLevel::SOME) {}
 
     size_t seed;
     LangStd std;
+    OptionLevel use_asserts;
+    // Pass input data to a test function as parameters
+    OptionLevel inp_as_args;
 };
 } // namespace yarpgen

@@ -146,9 +146,9 @@ class Iterator : public Data {
   public:
     Iterator(std::string _name, std::shared_ptr<Type> _type,
              std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
-             std::shared_ptr<Expr> _step)
+             std::shared_ptr<Expr> _step, bool _degenerate)
         : Data(std::move(_name), std::move(_type)), start(std::move(_start)),
-          end(std::move(_end)), step(std::move(_step)) {}
+          end(std::move(_end)), step(std::move(_step)), degenerate(_degenerate) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
@@ -158,6 +158,7 @@ class Iterator : public Data {
     std::shared_ptr<Expr> getStep() { return step; }
     void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
                        std::shared_ptr<Expr> _step);
+    bool isDegenerate() { return degenerate; }
 
     void dbgDump() final;
 
@@ -175,6 +176,7 @@ class Iterator : public Data {
     std::shared_ptr<Expr> start;
     std::shared_ptr<Expr> end;
     std::shared_ptr<Expr> step;
+    bool degenerate;
 };
 
 } // namespace yarpgen

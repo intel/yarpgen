@@ -280,6 +280,7 @@ class SubscriptExpr : public Expr {
     void emit(std::ostream &stream, std::string offset = "") final;
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+    void setValue(std::shared_ptr<Expr> _expr);
 
   private:
     bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);

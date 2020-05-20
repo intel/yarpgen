@@ -98,6 +98,9 @@ class GenPolicy {
 
     static size_t leaves_prob_bump;
 
+    std::vector<Probability<bool>> asserts_check_distr;
+    std::vector<Probability<bool>> pass_as_param_distr;
+
     // ISPC
     // Probability to generate loop header as foreach or foreach_tiled
     std::vector<Probability<bool>> foreach_distr;
