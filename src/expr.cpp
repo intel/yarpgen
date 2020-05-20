@@ -326,7 +326,7 @@ std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
         ERROR("Can perform integral promotion only on scalar variables");
     }
 
-    //[conv.prom]
+    // C++ draft N4713: 7.6 Integral promotions [conv.prom]
     assert(arg->getValue()->getType()->isIntType() &&
            "Scalar variable can have only Integral Type");
     std::shared_ptr<IntegralType> int_type =
@@ -371,7 +371,7 @@ void ArithmeticExpr::arithConv(std::shared_ptr<Expr> &lhs,
     auto rhs_type =
         std::static_pointer_cast<IntegralType>(rhs->getValue()->getType());
 
-    //[expr.arith.conv]
+    // C++ draft N4713: 8.3 Usual arithmetic conversions [expr.arith.conv]
     // 1.5.1
     if (lhs_type->getIntTypeId() == rhs_type->getIntTypeId())
         return;
