@@ -85,6 +85,24 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseStandard,
      "cpp",
      {"cpp", "ispc", "sycl"}},
+    {OptionKind::ASSERTS,
+     "",
+     "--asserts",
+     true,
+     "Use asserts in check function",
+     "Can't parse asserts",
+     OptionParser::parseAsserts,
+     "some",
+     {"none", "some", "all"}},
+    {OptionKind::INP_AS_ARGS,
+     "",
+     "--inp-as-args",
+     true,
+     "Pass input data as a parameters",
+     "Can't parse input as args",
+     OptionParser::parseInpAsArgs,
+     "some",
+     {"none", "some", "all"}}
 };
 
 void OptionParser::printVersion(std::string arg) {
@@ -203,6 +221,19 @@ bool OptionParser::parseLongAndShortArgs(int argc, size_t &argv_iter,
            parseShortArg(argc, argv_iter, argv, option);
 }
 
+void OptionParser::parse(size_t argc, char *argv[]) {
+    for (size_t i = 1; i < argc; ++i) {
+        bool parsed = false;
+        for (const auto &item : options_set)
+            if (parseLongAndShortArgs(argc, i, argv, item)) {
+                parsed = true;
+                break;
+            }
+        if (!parsed)
+            printHelpAndExit("Unknown option: " + std::string(argv[i]));
+    }
+}
+
 void OptionParser::parseSeed(std::string seed_str) {
     std::stringstream arg_ss(seed_str);
     Options &options = Options::getInstance();
@@ -223,19 +254,6 @@ void OptionParser::parseStandard(std::string std) {
         printHelpAndExit("Bad language standard");
 }
 
-void OptionParser::parse(size_t argc, char *argv[]) {
-    for (size_t i = 1; i < argc; ++i) {
-        bool parsed = false;
-        for (const auto &item : options_set)
-            if (parseLongAndShortArgs(argc, i, argv, item)) {
-                parsed = true;
-                break;
-            }
-        if (!parsed)
-            printHelpAndExit("Unknown option: " + std::string(argv[i]));
-    }
-}
-
 void OptionParser::initOptions() {
     for (auto &item : options_set) {
         OptionKind kind = item.getKind();
@@ -245,4 +263,28 @@ void OptionParser::initOptions() {
         else if (kind == OptionKind::STD)
             parseStandard(def_val);
     }
+}
+
+void OptionParser::parseAsserts(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "none")
+        options.setUseAsserts(OptionLevel::NONE);
+    else if (val == "some")
+        options.setUseAsserts(OptionLevel::SOME);
+    else if (val == "all")
+        options.setUseAsserts(OptionLevel::ALL);
+    else
+        printHelpAndExit("Can't recognize asserts use level");
+}
+
+void OptionParser::parseInpAsArgs(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "none")
+        options.setInpAsArgs(OptionLevel::NONE);
+    else if (val == "some")
+        options.setInpAsArgs(OptionLevel::SOME);
+    else if (val == "all")
+        options.setInpAsArgs(OptionLevel::ALL);
+    else
+        printHelpAndExit("Can't recognize asserts use level");
 }

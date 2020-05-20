@@ -65,10 +65,12 @@ Array::Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
 }
 
 void Array::setValue(std::shared_ptr<Data> _val) {
+    /*
     auto array_type = std::static_pointer_cast<ArrayType>(type);
     if (array_type->getBaseType() != _val->getType())
         ERROR("Can't initialize array with variable of wrong type");
-    cur_vals = std::move(_val);
+    */
+    cur_vals = _val;
     ub_code = cur_vals->getUBCode();
     was_changed = true;
 }
@@ -103,6 +105,7 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
 void Iterator::setParameters(std::shared_ptr<Expr> _start,
                              std::shared_ptr<Expr> _end,
                              std::shared_ptr<Expr> _step) {
+    // TODO: if start equals to end, then the iterator should be degenerate
     start = std::move(_start);
     end = std::move(_end);
     step = std::move(_step);
@@ -110,6 +113,8 @@ void Iterator::setParameters(std::shared_ptr<Expr> _start,
 
 std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
                                            bool is_uniform) {
+    // TODO: this function is full of magic constants and weird hacks to cut
+    //  some corners for ISPC and overflows
     auto gen_pol = ctx->getGenPolicy();
 
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
@@ -146,7 +151,7 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
 
     NameHandler &nh = NameHandler::getInstance();
     auto iter =
-        std::make_shared<Iterator>(nh.getIterName(), type, start, end, step);
+        std::make_shared<Iterator>(nh.getIterName(), type, start, end, step, end_val == 0);
 
     return iter;
 }

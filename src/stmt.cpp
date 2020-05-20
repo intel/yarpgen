@@ -31,7 +31,10 @@ void ExprStmt::emit(std::ostream &stream, std::string offset) {
 }
 
 std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
-    return std::make_shared<ExprStmt>(AssignmentExpr::create(ctx));
+    auto expr = AssignmentExpr::create(ctx);
+    EvalCtx eval_ctx;
+    expr->evaluate(eval_ctx);
+    return std::make_shared<ExprStmt>(expr);
 }
 
 void DeclStmt::emit(std::ostream &stream, std::string offset) {
@@ -246,11 +249,16 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
         new_ctx->incLoopDepth(1);
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
+        bool old_ctx_state = new_ctx->isTaken();
+        //TODO: what if we have multiple iterators
+        if (loop_head->getIterators().front()->isDegenerate())
+            new_ctx->setTaken(false);
         new_ctx->setInsideForeach(loop.first->isForeach());
         loop.second->populate(new_ctx);
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
         new_ctx->setInsideForeach(false);
+        new_ctx->setTaken(old_ctx_state);
         if (loop_head->getSuffix().use_count() != 0)
             loop_head->getSuffix()->populate(ctx);
     }
@@ -317,35 +325,43 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
 
 void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto new_ctx = std::make_shared<PopulateCtx>(ctx);
-    for (auto &loop : loops) {
-        if (loop->getPrefix().use_count() != 0)
-            loop->getPrefix()->populate(new_ctx);
+    bool old_ctx_state = new_ctx->isTaken();
+    std::vector<std::shared_ptr<LoopHead>>::iterator taken_switch_id;
+    for (auto i = loops.begin(); i != loops.end(); ++i) {
+        if ((*i)->getPrefix().use_count() != 0) {
+            (*i)->getPrefix()->populate(new_ctx);
+            taken_switch_id = i;
+        }
         new_ctx->incLoopDepth(1);
-        new_ctx->getLocalSymTable()->addIters(loop->getIterators());
-        if (loop->isForeach())
+        new_ctx->getLocalSymTable()->addIters((*i)->getIterators());
+        if ((*i)->isForeach())
             new_ctx->setInsideForeach(true);
+        if ((*i)->getIterators().front()->isDegenerate())
+            new_ctx->setTaken(false);
     }
     body->populate(new_ctx);
-    for (auto &loop : loops) {
+    for (auto i = loops.begin(); i != loops.end(); ++i) {
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
-        if (loop->isForeach())
+        if (i == taken_switch_id)
+            new_ctx->setTaken(old_ctx_state);
+        if ((*i)->isForeach())
             new_ctx->setInsideForeach(false);
-        if (loop->getSuffix().use_count() != 0)
-            loop->getSuffix()->populate(new_ctx);
+        if ((*i)->getSuffix().use_count() != 0)
+            (*i)->getSuffix()->populate(new_ctx);
     }
 }
 
 void IfElseStmt::emit(std::ostream &stream, std::string offset) {
-    stream << "if (";
+    stream << offset << "if (";
     // We can dump test structure before populating it
     if (cond.use_count() != 0)
         cond->emit(stream);
-    stream << ") ";
-    then_br->emit(stream);
+    stream << ")\n";
+    then_br->emit(stream, offset);
     if (else_br.use_count() != 0) {
         stream << "else ";
-        else_br->emit(stream);
+        else_br->emit(stream, offset);
     }
 }
 

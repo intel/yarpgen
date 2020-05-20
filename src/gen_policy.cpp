@@ -153,6 +153,12 @@ GenPolicy::GenPolicy() {
         Probability<LibCallKind>(LibCallKind::RED_EQ, 20));
     ispc_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::EXTRACT, 20));
+
+    asserts_check_distr.emplace_back(Probability<bool>(true, 50));
+    asserts_check_distr.emplace_back(Probability<bool>(false, 50));
+
+    pass_as_param_distr.emplace_back(Probability<bool>(true, 50));
+    pass_as_param_distr.emplace_back(Probability<bool>(true, 50));
 }
 
 template <typename T>

@@ -137,7 +137,9 @@ enum class LibCallKind {
     MAX_LIB_CALL_KIND
 };
 
-enum class OptionKind { HELP, VERSION, SEED, STD, MAX_OPTION_ID };
+enum class OptionKind { HELP, VERSION, SEED, STD, ASSERTS, INP_AS_ARGS, MAX_OPTION_ID };
+
+enum class OptionLevel { NONE, SOME, ALL, MAX_OPTION_LEVEL };
 
 enum class LangStd { CXX, ISPC, SYCL, MAX_LANG_STD };
 

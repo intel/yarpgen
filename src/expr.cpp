@@ -149,14 +149,16 @@ std::shared_ptr<ArrayUseExpr> ArrayUseExpr::init(std::shared_ptr<Data> _val) {
 }
 
 void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr) {
+    /*
     std::shared_ptr<Data> new_val = _expr->getValue();
     assert(new_val->isArray() && "ArrayUseExpr can store only Arrays");
     auto new_array = std::static_pointer_cast<Array>(new_val);
     if (value->getType() != new_array->getType()) {
         ERROR("Can't assign incompatible types");
     }
+    */
     auto arr_val = std::static_pointer_cast<Array>(value);
-    arr_val->setValue(new_val);
+    arr_val->setValue(_expr->getValue());
 }
 
 Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
@@ -1234,6 +1236,19 @@ SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
     evaluate(ctx);
 }
 
+void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr) {
+    if (array->getKind() == IRNodeKind::SUBSCRIPT) {
+        auto subs = std::static_pointer_cast<SubscriptExpr>(array);
+        subs->setValue(_expr);
+    }
+    else if (array->getKind() == IRNodeKind::ARRAY_USE) {
+        auto array_use = std::static_pointer_cast<ArrayUseExpr>(array);
+        array_use->setValue(_expr);
+    }
+    else
+        ERROR("Bad IRNodeKind");
+}
+
 bool AssignmentExpr::propagateType() {
     to->propagateType();
     from->propagateType();
@@ -1244,10 +1259,16 @@ bool AssignmentExpr::propagateType() {
 
 Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
     propagateType();
+    if (!to->getValue()->getType()->isIntType() || !from->getValue()->getType()->isIntType())
+        ERROR("We support only Integral Type for now");
+
+    auto to_int_type= std::static_pointer_cast<IntegralType>(to->getValue()->getType());
+    auto from_int_type = std::static_pointer_cast<IntegralType>(from->getValue()->getType());
+    if (to_int_type != from_int_type)
+        from = std::make_shared<TypeCastExpr>(from, to_int_type,
+                                              /*is_implicit*/ true);
+
     EvalResType to_eval_res = to->evaluate(ctx);
-    // TODO: we don't need to always do it
-    from = std::make_shared<TypeCastExpr>(from, to_eval_res->getType(),
-                                          /*is_implicit*/ true);
     EvalResType from_eval_res = from->evaluate(ctx);
     if (to_eval_res->getKind() != from_eval_res->getKind())
         ERROR("We can't assign incompatible data types");
@@ -1263,8 +1284,8 @@ Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
         auto to_iter = std::static_pointer_cast<IterUseExpr>(to);
         to_iter->setValue(from);
     }
-    else if (to->getKind() == IRNodeKind::ARRAY_USE) {
-        auto to_array = std::static_pointer_cast<ArrayUseExpr>(to);
+    else if (to->getKind() == IRNodeKind::SUBSCRIPT) {
+        auto to_array = std::static_pointer_cast<SubscriptExpr>(to);
         to_array->setValue(from);
     }
     else
@@ -1771,8 +1792,6 @@ ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg) {
 
 bool ExtractCall::propagateType() {
     arg->propagateType();
-    if (!isAnyArgVarying({arg}))
-        ispcArgPromotion(arg);
     return true;
 }
 
@@ -1783,9 +1802,10 @@ Expr::EvalResType ExtractCall::evaluate(EvalCtx &ctx) {
            "We support only scalar variables for now");
     IRValue arg_val =
         std::static_pointer_cast<ScalarVar>(arg_eval_res)->getCurrentValue();
-    value = std::make_shared<ScalarVar>(
-        "", std::static_pointer_cast<IntegralType>(arg_eval_res->getType()),
-        arg_val);
+    assert(arg_eval_res->getType()->isIntType() && "We support only integral types for now");
+    auto arg_type = std::static_pointer_cast<IntegralType>(arg_eval_res->getType());
+    auto ret_type = IntegralType::init(arg_type->getIntTypeId());
+    value = std::make_shared<ScalarVar>("", ret_type, arg_val);
     return value;
 }
 
