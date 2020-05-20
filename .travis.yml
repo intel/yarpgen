@@ -43,6 +43,18 @@ matrix:
       env:
         - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
 
+    # Ubuntu 20.04, clang 8
+    - os: linux
+      dist: focal
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-focal-10
+          packages:
+            - clang-10
+      env:
+        - MATRIX_EVAL="CC=clang-10 && CXX=clang++-10"
+
     # OSX
     - os: osx
       osx_image: xcode9.4
