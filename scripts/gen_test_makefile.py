@@ -166,13 +166,19 @@ SdeArch["ivb"] = SdeTarget("ivb", 7)
 SdeArch["hsw"] = SdeTarget("hsw", 8)
 SdeArch["bdw"] = SdeTarget("bdw", 9)
 SdeArch["skx"] = SdeTarget("skx", 10)
-SdeArch["knl"] = SdeTarget("knl", 11)
-SdeArch[""] = SdeTarget("", 12)  # It is a fake target and it should always be the last
+SdeArch["icx"] = SdeTarget("icx", 11)
+SdeArch["tgl"] = SdeTarget("tgl", 12)
+SdeArch["knl"] = SdeTarget("knl", 13)
+SdeArch[""] = SdeTarget("", 14)  # It is a fake target and it should always be the last
 
 
 def define_sde_arch(native, target):
     if target == SdeArch["skx"] and native != SdeArch["skx"]:
         return SdeArch["skx"].name
+    if target == SdeArch["icx"] and native != SdeArch["icx"]:
+        return SdeArch["icx"].name
+    if target == SdeArch["tgl"] and native != SdeArch["tgl"]:
+        return SdeArch["tgl"].name
     if target == SdeArch["knl"] and native != SdeArch["knl"]:
         return SdeArch["knl"].name
     if native.enum_value < target.enum_value:
