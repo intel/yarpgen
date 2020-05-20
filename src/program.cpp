@@ -151,7 +151,8 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
         if (!use_assert)
             stream << "    hash(&seed, " << var->getName() << ");\n";
         else {
-            auto const_val = std::make_shared<ConstantExpr>( var->getCurrentValue());
+            auto const_val =
+                std::make_shared<ConstantExpr>(var->getCurrentValue());
             stream << "    assert(" << var->getName() << " == ";
             const_val->emit(stream);
             stream << ");\n";
@@ -191,13 +192,17 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
         if (use_assert) {
             if (!array->getCurrentValues()->isScalarVar())
                 ERROR("We support only scalar variables for now");
-            auto const_val = std::make_shared<ConstantExpr>(std::static_pointer_cast<ScalarVar>(array->getCurrentValues())->getCurrentValue());
+            auto const_val = std::make_shared<ConstantExpr>(
+                std::static_pointer_cast<ScalarVar>(array->getCurrentValues())
+                    ->getCurrentValue());
             stream << "== ";
             const_val->emit(stream);
             stream << " || " << arr_name << " == ";
             if (!array->getInitValues()->isScalarVar())
                 ERROR("We support only scalar variables for now");
-            const_val = std::make_shared<ConstantExpr>(std::static_pointer_cast<ScalarVar>(array->getInitValues())->getCurrentValue());
+            const_val = std::make_shared<ConstantExpr>(
+                std::static_pointer_cast<ScalarVar>(array->getInitValues())
+                    ->getCurrentValue());
             const_val->emit(stream);
         }
         stream << ");\n";
@@ -211,7 +216,8 @@ static bool any_vars_as_params = false;
 static bool any_arrays_as_params = false;
 
 static void emitVarExtDecl(std::ostream &stream,
-                           std::vector<std::shared_ptr<ScalarVar>> vars, bool inp_category) {
+                           std::vector<std::shared_ptr<ScalarVar>> vars,
+                           bool inp_category) {
     GenPolicy gen_pol;
     Options &options = Options::getInstance();
     for (auto &var : vars) {
@@ -230,13 +236,15 @@ static void emitVarExtDecl(std::ostream &stream,
             continue;
         }
         stream << "extern ";
-        stream << (options.isISPC() ? var->getType()->getIspcName() : var->getType()->getName());
+        stream << (options.isISPC() ? var->getType()->getIspcName()
+                                    : var->getType()->getName());
         stream << " " << var->getName() << ";\n";
     }
 }
 
 static void emitArrayExtDecl(std::ostream &stream,
-                             std::vector<std::shared_ptr<Array>> arrays, bool inp_category) {
+                             std::vector<std::shared_ptr<Array>> arrays,
+                             bool inp_category) {
     GenPolicy gen_pol;
     Options &options = Options::getInstance();
     for (auto &array : arrays) {
@@ -259,7 +267,8 @@ static void emitArrayExtDecl(std::ostream &stream,
         assert(type->isArrayType() && "Array should have an Array type");
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         stream << "extern ";
-        stream << (options.isISPC() ? array_type->getBaseType()->getIspcName() : array_type->getBaseType()->getName());
+        stream << (options.isISPC() ? array_type->getBaseType()->getIspcName()
+                                    : array_type->getBaseType()->getName());
         stream << " ";
         stream << array->getName() << " ";
         for (const auto &dimension : array_type->getDimensions()) {
@@ -279,10 +288,11 @@ void ProgramGenerator::emitExtDecl(std::ostream &stream) {
 static std::string placeSep(bool cond) { return cond ? ", " : ""; }
 
 static void emitVarFuncParam(std::ostream &stream,
-                                 std::vector<std::shared_ptr<ScalarVar>> vars,
-                                 bool emit_type, bool ispc_type) {
+                             std::vector<std::shared_ptr<ScalarVar>> vars,
+                             bool emit_type, bool ispc_type) {
     for (auto &var : vars) {
-        if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(), var->getName()) == pass_as_param_buffer.end())
+        if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(),
+                      var->getName()) == pass_as_param_buffer.end())
             continue;
 
         if (emit_type)
@@ -295,11 +305,11 @@ static void emitVarFuncParam(std::ostream &stream,
 }
 
 static void emitArrayFuncParam(std::ostream &stream,
-                                   std::vector<std::shared_ptr<Array>> arrays,
-                                   bool emit_type, bool ispc_type,
-                                   bool emit_dims) {
+                               std::vector<std::shared_ptr<Array>> arrays,
+                               bool emit_type, bool ispc_type, bool emit_dims) {
     for (auto &array : arrays) {
-        if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(), array->getName()) == pass_as_param_buffer.end())
+        if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(),
+                      array->getName()) == pass_as_param_buffer.end())
             continue;
 
         auto type = array->getType();
@@ -325,19 +335,21 @@ void ProgramGenerator::emitTest(std::ostream &stream) {
     }
     if (options.isISPC())
         stream << "export ";
-    stream <<  "void test(";
+    stream << "void test(";
 
     auto place_cat_sep = [&stream](auto next_group) {
         if (!next_group.empty() && any_vars_as_params && any_arrays_as_params)
             stream << ", ";
     };
 
-    emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true, options.isISPC());
+    emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true,
+                     options.isISPC());
     // place_cat_sep(ext_out_sym_tbl->getVars());
     // emitVarFuncParam(stream, ext_out_sym_tbl->getVars(), true, true);
     place_cat_sep(ext_inp_sym_tbl->getArrays());
 
-    emitArrayFuncParam(stream, ext_inp_sym_tbl->getArrays(), true, options.isISPC(), true);
+    emitArrayFuncParam(stream, ext_inp_sym_tbl->getArrays(), true,
+                       options.isISPC(), true);
     // place_cat_sep(ext_out_sym_tbl->getArrays());
     // emitArrayFuncParam(stream, ext_out_sym_tbl->getArrays(), true, true,
     //                       true);

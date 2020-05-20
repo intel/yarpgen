@@ -1259,11 +1259,14 @@ bool AssignmentExpr::propagateType() {
 
 Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
     propagateType();
-    if (!to->getValue()->getType()->isIntType() || !from->getValue()->getType()->isIntType())
+    if (!to->getValue()->getType()->isIntType() ||
+        !from->getValue()->getType()->isIntType())
         ERROR("We support only Integral Type for now");
 
-    auto to_int_type= std::static_pointer_cast<IntegralType>(to->getValue()->getType());
-    auto from_int_type = std::static_pointer_cast<IntegralType>(from->getValue()->getType());
+    auto to_int_type =
+        std::static_pointer_cast<IntegralType>(to->getValue()->getType());
+    auto from_int_type =
+        std::static_pointer_cast<IntegralType>(from->getValue()->getType());
     if (to_int_type != from_int_type)
         from = std::make_shared<TypeCastExpr>(from, to_int_type,
                                               /*is_implicit*/ true);
@@ -1802,8 +1805,10 @@ Expr::EvalResType ExtractCall::evaluate(EvalCtx &ctx) {
            "We support only scalar variables for now");
     IRValue arg_val =
         std::static_pointer_cast<ScalarVar>(arg_eval_res)->getCurrentValue();
-    assert(arg_eval_res->getType()->isIntType() && "We support only integral types for now");
-    auto arg_type = std::static_pointer_cast<IntegralType>(arg_eval_res->getType());
+    assert(arg_eval_res->getType()->isIntType() &&
+           "We support only integral types for now");
+    auto arg_type =
+        std::static_pointer_cast<IntegralType>(arg_eval_res->getType());
     auto ret_type = IntegralType::init(arg_type->getIntTypeId());
     value = std::make_shared<ScalarVar>("", ret_type, arg_val);
     return value;

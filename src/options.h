@@ -113,8 +113,9 @@ class Options {
     OptionLevel inpAsArgs() { return inp_as_args; }
 
   private:
-    Options() : seed(0), std(LangStd::CXX), use_asserts(OptionLevel::SOME),
-                inp_as_args(OptionLevel::SOME) {}
+    Options()
+        : seed(0), std(LangStd::CXX), use_asserts(OptionLevel::SOME),
+          inp_as_args(OptionLevel::SOME) {}
 
     size_t seed;
     LangStd std;
