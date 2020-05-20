@@ -150,8 +150,8 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
         std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});
 
     NameHandler &nh = NameHandler::getInstance();
-    auto iter =
-        std::make_shared<Iterator>(nh.getIterName(), type, start, end, step, end_val == 0);
+    auto iter = std::make_shared<Iterator>(nh.getIterName(), type, start, end,
+                                           step, end_val == 0);
 
     return iter;
 }

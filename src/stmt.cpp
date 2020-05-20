@@ -250,7 +250,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->incLoopDepth(1);
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
         bool old_ctx_state = new_ctx->isTaken();
-        //TODO: what if we have multiple iterators
+        // TODO: what if we have multiple iterators
         if (loop_head->getIterators().front()->isDegenerate())
             new_ctx->setTaken(false);
         new_ctx->setInsideForeach(loop.first->isForeach());

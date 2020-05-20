@@ -102,8 +102,7 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Can't parse input as args",
      OptionParser::parseInpAsArgs,
      "some",
-     {"none", "some", "all"}}
-};
+     {"none", "some", "all"}}};
 
 void OptionParser::printVersion(std::string arg) {
     std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
