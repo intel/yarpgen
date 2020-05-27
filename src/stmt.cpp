@@ -192,6 +192,10 @@ void LoopHead::emitSuffix(std::ostream &stream, std::string offset) {
     if (suffix.use_count() != 0)
         suffix->emit(stream, std::move(offset));
 }
+void LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
+    for (auto &iter : iters)
+        iter->populate(ctx);
+}
 
 void LoopSeqStmt::emit(std::ostream &stream, std::string offset) {
     stream << offset << "/* LoopSeq " << std::to_string(loops.size())
@@ -248,6 +252,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             loop_head->getPrefix()->populate(ctx);
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
         new_ctx->incLoopDepth(1);
+        loop_head->populateIterators(ctx);
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
         bool old_ctx_state = new_ctx->isTaken();
         // TODO: what if we have multiple iterators
@@ -333,6 +338,7 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             taken_switch_id = i;
         }
         new_ctx->incLoopDepth(1);
+        (*i)->populateIterators(ctx);
         new_ctx->getLocalSymTable()->addIters((*i)->getIterators());
         if ((*i)->isForeach())
             new_ctx->setInsideForeach(true);

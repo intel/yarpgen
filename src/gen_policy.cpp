@@ -159,6 +159,13 @@ GenPolicy::GenPolicy() {
 
     pass_as_param_distr.emplace_back(Probability<bool>(true, 50));
     pass_as_param_distr.emplace_back(Probability<bool>(true, 50));
+
+    loop_end_kind_distr.emplace_back(
+        Probability<LoopEndKind>(LoopEndKind::CONST, 30));
+    loop_end_kind_distr.emplace_back(
+        Probability<LoopEndKind>(LoopEndKind::VAR, 30));
+    loop_end_kind_distr.emplace_back(
+        Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
 }
 
 template <typename T>

@@ -165,6 +165,7 @@ class Iterator : public Data {
 
     static std::shared_ptr<Iterator> create(std::shared_ptr<GenCtx> ctx,
                                             bool is_uniform = true);
+    void populate(std::shared_ptr<PopulateCtx> ctx);
 
     std::shared_ptr<Data> makeVarying() override {
         return makeVaryingImpl(*this);
