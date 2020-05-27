@@ -137,6 +137,8 @@ enum class LibCallKind {
     MAX_LIB_CALL_KIND
 };
 
+enum class LoopEndKind { CONST, VAR, EXPR, MAX_LOOP_KIND };
+
 enum class OptionKind {
     HELP,
     VERSION,

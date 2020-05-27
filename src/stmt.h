@@ -114,6 +114,8 @@ class LoopHead {
     void setIsForeach() { is_foreach = true; }
     bool isForeach() { return is_foreach; }
 
+    void populateIterators(std::shared_ptr<PopulateCtx> ctx);
+
   private:
     std::shared_ptr<StmtBlock> prefix;
     // Loop iterations space is defined by the iterators that we can use
