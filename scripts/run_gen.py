@@ -92,6 +92,10 @@ known_build_fails = { \
     "in immed_wide_int_const, at emit-rtl.c": "immed_wide_int_const", \
     "during RTL pass: cprop": "cprop", \
     "may be used uninitialized in this function": "may_be_uninit", \
+    "hoist_memory_references": "hoist_memory_references", \
+    "verify_gimple_in_cfg": "verify_gimple_in_cfg", \
+    "crash_signal": "crash_signal", \
+    "maybe_canonicalize_mem_ref_addr": "maybe_canonicalize_mem_ref_addr",\
 # problem with available memory
     "bad_alloc": "memory_problem", \
     "out of memory": "memory_problem", \
@@ -1426,10 +1430,11 @@ def print_compilers_version(targets):
 
 
 def check_creduce_version():
+    pass
     try:
         ret_code, stdout, stderr, time_expired, elapsed_time = common.run_cmd([creduce_bin, "--help"], yarpgen_timeout, 0)
         stdout_str = str(stdout, "utf-8")
-        match = re.match("creduce (\d)\.(\d)\.(\d).*-- a C and C\+\+ program reducer", stdout_str)
+        match = re.match("creduce (\d+)\.(\d+)\.(\d+).*", stdout_str)
         if not match:
             common.print_and_exit("Can't read creduce version.")
         major = int(match.group(1))
