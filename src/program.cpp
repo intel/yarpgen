@@ -275,7 +275,8 @@ static void emitArrayExtDecl(std::ostream &stream,
             stream << "[" << dimension << "] ";
         }
 
-        if (options.getEmitAlignAttr() != OptionLevel::NONE) {
+        if (options.isCXX() &&
+            options.getEmitAlignAttr() != OptionLevel::NONE) {
             bool emit_align_attr = true;
             if (options.getEmitAlignAttr() == OptionLevel::SOME)
                 emit_align_attr =

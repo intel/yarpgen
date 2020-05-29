@@ -101,7 +101,8 @@ known_build_fails = { \
     "out of memory": "memory_problem", \
     "Out of memory": "memory_problem", \
     "Cannot allocate memory": "memory_problem", \
-    "Killed": "killed"
+    "Killed": "killed", \
+    "relocation truncated to fit": "inp_alloc_problem", \
 }
 
 ###############################################################################
