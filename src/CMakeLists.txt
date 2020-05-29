@@ -40,7 +40,7 @@ set(LIB_SRCS
     "type.cpp"
     "type.h"
     "utils.cpp"
-    "utils.h")
+    "utils.h" emit_policy.cpp emit_policy.h)
 
 # Common std and build flags for all executables
 set(STD cxx_std_14)

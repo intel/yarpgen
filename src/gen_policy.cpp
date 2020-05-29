@@ -154,12 +154,6 @@ GenPolicy::GenPolicy() {
     ispc_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::EXTRACT, 20));
 
-    asserts_check_distr.emplace_back(Probability<bool>(true, 50));
-    asserts_check_distr.emplace_back(Probability<bool>(false, 50));
-
-    pass_as_param_distr.emplace_back(Probability<bool>(true, 50));
-    pass_as_param_distr.emplace_back(Probability<bool>(true, 50));
-
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::CONST, 30));
     loop_end_kind_distr.emplace_back(

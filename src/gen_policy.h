@@ -98,9 +98,6 @@ class GenPolicy {
 
     static size_t leaves_prob_bump;
 
-    std::vector<Probability<bool>> asserts_check_distr;
-    std::vector<Probability<bool>> pass_as_param_distr;
-
     std::vector<Probability<LoopEndKind>> loop_end_kind_distr;
 
     // ISPC

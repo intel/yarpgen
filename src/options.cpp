@@ -102,7 +102,34 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Can't parse input as args",
      OptionParser::parseInpAsArgs,
      "some",
-     {"none", "some", "all"}}};
+     {"none", "some", "all"}},
+    {OptionKind::EMIT_ALIGN_ATTR,
+     "",
+     "--emit-align-attr",
+     true,
+     "Emit \"aligned\" attributes for arrays",
+     "Can't parse emit aligned attributes",
+     OptionParser::parseEmitAlignAttr,
+     "some",
+     {"none", "some", "all"}},
+    {OptionKind::UNIQUE_ALIGN_SIZE,
+     "",
+     "--unique-align-size",
+     false,
+     "Use unique align size for all attributes",
+     "Can't parse emit unique align size",
+     OptionParser::parseUniqueAlignSize,
+     "",
+     {}},
+    {OptionKind::ALIGN_SIZE,
+     "",
+     "--align-size",
+     true,
+     "Size for \"aligned\" attributes for arrays",
+     "Can't parse alignment size",
+     OptionParser::parseAlignSize,
+     "rand",
+     {"16", "32", "64"}}};
 
 void OptionParser::printVersion(std::string arg) {
     std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
@@ -233,6 +260,17 @@ void OptionParser::parse(size_t argc, char *argv[]) {
     }
 }
 
+void OptionParser::initOptions() {
+    for (auto &item : options_set) {
+        OptionKind kind = item.getKind();
+        std::string def_val = item.getDefaultVal();
+        if (kind == OptionKind::SEED)
+            parseSeed(def_val);
+        else if (kind == OptionKind::STD)
+            parseStandard(def_val);
+    }
+}
+
 void OptionParser::parseSeed(std::string seed_str) {
     std::stringstream arg_ss(seed_str);
     Options &options = Options::getInstance();
@@ -251,17 +289,6 @@ void OptionParser::parseStandard(std::string std) {
         options.setLangStd(LangStd::SYCL);
     else
         printHelpAndExit("Bad language standard");
-}
-
-void OptionParser::initOptions() {
-    for (auto &item : options_set) {
-        OptionKind kind = item.getKind();
-        std::string def_val = item.getDefaultVal();
-        if (kind == OptionKind::SEED)
-            parseSeed(def_val);
-        else if (kind == OptionKind::STD)
-            parseStandard(def_val);
-    }
 }
 
 void OptionParser::parseAsserts(std::string val) {
@@ -286,4 +313,34 @@ void OptionParser::parseInpAsArgs(std::string val) {
         options.setInpAsArgs(OptionLevel::ALL);
     else
         printHelpAndExit("Can't recognize asserts use level");
+}
+
+void OptionParser::parseEmitAlignAttr(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "none")
+        options.setEmitAlignAttr(OptionLevel::NONE);
+    else if (val == "some")
+        options.setEmitAlignAttr(OptionLevel::SOME);
+    else if (val == "all")
+        options.setEmitAlignAttr(OptionLevel::ALL);
+    else
+        printHelpAndExit("Can't recognize emit-align-attr use level");
+}
+
+void OptionParser::parseUniqueAlignSize(std::string val) {
+    Options &options = Options::getInstance();
+    options.setUniqueAlignSize(true);
+}
+
+void OptionParser::parseAlignSize(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "16")
+        options.setAlignSize(AlignmentSize::A16);
+    else if (val == "32")
+        options.setAlignSize(AlignmentSize::A32);
+    else if (val == "64")
+        options.setAlignSize(AlignmentSize::A64);
+    else
+        printHelpAndExit("Can't recognize alignment size");
+    options.setUniqueAlignSize(true);
 }
