@@ -84,6 +84,9 @@ class OptionParser {
     static void parseStandard(std::string std);
     static void parseAsserts(std::string val);
     static void parseInpAsArgs(std::string val);
+    static void parseEmitAlignAttr(std::string val);
+    static void parseUniqueAlignSize(std::string val);
+    static void parseAlignSize(std::string val);
 
     static std::vector<OptionDescr> options_set;
 };
@@ -112,15 +115,30 @@ class Options {
     void setInpAsArgs(OptionLevel val) { inp_as_args = val; }
     OptionLevel inpAsArgs() { return inp_as_args; }
 
+    void setEmitAlignAttr(OptionLevel _val) { emit_align_attr = _val; }
+    OptionLevel getEmitAlignAttr() { return emit_align_attr; }
+
+    void setUniqueAlignSize(bool _val) { unique_align_size = _val; }
+    bool getUniqueAlignSize() { return unique_align_size; }
+
+    void setAlignSize(AlignmentSize _val) { align_size = _val; }
+    AlignmentSize getAlignSize() { return align_size; }
+
   private:
     Options()
         : seed(0), std(LangStd::CXX), use_asserts(OptionLevel::SOME),
-          inp_as_args(OptionLevel::SOME) {}
+          inp_as_args(OptionLevel::SOME), emit_align_attr(OptionLevel::SOME),
+          align_size(AlignmentSize::MAX_ALIGNMENT_SIZE) {}
 
     size_t seed;
     LangStd std;
     OptionLevel use_asserts;
     // Pass input data to a test function as parameters
     OptionLevel inp_as_args;
+
+    // Options for alignment attributes
+    OptionLevel emit_align_attr;
+    bool unique_align_size;
+    AlignmentSize align_size;
 };
 } // namespace yarpgen

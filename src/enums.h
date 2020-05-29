@@ -146,11 +146,21 @@ enum class OptionKind {
     STD,
     ASSERTS,
     INP_AS_ARGS,
+    EMIT_ALIGN_ATTR,
+    UNIQUE_ALIGN_SIZE,
+    ALIGN_SIZE,
     MAX_OPTION_ID
 };
 
 enum class OptionLevel { NONE, SOME, ALL, MAX_OPTION_LEVEL };
 
 enum class LangStd { CXX, ISPC, SYCL, MAX_LANG_STD };
+
+enum class AlignmentSize {
+    A16,
+    A32,
+    A64,
+    MAX_ALIGNMENT_SIZE /*it is reserved to mean any of the above at random*/
+};
 
 } // namespace yarpgen

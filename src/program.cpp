@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "program.h"
 #include "data.h"
+#include "emit_policy.h"
 #include "stmt.h"
 #include <fstream>
 #include <memory>
@@ -139,12 +140,11 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
 
     Options &options = Options::getInstance();
 
-    GenPolicy gen_pol;
-
+    EmitPolicy emit_pol;
     for (auto &var : ext_out_sym_tbl->getVars()) {
         bool use_assert = false;
         if (options.useAsserts() == OptionLevel::SOME)
-            use_assert = rand_val_gen->getRandId(gen_pol.asserts_check_distr);
+            use_assert = rand_val_gen->getRandId(emit_pol.asserts_check_distr);
         else if (options.useAsserts() == OptionLevel::ALL)
             use_assert = true;
 
@@ -174,7 +174,7 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
 
         bool use_assert = false;
         if (options.useAsserts() == OptionLevel::SOME)
-            use_assert = rand_val_gen->getRandId(gen_pol.asserts_check_distr);
+            use_assert = rand_val_gen->getRandId(emit_pol.asserts_check_distr);
         else if (options.useAsserts() == OptionLevel::ALL)
             use_assert = true;
 
@@ -218,14 +218,14 @@ static bool any_arrays_as_params = false;
 static void emitVarExtDecl(std::ostream &stream,
                            std::vector<std::shared_ptr<ScalarVar>> vars,
                            bool inp_category) {
-    GenPolicy gen_pol;
+    EmitPolicy emit_pol;
     Options &options = Options::getInstance();
     for (auto &var : vars) {
         bool pass_as_param = false;
         if (inp_category) {
             if (options.inpAsArgs() == OptionLevel::SOME)
                 pass_as_param =
-                    rand_val_gen->getRandId(gen_pol.pass_as_param_distr);
+                    rand_val_gen->getRandId(emit_pol.pass_as_param_distr);
             else if (options.inpAsArgs() == OptionLevel::ALL)
                 pass_as_param = true;
         }
@@ -245,14 +245,14 @@ static void emitVarExtDecl(std::ostream &stream,
 static void emitArrayExtDecl(std::ostream &stream,
                              std::vector<std::shared_ptr<Array>> arrays,
                              bool inp_category) {
-    GenPolicy gen_pol;
+    EmitPolicy emit_pol;
     Options &options = Options::getInstance();
     for (auto &array : arrays) {
         bool pass_as_param = false;
         if (inp_category) {
             if (options.inpAsArgs() == OptionLevel::SOME)
                 pass_as_param =
-                    rand_val_gen->getRandId(gen_pol.pass_as_param_distr);
+                    rand_val_gen->getRandId(emit_pol.pass_as_param_distr);
             else if (options.inpAsArgs() == OptionLevel::ALL)
                 pass_as_param = true;
         }
@@ -274,6 +274,35 @@ static void emitArrayExtDecl(std::ostream &stream,
         for (const auto &dimension : array_type->getDimensions()) {
             stream << "[" << dimension << "] ";
         }
+
+        if (options.getEmitAlignAttr() != OptionLevel::NONE) {
+            bool emit_align_attr = true;
+            if (options.getEmitAlignAttr() == OptionLevel::SOME)
+                emit_align_attr =
+                    rand_val_gen->getRandId(emit_pol.emit_align_attr_distr);
+            if (emit_align_attr) {
+                AlignmentSize align_size = options.getAlignSize();
+                if (!options.getUniqueAlignSize())
+                    align_size =
+                        rand_val_gen->getRandId(emit_pol.align_size_distr);
+                stream << "__attribute__((aligned(";
+                switch (align_size) {
+                    case AlignmentSize::A16:
+                        stream << "16";
+                        break;
+                    case AlignmentSize::A32:
+                        stream << "32";
+                        break;
+                    case AlignmentSize::A64:
+                        stream << "64";
+                        break;
+                    case AlignmentSize::MAX_ALIGNMENT_SIZE:
+                        ERROR("Bad alignment size");
+                }
+                stream << ")))";
+            }
+        }
+
         stream << ";\n";
     }
 }
@@ -405,13 +434,23 @@ void ProgramGenerator::emitMain(std::ostream &stream) {
 }
 
 void ProgramGenerator::emit() {
+    Options &options = Options::getInstance();
+
+    // We need to narrow options if we were asked to do so
+    if (options.getUniqueAlignSize() &&
+        options.getAlignSize() == AlignmentSize::MAX_ALIGNMENT_SIZE) {
+        EmitPolicy emit_pol;
+        AlignmentSize align_size =
+            rand_val_gen->getRandId(emit_pol.align_size_distr);
+        options.setAlignSize(align_size);
+    }
+
     std::ofstream out_file;
 
     out_file.open("init.h");
     emitExtDecl(out_file);
     out_file.close();
 
-    Options &options = Options::getInstance();
     out_file.open(!options.isISPC() ? "func.cpp" : "func.ispc");
     emitTest(out_file);
     out_file.close();
