@@ -97,6 +97,7 @@ class VarUseExpr : public Expr {
   public:
     explicit VarUseExpr(std::shared_ptr<Data> _val) : Expr(std::move(_val)) {}
     virtual void setValue(std::shared_ptr<Expr> _expr) = 0;
+    void setIsDead(bool val) { value->setIsDead(val); }
 };
 
 class ScalarVarUseExpr : public VarUseExpr {
@@ -281,6 +282,8 @@ class SubscriptExpr : public Expr {
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
     void setValue(std::shared_ptr<Expr> _expr);
+
+    void setIsDead(bool val);
 
   private:
     bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);

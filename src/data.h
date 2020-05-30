@@ -32,7 +32,7 @@ class Data {
   public:
     Data(std::string _name, std::shared_ptr<Type> _type)
         : name(std::move(_name)), type(std::move(_type)),
-          ub_code(UBKind::Uninit) {}
+          ub_code(UBKind::Uninit), is_dead(true) {}
     virtual ~Data() = default;
 
     std::string getName() { return name; }
@@ -53,6 +53,9 @@ class Data {
 
     virtual std::shared_ptr<Data> makeVarying() = 0;
 
+    void setIsDead(bool val) { is_dead = val; }
+    bool getIsDead() { return is_dead; }
+
   protected:
     template <typename T> static std::shared_ptr<Data> makeVaryingImpl(T val) {
         auto ret = std::make_shared<T>(val);
@@ -66,6 +69,10 @@ class Data {
     // E.g. if we go out of the array bounds of a multidimensional array,
     // we can't return IRValue and we need to indicate an error.
     UBKind ub_code;
+
+    // Sometimes we create more variables than we use.
+    // They create a lot of dead code in the test, so we need to prune them.
+    bool is_dead;
 };
 
 // Shorthand to make it simpler
