@@ -68,7 +68,10 @@ void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
 
 static void emitVarsDecl(std::ostream &stream,
                          std::vector<std::shared_ptr<ScalarVar>> vars) {
+    Options &options = Options::getInstance();
     for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
         auto init_val = std::make_shared<ConstantExpr>(var->getInitValue());
         auto decl_stmt = std::make_shared<DeclStmt>(var, init_val);
         decl_stmt->emit(stream);
@@ -78,7 +81,10 @@ static void emitVarsDecl(std::ostream &stream,
 
 static void emitArrayDecl(std::ostream &stream,
                           std::vector<std::shared_ptr<Array>> arrays) {
+    Options &options = Options::getInstance();
     for (auto &array : arrays) {
+        if (!options.getAllowDeadData() && array->getIsDead())
+            continue;
         auto type = array->getType();
         assert(type->isArrayType() && "Array should have an Array type");
         auto array_type = std::static_pointer_cast<ArrayType>(type);
@@ -101,7 +107,10 @@ void ProgramGenerator::emitDecl(std::ostream &stream) {
 
 static void emitArrayInit(std::ostream &stream,
                           std::vector<std::shared_ptr<Array>> arrays) {
+    Options &options = Options::getInstance();
     for (const auto &array : arrays) {
+        if (!options.getAllowDeadData() && array->getIsDead())
+            continue;
         std::string offset = "    ";
         auto type = array->getType();
         assert(type->isArrayType() && "Array should have an Array type");
@@ -221,6 +230,8 @@ static void emitVarExtDecl(std::ostream &stream,
     EmitPolicy emit_pol;
     Options &options = Options::getInstance();
     for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
         bool pass_as_param = false;
         if (inp_category) {
             if (options.inpAsArgs() == OptionLevel::SOME)
@@ -248,6 +259,8 @@ static void emitArrayExtDecl(std::ostream &stream,
     EmitPolicy emit_pol;
     Options &options = Options::getInstance();
     for (auto &array : arrays) {
+        if (!options.getAllowDeadData() && array->getIsDead())
+            continue;
         bool pass_as_param = false;
         if (inp_category) {
             if (options.inpAsArgs() == OptionLevel::SOME)
@@ -317,27 +330,37 @@ void ProgramGenerator::emitExtDecl(std::ostream &stream) {
 
 static std::string placeSep(bool cond) { return cond ? ", " : ""; }
 
-static void emitVarFuncParam(std::ostream &stream,
+static bool emitVarFuncParam(std::ostream &stream,
                              std::vector<std::shared_ptr<ScalarVar>> vars,
                              bool emit_type, bool ispc_type) {
+    bool emit_any = false;
+    Options &options = Options::getInstance();
     for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
         if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(),
                       var->getName()) == pass_as_param_buffer.end())
             continue;
 
+        stream << placeSep(emit_any);
         if (emit_type)
             stream << (ispc_type ? var->getType()->getIspcName()
                                  : var->getType()->getName())
                    << " ";
         stream << var->getName();
-        stream << placeSep(var != *(vars.end() - 1));
+        emit_any = true;
     }
+    return emit_any;
 }
 
-static void emitArrayFuncParam(std::ostream &stream,
+static void emitArrayFuncParam(std::ostream &stream, bool prev_category_exist,
                                std::vector<std::shared_ptr<Array>> arrays,
                                bool emit_type, bool ispc_type, bool emit_dims) {
+    bool first = true;
+    Options &options = Options::getInstance();
     for (auto &array : arrays) {
+        if (!options.getAllowDeadData() && array->getIsDead())
+            continue;
         if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(),
                       array->getName()) == pass_as_param_buffer.end())
             continue;
@@ -345,6 +368,7 @@ static void emitArrayFuncParam(std::ostream &stream,
         auto type = array->getType();
         assert(type->isArrayType() && "Array should have an Array type");
         auto array_type = std::static_pointer_cast<ArrayType>(type);
+        stream << placeSep(prev_category_exist || !first);
         if (emit_type)
             stream << (ispc_type ? array_type->getBaseType()->getIspcName()
                                  : array_type->getBaseType()->getName())
@@ -353,7 +377,8 @@ static void emitArrayFuncParam(std::ostream &stream,
         if (emit_dims)
             for (const auto &dimension : array_type->getDimensions())
                 stream << "[" << dimension << "] ";
-        stream << placeSep(array != *(arrays.end() - 1));
+
+        first = false;
     }
 }
 
@@ -367,22 +392,11 @@ void ProgramGenerator::emitTest(std::ostream &stream) {
         stream << "export ";
     stream << "void test(";
 
-    auto place_cat_sep = [&stream](auto next_group) {
-        if (!next_group.empty() && any_vars_as_params && any_arrays_as_params)
-            stream << ", ";
-    };
+    bool emit_any = emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true,
+                                     options.isISPC());
 
-    emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true,
-                     options.isISPC());
-    // place_cat_sep(ext_out_sym_tbl->getVars());
-    // emitVarFuncParam(stream, ext_out_sym_tbl->getVars(), true, true);
-    place_cat_sep(ext_inp_sym_tbl->getArrays());
-
-    emitArrayFuncParam(stream, ext_inp_sym_tbl->getArrays(), true,
+    emitArrayFuncParam(stream, emit_any, ext_inp_sym_tbl->getArrays(), true,
                        options.isISPC(), true);
-    // place_cat_sep(ext_out_sym_tbl->getArrays());
-    // emitArrayFuncParam(stream, ext_out_sym_tbl->getArrays(), true, true,
-    //                       true);
 
     stream << ") ";
     new_test->emit(stream);
@@ -395,20 +409,10 @@ void ProgramGenerator::emitMain(std::ostream &stream) {
 
     stream << "void test(";
 
-    auto place_cat_sep = [&stream](auto next_group) {
-        if (!next_group.empty() && any_vars_as_params && any_arrays_as_params)
-            stream << ", ";
-    };
-
-    emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true, false);
-    // place_cat_sep(ext_out_sym_tbl->getVars());
-    // emitVarFuncParam(stream, ext_out_sym_tbl->getVars(), true, false);
-    place_cat_sep(ext_inp_sym_tbl->getArrays());
-
-    emitArrayFuncParam(stream, ext_inp_sym_tbl->getArrays(), true, false, true);
-    // place_cat_sep(ext_out_sym_tbl->getArrays());
-    // emitArrayFuncParam(stream, ext_out_sym_tbl->getArrays(), true,
-    //                       false, true);
+    bool emit_any =
+        emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true, false);
+    emitArrayFuncParam(stream, emit_any, ext_inp_sym_tbl->getArrays(), true,
+                       false, true);
 
     stream << ");";
     if (options.isISPC())
@@ -417,16 +421,11 @@ void ProgramGenerator::emitMain(std::ostream &stream) {
     stream << "    init();\n";
     stream << "    test(";
 
-    emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), false, false);
-    // place_cat_sep(ext_out_sym_tbl->getVars());
-    // emitVarFuncParam(stream, ext_out_sym_tbl->getVars(), false, false);
-    place_cat_sep(ext_inp_sym_tbl->getArrays());
+    emit_any =
+        emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), false, false);
 
-    emitArrayFuncParam(stream, ext_inp_sym_tbl->getArrays(), false, false,
-                       false);
-    // place_cat_sep(ext_out_sym_tbl->getArrays());
-    // emitArrayFuncParam(stream, ext_out_sym_tbl->getArrays(), false,
-    //                       false, false);
+    emitArrayFuncParam(stream, emit_any, ext_inp_sym_tbl->getArrays(), false,
+                       false, false);
 
     stream << ");\n";
     stream << "    checksum();\n";

@@ -87,6 +87,7 @@ class OptionParser {
     static void parseEmitAlignAttr(std::string val);
     static void parseUniqueAlignSize(std::string val);
     static void parseAlignSize(std::string val);
+    static void parseAllowDeadData(std::string val);
 
     static std::vector<OptionDescr> options_set;
 };
@@ -124,11 +125,16 @@ class Options {
     void setAlignSize(AlignmentSize _val) { align_size = _val; }
     AlignmentSize getAlignSize() { return align_size; }
 
+    void setAllowDeadData(bool val) { allow_dead_data = val; }
+    bool getAllowDeadData() { return allow_dead_data; }
+
   private:
     Options()
         : seed(0), std(LangStd::CXX), use_asserts(OptionLevel::SOME),
           inp_as_args(OptionLevel::SOME), emit_align_attr(OptionLevel::SOME),
-          align_size(AlignmentSize::MAX_ALIGNMENT_SIZE) {}
+          unique_align_size(false),
+          align_size(AlignmentSize::MAX_ALIGNMENT_SIZE),
+          allow_dead_data(false) {}
 
     size_t seed;
     LangStd std;
@@ -140,5 +146,7 @@ class Options {
     OptionLevel emit_align_attr;
     bool unique_align_size;
     AlignmentSize align_size;
+
+    bool allow_dead_data;
 };
 } // namespace yarpgen

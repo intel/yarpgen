@@ -233,9 +233,12 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
         }
 
         size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
-        for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx)
-            new_loop_head->addIterator(
-                Iterator::create(ctx, /*is_uniform*/ !gen_foreach));
+        for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
+            auto new_iter = Iterator::create(ctx, /*is_uniform*/ !gen_foreach);
+            // TODO: at some point we might use only some iterators
+            new_iter->setIsDead(false);
+            new_loop_head->addIterator(new_iter);
+        }
         auto new_loop_body = ScopeStmt::generateStructure(new_ctx);
         new_loop_seq->addLoop(std::make_pair(new_loop_head, new_loop_body));
 
@@ -316,8 +319,12 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
         }
 
         size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
-        for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx)
-            new_loop->addIterator(Iterator::create(ctx, !gen_foreach));
+        for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
+            auto new_iter = Iterator::create(ctx, !gen_foreach);
+            // TODO: at some point we might create dead iterators
+            new_iter->setIsDead(false);
+            new_loop->addIterator(new_iter);
+        }
         new_loop_nest->addLoop(new_loop);
     }
 

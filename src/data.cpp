@@ -250,10 +250,16 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
                 rand_val_gen->getRandId(gen_pol->out_kind_distr);
             if (data_kind == DataKind::VAR || type->isUniform() ||
                 (data_kind == DataKind::ARR &&
-                 ctx->getExtInpSymTable()->getAvailSubs().empty()))
-                ret = ScalarVarUseExpr::create(ctx);
-            else if (data_kind == DataKind::ARR)
-                ret = SubscriptExpr::create(ctx);
+                 ctx->getExtInpSymTable()->getAvailSubs().empty())) {
+                auto new_scalar_var_expr = ScalarVarUseExpr::create(ctx);
+                new_scalar_var_expr->setIsDead(false);
+                ret = new_scalar_var_expr;
+            }
+            else if (data_kind == DataKind::ARR) {
+                auto new_subs_expr = SubscriptExpr::create(ctx);
+                new_subs_expr->setIsDead(false);
+                ret = new_subs_expr;
+            }
             else
                 ERROR("Bad data kind");
         }
