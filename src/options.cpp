@@ -44,7 +44,7 @@ using namespace yarpgen;
 
 using namespace yarpgen;
 
-static const size_t PADDING = 25;
+static const size_t PADDING = 30;
 
 // Short argument, long argument, has_value, help message, error message,
 // action function, default, possible values
@@ -119,8 +119,8 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Use unique align size for all attributes",
      "Can't parse emit unique align size",
      OptionParser::parseUniqueAlignSize,
-     "",
-     {}},
+     "false",
+     {"true", "false"}},
     {OptionKind::ALIGN_SIZE,
      "",
      "--align-size",
@@ -129,7 +129,16 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Can't parse alignment size",
      OptionParser::parseAlignSize,
      "rand",
-     {"16", "32", "64"}}};
+     {"16", "32", "64"}},
+    {OptionKind::ALLOW_DEAD_DATA,
+     "",
+     "--allow-dead-data",
+     false,
+     "Allow to create data(vars and arrays) that will be never used",
+     "Can't parse allow dead data",
+     OptionParser::parseAllowDeadData,
+     "false",
+     {"true", "false"}}};
 
 void OptionParser::printVersion(std::string arg) {
     std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
@@ -160,7 +169,7 @@ void OptionParser::printHelpAndExit(std::string error_msg) {
 
     for (auto &item : options_set) {
         size_t num_printed = 0;
-        std::cout << "\t";
+        std::cout << "    ";
         num_printed += print_helper(item.getShortArg());
         num_printed += print_helper(item.getLongArg(), item.hasValue(), false);
         print_helper(item.getHelpMsg(), false, false, num_printed);
@@ -169,9 +178,7 @@ void OptionParser::printHelpAndExit(std::string error_msg) {
         if (!item.getAvailVals().empty()) {
             std::cout << std::endl;
             std::stringstream ss;
-            // TODO: we need to figure out what is the origin of this additional
-            // space
-            ss << "\t Possible values: ";
+            ss << "    Possible values: ";
             for (const auto &avail_val : item.getAvailVals()) {
                 ss << avail_val
                    << (avail_val != item.getAvailVals().back() ? ", " : "");
@@ -264,10 +271,38 @@ void OptionParser::initOptions() {
     for (auto &item : options_set) {
         OptionKind kind = item.getKind();
         std::string def_val = item.getDefaultVal();
-        if (kind == OptionKind::SEED)
-            parseSeed(def_val);
-        else if (kind == OptionKind::STD)
-            parseStandard(def_val);
+
+        switch (kind) {
+            case OptionKind::HELP:
+            case OptionKind::VERSION:
+                break;
+            case OptionKind::SEED:
+                parseSeed(def_val);
+                break;
+            case OptionKind::STD:
+                parseStandard(def_val);
+                break;
+            case OptionKind::ASSERTS:
+                parseAsserts(def_val);
+                break;
+            case OptionKind::INP_AS_ARGS:
+                parseInpAsArgs(def_val);
+                break;
+            case OptionKind::EMIT_ALIGN_ATTR:
+                parseEmitAlignAttr(def_val);
+                break;
+            case OptionKind::UNIQUE_ALIGN_SIZE:
+                parseUniqueAlignSize(def_val);
+                break;
+            case OptionKind::ALIGN_SIZE:
+                parseAlignSize(def_val);
+                break;
+            case OptionKind::ALLOW_DEAD_DATA:
+                parseAllowDeadData(def_val);
+                break;
+            case OptionKind::MAX_OPTION_ID:
+                break;
+        }
     }
 }
 
@@ -329,12 +364,19 @@ void OptionParser::parseEmitAlignAttr(std::string val) {
 
 void OptionParser::parseUniqueAlignSize(std::string val) {
     Options &options = Options::getInstance();
-    options.setUniqueAlignSize(true);
+    if (val.empty())
+        options.setUniqueAlignSize(true);
+    else if (val == "false")
+        options.setUniqueAlignSize(false);
+    else
+        printHelpAndExit("Can't recognize unique align size");
 }
 
 void OptionParser::parseAlignSize(std::string val) {
     Options &options = Options::getInstance();
-    if (val == "16")
+    if (val == "rand")
+        return;
+    else if (val == "16")
         options.setAlignSize(AlignmentSize::A16);
     else if (val == "32")
         options.setAlignSize(AlignmentSize::A32);
@@ -343,4 +385,14 @@ void OptionParser::parseAlignSize(std::string val) {
     else
         printHelpAndExit("Can't recognize alignment size");
     options.setUniqueAlignSize(true);
+}
+
+void OptionParser::parseAllowDeadData(std::string val) {
+    Options &options = Options::getInstance();
+    if (val.empty())
+        options.setAllowDeadData(true);
+    else if (val == "false")
+        options.setAllowDeadData(false);
+    else
+        printHelpAndExit("Can't recognize allow dead data");
 }

@@ -515,10 +515,14 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     else if (node_kind == IRNodeKind::SCALAR_VAR_USE ||
              (active_ctx->getLocalSymTable()->getAvailSubs().empty() &&
               node_kind == IRNodeKind::SUBSCRIPT)) {
-        new_node = ScalarVarUseExpr::create(active_ctx);
+        auto new_scalar_var_use_expr = ScalarVarUseExpr::create(active_ctx);
+        new_scalar_var_use_expr->setIsDead(false);
+        new_node = new_scalar_var_use_expr;
     }
     else if (node_kind == IRNodeKind::SUBSCRIPT) {
-        new_node = SubscriptExpr::create(active_ctx);
+        auto new_subs_expr = SubscriptExpr::create(active_ctx);
+        new_subs_expr->setIsDead(false);
+        new_node = new_subs_expr;
     }
     else if (node_kind == IRNodeKind::TYPE_CAST) {
         new_node = TypeCastExpr::create(active_ctx);
@@ -1249,6 +1253,19 @@ void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr) {
         ERROR("Bad IRNodeKind");
 }
 
+void SubscriptExpr::setIsDead(bool val) {
+    if (array->getKind() == IRNodeKind::SUBSCRIPT) {
+        auto subs = std::static_pointer_cast<SubscriptExpr>(array);
+        subs->setIsDead(val);
+    }
+    else if (array->getKind() == IRNodeKind::ARRAY_USE) {
+        auto array_use = std::static_pointer_cast<ArrayUseExpr>(array);
+        array_use->setIsDead(val);
+    }
+    else
+        ERROR("Bad IRNodeKind");
+}
+
 bool AssignmentExpr::propagateType() {
     to->propagateType();
     from->propagateType();
@@ -1329,12 +1346,16 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     if ((out_kind == DataKind::VAR || ctx->getLoopDepth() == 0)) {
         auto new_var = ScalarVar::create(ctx);
         ctx->getExtOutSymTable()->addVar(new_var);
-        to = std::make_shared<ScalarVarUseExpr>(new_var);
+        auto new_scalar_use_expr = std::make_shared<ScalarVarUseExpr>(new_var);
+        new_scalar_use_expr->setIsDead(false);
+        to = new_scalar_use_expr;
     }
     else if (out_kind == DataKind::ARR) {
         auto new_array = Array::create(ctx, false);
         ctx->getExtOutSymTable()->addArray(new_array);
-        to = ctx->getExtOutSymTable()->getAvailSubs().back();
+        auto new_subs_expr = ctx->getExtOutSymTable()->getAvailSubs().back();
+        new_subs_expr->setIsDead(false);
+        to = new_subs_expr;
     }
     else
         ERROR("Bad data kind for assignment");

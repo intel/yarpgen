@@ -149,6 +149,7 @@ enum class OptionKind {
     EMIT_ALIGN_ATTR,
     UNIQUE_ALIGN_SIZE,
     ALIGN_SIZE,
+    ALLOW_DEAD_DATA,
     MAX_OPTION_ID
 };
 
