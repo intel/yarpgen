@@ -25,6 +25,9 @@ class GenPolicy {
   public:
     GenPolicy();
 
+    // Hard limit for total statements number
+    size_t stmt_num_lim;
+
     // Maximal number of loops in a single LoopSequence
     size_t loop_seq_num_lim;
     // Distribution of loop numbers for a LoopSequence
