@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "stmt.h"
 #include "options.h"
+#include "statistics.h"
 
 #include <algorithm>
 #include <utility>
@@ -67,10 +68,27 @@ StmtBlock::generateStructure(std::shared_ptr<GenCtx> ctx) {
     size_t stmt_num = rand_val_gen->getRandId(gen_policy->scope_stmt_num_distr);
     stmts.reserve(stmt_num);
 
+    Statistics &stats = Statistics::getInstance();
+
     std::shared_ptr<Stmt> new_stmt;
     for (size_t i = 0; i < stmt_num; ++i) {
         IRNodeKind stmt_kind =
             rand_val_gen->getRandId(gen_policy->stmt_kind_struct_distr);
+
+        bool fallback = false;
+        // Last stmt that we can fit
+        fallback |= stats.getStmtNum() + 1 >= gen_policy->stmt_num_lim;
+        // LoopSeq and If-else create two new stmt
+        fallback |= (stmt_kind == IRNodeKind::LOOP_SEQ ||
+                     stmt_kind == IRNodeKind::IF_ELSE) &&
+                    (stats.getStmtNum() + 2 >= gen_policy->stmt_num_lim);
+        // Loop nest creates at least three new stmt (single loop is a loop
+        // stmt)
+        fallback |= stmt_kind == IRNodeKind::LOOP_NEST &&
+                    (stats.getStmtNum() + 3 >= gen_policy->stmt_num_lim);
+        if (fallback)
+            break;
+
         if (stmt_kind == IRNodeKind::LOOP_SEQ &&
             ctx->getLoopDepth() < gen_policy->loop_depth_limit)
             new_stmt = LoopSeqStmt::generateStructure(ctx);
@@ -81,8 +99,10 @@ StmtBlock::generateStructure(std::shared_ptr<GenCtx> ctx) {
         else if (stmt_kind == IRNodeKind::IF_ELSE &&
                  ctx->getIfElseDepth() + 1 <= gen_policy->if_else_depth_limit)
             new_stmt = IfElseStmt::generateStructure(ctx);
-        else
+        else {
             new_stmt = StubStmt::generateStructure(ctx);
+            stats.addStmt();
+        }
         stmts.push_back(new_stmt);
     }
 
@@ -204,6 +224,7 @@ void LoopSeqStmt::emit(std::ostream &stream, std::string offset) {
     for (const auto &loop : loops) {
         loop.first->emitPrefix(stream, offset);
         loop.first->emitHeader(stream, offset);
+        stream << "\n";
         loop.second->emit(stream, offset);
         loop.first->emitSuffix(stream, offset);
     }
@@ -245,6 +266,10 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
         if (gen_foreach)
             new_ctx->setInsideForeach(false);
     }
+
+    Statistics &stats = Statistics::getInstance();
+    stats.addStmt(loop_num);
+
     return new_loop_seq;
 }
 
@@ -280,7 +305,7 @@ void LoopNestStmt::emit(std::ostream &stream, std::string offset) {
     for (const auto &loop : loops) {
         loop->emitPrefix(stream, new_offset);
         loop->emitHeader(stream, new_offset);
-        stream << "{\n";
+        stream << "\n" << new_offset << "{\n";
         new_offset += "    ";
     }
 
@@ -327,6 +352,9 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
         }
         new_loop_nest->addLoop(new_loop);
     }
+
+    Statistics &stats = Statistics::getInstance();
+    stats.addStmt(nest_depth);
 
     auto new_ctx = std::make_shared<GenCtx>(*ctx);
     new_ctx->incLoopDepth(nest_depth);
@@ -388,6 +416,10 @@ IfElseStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     std::shared_ptr<ScopeStmt> else_br;
     if (else_br_exist)
         else_br = ScopeStmt::generateStructure(new_ctx);
+
+    Statistics &stats = Statistics::getInstance();
+    stats.addStmt();
+
     return std::make_shared<IfElseStmt>(nullptr, then_br, else_br);
 }
 
