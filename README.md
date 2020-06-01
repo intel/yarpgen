@@ -35,8 +35,8 @@ The script will run several compilers with several compiler options and run exec
 
 Also you may want to test compilers for future hardware, which is not available to you at the moment. The standard way to do that is to download the [Intel® Software Development Emulator](http://www.intel.com/software/sde). ``run_gen.py`` assumes that it is available in your PATH.
 
-Mailing list
-------------
+Contacts
+--------
 
 To contact authors, ask questions, or leave your feedback please use Github [issues](https://github.com/intel/yarpgen/issues) or reach out directly through contacts available in Github profiles.
 
