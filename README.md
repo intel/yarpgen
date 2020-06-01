@@ -44,5 +44,5 @@ People
 ------
 
 * Dmitry Babokin
-* Anton Mitrokhin
+* John Regehr
 * Vsevolod Livinskiy
