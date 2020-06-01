@@ -93,6 +93,9 @@ static void emitArrayDecl(std::ostream &stream,
         for (const auto &dimension : array_type->getDimensions()) {
             stream << "[" << dimension << "] ";
         }
+        if (array->getAlignment() != 0)
+            stream << "__attribute__((aligned(" << array->getAlignment()
+                   << ")))";
         stream << ";\n";
     }
 }
@@ -299,21 +302,22 @@ static void emitArrayExtDecl(std::ostream &stream,
                 if (!options.getUniqueAlignSize())
                     align_size =
                         rand_val_gen->getRandId(emit_pol.align_size_distr);
-                stream << "__attribute__((aligned(";
+                size_t alignment = 0;
                 switch (align_size) {
                     case AlignmentSize::A16:
-                        stream << "16";
+                        alignment = 16;
                         break;
                     case AlignmentSize::A32:
-                        stream << "32";
+                        alignment = 32;
                         break;
                     case AlignmentSize::A64:
-                        stream << "64";
+                        alignment = 64;
                         break;
                     case AlignmentSize::MAX_ALIGNMENT_SIZE:
                         ERROR("Bad alignment size");
                 }
-                stream << ")))";
+                array->setAlignment(alignment);
+                stream << "__attribute__((aligned(" << alignment << ")))";
             }
         }
 

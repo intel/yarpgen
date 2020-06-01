@@ -32,7 +32,7 @@ class Data {
   public:
     Data(std::string _name, std::shared_ptr<Type> _type)
         : name(std::move(_name)), type(std::move(_type)),
-          ub_code(UBKind::Uninit), is_dead(true) {}
+          ub_code(UBKind::Uninit), is_dead(true), alignment(0) {}
     virtual ~Data() = default;
 
     std::string getName() { return name; }
@@ -56,6 +56,9 @@ class Data {
     void setIsDead(bool val) { is_dead = val; }
     bool getIsDead() { return is_dead; }
 
+    void setAlignment(size_t _alignment) { alignment = _alignment; }
+    size_t getAlignment() { return alignment; }
+
   protected:
     template <typename T> static std::shared_ptr<Data> makeVaryingImpl(T val) {
         auto ret = std::make_shared<T>(val);
@@ -73,6 +76,7 @@ class Data {
     // Sometimes we create more variables than we use.
     // They create a lot of dead code in the test, so we need to prune them.
     bool is_dead;
+    size_t alignment;
 };
 
 // Shorthand to make it simpler
