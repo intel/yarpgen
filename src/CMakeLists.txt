@@ -21,6 +21,8 @@ set(LIB_SRCS
     "context.h"
     "data.cpp"
     "data.h"
+    "emit_policy.cpp"
+    "emit_policy.h"
     "enums.h"
     "expr.cpp"
     "expr.h"
@@ -35,12 +37,14 @@ set(LIB_SRCS
     "options.h"
     "program.cpp"
     "program.h"
+    "statistics.cpp"
+    "statistics.h"
     "stmt.cpp"
     "stmt.h"
     "type.cpp"
     "type.h"
     "utils.cpp"
-    "utils.h" emit_policy.cpp emit_policy.h statistics.cpp statistics.h)
+    "utils.h")
 
 # Common std and build flags for all executables
 set(STD cxx_std_14)
