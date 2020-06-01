@@ -20,7 +20,7 @@ Several techniques are used to increase the probability of triggering compiler b
 Compiler bugs found by YARP Generator
 -------------------------------------
 
-``yarpgen`` managed to find more than 140 bugs in gcc and clang and a comparable number of bugs in proprietary compilers. For the list of the bugs in gcc and clang see bugs.rst.
+``yarpgen`` managed to find more than 140 bugs in ``gcc`` and ``clang`` and a comparable number of bugs in proprietary compilers. For the list of the bugs in ``gcc`` and ``clang`` see bugs.rst.
 
 If you have used ``yarpgen`` to find bugs in open source compilers, please update bugs.rst. We are also excited to hear about your experience using it with proprietary compilers and other tools you might want to validate.
 
@@ -38,7 +38,7 @@ Also you may want to test compilers for future hardware, which is not available 
 Mailing list
 ------------
 
-To contact authors, ask questions, or leave your feedback please use [yarp-gen mailing list](https://lists.01.org/mailman/listinfo/yarp-gen).
+To contact authors, ask questions, or leave your feedback please use Github [issues](https://github.com/intel/yarpgen/issues) or reach out directly through contacts available in Github profiles.
 
 People
 ------
