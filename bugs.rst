@@ -2,6 +2,13 @@
 LLVM:
 ====================================
 
+Loop-targeting prototype
+---------------
+| `42833 <https://bugs.llvm.org/show_bug.cgi?id=42833>`_ - Incorrect result with -O3 -march=skx
+| `42819 <https://bugs.llvm.org/show_bug.cgi?id=42819>`_ - ICE: "Cannot select: X86ISD::SUBV_BROADCAST" with -O3 -march=skx
+
+Version #1
+---------------
 | `35583 <https://bugs.llvm.org/show_bug.cgi?id=35583>`_ - NewGVN indeterministic crash
 | `35272 <https://bugs.llvm.org/show_bug.cgi?id=35272>`_ - [AVX512] Assertion "Invalid sext node, dst < src!" in llvm::SelectionDAG::getNode()
 | `34959 <https://bugs.llvm.org/show_bug.cgi?id=34959>`_ - Incorrect predication in SKX, opt-bisect blames SLP Vectorizer
@@ -70,6 +77,31 @@ LLVM:
 GCC:
 ====================================
 
+Version #2
+---------------
+| `95401 <https://bugs.llvm.org/show_bug.cgi?id=95401>`_ - [10/11 Regression] GCC produces incorrect instruction with -O3 for AVX2 since r10-2257-g868363d4f52df19d
+| `95396 <https://bugs.llvm.org/show_bug.cgi?id=95396>`_ - [8/9/10/11 Regression] GCC produces incorrect code with -O3 for loops since r8-6511-g3ae129323d150621
+| `95308 <https://bugs.llvm.org/show_bug.cgi?id=95308>`_ - [10 Regression] ICE: in maybe_canonicalize_mem_ref_addr with -O3 -march=skylake-avx512 since r10-4203-g97c146036750e7cb
+| `95297 <https://bugs.llvm.org/show_bug.cgi?id=95297>`_ - ICE: Segmentation fault
+| `95295 <https://bugs.llvm.org/show_bug.cgi?id=95295>`_ - g++ produces incorrect code with -O3 for loops
+| `95284 <https://bugs.llvm.org/show_bug.cgi?id=95284>`_ - ICE: verify_gimple failed
+| `95268 <https://bugs.llvm.org/show_bug.cgi?id=95268>`_ - ICE: invalid ‘PHI’ argument
+| `95248 <https://bugs.llvm.org/show_bug.cgi?id=95248>`_ - [11 Regression] GCC produces incorrect code with -O3 for loops since r11-272-gb6ff3ddecfa93d53
+| `94727 <https://bugs.llvm.org/show_bug.cgi?id=94727>`_ - [10 Regression] GCC produces incorrect code with -O3 since r10-5071-g02d895504cc59be0
+
+Loop-targeting prototype
+---------------
+| `91403 <https://bugs.llvm.org/show_bug.cgi?id=91403>`_ - GCC fails with ICE.
+| `91293 <https://bugs.llvm.org/show_bug.cgi?id=91293>`_ - [8 Regression] Wrong code with -O3 -mavx2
+| `91240 <https://bugs.llvm.org/show_bug.cgi?id=91240>`_ - [8/9/10 Regression] Wrong code with -O3 due to unroll and jam pass
+| `91207 <https://bugs.llvm.org/show_bug.cgi?id=91207>`_ - [10 Regression] Wrong code with -O3
+| `91204 <https://bugs.llvm.org/show_bug.cgi?id=91204>`_ - [10 Regression] ICE in expand_expr_real_2, at expr.c:9215 with -O3
+| `91178 <https://bugs.llvm.org/show_bug.cgi?id=91178>`_ - [9 Regression] Infinite recursion in split_constant_offset in slp after r260289
+| `91145 <https://bugs.llvm.org/show_bug.cgi?id=91145>`_ - [9 Regression] ICE: in vect_build_slp_tree_2, at tree-vect-slp.c:1143 with -march=skylake-avx512 -O3
+| `91137 <https://bugs.llvm.org/show_bug.cgi?id=91137>`_ - [7 Regression] Wrong code with -O3
+
+Version #1
+---------------
 | `83383 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83383>`_ - Wrong code with a bunch of type conversion and ternary operators
 | `83382 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83382>`_ - UBSAN tiggers false-positive warning [-Werror=uninitialized]
 | `83252 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83252>`_ - [8 Regression] Wrong code with "-march=skylake-avx512 -O3"
@@ -154,3 +186,16 @@ GCC:
 | `70026 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70026>`_ - [6 Regression] ICE in expand_expr_real_2 with -O1 -ftree-vectorize
 | `70021 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70021>`_ - [6 Regression] Test miscompiled with -O3 option for -march=core-avx2.
 | `69820 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69820>`_ - [6 Regression] Test miscompiled with -O3 option
+
+====================================
+ISPC:
+====================================
+Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q=is%3Aissue+label%3Ayarpgen+>`_
+
+| `1771 <https://github.com/ispc/ispc/issues/1771>`_ - Wrong code for avx2-i64x4
+| `1768 <https://github.com/ispc/ispc/issues/1768>`_ - Uniform and varying types have different rounding rules.
+| `1767 <https://github.com/ispc/ispc/issues/1767>`_ - Assertion `V.getNode() && \"Getting TableId on SDValue()"' failed.
+| `1763 <https://github.com/ispc/ispc/issues/1763>`_ - Wrong code for avx2-i64x4
+| `1762 <https://github.com/ispc/ispc/issues/1762>`_ - ICE: "scatterFunc != NULL".
+| `1729 <https://github.com/ispc/ispc/issues/1729>`_ - Assertion failed: "ci != NULL".
+| `1719 <https://github.com/ispc/ispc/issues/1719>`_ - Division by zero leads to ICE

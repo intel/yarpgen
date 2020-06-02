@@ -20,7 +20,8 @@ Several techniques are used to increase the probability of triggering compiler b
 Compiler bugs found by YARP Generator
 -------------------------------------
 
-``yarpgen`` managed to find more than 140 bugs in ``gcc`` and ``clang`` and a comparable number of bugs in proprietary compilers. For the list of the bugs in ``gcc`` and ``clang`` see bugs.rst.
+``yarpgen`` managed to find more than 170 bugs in ``gcc``, ``clang``, ``ispc`` and a comparable number of bugs in
+proprietary compilers. For the list of the bugs in ``gcc``, ``clang``, and ``ispc`` see bugs.rst.
 
 If you have used ``yarpgen`` to find bugs in open source compilers, please update bugs.rst. We are also excited to hear about your experience using it with proprietary compilers and other tools you might want to validate.
 
