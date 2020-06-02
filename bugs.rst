@@ -23,7 +23,6 @@ LLVM:
 | `33828 <https://bugs.llvm.org/show_bug.cgi?id=33828>`_ - Crash in X86DAGToDAGISel::RunSDNodeXForm: "getConstant with a uint64_t value that doesn't fit in the type!"
 | `33765 <https://bugs.llvm.org/show_bug.cgi?id=33765>`_ - Replacing instructions in instcombine violates dominance relation
 | `33695 <https://bugs.llvm.org/show_bug.cgi?id=33695>`_ - Bit-Tracking Dead Code Elimination (BDCE) fails to invalidate nsw/nuw after transforms
-| `33608 <https://bugs.llvm.org/show_bug.cgi?id=33608>`_ - infinite loop in CodeGenPrepare::runOnFunction()
 | `33560 <https://bugs.llvm.org/show_bug.cgi?id=33560>`_ - "Cannot emit physreg copy instruction" at lib/Target/X86/X86InstrInfo.cpp:6707
 | `33442 <https://bugs.llvm.org/show_bug.cgi?id=33442>`_ - UBSAN: right shift by negative value is not caught for some values
 | `33133 <https://bugs.llvm.org/show_bug.cgi?id=33133>`_ - UBSan misses check for "negative_value << 0"
@@ -57,7 +56,6 @@ LLVM:
 | `28291 <https://bugs.llvm.org/show_bug.cgi?id=28291>`_ - LLVM trunk crash with knl target (Assertion `C1->getType() == C2->getType())
 | `28119 <https://bugs.llvm.org/show_bug.cgi?id=28119>`_ - [AVX-512] llc crash with UNREACHABLE executed at lib/IR/ValueTypes.cpp:128
 | `27997 <https://bugs.llvm.org/show_bug.cgi?id=27997>`_ - ICE on trunk Clang, knl target, Assertion `L.isLCSSAForm(DT)' failed
-| `27995 <https://bugs.llvm.org/show_bug.cgi?id=27995>`_ - ICE on trunk Clang, knl target, Assertion Op.getValueType().getScalarType().getSizeInBits()
 | `27879 <https://bugs.llvm.org/show_bug.cgi?id=27879>`_ - ICE on trunk llvm (Invalid operands for select instruction)
 | `27873 <https://bugs.llvm.org/show_bug.cgi?id=27873>`_ - ICE in llvm::TargetLowering::SimplifyDemandedBits on knl
 | `27789 <https://bugs.llvm.org/show_bug.cgi?id=27789>`_ - Clang trunk crashes on knl target
@@ -76,7 +74,6 @@ GCC:
 | `83382 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83382>`_ - UBSAN tiggers false-positive warning [-Werror=uninitialized]
 | `83252 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83252>`_ - [8 Regression] Wrong code with "-march=skylake-avx512 -O3"
 | `83221 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83221>`_ - [8 Regression] qsort comparator not anti-commutative: -2147483648, -2147483648
-| `82957 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82957>`_ - [8 Regression] ICE: in to_cgraph_frequency, at profile-count.c:251
 | `82778 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82778>`_ - crash: insn does not satisfy its constraints
 | `82576 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82576>`_ - sbitmap_vector_alloc() not ready for 64 bits
 | `82413 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82413>`_ - [8 Regression] -O0 crash (ICE in decompose, at tree.h:5179)
@@ -136,14 +133,12 @@ GCC:
 | `71488 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71488>`_ - [6 Regression] Wrong code for vector comparisons with ivybridge and westmere targets
 | `71470 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71470>`_ - Wrong code on trunk gcc with westmere target
 | `71389 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71389>`_ - [7 Regression] ICE on trunk gcc on ivybridge target (df_refs_verify)
-| `71386 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71386>`_ - Wrong code on c++14 (GCC trunk)
 | `71281 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71281>`_ - [7 Regression] ICE on gcc trunk on knl, wsm, ivb and bdw targets (tree-ssa-reassoc)
 | `71279 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71279>`_ - [6/7 Regression] ICE on trunk gcc with knl target
 | `71261 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71261>`_ - [7 Regression] Trunk GCC hangs on knl and broadwell targets
 | `71259 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71259>`_ - [6/7 Regression] GCC trunk emits wrong code
 | `70941 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70941>`_ - [5 Regression] Test miscompiled with -O2.
 | `70902 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70902>`_ - [7 Regression] GCC freezes while compiling for 'skylake-avx512' target
-| `70733 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70733>`_ - Wrong code with nested structs and bit field.
 | `70728 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70728>`_ - GCC trunk emits invalid assembly for knl target
 | `70726 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70726>`_ - [6/7 Regression] Internal compiler error (ICE) on valid code
 | `70725 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70725>`_ - Internal compiler error (ICE) on valid code
