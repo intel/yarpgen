@@ -1463,7 +1463,7 @@ def check_creduce_version():
     try:
         ret_code, stdout, stderr, time_expired, elapsed_time = common.run_cmd([creduce_bin, "--help"], yarpgen_timeout, 0)
         stdout_str = str(stdout, "utf-8")
-        match = re.match("creduce (\d)\.(\d)\.(\d).*-- a C and C\+\+ program reducer", stdout_str)
+        match = re.match("creduce (\d+)\.(\d+)\.(\d+).*", stdout_str)
         if not match:
             common.print_and_exit("Can't read creduce version.")
         major = int(match.group(1))
