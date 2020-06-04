@@ -64,6 +64,10 @@ add_executable(yarpgen main.cpp)
 target_compile_features(yarpgen PRIVATE ${STD})
 target_compile_options(yarpgen PRIVATE ${FLAGS})
 target_link_libraries(yarpgen yarpgen_lib)
+# Copy main executable next to scripts for convenience
+add_custom_command(TARGET yarpgen
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:yarpgen> ${CMAKE_SOURCE_DIR}/scripts)
 
 # Test executables
 add_executable(type_test type_test.cpp)
