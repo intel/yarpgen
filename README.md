@@ -28,13 +28,19 @@ If you have used ``yarpgen`` to find bugs in open source compilers, please updat
 Building and running
 --------------------
 
-Building ``yarpgen`` is trivial.  All you have to do is invoke "make".
+Building ``yarpgen`` is trivial.  All you have to do is to use cmake:
+```
+mkdir build
+cd build
+cmake ..
+make
+```
 
 To run ``yarpgen`` we recommend using ``run_gen.py`` script, which will run the generator for you on a number of available compilers with a set of pre-defined options. Feel free to hack test_set.txt to add or remove compiler options.
 
-The script will run several compilers with several compiler options and run executables to compare the output results. If the results mismatch, the test program will be saved in "results" folder for your analysis.
+The script will run several compilers with several compiler options and run executables to compare the output results. If the results mismatch, the test program will be saved in "testing/results" folder for your analysis.
 
-Also you may want to test compilers for future hardware, which is not available to you at the moment. The standard way to do that is to download the [Intel® Software Development Emulator](http://www.intel.com/software/sde). ``run_gen.py`` assumes that it is available in your PATH.
+Also you may want to test compilers for future hardware, which is not available to you at the moment. The standard way to do that is to download the [Intel® Software Development Emulator](http://www.intel.com/software/sde). ``run_gen.py`` assumes that it is available in your ``$PATH``.
 
 Contacts
 --------
