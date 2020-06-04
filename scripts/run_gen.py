@@ -1390,7 +1390,7 @@ def print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_j
 
         if (time.time() - start_time) > tmp_cleanup_delay and not no_tmp_cln:
             start_time = time.time()
-            common.run_cmd([os.path.abspath(common.yarpgen_home + os.sep + "tmp_cleaner.sh")])
+            common.run_cmd([os.path.abspath(common.yarpgen_scripts + os.sep + "tmp_cleaner.sh")])
 
         time.sleep(stat_update_delay)
 
@@ -1495,7 +1495,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
-    yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
+    yarpgen_bin = os.path.abspath(common.yarpgen_scripts + os.sep + "yarpgen")
     common.check_and_copy(yarpgen_bin, out_dir)
     ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
     common.yarpgen_version_str = str(output, "utf-8")
@@ -1683,7 +1683,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
 
 if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") is None:
-        sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path,"
+        sys.stderr.write("\nWarning: please set YARPGEN_HOME environment variable to point to yarpgen's directory,"
                          " using " + common.yarpgen_home + " for now\n")
 
     description = "The startup script for compiler's testing system."
@@ -1714,7 +1714,7 @@ Use specified folder for testing
                         help='Maximum number of instances to run in parallel. By defaulti, it is set to'
                              ' number of processor in your system')
     parser.add_argument("--config-file", dest="config_file",
-                        default=os.path.join(common.yarpgen_home, gen_test_makefile.default_test_sets_file_name),
+                        default=os.path.join(common.yarpgen_scripts, gen_test_makefile.default_test_sets_file_name),
                         type=str, help="Configuration file for testing")
     parser.add_argument("--log-file", dest="log_file", type=str,
                         help="Logfile. By default it's name of output dir + .log")

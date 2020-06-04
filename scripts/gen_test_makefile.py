@@ -316,8 +316,8 @@ def parse_config(file_name):
 
 
 def detect_native_arch():
-    check_isa_file = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name)
-    check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
+    check_isa_file = os.path.abspath(common.yarpgen_scripts + os.sep + check_isa_file_name)
+    check_isa_binary = os.path.abspath(common.yarpgen_scripts + os.sep + check_isa_file_name.replace(".cpp", ""))
 
     sys_compiler = ""
     for key in CompilerSpecs.all_comp_specs:
@@ -356,7 +356,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     if stat_targets is not None:
         stat_targets = list(set(stat_targets))
     # 1. License
-    license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_home + os.sep + license_file_name), "r")
+    license_file = common.check_and_open_file(os.path.abspath(common.yarpgen_scripts + os.sep + ".." + os.sep + license_file_name), "r")
     for license_str in license_file:
         output += "#" + license_str
     license_file.close()
@@ -461,7 +461,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
 
 if __name__ == '__main__':
     if os.environ.get("YARPGEN_HOME") is None:
-        sys.stderr.write("\nWarning: please set YARPGEN_HOME envirnoment variable to point to test generator path, "
+        sys.stderr.write("\nWarning: please set YARPGEN_HOME environment variable to point to yarpgen's directory,"
                          "using " + common.yarpgen_home + " for now\n")
 
     description = 'Generator of Test_Makefiles.'
@@ -471,7 +471,7 @@ if __name__ == '__main__':
                         help='Language standard. Possible variants are ' + str(list(StrToStdId))[1:-1])
 
     parser.add_argument("--config-file", dest="config_file",
-                        default=os.path.join(common.yarpgen_home, default_test_sets_file_name), type=str,
+                        default=os.path.join(common.yarpgen_scripts, default_test_sets_file_name), type=str,
                         help="Configuration file for testing")
     parser.add_argument("-o", "--output", dest="out_file", default=Test_Makefile_name, type=str,
                         help="Output file")
