@@ -26,9 +26,10 @@ limitations under the License.
 
 using namespace yarpgen;
 
-void ExprStmt::emit(std::ostream &stream, std::string offset) {
+void ExprStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                    std::string offset) {
     stream << offset;
-    expr->emit(stream);
+    expr->emit(ctx, stream);
     stream << ";";
 }
 
@@ -39,21 +40,23 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
     return std::make_shared<ExprStmt>(expr);
 }
 
-void DeclStmt::emit(std::ostream &stream, std::string offset) {
+void DeclStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                    std::string offset) {
     stream << offset;
     // TODO: we need to do the right thing here
-    stream << data->getType()->getName() << " ";
-    stream << data->getName();
+    stream << data->getType()->getName(ctx) << " ";
+    stream << data->getName(ctx);
     if (init_expr.use_count() != 0) {
         stream << " = ";
-        init_expr->emit(stream);
+        init_expr->emit(ctx, stream);
     }
     stream << ";";
 }
 
-void StmtBlock::emit(std::ostream &stream, std::string offset) {
+void StmtBlock::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                     std::string offset) {
     for (const auto &stmt : stmts) {
-        stmt->emit(stream, offset);
+        stmt->emit(ctx, stream, offset);
         // TODO: will that work if we have suffix?
         if (stmt->getKind() != IRNodeKind::LOOP_SEQ &&
             stmt->getKind() != IRNodeKind::LOOP_NEST)
@@ -138,9 +141,10 @@ void StmtBlock::populate(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-void ScopeStmt::emit(std::ostream &stream, std::string offset) {
+void ScopeStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                     std::string offset) {
     stream << offset << "{\n";
-    StmtBlock::emit(stream, offset + "    ");
+    StmtBlock::emit(ctx, stream, offset + "    ");
     stream << offset << "}\n";
 }
 
@@ -153,43 +157,41 @@ ScopeStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     return new_scope;
 }
 
-void LoopHead::emitPrefix(std::ostream &stream, std::string offset) {
+void LoopHead::emitPrefix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                          std::string offset) {
     if (prefix.use_count() != 0)
-        prefix->emit(stream, std::move(offset));
+        prefix->emit(ctx, stream, std::move(offset));
 }
 
-void LoopHead::emitHeader(std::ostream &stream, std::string offset) {
+void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                          std::string offset) {
     stream << offset;
 
     auto place_sep = [this](auto iter, std::string sep) -> std::string {
         return iter != iters.end() - 1 ? std::move(sep) : "";
     };
 
-    Options &options = Options::getInstance();
-
     if (!isForeach()) {
         stream << "for (";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-            stream << (!options.isISPC() ? (*iter)->getType()->getName()
-                                         : (*iter)->getType()->getIspcName())
-                   << " ";
-            stream << (*iter)->getName() << " = ";
-            (*iter)->getStart()->emit(stream);
+            stream << (*iter)->getType()->getName(ctx) << " ";
+            stream << (*iter)->getName(ctx) << " = ";
+            (*iter)->getStart()->emit(ctx, stream);
             stream << place_sep(iter, ", ");
         }
         stream << "; ";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-            stream << (*iter)->getName() << " < ";
-            (*iter)->getEnd()->emit(stream);
+            stream << (*iter)->getName(ctx) << " < ";
+            (*iter)->getEnd()->emit(ctx, stream);
             stream << place_sep(iter, ", ");
         }
         stream << "; ";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-            stream << (*iter)->getName() << " += ";
-            (*iter)->getStep()->emit(stream);
+            stream << (*iter)->getName(ctx) << " += ";
+            (*iter)->getStep()->emit(ctx, stream);
             stream << place_sep(iter, ", ");
         }
         stream << ") ";
@@ -198,10 +200,10 @@ void LoopHead::emitHeader(std::ostream &stream, std::string offset) {
         stream << (iters.size() == 1 ? "foreach" : "foreach_tiled") << "(";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-            stream << (*iter)->getName() << " = ";
-            (*iter)->getStart()->emit(stream);
+            stream << (*iter)->getName(ctx) << " = ";
+            (*iter)->getStart()->emit(ctx, stream);
             stream << "...";
-            (*iter)->getEnd()->emit(stream);
+            (*iter)->getEnd()->emit(ctx, stream);
             stream << place_sep(iter, ", ");
         }
 
@@ -209,25 +211,27 @@ void LoopHead::emitHeader(std::ostream &stream, std::string offset) {
     }
 }
 
-void LoopHead::emitSuffix(std::ostream &stream, std::string offset) {
+void LoopHead::emitSuffix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                          std::string offset) {
     if (suffix.use_count() != 0)
-        suffix->emit(stream, std::move(offset));
+        suffix->emit(ctx, stream, std::move(offset));
 }
 void LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
     for (auto &iter : iters)
         iter->populate(ctx);
 }
 
-void LoopSeqStmt::emit(std::ostream &stream, std::string offset) {
+void LoopSeqStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                       std::string offset) {
     stream << offset << "/* LoopSeq " << std::to_string(loops.size())
            << " */\n";
 
     for (const auto &loop : loops) {
-        loop.first->emitPrefix(stream, offset);
-        loop.first->emitHeader(stream, offset);
+        loop.first->emitPrefix(ctx, stream, offset);
+        loop.first->emitHeader(ctx, stream, offset);
         stream << "\n";
-        loop.second->emit(stream, offset);
-        loop.first->emitSuffix(stream, offset);
+        loop.second->emit(ctx, stream, offset);
+        loop.first->emitSuffix(ctx, stream, offset);
     }
 }
 
@@ -298,24 +302,25 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-void LoopNestStmt::emit(std::ostream &stream, std::string offset) {
+void LoopNestStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                        std::string offset) {
     stream << offset << "/* LoopNest " << std::to_string(loops.size())
            << " */\n";
 
     std::string new_offset = offset;
     for (const auto &loop : loops) {
-        loop->emitPrefix(stream, new_offset);
-        loop->emitHeader(stream, new_offset);
+        loop->emitPrefix(ctx, stream, new_offset);
+        loop->emitHeader(ctx, stream, new_offset);
         stream << "\n" << new_offset << "{\n";
         new_offset += "    ";
     }
 
-    body->emit(stream, new_offset);
+    body->emit(ctx, stream, new_offset);
     new_offset.erase(new_offset.size() - 4, 4);
 
     for (const auto &loop : loops) {
         stream << new_offset << "} \n";
-        loop->emitSuffix(stream, new_offset);
+        loop->emitSuffix(ctx, stream, new_offset);
         new_offset.erase(new_offset.size() - 4, 4);
     }
 }
@@ -394,16 +399,17 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-void IfElseStmt::emit(std::ostream &stream, std::string offset) {
+void IfElseStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                      std::string offset) {
     stream << offset << "if (";
     // We can dump test structure before populating it
     if (cond.use_count() != 0)
-        cond->emit(stream);
+        cond->emit(ctx, stream);
     stream << ")\n";
-    then_br->emit(stream, offset);
+    then_br->emit(ctx, stream, offset);
     if (else_br.use_count() != 0) {
         stream << "else ";
-        else_br->emit(stream, offset);
+        else_br->emit(ctx, stream, offset);
     }
 }
 
@@ -458,7 +464,8 @@ void IfElseStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-void StubStmt::emit(std::ostream &stream, std::string offset) {
+void StubStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                    std::string offset) {
     stream << offset << text;
 }
 

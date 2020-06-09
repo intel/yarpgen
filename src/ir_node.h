@@ -23,6 +23,8 @@ limitations under the License.
 
 namespace yarpgen {
 
+class EmitCtx;
+
 class IRNode {
   public:
     virtual ~IRNode() = default;
@@ -32,7 +34,8 @@ class IRNode {
     // offset properly.
     // TODO: in the future we might output the same test using different
     // language constructions
-    virtual void emit(std::ostream &stream, std::string offset = "") = 0;
+    virtual void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                      std::string offset = "") = 0;
     // TODO: make it pure virtual later
     virtual void populate(std::shared_ptr<PopulateCtx> ctx){};
 };

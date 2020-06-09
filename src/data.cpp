@@ -43,6 +43,16 @@ std::shared_ptr<ScalarVar> ScalarVar::create(std::shared_ptr<PopulateCtx> ctx) {
     return std::make_shared<ScalarVar>(nh.getVarName(), int_type, init_val);
 }
 
+std::string ScalarVar::getName(std::shared_ptr<EmitCtx> ctx) {
+    std::string ret;
+    if (!ctx->getSYCLPrefix().empty())
+        ret = ctx->getSYCLPrefix();
+    ret += Data::getName(ctx);
+    if (ctx->useSYCLAccess())
+        ret += "[0]";
+    return ret;
+}
+
 void Array::dbgDump() {
     std::cout << "Array: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
@@ -160,9 +170,10 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
 void Iterator::dbgDump() {
     std::cout << name << std::endl;
     type->dbgDump();
-    start->emit(std::cout);
-    end->emit(std::cout);
-    end->emit(std::cout);
+    auto emit_ctx = std::make_shared<EmitCtx>();
+    start->emit(emit_ctx, std::cout);
+    end->emit(emit_ctx, std::cout);
+    end->emit(emit_ctx, std::cout);
 }
 
 // This function bring the value of an expression that used in iterator

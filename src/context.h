@@ -20,6 +20,7 @@ limitations under the License.
 #pragma once
 
 #include "data.h"
+#include "emit_policy.h"
 #include "expr.h"
 #include "gen_policy.h"
 
@@ -139,5 +140,29 @@ class PopulateCtx : public GenCtx {
     size_t arith_depth;
     // If the test will actually execute the code
     bool taken;
+};
+
+// TODO: maybe we need to inherit from some class
+class EmitCtx {
+  public:
+    EmitCtx() : ispc_types(false), sycl_access(false) {
+        emit_policy = std::make_shared<EmitPolicy>();
+    }
+    std::shared_ptr<EmitPolicy> getEmitPolicy() { return emit_policy; }
+
+    void setIspcTypes(bool _val) { ispc_types = _val; }
+    bool useIspcTypes() { return ispc_types; }
+
+    void setSYCLAccess(bool _val) { sycl_access = _val; }
+    bool useSYCLAccess() { return sycl_access; }
+
+    void setSYCLPrefix(std::string _val) { sycl_prefix = std::move(_val); }
+    std::string getSYCLPrefix() { return sycl_prefix; }
+
+  private:
+    std::shared_ptr<EmitPolicy> emit_policy;
+    bool ispc_types;
+    bool sycl_access;
+    std::string sycl_prefix;
 };
 } // namespace yarpgen

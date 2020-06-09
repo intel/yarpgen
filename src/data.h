@@ -28,6 +28,7 @@ namespace yarpgen {
 
 class GenCtx;
 class PopulateCtx;
+class EmitCtx;
 
 class Data {
   public:
@@ -36,7 +37,7 @@ class Data {
           ub_code(UBKind::Uninit), is_dead(true), alignment(0) {}
     virtual ~Data() = default;
 
-    std::string getName() { return name; }
+    virtual std::string getName(std::shared_ptr<EmitCtx> ctx) { return name; }
     void setName(std::string _name) { name = std::move(_name); }
     std::shared_ptr<Type> getType() { return type; }
 
@@ -93,6 +94,8 @@ class ScalarVar : public Data {
     }
     bool isScalarVar() final { return true; }
     DataKind getKind() final { return DataKind::VAR; }
+
+    std::string getName(std::shared_ptr<EmitCtx> ctx) override;
 
     IRValue getInitValue() { return init_val; }
     IRValue getCurrentValue() { return cur_val; }

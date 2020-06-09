@@ -16,12 +16,15 @@ limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "gen_policy.h"
+#include "options.h"
 
 using namespace yarpgen;
 
 size_t GenPolicy::leaves_prob_bump = 30;
 
 GenPolicy::GenPolicy() {
+    Options &options = Options::getInstance();
+
     stmt_num_lim = 1000;
 
     loop_seq_num_lim = 4;
@@ -49,10 +52,12 @@ GenPolicy::GenPolicy() {
     iters_step_distr.emplace_back(Probability<size_t>{2, 10});
     iters_step_distr.emplace_back(Probability<size_t>{4, 10});
 
-    stmt_kind_struct_distr.emplace_back(
-        Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 10});
-    stmt_kind_struct_distr.emplace_back(
-        Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
+    if (!options.isSYCL()) {
+        stmt_kind_struct_distr.emplace_back(
+            Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 10});
+        stmt_kind_struct_distr.emplace_back(
+            Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
+    }
     stmt_kind_struct_distr.emplace_back(
         Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
     stmt_kind_struct_distr.emplace_back(
@@ -100,8 +105,9 @@ GenPolicy::GenPolicy() {
         Probability<IRNodeKind>(IRNodeKind::UNARY, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::BINARY, 20));
-    arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::CALL, 20));
+    if (!options.isSYCL())
+        arith_node_distr.emplace_back(
+            Probability<IRNodeKind>(IRNodeKind::CALL, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
 

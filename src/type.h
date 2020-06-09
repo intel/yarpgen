@@ -34,6 +34,7 @@ limitations under the License.
 namespace yarpgen {
 
 class PopulateCtx;
+class EmitCtx;
 class Iterator;
 
 // Abstract class that serves as a common ancestor for all types.
@@ -50,8 +51,7 @@ class Type {
         : is_static(_is_static), cv_qualifier(_cv_qual), is_uniform(true) {}
     virtual ~Type() = default;
 
-    virtual std::string getName() = 0;
-    virtual std::string getIspcName() { return getName(); }
+    virtual std::string getName(std::shared_ptr<EmitCtx> ctx) = 0;
     virtual void dbgDump() = 0;
 
     virtual bool isIntType() { return false; }
@@ -126,6 +126,13 @@ class IntegralType : public ArithmeticType {
 
     std::shared_ptr<Type> makeVarying() override;
 
+  protected:
+    // ISPC
+    std::string getIspcNameHelper() {
+        return (isUniform() ? "uniform" : "varying") + std::string(" ");
+    }
+    std::string getNameImpl(std::shared_ptr<EmitCtx> ctx, std::string raw_name);
+
   private:
     // There is a fixed small number of possible integral types,
     // so we use a folding set in order to save memory
@@ -154,10 +161,6 @@ template <typename T> class IntegralTypeHelper : public IntegralType {
     IRValue getMax() override { return max; }
 
   protected:
-    // ISPC
-    std::string getIspcNameHelper() {
-        return (isUniform() ? "uniform" : "varying") + std::string(" ");
-    }
     IRValue min;
     IRValue max;
 };
@@ -171,8 +174,9 @@ class TypeBool : public IntegralTypeHelper<bool> {
     // I.e. for different languages the name ofter type and the suffix might be
     // different.
     IntTypeID getIntTypeId() final { return IntTypeID::BOOL; }
-    std::string getName() final { return "bool"; }
-    std::string getIspcName() final { return getIspcNameHelper() + "bool"; }
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "bool");
+    }
 
     // For bool signedness is not defined, so std::is_signed and
     // std::is_unsigned return true. We treat them as unsigned
@@ -187,8 +191,9 @@ class TypeSChar : public IntegralTypeHelper<int8_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::SCHAR; }
-    std::string getName() final { return "signed char"; }
-    std::string getIspcName() final { return getIspcNameHelper() + "int8"; }
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "signed char");
+    }
 
     void dbgDump() final;
 };
@@ -199,9 +204,8 @@ class TypeUChar : public IntegralTypeHelper<uint8_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::UCHAR; }
-    std::string getName() final { return "unsigned char"; }
-    std::string getIspcName() final {
-        return getIspcNameHelper() + "unsigned int8";
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "unsigned char");
     }
 
     void dbgDump() final;
@@ -213,8 +217,9 @@ class TypeSShort : public IntegralTypeHelper<int16_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::SHORT; }
-    std::string getName() final { return "short"; }
-    std::string getIspcName() final { return getIspcNameHelper() + "int16"; }
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "short");
+    }
 
     void dbgDump() final;
 };
@@ -225,9 +230,8 @@ class TypeUShort : public IntegralTypeHelper<uint16_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::USHORT; }
-    std::string getName() final { return "unsigned short"; }
-    std::string getIspcName() final {
-        return getIspcNameHelper() + "unsigned int16";
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "unsigned short");
     }
 
     void dbgDump() final;
@@ -239,8 +243,9 @@ class TypeSInt : public IntegralTypeHelper<int32_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::INT; }
-    std::string getName() final { return "int"; }
-    std::string getIspcName() final { return getIspcNameHelper() + "int"; }
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "int");
+    }
 
     void dbgDump() final;
 };
@@ -251,9 +256,8 @@ class TypeUInt : public IntegralTypeHelper<uint32_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::UINT; }
-    std::string getName() final { return "unsigned int"; }
-    std::string getIspcName() final {
-        return getIspcNameHelper() + "unsigned int";
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "unsigned int");
     }
     std::string getLiteralSuffix() final { return "U"; }
 
@@ -266,8 +270,9 @@ class TypeSLLong : public IntegralTypeHelper<int64_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::LLONG; }
-    std::string getName() final { return "long long int"; }
-    std::string getIspcName() final { return getIspcNameHelper() + "int64"; }
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "long long int");
+    }
     std::string getLiteralSuffix() final { return "LL"; }
 
     void dbgDump() final;
@@ -279,9 +284,8 @@ class TypeULLong : public IntegralTypeHelper<uint64_t> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     IntTypeID getIntTypeId() final { return IntTypeID::ULLONG; }
-    std::string getName() final { return "unsigned long long int"; }
-    std::string getIspcName() final {
-        return getIspcNameHelper() + "unsigned int64";
+    std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        return getNameImpl(ctx, "unsigned long long int");
     }
     std::string getLiteralSuffix() final { return "ULL"; }
 
@@ -306,7 +310,7 @@ class ArrayType : public Type {
     static bool isSame(const std::shared_ptr<ArrayType> &lhs,
                        const std::shared_ptr<ArrayType> &rhs);
 
-    std::string getName() override;
+    std::string getName(std::shared_ptr<EmitCtx> ctx) override;
     void dbgDump() override;
 
     static std::shared_ptr<ArrayType>
