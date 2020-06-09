@@ -42,7 +42,8 @@ class ExprStmt : public Stmt {
 
     std::shared_ptr<Expr> getExpr() { return expr; }
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<ExprStmt> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
@@ -55,7 +56,8 @@ class DeclStmt : public Stmt {
     DeclStmt(std::shared_ptr<Data> _data, std::shared_ptr<Expr> _expr)
         : data(std::move(_data)), init_expr(std::move(_expr)) {}
     IRNodeKind getKind() final { return IRNodeKind::DECL; }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
 
   private:
     std::shared_ptr<Data> data;
@@ -75,7 +77,8 @@ class StmtBlock : public Stmt {
 
     std::vector<std::shared_ptr<Stmt>> getStmts() { return stmts; }
 
-    void emit(std::ostream &stream, std::string offset = "") override;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") override;
     static std::shared_ptr<StmtBlock>
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
@@ -87,7 +90,8 @@ class StmtBlock : public Stmt {
 class ScopeStmt : public StmtBlock {
   public:
     IRNodeKind getKind() final { return IRNodeKind::SCOPE; }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<ScopeStmt>
     generateStructure(std::shared_ptr<GenCtx> ctx);
 };
@@ -108,9 +112,12 @@ class LoopHead {
     void addSuffix(std::shared_ptr<StmtBlock> _suffix) {
         suffix = std::move(_suffix);
     }
-    void emitPrefix(std::ostream &stream, std::string offset = "");
-    void emitHeader(std::ostream &stream, std::string offset = "");
-    void emitSuffix(std::ostream &stream, std::string offset = "");
+    void emitPrefix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                    std::string offset = "");
+    void emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                    std::string offset = "");
+    void emitSuffix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                    std::string offset = "");
 
     void setIsForeach() { is_foreach = true; }
     bool isForeach() { return is_foreach; }
@@ -137,7 +144,8 @@ class LoopSeqStmt : public LoopStmt {
                 _loop) {
         loops.push_back(std::move(_loop));
     }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<LoopSeqStmt>
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
@@ -155,7 +163,8 @@ class LoopNestStmt : public LoopStmt {
         loops.push_back(std::move(_loop));
     }
     void addBody(std::shared_ptr<ScopeStmt> _body) { body = std::move(_body); }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<LoopNestStmt>
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
@@ -172,7 +181,8 @@ class IfElseStmt : public Stmt {
         : cond(std::move(_cond)), then_br(std::move(_then_br)),
           else_br(std::move(_else_br)) {}
     IRNodeKind getKind() final { return IRNodeKind::IF_ELSE; }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<IfElseStmt>
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) final;
@@ -188,7 +198,8 @@ class StubStmt : public Stmt {
     explicit StubStmt(std::string _text) : text(std::move(_text)) {}
     IRNodeKind getKind() final { return IRNodeKind::STUB; }
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<StubStmt>
     generateStructure(std::shared_ptr<GenCtx> ctx);
 

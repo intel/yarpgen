@@ -52,7 +52,9 @@ void scalarVarTest() {
                     std::to_string(i), ptr_to_type, ptr_to_type->getMin());
                 scalar_var->setCurrentValue(ptr_to_type->getMax());
 
-                CHECK(scalar_var->getName() == std::to_string(i), "Name");
+                CHECK(scalar_var->getName(std::shared_ptr<EmitCtx>()) ==
+                          std::to_string(i),
+                      "Name");
                 CHECK(scalar_var->getType() == ptr_to_type, "Type");
                 CHECK(scalar_var->getUBCode() ==
                           ptr_to_type->getMin().getUBCode(),
@@ -106,7 +108,9 @@ void arrayTest() {
                 auto array = std::make_shared<Array>(std::to_string(i),
                                                      array_type, scalar_var);
 
-                CHECK(array->getName() == std::to_string(i), "Name");
+                CHECK(array->getName(std::shared_ptr<EmitCtx>()) ==
+                          std::to_string(i),
+                      "Name");
                 CHECK(array->getType() == array_type, "Type");
                 CHECK(array->getUBCode() == ptr_to_type->getMin().getUBCode(),
                       "UB Code");

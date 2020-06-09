@@ -29,7 +29,8 @@ int main() {
 
     auto gen_ctx = std::make_shared<GenCtx>();
     auto scope_stmt = ScopeStmt::generateStructure(gen_ctx);
-    scope_stmt->emit(std::cout);
+    auto emit_ctx = std::make_shared<EmitCtx>();
+    scope_stmt->emit(emit_ctx, std::cout);
     std::cout << std::endl;
     return 0;
 }

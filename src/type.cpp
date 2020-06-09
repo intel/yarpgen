@@ -136,6 +136,18 @@ std::shared_ptr<Type> IntegralType::makeVarying() {
     return init(getIntTypeId(), getIsStatic(), getCVQualifier(), false);
 }
 
+std::string IntegralType::getNameImpl(std::shared_ptr<EmitCtx> ctx,
+                                      std::string raw_name) {
+    std::string ret = std::move(raw_name);
+    if (ctx->useIspcTypes()) {
+        ret = getIspcNameHelper();
+        if (!getIsSigned())
+            ret += "unsigned ";
+        ret += "int" + std::to_string(getBitSize());
+    }
+    return ret;
+}
+
 template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, uint32_t bit_size,
@@ -157,8 +169,9 @@ static void dbgDumpHelper(IntTypeID id, const std::string &name,
 
 #define DBG_DUMP_MACROS(type_name)                                             \
     void type_name::dbgDump() {                                                \
+        auto ctx = std::make_shared<EmitCtx>();                                \
         dbgDumpHelper(                                                         \
-            getIntTypeId(), getName(), getLiteralSuffix(), getBitSize(),       \
+            getIntTypeId(), getName(ctx), getLiteralSuffix(), getBitSize(),    \
             getIsSigned(), min.getValueRef<value_type>(),                      \
             max.getValueRef<value_type>(), getIsStatic(), getCVQualifier());   \
     }
@@ -219,9 +232,9 @@ ArrayType::init(std::shared_ptr<Type> _base_type, std::vector<size_t> _dims,
     return ret;
 }
 
-std::string ArrayType::getName() {
+std::string ArrayType::getName(std::shared_ptr<EmitCtx> ctx) {
     // TODO: we need a more correct way to do it
-    return base_type->getName() + " *";
+    return base_type->getName(ctx) + " *";
 }
 
 std::shared_ptr<ArrayType>

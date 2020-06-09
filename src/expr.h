@@ -85,7 +85,8 @@ class ConstantExpr : public Expr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<ConstantExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
@@ -116,8 +117,9 @@ class ScalarVarUseExpr : public VarUseExpr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final {
-        stream << offset << value->getName();
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final {
+        stream << offset << value->getName(ctx);
     };
     static std::shared_ptr<ScalarVarUseExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
@@ -141,8 +143,9 @@ class ArrayUseExpr : public VarUseExpr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final {
-        stream << offset << value->getName();
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final {
+        stream << offset << value->getName(ctx);
     };
 
   private:
@@ -164,8 +167,9 @@ class IterUseExpr : public VarUseExpr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final {
-        stream << offset << value->getName();
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final {
+        stream << offset << value->getName(ctx);
     };
 
   private:
@@ -185,7 +189,8 @@ class TypeCastExpr : public Expr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<TypeCastExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
@@ -221,7 +226,8 @@ class UnaryExpr : public ArithmeticExpr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<UnaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
@@ -239,7 +245,8 @@ class BinaryExpr : public ArithmeticExpr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<BinaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
@@ -258,7 +265,8 @@ class TernaryExpr : public ArithmeticExpr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<TernaryExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
@@ -279,7 +287,8 @@ class SubscriptExpr : public Expr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
     void setValue(std::shared_ptr<Expr> _expr);
@@ -308,7 +317,8 @@ class AssignmentExpr : public Expr {
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
 
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<AssignmentExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
@@ -353,7 +363,8 @@ class MinMaxCallBase : public LibCallExpr {
         b->rebuild(ctx);
         return evaluate(ctx);
     }
-    void emit(std::ostream &stream, std::string offset = "");
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "");
 
   protected:
     MinMaxCallBase(std::shared_ptr<Expr> _a, std::shared_ptr<Expr> _b,
@@ -392,7 +403,8 @@ class SelectCall : public LibCallExpr {
     bool propagateType() final;
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
@@ -410,7 +422,8 @@ class LogicalReductionBase : public LibCallExpr {
         arg->rebuild(ctx);
         return evaluate(ctx);
     }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
 
   protected:
     LogicalReductionBase(std::shared_ptr<Expr> _arg, LibCallKind _kind);
@@ -461,7 +474,8 @@ class MinMaxEqReductionBase : public LibCallExpr {
         arg->rebuild(ctx);
         return evaluate(ctx);
     }
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
 
   protected:
     MinMaxEqReductionBase(std::shared_ptr<Expr> _arg, LibCallKind _kind);
@@ -514,7 +528,8 @@ class ExtractCall : public LibCallExpr {
         arg->rebuild(ctx);
         return evaluate(ctx);
     };
-    void emit(std::ostream &stream, std::string offset = "") final;
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") final;
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 

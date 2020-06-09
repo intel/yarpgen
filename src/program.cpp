@@ -68,20 +68,23 @@ void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
     out_file << "}\n\n";
 }
 
-static void emitVarsDecl(std::ostream &stream,
+static void emitVarsDecl(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                          std::vector<std::shared_ptr<ScalarVar>> vars) {
     Options &options = Options::getInstance();
+    if (options.isSYCL())
+        ctx->setSYCLPrefix("app_");
     for (auto &var : vars) {
         if (!options.getAllowDeadData() && var->getIsDead())
             continue;
         auto init_val = std::make_shared<ConstantExpr>(var->getInitValue());
         auto decl_stmt = std::make_shared<DeclStmt>(var, init_val);
-        decl_stmt->emit(stream);
+        decl_stmt->emit(ctx, stream);
         stream << "\n";
     }
+    ctx->setSYCLPrefix("");
 }
 
-static void emitArrayDecl(std::ostream &stream,
+static void emitArrayDecl(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                           std::vector<std::shared_ptr<Array>> arrays) {
     Options &options = Options::getInstance();
     for (auto &array : arrays) {
@@ -90,8 +93,8 @@ static void emitArrayDecl(std::ostream &stream,
         auto type = array->getType();
         assert(type->isArrayType() && "Array should have an Array type");
         auto array_type = std::static_pointer_cast<ArrayType>(type);
-        stream << array_type->getBaseType()->getName() << " ";
-        stream << array->getName() << " ";
+        stream << array_type->getBaseType()->getName(ctx) << " ";
+        stream << array->getName(ctx) << " ";
         for (const auto &dimension : array_type->getDimensions()) {
             stream << "[" << dimension << "] ";
         }
@@ -102,15 +105,16 @@ static void emitArrayDecl(std::ostream &stream,
     }
 }
 
-void ProgramGenerator::emitDecl(std::ostream &stream) {
-    emitVarsDecl(stream, ext_inp_sym_tbl->getVars());
-    emitVarsDecl(stream, ext_out_sym_tbl->getVars());
+void ProgramGenerator::emitDecl(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream) {
+    emitVarsDecl(ctx, stream, ext_inp_sym_tbl->getVars());
+    emitVarsDecl(ctx, stream, ext_out_sym_tbl->getVars());
 
-    emitArrayDecl(stream, ext_inp_sym_tbl->getArrays());
-    emitArrayDecl(stream, ext_out_sym_tbl->getArrays());
+    emitArrayDecl(ctx, stream, ext_inp_sym_tbl->getArrays());
+    emitArrayDecl(ctx, stream, ext_out_sym_tbl->getArrays());
 }
 
-static void emitArrayInit(std::ostream &stream,
+static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                           std::vector<std::shared_ptr<Array>> arrays) {
     Options &options = Options::getInstance();
     for (const auto &array : arrays) {
@@ -127,7 +131,7 @@ static void emitArrayInit(std::ostream &stream,
             offset += "    ";
             idx++;
         }
-        stream << offset << array->getName() << " ";
+        stream << offset << array->getName(ctx) << " ";
         for (size_t i = 0; i < idx; ++i)
             stream << "[i_" << i << "] ";
         stream << "= ";
@@ -137,41 +141,52 @@ static void emitArrayInit(std::ostream &stream,
         auto init_scalar_var = std::static_pointer_cast<ScalarVar>(init_var);
         auto init_const =
             std::make_shared<ConstantExpr>(init_scalar_var->getInitValue());
-        init_const->emit(stream);
+        init_const->emit(ctx, stream);
         stream << ";\n";
     }
 }
 
-void ProgramGenerator::emitInit(std::ostream &stream) {
+void ProgramGenerator::emitInit(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream) {
     stream << "void init() {\n";
-    emitArrayInit(stream, ext_inp_sym_tbl->getArrays());
-    emitArrayInit(stream, ext_out_sym_tbl->getArrays());
+    emitArrayInit(ctx, stream, ext_inp_sym_tbl->getArrays());
+    emitArrayInit(ctx, stream, ext_out_sym_tbl->getArrays());
     stream << "}\n\n";
 }
 
-void ProgramGenerator::emitCheck(std::ostream &stream) {
+void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
+                                 std::ostream &stream) {
     stream << "void checksum() {\n";
 
     Options &options = Options::getInstance();
 
-    EmitPolicy emit_pol;
+    auto emit_pol = ctx->getEmitPolicy();
+
+    if (options.isSYCL())
+        ctx->setSYCLPrefix("app_");
+
     for (auto &var : ext_out_sym_tbl->getVars()) {
         bool use_assert = false;
         if (options.useAsserts() == OptionLevel::SOME)
-            use_assert = rand_val_gen->getRandId(emit_pol.asserts_check_distr);
+            use_assert = rand_val_gen->getRandId(emit_pol->asserts_check_distr);
         else if (options.useAsserts() == OptionLevel::ALL)
             use_assert = true;
 
-        if (!use_assert)
-            stream << "    hash(&seed, " << var->getName() << ");\n";
+        std::string var_name = var->getName(ctx);
+
+        if (!use_assert) {
+            stream << "    hash(&seed, " << var_name << ");\n";
+        }
         else {
             auto const_val =
                 std::make_shared<ConstantExpr>(var->getCurrentValue());
-            stream << "    assert(" << var->getName() << " == ";
-            const_val->emit(stream);
+            stream << "    assert(" << var_name << " == ";
+            const_val->emit(ctx, stream);
             stream << ");\n";
         }
     }
+
+    ctx->setSYCLPrefix("");
 
     for (const auto &array : ext_out_sym_tbl->getArrays()) {
         std::string offset = "    ";
@@ -188,7 +203,7 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
 
         bool use_assert = false;
         if (options.useAsserts() == OptionLevel::SOME)
-            use_assert = rand_val_gen->getRandId(emit_pol.asserts_check_distr);
+            use_assert = rand_val_gen->getRandId(emit_pol->asserts_check_distr);
         else if (options.useAsserts() == OptionLevel::ALL)
             use_assert = true;
 
@@ -197,7 +212,7 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
         else
             stream << "    assert(";
         std::stringstream ss;
-        ss << array->getName() << " ";
+        ss << array->getName(ctx) << " ";
         for (size_t i = 0; i < idx; ++i)
             ss << "[i_" << i << "] ";
         std::string arr_name = ss.str();
@@ -210,14 +225,14 @@ void ProgramGenerator::emitCheck(std::ostream &stream) {
                 std::static_pointer_cast<ScalarVar>(array->getCurrentValues())
                     ->getCurrentValue());
             stream << "== ";
-            const_val->emit(stream);
+            const_val->emit(ctx, stream);
             stream << " || " << arr_name << " == ";
             if (!array->getInitValues()->isScalarVar())
                 ERROR("We support only scalar variables for now");
             const_val = std::make_shared<ConstantExpr>(
                 std::static_pointer_cast<ScalarVar>(array->getInitValues())
                     ->getCurrentValue());
-            const_val->emit(stream);
+            const_val->emit(ctx, stream);
         }
         stream << ");\n";
     }
@@ -229,11 +244,13 @@ static std::vector<std::string> pass_as_param_buffer;
 static bool any_vars_as_params = false;
 static bool any_arrays_as_params = false;
 
-static void emitVarExtDecl(std::ostream &stream,
+static void emitVarExtDecl(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                            std::vector<std::shared_ptr<ScalarVar>> vars,
                            bool inp_category) {
-    EmitPolicy emit_pol;
+    auto emit_pol = ctx->getEmitPolicy();
     Options &options = Options::getInstance();
+    if (options.isSYCL())
+        ctx->setSYCLPrefix("app_");
     for (auto &var : vars) {
         if (!options.getAllowDeadData() && var->getIsDead())
             continue;
@@ -241,27 +258,28 @@ static void emitVarExtDecl(std::ostream &stream,
         if (inp_category) {
             if (options.inpAsArgs() == OptionLevel::SOME)
                 pass_as_param =
-                    rand_val_gen->getRandId(emit_pol.pass_as_param_distr);
+                    rand_val_gen->getRandId(emit_pol->pass_as_param_distr);
             else if (options.inpAsArgs() == OptionLevel::ALL)
                 pass_as_param = true;
         }
 
         if (pass_as_param) {
-            pass_as_param_buffer.push_back(var->getName());
+            pass_as_param_buffer.push_back(var->getName(ctx));
             any_vars_as_params = true;
             continue;
         }
         stream << "extern ";
-        stream << (options.isISPC() ? var->getType()->getIspcName()
-                                    : var->getType()->getName());
-        stream << " " << var->getName() << ";\n";
+        stream << var->getType()->getName(ctx);
+        stream << " ";
+        stream << var->getName(ctx) << ";\n";
     }
+    ctx->setSYCLPrefix("");
 }
 
-static void emitArrayExtDecl(std::ostream &stream,
+static void emitArrayExtDecl(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                              std::vector<std::shared_ptr<Array>> arrays,
                              bool inp_category) {
-    EmitPolicy emit_pol;
+    auto emit_pol = ctx->getEmitPolicy();
     Options &options = Options::getInstance();
     for (auto &array : arrays) {
         if (!options.getAllowDeadData() && array->getIsDead())
@@ -270,13 +288,13 @@ static void emitArrayExtDecl(std::ostream &stream,
         if (inp_category) {
             if (options.inpAsArgs() == OptionLevel::SOME)
                 pass_as_param =
-                    rand_val_gen->getRandId(emit_pol.pass_as_param_distr);
+                    rand_val_gen->getRandId(emit_pol->pass_as_param_distr);
             else if (options.inpAsArgs() == OptionLevel::ALL)
                 pass_as_param = true;
         }
 
         if (pass_as_param) {
-            pass_as_param_buffer.push_back(array->getName());
+            pass_as_param_buffer.push_back(array->getName(ctx));
             any_arrays_as_params = true;
             continue;
         }
@@ -285,10 +303,9 @@ static void emitArrayExtDecl(std::ostream &stream,
         assert(type->isArrayType() && "Array should have an Array type");
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         stream << "extern ";
-        stream << (options.isISPC() ? array_type->getBaseType()->getIspcName()
-                                    : array_type->getBaseType()->getName());
+        stream << array_type->getBaseType()->getName(ctx);
         stream << " ";
-        stream << array->getName() << " ";
+        stream << array->getName(ctx) << " ";
         for (const auto &dimension : array_type->getDimensions()) {
             stream << "[" << dimension << "] ";
         }
@@ -298,12 +315,12 @@ static void emitArrayExtDecl(std::ostream &stream,
             bool emit_align_attr = true;
             if (options.getEmitAlignAttr() == OptionLevel::SOME)
                 emit_align_attr =
-                    rand_val_gen->getRandId(emit_pol.emit_align_attr_distr);
+                    rand_val_gen->getRandId(emit_pol->emit_align_attr_distr);
             if (emit_align_attr) {
                 AlignmentSize align_size = options.getAlignSize();
                 if (!options.getUniqueAlignSize())
                     align_size =
-                        rand_val_gen->getRandId(emit_pol.align_size_distr);
+                        rand_val_gen->getRandId(emit_pol->align_size_distr);
                 size_t alignment = 0;
                 switch (align_size) {
                     case AlignmentSize::A16:
@@ -327,39 +344,46 @@ static void emitArrayExtDecl(std::ostream &stream,
     }
 }
 
-void ProgramGenerator::emitExtDecl(std::ostream &stream) {
-    emitVarExtDecl(stream, ext_inp_sym_tbl->getVars(), true);
-    emitVarExtDecl(stream, ext_out_sym_tbl->getVars(), false);
-    emitArrayExtDecl(stream, ext_inp_sym_tbl->getArrays(), true);
-    emitArrayExtDecl(stream, ext_out_sym_tbl->getArrays(), false);
+void ProgramGenerator::emitExtDecl(std::shared_ptr<EmitCtx> ctx,
+                                   std::ostream &stream) {
+    Options &options = Options::getInstance();
+    if (options.isISPC())
+        ctx->setIspcTypes(true);
+    emitVarExtDecl(ctx, stream, ext_inp_sym_tbl->getVars(), true);
+    emitVarExtDecl(ctx, stream, ext_out_sym_tbl->getVars(), false);
+    emitArrayExtDecl(ctx, stream, ext_inp_sym_tbl->getArrays(), true);
+    emitArrayExtDecl(ctx, stream, ext_out_sym_tbl->getArrays(), false);
+    ctx->setIspcTypes(false);
 }
 
 static std::string placeSep(bool cond) { return cond ? ", " : ""; }
 
-static bool emitVarFuncParam(std::ostream &stream,
+static bool emitVarFuncParam(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                              std::vector<std::shared_ptr<ScalarVar>> vars,
                              bool emit_type, bool ispc_type) {
     bool emit_any = false;
     Options &options = Options::getInstance();
+    if (options.isSYCL())
+        ctx->setSYCLPrefix("app_");
     for (auto &var : vars) {
         if (!options.getAllowDeadData() && var->getIsDead())
             continue;
         if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(),
-                      var->getName()) == pass_as_param_buffer.end())
+                      var->getName(ctx)) == pass_as_param_buffer.end())
             continue;
 
         stream << placeSep(emit_any);
         if (emit_type)
-            stream << (ispc_type ? var->getType()->getIspcName()
-                                 : var->getType()->getName())
-                   << " ";
-        stream << var->getName();
+            stream << var->getType()->getName(ctx) << " ";
+        stream << var->getName(ctx);
         emit_any = true;
     }
+    ctx->setSYCLPrefix("");
     return emit_any;
 }
 
-static void emitArrayFuncParam(std::ostream &stream, bool prev_category_exist,
+static void emitArrayFuncParam(std::shared_ptr<EmitCtx> ctx,
+                               std::ostream &stream, bool prev_category_exist,
                                std::vector<std::shared_ptr<Array>> arrays,
                                bool emit_type, bool ispc_type, bool emit_dims) {
     bool first = true;
@@ -368,7 +392,7 @@ static void emitArrayFuncParam(std::ostream &stream, bool prev_category_exist,
         if (!options.getAllowDeadData() && array->getIsDead())
             continue;
         if (std::find(pass_as_param_buffer.begin(), pass_as_param_buffer.end(),
-                      array->getName()) == pass_as_param_buffer.end())
+                      array->getName(ctx)) == pass_as_param_buffer.end())
             continue;
 
         auto type = array->getType();
@@ -376,10 +400,8 @@ static void emitArrayFuncParam(std::ostream &stream, bool prev_category_exist,
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         stream << placeSep(prev_category_exist || !first);
         if (emit_type)
-            stream << (ispc_type ? array_type->getBaseType()->getIspcName()
-                                 : array_type->getBaseType()->getName())
-                   << " ";
-        stream << array->getName() << " ";
+            stream << array_type->getBaseType()->getName(ctx) << " ";
+        stream << array->getName(ctx) << " ";
         if (emit_dims)
             for (const auto &dimension : array_type->getDimensions())
                 stream << "[" << dimension << "] ";
@@ -388,27 +410,89 @@ static void emitArrayFuncParam(std::ostream &stream, bool prev_category_exist,
     }
 }
 
-void ProgramGenerator::emitTest(std::ostream &stream) {
+void emitSYCLBuffers(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                     std::string offset,
+                     std::vector<std::shared_ptr<ScalarVar>> vars) {
     Options &options = Options::getInstance();
-    stream << "#include \"init.h\"\n";
-    if (!options.isISPC()) {
-        stream << "#include <algorithm>\n";
+    for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
+        stream << offset << "buffer<";
+        stream << var->getType()->getName(ctx);
+        stream << ", 1> " << var->getName(ctx) << "_buf { ";
+        stream << "&app_" << var->getName(ctx) << ", range<1>(1) };\n";
     }
-    if (options.isISPC())
-        stream << "export ";
-    stream << "void test(";
-
-    bool emit_any = emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true,
-                                     options.isISPC());
-
-    emitArrayFuncParam(stream, emit_any, ext_inp_sym_tbl->getArrays(), true,
-                       options.isISPC(), true);
-
-    stream << ") ";
-    new_test->emit(stream);
 }
 
-void ProgramGenerator::emitMain(std::ostream &stream) {
+void emitSYCLAccessors(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                       std::string offset,
+                       std::vector<std::shared_ptr<ScalarVar>> vars,
+                       bool is_inp) {
+    Options &options = Options::getInstance();
+    for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
+        stream << offset << "auto " << var->getName(ctx) << " = ";
+        stream << var->getName(ctx) << "_buf.get_access<access::mode::";
+        stream << (is_inp ? "read" : "write") << ">(cgh);\n";
+    }
+}
+
+void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream) {
+    Options &options = Options::getInstance();
+    stream << "#include \"init.h\"\n";
+    if (options.isCXX())
+        stream << "#include <algorithm>\n";
+    else if (options.isSYCL())
+        stream << "#include <CL/sycl.hpp>\n";
+
+    if (options.isISPC()) {
+        ctx->setIspcTypes(true);
+        stream << "export ";
+    }
+    stream << "void test(";
+
+    bool emit_any = emitVarFuncParam(ctx, stream, ext_inp_sym_tbl->getVars(),
+                                     true, options.isISPC());
+
+    emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
+                       true, options.isISPC(), true);
+
+    stream << ") ";
+
+    if (options.isSYCL()) {
+        stream << "{\n";
+        stream << "    using namespace cl::sycl;\n\n";
+        stream << "    {\n";
+        stream << "        queue myQueue;\n";
+        emitSYCLBuffers(ctx, stream, "        ", ext_inp_sym_tbl->getVars());
+        emitSYCLBuffers(ctx, stream, "        ", ext_out_sym_tbl->getVars());
+
+        stream << "        myQueue.submit([&](handler & cgh) {\n";
+        emitSYCLAccessors(ctx, stream, "            ",
+                          ext_inp_sym_tbl->getVars(), true);
+        emitSYCLAccessors(ctx, stream, "            ",
+                          ext_out_sym_tbl->getVars(), false);
+        stream << "            cgh.single_task<class test_func>([=] ()\n";
+    }
+
+    if (options.isSYCL())
+        ctx->setSYCLAccess(true);
+    new_test->emit(ctx, stream, !options.isSYCL() ? "" : "            ");
+
+    if (options.isSYCL()) {
+        stream << "            );\n";
+        stream << "        });\n";
+        stream << "    }\n";
+        stream << "}\n";
+    }
+    ctx->setSYCLAccess(false);
+    ctx->setIspcTypes(false);
+}
+
+void ProgramGenerator::emitMain(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream) {
     Options &options = Options::getInstance();
     if (options.isISPC())
         stream << "extern \"C\" { ";
@@ -416,22 +500,23 @@ void ProgramGenerator::emitMain(std::ostream &stream) {
     stream << "void test(";
 
     bool emit_any =
-        emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), true, false);
-    emitArrayFuncParam(stream, emit_any, ext_inp_sym_tbl->getArrays(), true,
-                       false, true);
+        emitVarFuncParam(ctx, stream, ext_inp_sym_tbl->getVars(), true, false);
+    emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
+                       true, false, true);
 
     stream << ");";
     if (options.isISPC())
         stream << " }\n";
+    stream << "\n\n";
     stream << "int main() {\n";
     stream << "    init();\n";
     stream << "    test(";
 
     emit_any =
-        emitVarFuncParam(stream, ext_inp_sym_tbl->getVars(), false, false);
+        emitVarFuncParam(ctx, stream, ext_inp_sym_tbl->getVars(), false, false);
 
-    emitArrayFuncParam(stream, emit_any, ext_inp_sym_tbl->getArrays(), false,
-                       false, false);
+    emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
+                       false, false, false);
 
     stream << ");\n";
     stream << "    checksum();\n";
@@ -441,31 +526,30 @@ void ProgramGenerator::emitMain(std::ostream &stream) {
 
 void ProgramGenerator::emit() {
     Options &options = Options::getInstance();
-
+    auto emit_ctx = std::make_shared<EmitCtx>();
     // We need to narrow options if we were asked to do so
     if (options.getUniqueAlignSize() &&
         options.getAlignSize() == AlignmentSize::MAX_ALIGNMENT_SIZE) {
-        EmitPolicy emit_pol;
-        AlignmentSize align_size =
-            rand_val_gen->getRandId(emit_pol.align_size_distr);
+        AlignmentSize align_size = rand_val_gen->getRandId(
+            emit_ctx->getEmitPolicy()->align_size_distr);
         options.setAlignSize(align_size);
     }
 
     std::ofstream out_file;
 
     out_file.open("init.h");
-    emitExtDecl(out_file);
+    emitExtDecl(emit_ctx, out_file);
     out_file.close();
 
     out_file.open(!options.isISPC() ? "func.cpp" : "func.ispc");
-    emitTest(out_file);
+    emitTest(emit_ctx, out_file);
     out_file.close();
 
     out_file.open("driver.cpp");
     emitCheckFunc(out_file);
-    emitDecl(out_file);
-    emitInit(out_file);
-    emitCheck(out_file);
-    emitMain(out_file);
+    emitDecl(emit_ctx, out_file);
+    emitInit(emit_ctx, out_file);
+    emitCheck(emit_ctx, out_file);
+    emitMain(emit_ctx, out_file);
     out_file.close();
 }

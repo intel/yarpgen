@@ -48,7 +48,8 @@ Expr::EvalResType ConstantExpr::evaluate(EvalCtx &ctx) { return value; }
 
 Expr::EvalResType ConstantExpr::rebuild(EvalCtx &ctx) { return evaluate(ctx); }
 
-void ConstantExpr::emit(std::ostream &stream, std::string offset) {
+void ConstantExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                        std::string offset) {
     assert(value->isScalarVar() &&
            "ConstExpr can represent only scalar constant");
     auto scalar_var = std::static_pointer_cast<ScalarVar>(value);
@@ -59,9 +60,9 @@ void ConstantExpr::emit(std::ostream &stream, std::string offset) {
         std::static_pointer_cast<IntegralType>(scalar_var->getType());
 
     Options &options = Options::getInstance();
-    auto emit_helper = [&stream, &int_type, &options]() {
+    auto emit_helper = [&stream, &int_type, &options, &ctx]() {
         if (options.isCXX() && int_type->getIntTypeId() < IntTypeID::INT)
-            stream << "(" << int_type->getName() << ")";
+            stream << "(" << int_type->getName(ctx) << ")";
     };
 
     IRValue val = scalar_var->getCurrentValue();
@@ -118,7 +119,8 @@ void ScalarVarUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 
 Expr::EvalResType ScalarVarUseExpr::evaluate(EvalCtx &ctx) {
     // This variable is defined and we can just return it.
-    auto find_res = ctx.input.find(value->getName());
+    auto emit_ctx = std::make_shared<EmitCtx>();
+    auto find_res = ctx.input.find(value->getName(emit_ctx));
     if (find_res != ctx.input.end()) {
         return find_res->second;
     }
@@ -164,7 +166,8 @@ void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 
 Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
     // This Array is defined and we can just return it.
-    auto find_res = ctx.input.find(value->getName());
+    auto emit_ctx = std::make_shared<EmitCtx>();
+    auto find_res = ctx.input.find(value->getName(emit_ctx));
     if (find_res != ctx.input.end()) {
         return find_res->second;
     }
@@ -198,7 +201,8 @@ void IterUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 
 Expr::EvalResType IterUseExpr::evaluate(EvalCtx &ctx) {
     // This iterator is defined and we can just return it.
-    auto find_res = ctx.input.find(value->getName());
+    auto emit_ctx = std::make_shared<EmitCtx>();
+    auto find_res = ctx.input.find(value->getName(emit_ctx));
     if (find_res != ctx.input.end()) {
         return find_res->second;
     }
@@ -223,13 +227,12 @@ bool TypeCastExpr::propagateType() {
     return true;
 }
 
-void TypeCastExpr::emit(std::ostream &stream, std::string offset) {
+void TypeCastExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                        std::string offset) {
     // TODO: add switch for C++ style conversions and switch for implicit casts
-    Options &options = Options::getInstance();
     stream << "((" << (is_implicit ? "/* implicit */" : "")
-           << (!options.isISPC() ? to_type->getName() : to_type->getIspcName())
-           << ") ";
-    expr->emit(stream);
+           << to_type->getName(ctx) << ") ";
+    expr->emit(ctx, stream);
     stream << ")";
 }
 
@@ -639,7 +642,8 @@ Expr::EvalResType UnaryExpr::rebuild(EvalCtx &ctx) {
     return value;
 }
 
-void UnaryExpr::emit(std::ostream &stream, std::string offset) {
+void UnaryExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                     std::string offset) {
     stream << offset << "(";
     switch (op) {
         case UnaryOp::PLUS:
@@ -659,7 +663,7 @@ void UnaryExpr::emit(std::ostream &stream, std::string offset) {
             break;
     }
     stream << "(";
-    arg->emit(stream);
+    arg->emit(ctx, stream);
     stream << "))";
 }
 std::shared_ptr<UnaryExpr> UnaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
@@ -950,9 +954,10 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
     return eval_res;
 }
 
-void BinaryExpr::emit(std::ostream &stream, std::string offset) {
+void BinaryExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                      std::string offset) {
     stream << offset << "((";
-    lhs->emit(stream);
+    lhs->emit(ctx, stream);
     stream << ")";
     switch (op) {
         case BinaryOp::ADD:
@@ -1014,7 +1019,7 @@ void BinaryExpr::emit(std::ostream &stream, std::string offset) {
             break;
     }
     stream << "(";
-    rhs->emit(stream);
+    rhs->emit(ctx, stream);
     stream << "))";
 }
 
@@ -1088,13 +1093,14 @@ Expr::EvalResType TernaryExpr::rebuild(EvalCtx &ctx) {
     return evaluate(ctx);
 }
 
-void TernaryExpr::emit(std::ostream &stream, std::string offset) {
+void TernaryExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                       std::string offset) {
     stream << offset << "((";
-    cond->emit(stream);
+    cond->emit(ctx, stream);
     stream << ") ? (";
-    true_br->emit(stream);
+    true_br->emit(ctx, stream);
     stream << ") : (";
-    false_br->emit(stream);
+    false_br->emit(ctx, stream);
     stream << "))";
 }
 
@@ -1216,12 +1222,13 @@ Expr::EvalResType SubscriptExpr::rebuild(EvalCtx &ctx) {
     return eval_res;
 }
 
-void SubscriptExpr::emit(std::ostream &stream, std::string offset) {
+void SubscriptExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                         std::string offset) {
     stream << offset;
     // TODO: it may cause some problems in the future
-    array->emit(stream);
+    array->emit(ctx, stream);
     stream << " [";
-    idx->emit(stream);
+    idx->emit(ctx, stream);
     stream << "]";
 }
 
@@ -1322,11 +1329,12 @@ Expr::EvalResType AssignmentExpr::rebuild(EvalCtx &ctx) {
     return evaluate(ctx);
 }
 
-void AssignmentExpr::emit(std::ostream &stream, std::string offset) {
+void AssignmentExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                          std::string offset) {
     stream << offset;
-    to->emit(stream);
+    to->emit(ctx, stream);
     stream << " = ";
-    from->emit(stream);
+    from->emit(ctx, stream);
 }
 
 std::shared_ptr<AssignmentExpr>
@@ -1518,7 +1526,8 @@ Expr::EvalResType MinMaxCallBase::evaluate(yarpgen::EvalCtx &ctx) {
     return value;
 }
 
-void MinMaxCallBase::emit(std::ostream &stream, std::string offset) {
+void MinMaxCallBase::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                          std::string offset) {
     Options &options = Options::getInstance();
     stream << offset;
     if (options.isCXX())
@@ -1530,9 +1539,9 @@ void MinMaxCallBase::emit(std::ostream &stream, std::string offset) {
     else
         ERROR("Unsupported LibCallKind");
     stream << "((";
-    a->emit(stream);
+    a->emit(ctx, stream);
     stream << "), (";
-    b->emit(stream);
+    b->emit(ctx, stream);
     stream << "))";
 }
 
@@ -1651,13 +1660,14 @@ Expr::EvalResType SelectCall::rebuild(EvalCtx &ctx) {
     return evaluate(ctx);
 }
 
-void SelectCall::emit(std::ostream &stream, std::string offset) {
+void SelectCall::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                      std::string offset) {
     stream << offset << "select((";
-    cond->emit(stream);
+    cond->emit(ctx, stream);
     stream << "), (";
-    true_arg->emit(stream);
+    true_arg->emit(ctx, stream);
     stream << "), (";
-    false_arg->emit(stream);
+    false_arg->emit(ctx, stream);
     stream << "))";
 }
 
@@ -1707,7 +1717,8 @@ Expr::EvalResType LogicalReductionBase::evaluate(EvalCtx &ctx) {
     return value;
 }
 
-void LogicalReductionBase::emit(std::ostream &stream, std::string offset) {
+void LogicalReductionBase::emit(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream, std::string offset) {
     stream << offset;
     if (kind == LibCallKind::ANY)
         stream << "any";
@@ -1718,7 +1729,7 @@ void LogicalReductionBase::emit(std::ostream &stream, std::string offset) {
     else
         ERROR("Unsupported LibCallKind");
     stream << "((";
-    arg->emit(stream);
+    arg->emit(ctx, stream);
     stream << "))";
 }
 
@@ -1778,7 +1789,8 @@ Expr::EvalResType MinMaxEqReductionBase::evaluate(EvalCtx &ctx) {
     return value;
 }
 
-void MinMaxEqReductionBase::emit(std::ostream &stream, std::string offset) {
+void MinMaxEqReductionBase::emit(std::shared_ptr<EmitCtx> ctx,
+                                 std::ostream &stream, std::string offset) {
     stream << offset;
     if (kind == LibCallKind::RED_MIN)
         stream << "reduce_min";
@@ -1789,7 +1801,7 @@ void MinMaxEqReductionBase::emit(std::ostream &stream, std::string offset) {
     else
         ERROR("Unsupported LibCallKind");
     stream << "((";
-    arg->emit(stream);
+    arg->emit(ctx, stream);
     stream << "))";
 }
 
@@ -1836,12 +1848,13 @@ Expr::EvalResType ExtractCall::evaluate(EvalCtx &ctx) {
     return value;
 }
 
-void ExtractCall::emit(std::ostream &stream, std::string offset) {
+void ExtractCall::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                       std::string offset) {
     stream << offset << "extract";
     stream << "((";
-    arg->emit(stream);
+    arg->emit(ctx, stream);
     stream << "), (";
-    idx->emit(stream);
+    idx->emit(ctx, stream);
     stream << "))";
 }
 
