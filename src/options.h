@@ -48,6 +48,7 @@ struct Options {
 
     StandardID standard_id;
     bool mode_64bit;
+    bool windows_mode;
 
     bool include_valarray;
     bool include_vector;

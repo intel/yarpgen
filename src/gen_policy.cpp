@@ -153,8 +153,10 @@ void GenPolicy::init_from_config () {
     rand_val_gen->shuffle_prob(member_class_prob);
     min_bit_field_size = MIN_BIT_FIELD_SIZE;
     max_bit_field_size = MAX_BIT_FIELD_SIZE;
-    bit_field_prob.push_back(Probability<BitFieldID>(UNNAMED, 15));
-    bit_field_prob.push_back(Probability<BitFieldID>(NAMED, 20));
+    if (!options->windows_mode) {
+        bit_field_prob.push_back(Probability<BitFieldID>(UNNAMED, 15));
+        bit_field_prob.push_back(Probability<BitFieldID>(NAMED, 20));
+    }
     bit_field_prob.push_back(Probability<BitFieldID>(MAX_BIT_FIELD_ID, 65));
     rand_val_gen->shuffle_prob(bit_field_prob);
 

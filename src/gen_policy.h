@@ -60,13 +60,7 @@ class RandValGen {
 
         template<typename T>
         T get_rand_value (T from, T to) {
-            // Using long long instead of T is a hack.
-            // get_rand_value is used with all kind of integer types, including chars.
-            // While standard is not allowing it to be used with uniform_int_distribution<>
-            // algorithm. Though, clang and gcc ok with it, but VS doesn't compile such code.
-            // For details see C++17, $26.5.1.1e [rand.req.genl]. This issue is also discussed
-            // in issue 2326 (closed as not a defect and reopened as feature request N4296).
-            std::uniform_int_distribution<long long> dis(from, to);
+            std::uniform_int_distribution<T> dis(from, to);
             return dis(rand_gen);
         }
 
@@ -120,6 +114,18 @@ template <>
 inline bool RandValGen::get_rand_value<bool> (bool from, bool to) {
     std::uniform_int_distribution<int> dis((int)from, (int)to);
     return (bool)dis(rand_gen);
+}
+
+template <>
+inline signed char RandValGen::get_rand_value<signed char>(signed char from, signed char to) {
+    std::uniform_int_distribution<int> dis((int)from, (int)to);
+    return (signed char)dis(rand_gen);
+}
+
+template <>
+inline unsigned char RandValGen::get_rand_value<unsigned char>(unsigned char from, unsigned char to) {
+    std::uniform_int_distribution<int> dis((int)from, (int)to);
+    return (unsigned char)dis(rand_gen);
 }
 
 extern std::shared_ptr<RandValGen> rand_val_gen;

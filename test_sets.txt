@@ -41,6 +41,9 @@ ubsan_clang | clang++             | clang             | -fsanitize=undefined -fn
 ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive | -march=
 icc         | icpc                | icc               | -w                                                          | -x
 icx         | icpx                | icx               | -w                                                          | -march=
+icx         | icpx                | icx               | -w                                                          | -march=
+
+cl          | cl.exe              | cl.exe            | /w                                                          | /arch:
 
 Testing sets:
 # Set name - codename for testing set
@@ -82,6 +85,9 @@ icc_opt          | icc       | -O3       |                |
 
 icx_no_opt       | icx       | -O0       |                |
 icx_opt          | icx       | -O3       |                |
+
+cl_no_opt        | cl       | /Od       |                |
+cl_opt           | cl       | /O2       |                |
 
 Options for statistics' capture:
 #Spec name  | Arguments

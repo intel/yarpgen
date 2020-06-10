@@ -24,6 +24,7 @@ import collections
 import enum
 import logging
 import os
+import platform
 import sys
 import re
 
@@ -71,7 +72,7 @@ Makefile_variable_list.append(sources)
 headers = MakefileVariable("HEADERS", "init.h")
 Makefile_variable_list.append(headers)
 
-executable = MakefileVariable("EXECUTABLE", "out")
+executable = MakefileVariable("EXECUTABLE", "out" + ("" if not common.is_windows else ".exe"))
 Makefile_variable_list.append(executable)
 # Makefile_variable_list.append(Makefile_variable("",""))
 
@@ -309,8 +310,9 @@ def parse_config(file_name):
 
 
 def detect_native_arch():
-    check_isa_file = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name)
-    check_isa_binary = os.path.abspath(common.yarpgen_home + os.sep + check_isa_file_name.replace(".cpp", ""))
+    check_isa_file = os.path.abspath(os.path.join(common.yarpgen_home, check_isa_file_name))
+    check_isa_binary = os.path.abspath(os.path.join(common.yarpgen_home,
+                       check_isa_file_name.replace(".cpp", "" if not common.is_windows else ".exe")))
 
     sys_compiler = ""
     for key in CompilerSpecs.all_comp_specs:
@@ -324,8 +326,14 @@ def detect_native_arch():
     if not common.if_exec_exist(check_isa_binary):
         if not os.path.exists(check_isa_file):
             common.print_and_exit("Can't find " + check_isa_file)
+        cmd_list = [sys_compiler, check_isa_file]
+        if not common.is_windows:
+            cmd_list.append("-o")
+            cmd_list.append(check_isa_binary)
+        else:
+            cmd_list.append("-DWINDOWS")
         ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None)
+            common.run_cmd(cmd_list, None)
         if ret_code != 0:
             common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
 
@@ -396,8 +404,10 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
                               StatisticsOptions.get_options(target.specs) + "\n"
                     stat_targets.remove(stat_target)
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
-        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"
-        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
+        obj_extension = "o" if not common.is_windows else "obj"
+        output_flag = "-o " if not common.is_windows else "/Fe"
+        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=." + obj_extension + "))\n"
+        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) " + output_flag + "$(EXECUTABLE) $^\n\n"
 
     if stat_targets is not None and len(stat_targets) != 0:
         common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets), forced_duplication=True)
@@ -413,18 +423,21 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             source_prefix = "$(TEST_PWD)/"
             force_str = "\n"
         source_name = source.split(".")[0]
-        output += "%" + source_name + ".o: " + source_prefix + source + force_str
+        obj_extension = "o" if not common.is_windows else "obj"
+        output += "%" + source_name + "." + obj_extension + ": " + source_prefix + source + force_str
         # For performance reasons driver should always be compiled with -O0
         optflags_name = "$(OPTFLAGS)" if source_name != "driver" else "$(DRIVER_OPTFLAGS)"
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " -o $@ -c $<"
+        output_flag = "-o " if not common.is_windows else "/Fo"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " " + output_flag + "$@ -c $<"
         if source_name == "func":
             output += " $(STATFLAGS) "
             if inject_blame_opt is not None:
                 output += " $(BLAMEOPTS) "
         output += "\n\n"
 
+    obj_extension = "o" if not common.is_windows else "obj"
     output += "clean:\n"
-    output += "\trm *.o *_$(EXECUTABLE)\n\n"
+    output += "\trm *." + obj_extension + " *_$(EXECUTABLE)\n\n"
 
     # 5. Define run targets
     native_arch = detect_native_arch()
@@ -478,6 +491,8 @@ if __name__ == '__main__':
                         help="Source file to reduce")
     parser.add_argument("--collect-stat", dest="collect_stat", default="", type=str,
                         help="List of testing sets for statistics collection")
+    parser.add_argument("--windows", dest="is_windows", default=(platform.system() == "Windows"), action="store_true",
+                        help="If the testing system is launched on Windows")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -485,5 +500,6 @@ if __name__ == '__main__':
 
     common.check_python_version()
     set_standard(args.std_str)
+    common.is_windows = args.is_window
     gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file,
                  stat_targets=args.collect_stat.split())
