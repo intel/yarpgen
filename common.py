@@ -25,6 +25,7 @@ import datetime
 import errno
 import logging
 import os
+import platform
 import shutil
 import signal
 import subprocess
@@ -40,6 +41,9 @@ __duplicate_err_to_stderr__ = False
 
 stat_logger_name = "stat_logger"
 stat_logger = None
+
+
+is_windows = platform.system() == "Windows"
 
 
 def print_and_exit(msg):
@@ -163,7 +167,7 @@ def check_dir_and_create(directory):
 def run_cmd(cmd, time_out=None, num=-1, memory_limit=None):
     is_time_expired = False
     shell = False
-    if memory_limit is not None:
+    if memory_limit is not None and not is_windows:
         shell = True
         new_cmd = "ulimit -v " + str(memory_limit) + " ; "
         new_cmd += " ".join(i for i in cmd)

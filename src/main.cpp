@@ -40,6 +40,12 @@ limitations under the License.
 #define BUILD_VERSION ""
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+const bool is_windows = true;
+#else
+const bool is_windows = false;
+#endif
+
 using namespace yarpgen;
 
 void printVersion () {
@@ -210,6 +216,9 @@ int main (int argc, char* argv[128]) {
     }
 
     rand_val_gen = std::make_shared<RandValGen>(RandValGen (seed));
+    options->windows_mode = is_windows;
+    if (options->windows_mode)
+        options->mode_64bit = false;
     default_gen_policy.init_from_config();
 
 //    self_test();

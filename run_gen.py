@@ -28,6 +28,7 @@ import math
 import multiprocessing
 import multiprocessing.managers
 import os
+import platform
 import re
 import shutil
 import stat
@@ -52,6 +53,7 @@ run_timeout = 300
 stat_update_delay = 10
 tmp_cleanup_delay = 3600
 creduce_timeout = 3600 * 24
+
 
 # Various memory limits (in kbytes), passed to ulimit -v
 yarpgen_mem_limit  =  2000000 # 2 Gb
@@ -99,6 +101,58 @@ known_build_fails = { \
     "Cannot allocate memory": "memory_problem", \
     "Killed": "killed"
 }
+
+###############################################################################
+
+
+class Globals:
+    '''Is is a really dirty and ugly hack. Windows doesn't propagate globals
+       from parent process, so we have to do it by hand.'''
+    def __init__(self):
+        self.yarpgen_version_str = common.yarpgen_version_str
+        self.main_logger = common.main_logger
+        self.duplicate_err_to_stderr = common.__duplicate_err_to_stderr__
+        self.stat_logger = common.stat_logger
+        self.selected_standard = gen_test_makefile.selected_standard
+        self.Makefile_variable_list = gen_test_makefile.Makefile_variable_list
+        self.cxx_flags = gen_test_makefile.cxx_flags
+        self.ld_flags = gen_test_makefile.ld_flags
+        self.std_flags = gen_test_makefile.std_flags
+        self.sources = gen_test_makefile.sources
+        self.headers = gen_test_makefile.headers
+        self.executable = gen_test_makefile.executable
+        self.stat_options = gen_test_makefile.stat_options
+        self.compiler_targets_all_targets = gen_test_makefile.CompilerTarget.all_targets
+        self.compiler_specs_all_comp_specs = gen_test_makefile.CompilerSpecs.all_comp_specs
+        self.script_start_time = script_start_time
+        self.creduce_n = creduce_n
+        self.test_ignore_comp_time_exp = Test.ignore_comp_time_exp
+        self.is_windows = common.is_windows
+
+
+    def unpack(self):
+        common.yarpgen_version_str = self.yarpgen_version_str
+        common.main_logger = self.main_logger
+        common.__duplicate_err_to_stderr__ = self.duplicate_err_to_stderr
+        common.stat_logger = self.stat_logger
+        gen_test_makefile.selected_standard = self.selected_standard
+        gen_test_makefile.Makefile_variable_list = self.Makefile_variable_list
+        gen_test_makefile.cxx_flags = self.cxx_flags
+        gen_test_makefile.ld_flags = self.ld_flags
+        gen_test_makefile.std_flags = self.std_flags
+        gen_test_makefile.sources = self.sources
+        gen_test_makefile.headers = self.headers
+        gen_test_makefile.executable = self.executable
+        gen_test_makefile.stat_options = self.stat_options
+        gen_test_makefile.CompilerTarget.all_targets = self.compiler_targets_all_targets
+        gen_test_makefile.CompilerSpecs.all_comp_specs = self.compiler_specs_all_comp_specs
+        global script_start_time
+        script_start_time = self.script_start_time
+        global creduce_n
+        creduce_n = self.creduce_n
+        Test.ignore_comp_time_exp = self.test_ignore_comp_time_exp
+        common.is_windows = self.is_windows
+
 
 ###############################################################################
 
@@ -209,7 +263,8 @@ class Test(object):
     # proc_num is optinal debug info to track in what process we are running this activity.
     def __init__(self, stat, seed="", proc_num=-1, blame=False, creduce_makefile=None):
         # Run generator
-        yarpgen_run_list = [".." + os.sep + "yarpgen", "-q",
+        yarpgen_bin_name = "yarpgen" + ("" if not common.is_windows else ".exe")
+        yarpgen_run_list = [os.path.join("..", yarpgen_bin_name), "-q",
                             "--std=" + gen_test_makefile.StdID.get_pretty_std_name(gen_test_makefile.selected_standard)]
         if seed:
             yarpgen_run_list += ["-s", seed]
@@ -901,7 +956,7 @@ class TestRun(object):
             if os.path.isfile(f):
                 self.files.append(f)
         # save executable separately (we need it in case of miscompare)
-        exe_file = self.optset + "_out"
+        exe_file = self.optset + "_out" + ("" if not common.is_windows else ".exe")
         if os.path.isfile(exe_file):
             self.exe_file = exe_file
         return self.status == self.STATUS_not_run
@@ -1176,7 +1231,9 @@ class StatsVault(object):
 
 
 class Statistics (object):
-    def __init__(self):
+    def __init__(self, global_vars):
+        if global_vars is not None:
+            global_vars.unpack()
         self.yarpgen_runs = CmdRun("yarpgen")
         self.target_runs = {}
         self.stats_vault = {}
@@ -1187,6 +1244,7 @@ class Statistics (object):
         self.seeds_pass = None
         self.seeds_fail = None
         self.collect_stats_enabled = False
+
 
     def update_yarpgen_runs(self, tag):
         self.yarpgen_runs.update(tag)
@@ -1418,7 +1476,8 @@ def print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_j
 
         if (time.time() - start_time) > tmp_cleanup_delay and not no_tmp_cln:
             start_time = time.time()
-            common.run_cmd([os.path.abspath(common.yarpgen_home + os.sep + "tmp_cleaner.sh")])
+            if not common.is_windows:
+                common.run_cmd([os.path.abspath(common.yarpgen_home + os.sep + "tmp_cleaner.sh")])
 
         time.sleep(stat_update_delay)
 
@@ -1455,8 +1514,9 @@ def print_compilers_version(targets):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
         ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([comp_exec_name, "--version"])
         # TODO: I hope it will work for all compilers
-        common.log_msg(logging.DEBUG, str(output.splitlines()[0], "utf-8"))
-        gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(str(output.splitlines()[0], "utf-8"))
+        version_str = str(output) + "\n" + str(err_output)
+        common.log_msg(logging.INFO, version_str)
+        gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(version_str)
 
 
 def check_creduce_version():
@@ -1522,7 +1582,8 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
-    yarpgen_bin = os.path.abspath(common.yarpgen_home + os.sep + "yarpgen")
+    yarpgen_bin_name = "yarpgen" + ("" if not common.is_windows else ".exe")
+    yarpgen_bin = os.path.abspath(os.path.join(common.yarpgen_home, yarpgen_bin_name))
     common.check_and_copy(yarpgen_bin, out_dir)
     ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
     common.yarpgen_version_str = str(output, "utf-8")
@@ -1572,7 +1633,10 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
 
     lock = multiprocessing.Lock()
     manager_obj = manager()
-    stat = manager_obj.Statistics()
+    global_vars = None
+    if common.is_windows:
+        global_vars = Globals()
+    stat = manager_obj.Statistics(global_vars)
     if seeds_option_value:
         stat.enable_seeds()
     if len(collect_stat.split()) > 0 and "clang" in collect_stat:
@@ -1583,10 +1647,12 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     if timeout == -1:
         end_time = -1
 
+    if common.is_windows:
+        global_vars = Globals()
     task_threads = [0] * num_jobs
     for num in range(num_jobs):
         task_threads[num] = multiprocessing.Process(target=gen_and_test,
-                                                    args=(num, makefile, lock, end_time, task_queue, stat, targets,
+                                                    args=(global_vars, num, makefile, lock, end_time, task_queue, stat, targets,
                                                           blame, creduce_makefile, collect_stat.split()))
         task_threads[num].start()
 
@@ -1602,8 +1668,13 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
     sys.stdout.flush()
 
 
-def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile, stat_targets):
+def gen_and_test(global_vars, num, makefile, lock, end_time, task_queue, stat, targets, blame, creduce_makefile, stat_targets):
+    # Unpack globals
+    if global_vars is not None:
+        global_vars.unpack()
+
     common.log_msg(logging.DEBUG, "Job #" + str(num))
+
     os.chdir(process_dir + str(num))
     work_dir = os.getcwd()
     inf = (end_time == -1) or not (task_queue is None)
@@ -1765,6 +1836,8 @@ Use specified folder for testing
                         help="List of testing sets for statistics collection")
     parser.add_argument("--ignore-comp-time-exp", dest="ignore_comp_time_exp", default=True, action="store_true",
                         help="Don't save files (except log-file) when compile time expires")
+    parser.add_argument("--windows", dest="is_windows", default=(platform.system() == "Windows"), action="store_true",
+                        help="If the testing system is launched on Windows")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -1785,6 +1858,7 @@ Use specified folder for testing
         creduce_n = args.creduce
     gen_test_makefile.set_standard(args.std_str)
     Test.ignore_comp_time_exp = args.ignore_comp_time_exp
+    common.is_windows = args.is_windows
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
                                   args.config_file, args.seeds_option_value, args.blame, args.creduce,
                                   args.no_tmp_cleaner, args.collect_stat)
