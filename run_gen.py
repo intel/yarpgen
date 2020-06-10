@@ -1677,7 +1677,7 @@ def gen_and_test(global_vars, num, makefile, lock, end_time, task_queue, stat, t
 
     os.chdir(process_dir + str(num))
     work_dir = os.getcwd()
-    inf = (end_time == -1) or not (task_queue is None)
+    inf = end_time == -1
 
     while inf or end_time > time.time():
         # Fetch next seed if seeds were specified
