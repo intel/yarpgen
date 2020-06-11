@@ -47,10 +47,10 @@ libyarpgen: dir $(LIBSOURCES_SRC) $(HEADERS_SRC) $(LIBOBJS)
 	ar rcs $@.a $(LIBOBJS)
 
 dir:
-	/bin/mkdir -p objs
+	mkdir -p objs
 
 clean:
-	/bin/rm -rf objs $(EXECUTABLE) libyarpgen.a
+	rm -rf objs $(EXECUTABLE) libyarpgen.a
 
 debug: $(EXECUTABLE)
 debug: OPT=-O0 -g
@@ -61,7 +61,7 @@ ubsan: CXXFLAGS+=-fsanitize=undefined
 gcc: $(EXECUTABLE)
 gcc: CXX=g++
 
-gcov: $(EXECUTABLE) 
+gcov: $(EXECUTABLE)
 gcov: CXX=g++
 gcov: OPT+=-fprofile-arcs -ftest-coverage -g
 
