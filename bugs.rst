@@ -1,6 +1,9 @@
 ====================================
 LLVM:
 ====================================
+Version #2
+---------------
+| `46178 <https://bugs.llvm.org/show_bug.cgi?id=46178>`_ - Assertion `idx < size()' failed in combineX86ShufflesRecursively with -O3 -march=skx
 
 Loop-targeting prototype
 ---------------
@@ -79,6 +82,9 @@ GCC:
 
 Version #2
 ---------------
+| `95717 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95717`_ - [9/10 Regression] ICE during GIMPLE pass: vect: verify_ssa failed since r9-5325-gf25507d041de4df6
+| `95649 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95649`_ - [11 Regression] ICE during GIMPLE pass: cunroll since r11-1146-g1396fa5b91cfa0b3
+| `95487 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95487`_ - [10 Regression] ICE: verify_gimple failed (error: invalid vector types in nop conversion) with -O3 -march=skylake-avx512 since r10-1052-gc29c92c789d93848
 | `95401 <https://bugs.llvm.org/show_bug.cgi?id=95401>`_ - [10/11 Regression] GCC produces incorrect instruction with -O3 for AVX2 since r10-2257-g868363d4f52df19d
 | `95396 <https://bugs.llvm.org/show_bug.cgi?id=95396>`_ - [8/9/10/11 Regression] GCC produces incorrect code with -O3 for loops since r8-6511-g3ae129323d150621
 | `95308 <https://bugs.llvm.org/show_bug.cgi?id=95308>`_ - [10 Regression] ICE: in maybe_canonicalize_mem_ref_addr with -O3 -march=skylake-avx512 since r10-4203-g97c146036750e7cb
@@ -192,6 +198,8 @@ ISPC:
 ====================================
 Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q=is%3Aissue+label%3Ayarpgen+>`_
 
+| `1793 <https://github.com/ispc/ispc/issues/1793>`_ - Wrong code for avx2-i32x16.
+| `1788 <https://github.com/ispc/ispc/issues/1788>`_ - ICE: LLVM ERROR: Instruction Combining seems stuck in an infinite loop after 1000 iterations.
 | `1771 <https://github.com/ispc/ispc/issues/1771>`_ - Wrong code for avx2-i64x4
 | `1768 <https://github.com/ispc/ispc/issues/1768>`_ - Uniform and varying types have different rounding rules.
 | `1767 <https://github.com/ispc/ispc/issues/1767>`_ - Assertion `V.getNode() && \"Getting TableId on SDValue()"' failed.
