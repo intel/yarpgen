@@ -84,8 +84,8 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Language standard of the test",
      "Can't recognize standard",
      OptionParser::parseStandard,
-     "cpp",
-     {"cpp", "ispc", "sycl"}},
+     "c++",
+     {"c++", "ispc", "sycl"}},
     {OptionKind::ASSERTS,
      "",
      "--asserts",
@@ -317,7 +317,7 @@ void OptionParser::parseSeed(std::string seed_str) {
 
 void OptionParser::parseStandard(std::string std) {
     Options &options = Options::getInstance();
-    if (std == "cpp")
+    if (std == "c++")
         options.setLangStd(LangStd::CXX);
     else if (std == "ispc")
         options.setLangStd(LangStd::ISPC);
