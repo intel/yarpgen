@@ -5,9 +5,9 @@
 Yet Another Random Program Generator
 ====================================
 
-``yarpgen`` is a random C/C++ program generator, which produces correct runnable C/C++ programs. The generator is specifically designed to trigger compiler optimization bugs and is intended for compiler testing.
+``yarpgen`` is a random program generator, which produces correct runnable C/C++ and DPC++(this work is in an early stage) programs. The generator is specifically designed to trigger compiler optimization bugs and is intended for compiler testing.
 
-A generated random program is guaranteed to be statically and dynamically correct C/C++ program. This implies no undefined behavior, but allows for implementation defined behavior.
+A generated random program is guaranteed to be statically and dynamically correct program. This implies no undefined behavior, but allows for implementation defined behavior.
 
 Each generated program consists of several files and after being compiled and run produces a decimal number, which is hash of all program global variable values. This number is supposed to be the same for all compilers and optimization levels. If the output differs for different compilers and/or optimization levels, you should have encountered a compiler bug.
 
