@@ -21,8 +21,9 @@
 File for common data and functions, which are used in scripts
 """
 ###############################################################################
-
+import collections
 import datetime
+import enum
 import errno
 import logging
 import os
@@ -43,6 +44,34 @@ __duplicate_err_to_stderr__ = False
 
 stat_logger_name = "stat_logger"
 stat_logger = None
+
+
+@enum.unique
+class GenStdID(enum.IntEnum):
+    # Better to use enum.auto, but it is available only since python3.6
+    CXX = enum.auto()
+    SYCL = enum.auto()
+    ISPC = enum.auto()
+    MAX_GEN_STD_ID = enum.auto()
+
+    ''' Enum doesn't allow to use '++' in names, so we need this function. '''
+    @staticmethod
+    def get_pretty_std_name (std_id):
+        if std_id == GenStdID.CXX:
+            return std_id.name.replace("CXX", "c++")
+        return std_id.name.lower()
+
+''' Easy way to convert string to StdID '''
+StrToGenStdId = collections.OrderedDict()
+for i in GenStdID:
+    if not i.name.startswith("MAX"):
+        StrToGenStdId[GenStdID.get_pretty_std_name(i)] = i
+
+selected_gen_std = None
+
+def set_gen_standard(std_str):
+    global selected_gen_std
+    selected_gen_std = StrToGenStdId[std_str]
 
 
 def print_and_exit(msg):

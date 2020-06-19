@@ -124,7 +124,15 @@ def get_file_ext():
     return None
 
 def adjust_sources_to_standard():
-    sources.value = re.sub("\s+|$", get_file_ext() + " ", sources.value)
+    #sources.value = re.sub("\s+|$", get_file_ext() + " ", sources.value)
+    new_sources = ""
+    for source in sources.value.split():
+        if source == "func" and common.selected_gen_std == common.GenStdID.ISPC:
+            new_sources += source + ".ispc"
+        else:
+            new_sources += source + get_file_ext()
+        new_sources += " "
+    sources.value = new_sources.strip()
 
 def set_standard (std_str):
     global selected_standard
@@ -403,7 +411,11 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
                               StatisticsOptions.get_options(target.specs) + "\n"
                     stat_targets.remove(stat_target)
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
-        output += target.name + ": " + "$(addprefix " + target.name + "_, $(SOURCES:" + get_file_ext() + "=.o))\n"
+        output += target.name + ": " + "$(addprefix " + target.name + "_,"
+        if common.selected_gen_std != common.GenStdID.ISPC:
+            output += "$(SOURCES:" + get_file_ext() + "=.o))\n"
+        else:
+            output += "$(patsubst %.ispc,%.o," + "$(SOURCES:" + get_file_ext() + "=.o))" + ")\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
 
     if stat_targets is not None and len(stat_targets) != 0:
@@ -467,9 +479,8 @@ if __name__ == '__main__':
     description = 'Generator of Test_Makefiles.'
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--std', dest="std_str", default="c++11", type=str,
-                        help='Language standard. Possible variants are ' + str(list(StrToStdId))[1:-1])
-
+    parser.add_argument('--std', dest="std_str", default="c++", type=str,
+                        help='Language standard. Possible variants are ' + str(list(common.StrToGenStdId))[1:-1])
     parser.add_argument("--config-file", dest="config_file",
                         default=os.path.join(common.yarpgen_scripts, default_test_sets_file_name), type=str,
                         help="Configuration file for testing")
@@ -491,6 +502,8 @@ if __name__ == '__main__':
     common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
-    set_standard(args.std_str)
+    common.set_gen_standard(args.std_str)
+    set_standard(StdID.get_pretty_std_name(StdID.CXX11))
+
     gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file,
                  stat_targets=args.collect_stat.split())

@@ -110,34 +110,6 @@ known_build_fails = { \
 
 ###############################################################################
 
-@enum.unique
-class GenStdID(enum.IntEnum):
-    # Better to use enum.auto, but it is available only since python3.6
-    CXX = enum.auto()
-    SYCL = enum.auto()
-    MAX_GEN_STD_ID = enum.auto()
-
-    ''' Enum doesn't allow to use '++' in names, so we need this function. '''
-    @staticmethod
-    def get_pretty_std_name (std_id):
-        if std_id == GenStdID.CXX:
-            return std_id.name.replace("CXX", "c++")
-        return std_id.name.lower()
-
-''' Easy way to convert string to StdID '''
-StrToGenStdId = collections.OrderedDict()
-for i in GenStdID:
-    if not i.name.startswith("MAX"):
-        StrToGenStdId[GenStdID.get_pretty_std_name(i)] = i
-
-selected_gen_std = None
-
-def set_gen_standard(std_str):
-    global selected_gen_std
-    selected_gen_std = StrToGenStdId[std_str]
-
-###############################################################################
-
 class MyManager(multiprocessing.managers.BaseManager):
     pass
 
@@ -229,7 +201,7 @@ class Test(object):
     def __init__(self, stat, seed="", proc_num=-1, blame=False, creduce_makefile=None):
         # Run generator
         yarpgen_run_list = [".." + os.sep + "yarpgen",
-                            "--std=" + GenStdID.get_pretty_std_name(selected_gen_std)]
+                            "--std=" + common.GenStdID.get_pretty_std_name(common.selected_gen_std)]
         if seed:
             yarpgen_run_list += ["-s", seed]
         self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
@@ -1456,8 +1428,8 @@ def print_compilers_version(targets):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
         ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([comp_exec_name, "--version"])
         # TODO: I hope it will work for all compilers
-        common.log_msg(logging.DEBUG, str(output.splitlines()[0], "utf-8"))
-        gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(str(output.splitlines()[0], "utf-8"))
+        common.log_msg(logging.DEBUG, output)
+        gen_test_makefile.CompilerSpecs.all_comp_specs[i].set_version(output)
 
 
 def check_creduce_version():
@@ -1730,7 +1702,7 @@ Use specified folder for testing
     parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=CustomFormatter)
 
     parser.add_argument('--std', dest="std_str", default="c++", type=str,
-                        help='Language standard. Possible variants are ' + str(list(StrToGenStdId))[1:-1])
+                        help='Language standard. Possible variants are ' + str(list(common.StrToGenStdId))[1:-1])
     parser.add_argument("-o", "--output", dest="out_dir", default="testing", type=str,
                         help="Directory, which is used for testing.")
     parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=1,
@@ -1786,9 +1758,8 @@ Use specified folder for testing
         creduce_n = args.creduce
 
     #TODO: we need to support more standards
+    common.set_gen_standard(args.std_str)
     gen_test_makefile.set_standard(gen_test_makefile.StdID.get_pretty_std_name(gen_test_makefile.StdID.CXX11))
-
-    set_gen_standard(args.std_str)
 
     Test.ignore_comp_time_exp = args.ignore_comp_time_exp
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
