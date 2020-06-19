@@ -1,0 +1,16 @@
+#!/bin/bash
+###############################################################################
+#
+# Copyright (c) 2020, Intel Corporation
+# Copyright (c) 2020, University of Utah
+# SPDX-License-Identifier: Apache-2.0
+#
+###############################################################################
+# This script is supposed to provide a common interface for ispc and clang.
+# We have to do it because of the limitations of our current testing system,
+# so we need to redesign it in the future.
+###############################################################################
+
+cmd=$(ispc-disp $@)
+($cmd)
+exit $?

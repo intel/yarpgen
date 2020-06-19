@@ -43,6 +43,7 @@ ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fn
 icc         | icpc                | icc               | -w                                                          | -x
 icx         | icpx                | icx               | -w                                                          | -march=
 dpcpp       | clang++             | clang             | -fsycl -w                                                   | -march=
+ispc        | ispc-proxy          | ispc-proxy        | -woff                                                       | --target=
 
 Testing sets:
 # Set name - codename for testing set
@@ -95,6 +96,14 @@ icx_opt          | icx       | -O3       |                |
 
 dpcpp_no_opt     | dpcpp     | -O0       |                |
 dpcpp_opt        | dpcpp     | -O3       |                |
+
+ispc_sse_no_opt           | ispc   | -O0       | sse2-i32x4       |
+ispc_avx2_i32x8_opt       | ispc   | -O2       | avx2-i32x8       |
+ispc_avx2_i32x16_opt      | ispc   | -O2       | avx2-i32x16      |
+ispc_avx2_i64x4_opt       | ispc   | -O2       | avx2-i64x4       |
+ispc_avx512skx-i32x16_opt | ispc   | -O2       | avx512skx-i32x16 | skx
+ispc_avx512skx-i8x64_opt  | ispc   | -O2       | avx512skx-i8x64  | skx
+ispc_avx512skx-i16x32_opt | ispc   | -O2       | avx512skx-i16x32 | skx
 
 Options for statistics' capture:
 #Spec name  | Arguments

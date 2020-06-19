@@ -1,0 +1,64 @@
+#!/usr/bin/python
+###############################################################################
+#
+# Copyright (c) 2020, Intel Corporation
+# Copyright (c) 2020, University of Utah
+# SPDX-License-Identifier: Apache-2.0
+#
+###############################################################################
+# This script modifies passed arguments to provide a common interface for ispc
+# and clang.
+# It is a terrible work-around and we need to change it in the future.
+###############################################################################
+
+import re
+import sys
+
+
+ispc_replacements = [('-c', ''), ('-std=c++11', '')]
+clang_replacements = [('-woff', '-w')]
+targ_replacements = [('sse\d', 'westmere'),
+                     ('avx1', 'sandybridge'),
+                     ('avx2', 'haswell'),
+                     ('avx512knl', 'knl'),
+                     ('avx512skx', '')]
+
+def replace_arg(arg, replacements):
+    for repl in replacements:
+        sig, new_arg = repl
+        if arg == sig:
+            return new_arg
+    return arg
+
+def replace_targ(arg):
+    march_arg, arch = arg.split('=')
+    new_arg = "-march="
+    arch = arch.split('-')[0]
+    for i in targ_replacements:
+        arch = re.sub(i[0], i[1], arch)
+    new_arg += arch
+    return new_arg
+
+def process(args):
+    is_clang = False
+    if 'func.ispc' not in args:
+        is_clang = True
+    new_args = []
+    if not is_clang:
+        new_args.append("ispc")
+        for arg in args[1:]:
+            new_args.append(replace_arg(arg, ispc_replacements))
+    else:
+        new_args.append("clang++")
+        for arg in args[1:]:
+            if arg.startswith("--target"):
+                new_args.append(replace_targ(arg))
+            else:
+
+                new_args.append(replace_arg(arg, clang_replacements))
+    new_args = " ".join(new_args)
+    print(new_args)
+
+
+if __name__ == '__main__':
+    process(sys.argv)
