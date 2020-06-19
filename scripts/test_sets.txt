@@ -42,7 +42,7 @@ ubsan_clang | clang++             | clang             | -fsanitize=undefined -fn
 ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive | -march=
 icc         | icpc                | icc               | -w                                                          | -x
 icx         | icpx                | icx               | -w                                                          | -march=
-dpcpp       | clang               | clang++           | -fsycl -w                                                   | -march=
+dpcpp       | clang++             | clang             | -fsycl -w                                                   | -march=
 
 Testing sets:
 # Set name - codename for testing set
