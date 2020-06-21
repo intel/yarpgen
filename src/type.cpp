@@ -141,9 +141,13 @@ std::string IntegralType::getNameImpl(std::shared_ptr<EmitCtx> ctx,
     std::string ret = std::move(raw_name);
     if (ctx->useIspcTypes()) {
         ret = getIspcNameHelper();
-        if (!getIsSigned())
-            ret += "unsigned ";
-        ret += "int" + std::to_string(getBitSize());
+        if (getIntTypeId() != IntTypeID::BOOL) {
+            if (!getIsSigned())
+                ret += "unsigned ";
+            ret += "int" + std::to_string(getBitSize());
+        }
+        else
+            ret += "bool";
     }
     return ret;
 }
