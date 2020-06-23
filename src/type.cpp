@@ -152,6 +152,11 @@ std::string IntegralType::getNameImpl(std::shared_ptr<EmitCtx> ctx,
     return ret;
 }
 
+std::string TypeSInt::getLiteralSuffix() {
+    Options &options = Options::getInstance();
+    return !options.isISPC() ? "" : "L";
+}
+
 template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, uint32_t bit_size,

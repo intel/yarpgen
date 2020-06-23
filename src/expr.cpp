@@ -59,9 +59,8 @@ void ConstantExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     auto int_type =
         std::static_pointer_cast<IntegralType>(scalar_var->getType());
 
-    Options &options = Options::getInstance();
-    auto emit_helper = [&stream, &int_type, &options, &ctx]() {
-        if (options.isCXX() && int_type->getIntTypeId() < IntTypeID::INT)
+    auto emit_helper = [&stream, &int_type, &ctx]() {
+        if (int_type->getIntTypeId() < IntTypeID::INT)
             stream << "(" << int_type->getName(ctx) << ")";
     };
 
@@ -83,7 +82,8 @@ void ConstantExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     one.setValue(IRValue::AbsValue{false, 1});
     IRValue min_one_val = min_val + one;
     emit_helper();
-    stream << "(" << min_one_val << " - " << one << ")";
+    stream << "(" << min_one_val << int_type->getLiteralSuffix() << " - " << one
+           << int_type->getLiteralSuffix() << ")";
 }
 
 std::shared_ptr<ConstantExpr>
