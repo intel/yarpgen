@@ -200,10 +200,11 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         stream << (iters.size() == 1 ? "foreach" : "foreach_tiled") << "(";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
-            stream << (*iter)->getName(ctx) << " = ";
+            stream << (*iter)->getName(ctx) << " = (";
             (*iter)->getStart()->emit(ctx, stream);
-            stream << "...";
+            stream << ")...(";
             (*iter)->getEnd()->emit(ctx, stream);
+            stream << ")";
             stream << place_sep(iter, ", ");
         }
 

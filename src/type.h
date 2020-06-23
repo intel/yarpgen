@@ -246,6 +246,7 @@ class TypeSInt : public IntegralTypeHelper<int32_t> {
     std::string getName(std::shared_ptr<EmitCtx> ctx) final {
         return getNameImpl(ctx, "int");
     }
+    std::string getLiteralSuffix() final;
 
     void dbgDump() final;
 };
