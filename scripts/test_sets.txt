@@ -94,8 +94,14 @@ icc_opt          | icc       | -O3       |                |
 icx_no_opt       | icx       | -O0       |                |
 icx_opt          | icx       | -O3       |                |
 
-dpcpp_no_opt     | dpcpp     | -O0       |                |
-dpcpp_opt        | dpcpp     | -O3       |                |
+#dpcpp_no_opt     | dpcpp     | -O0       |                |
+#dpcpp_opt        | dpcpp     | -O3       |                |
+
+dpcpp_cpu_no_opt     | dpcpp     | -O0 -DCPU      |                |
+dpcpp_cpu_opt        | dpcpp     | -O3 -DCPU      |                |
+
+dpcpp_gpu_no_opt     | dpcpp     | -O0 -DGPU      |                |
+dpcpp_gpu_opt        | dpcpp     | -O3 -DGPU      |                |
 
 ispc_sse_no_opt           | ispc   | -O0       | sse2-i32x4       |
 ispc_avx2_i32x8_opt       | ispc   | -O2       | avx2-i32x8       |
