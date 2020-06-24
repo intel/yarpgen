@@ -165,6 +165,13 @@ void LoopHead::emitPrefix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
 void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                           std::string offset) {
+    if (!pragmas.empty()) {
+        for (auto &pragma : pragmas) {
+            pragma->emit(ctx, stream, offset);
+            stream << "\n";
+        }
+    }
+
     stream << offset;
 
     auto place_sep = [this](auto iter, std::string sep) -> std::string {
@@ -219,6 +226,19 @@ void LoopHead::emitSuffix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 void LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
     for (auto &iter : iters)
         iter->populate(ctx);
+}
+
+void LoopHead::createPragmas(std::shared_ptr<PopulateCtx> ctx) {
+    Options &options = Options::getInstance();
+    if (!options.isCXX() || options.getEmitPragmas() == OptionLevel::NONE)
+        return;
+
+    auto gen_pol = ctx->getGenPolicy();
+    size_t pragmas_num = rand_val_gen->getRandId(gen_pol->pragma_num_distr);
+    if (options.getEmitPragmas() == OptionLevel::ALL)
+        pragmas_num =
+            static_cast<size_t>(PragmaKind::MAX_CLANG_PRAGMA_KIND) - 1;
+    pragmas = Pragma::create(pragmas_num, ctx);
 }
 
 void LoopSeqStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -286,6 +306,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
         new_ctx->incLoopDepth(1);
         loop_head->populateIterators(ctx);
+        loop_head->createPragmas(ctx);
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
         bool old_ctx_state = new_ctx->isTaken();
         // TODO: what if we have multiple iterators
@@ -380,6 +401,7 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         }
         new_ctx->incLoopDepth(1);
         (*i)->populateIterators(ctx);
+        (*i)->createPragmas(ctx);
         new_ctx->getLocalSymTable()->addIters((*i)->getIterators());
         if ((*i)->isForeach())
             new_ctx->setInsideForeach(true);
@@ -473,4 +495,62 @@ std::shared_ptr<StubStmt>
 StubStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     NameHandler &nh = NameHandler::getInstance();
     return std::make_shared<StubStmt>("Stub stmt #" + nh.getStubStmtIdx());
+}
+
+void Pragma::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                  std::string offset) {
+    stream << offset << "#pragma ";
+    auto clang_emit_helper = [&stream](std::string name) {
+        stream << "clang loop " << name << "(enable)";
+    };
+
+    switch (kind) {
+        case PragmaKind::CLANG_VECTORIZE:
+            clang_emit_helper("vectorize");
+            break;
+        case PragmaKind::CLANG_INTERLEAVE:
+            clang_emit_helper("interleave");
+            break;
+        case PragmaKind::CLANG_VEC_PREDICATE:
+            clang_emit_helper("vectorize_predicate");
+            break;
+        case PragmaKind::CLANG_UNROLL:
+            clang_emit_helper("unroll");
+            break;
+        case PragmaKind::MAX_CLANG_PRAGMA_KIND:
+            ERROR("Bad PragmaKind");
+    }
+}
+
+std::shared_ptr<Pragma> Pragma::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+    PragmaKind pragma_kind =
+        rand_val_gen->getRandId(gen_pol->pragma_kind_distr);
+    if (pragma_kind == PragmaKind::MAX_CLANG_PRAGMA_KIND)
+        ERROR("Bad PragmaKind");
+    return std::make_shared<Pragma>(pragma_kind);
+}
+
+std::vector<std::shared_ptr<Pragma>>
+Pragma::create(size_t num, std::shared_ptr<PopulateCtx> ctx) {
+    std::vector<std::shared_ptr<Pragma>> pragmas;
+    pragmas.reserve(num);
+    auto tmp_ctx = std::make_shared<PopulateCtx>(*ctx);
+    auto tmp_gen_pol = std::make_shared<GenPolicy>(*(tmp_ctx->getGenPolicy()));
+    for (size_t i = 0; i < num; ++i) {
+        auto new_pragma = create(tmp_ctx);
+        pragmas.push_back(new_pragma);
+        PragmaKind kind =
+            std::static_pointer_cast<Pragma>(new_pragma)->getKind();
+        auto search_func = [&kind](Probability<PragmaKind> &elem) -> bool {
+            return elem.getId() == kind;
+        };
+        auto &vec = tmp_gen_pol->pragma_kind_distr;
+        vec.erase(std::remove_if(vec.begin(), vec.end(), search_func),
+                  vec.end());
+        if (vec.empty())
+            break;
+        tmp_ctx->setGenPolicy(tmp_gen_pol);
+    }
+    return pragmas;
 }
