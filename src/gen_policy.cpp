@@ -82,8 +82,6 @@ GenPolicy::GenPolicy() {
     stmt_kind_pop_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::ASSIGN, 20));
 
-    unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 20));
-
     min_new_arr_num = 2;
     max_new_arr_num = 4;
     uniformProbFromMax(new_arr_num_distr, max_new_arr_num, min_new_arr_num);
@@ -170,6 +168,19 @@ GenPolicy::GenPolicy() {
         Probability<LoopEndKind>(LoopEndKind::VAR, 30));
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
+
+    uniformProbFromMax(pragma_num_distr,
+                       static_cast<int>(PragmaKind::MAX_CLANG_PRAGMA_KIND) - 1,
+                       static_cast<size_t>(PragmaKind::CLANG_VECTORIZE));
+
+    pragma_kind_distr.emplace_back(
+        Probability<PragmaKind>(PragmaKind::CLANG_VECTORIZE, 25));
+    pragma_kind_distr.emplace_back(
+        Probability<PragmaKind>(PragmaKind::CLANG_INTERLEAVE, 25));
+    pragma_kind_distr.emplace_back(
+        Probability<PragmaKind>(PragmaKind::CLANG_VEC_PREDICATE, 25));
+    pragma_kind_distr.emplace_back(
+        Probability<PragmaKind>(PragmaKind::CLANG_UNROLL, 25));
 }
 
 template <typename T>

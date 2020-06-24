@@ -151,6 +151,7 @@ enum class OptionKind {
     UNIQUE_ALIGN_SIZE,
     ALIGN_SIZE,
     ALLOW_DEAD_DATA,
+    EMIT_PRAGMAS,
     MAX_OPTION_ID
 };
 
@@ -163,6 +164,14 @@ enum class AlignmentSize {
     A32,
     A64,
     MAX_ALIGNMENT_SIZE /*it is reserved to mean any of the above at random*/
+};
+
+enum class PragmaKind {
+    CLANG_VECTORIZE,
+    CLANG_INTERLEAVE,
+    CLANG_VEC_PREDICATE,
+    CLANG_UNROLL,
+    MAX_CLANG_PRAGMA_KIND
 };
 
 } // namespace yarpgen

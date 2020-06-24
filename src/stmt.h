@@ -98,6 +98,20 @@ class ScopeStmt : public StmtBlock {
 
 class LoopStmt : public Stmt {};
 
+class Pragma {
+  public:
+    explicit Pragma(PragmaKind _kind) : kind(_kind) {}
+    PragmaKind getKind() { return kind; }
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "");
+    static std::shared_ptr<Pragma> create(std::shared_ptr<PopulateCtx> ctx);
+    static std::vector<std::shared_ptr<Pragma>>
+    create(size_t num, std::shared_ptr<PopulateCtx> ctx);
+
+  private:
+    PragmaKind kind;
+};
+
 class LoopHead {
   public:
     std::shared_ptr<StmtBlock> getPrefix() { return prefix; }
@@ -123,12 +137,15 @@ class LoopHead {
     bool isForeach() { return is_foreach; }
 
     void populateIterators(std::shared_ptr<PopulateCtx> ctx);
+    void createPragmas(std::shared_ptr<PopulateCtx> ctx);
 
   private:
     std::shared_ptr<StmtBlock> prefix;
     // Loop iterations space is defined by the iterators that we can use
     std::vector<std::shared_ptr<Iterator>> iters;
     std::shared_ptr<StmtBlock> suffix;
+
+    std::vector<std::shared_ptr<Pragma>> pragmas;
 
     // ISPC
     bool is_foreach;

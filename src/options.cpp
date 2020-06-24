@@ -139,7 +139,17 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Can't parse allow dead data",
      OptionParser::parseAllowDeadData,
      "false",
-     {"true", "false"}}};
+     {"true", "false"}},
+    {OptionKind::EMIT_PRAGMAS,
+     "",
+     "--emit-pragmas",
+     true,
+     "Emit pragmas",
+     "Can't parse emit pragmas",
+     OptionParser::parseEmitPragmas,
+     "some",
+     {"none", "some", "all"}},
+};
 
 void OptionParser::printVersion(std::string arg) {
     std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
@@ -301,6 +311,8 @@ void OptionParser::initOptions() {
             case OptionKind::ALLOW_DEAD_DATA:
                 parseAllowDeadData(def_val);
                 break;
+            case OptionKind::EMIT_PRAGMAS:
+                parseEmitPragmas(def_val);
             case OptionKind::MAX_OPTION_ID:
                 break;
         }
@@ -396,4 +408,16 @@ void OptionParser::parseAllowDeadData(std::string val) {
         options.setAllowDeadData(false);
     else
         printHelpAndExit("Can't recognize allow dead data");
+}
+
+void OptionParser::parseEmitPragmas(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "none")
+        options.setEmitPragmas(OptionLevel::NONE);
+    else if (val == "some")
+        options.setEmitPragmas(OptionLevel::SOME);
+    else if (val == "all")
+        options.setEmitPragmas(OptionLevel::ALL);
+    else
+        printHelpAndExit("Can't recognize emit-pragmas use level");
 }

@@ -105,6 +105,9 @@ class GenPolicy {
 
     std::vector<Probability<LoopEndKind>> loop_end_kind_distr;
 
+    std::vector<Probability<size_t>> pragma_num_distr;
+    std::vector<Probability<PragmaKind>> pragma_kind_distr;
+
     // ISPC
     // Probability to generate loop header as foreach or foreach_tiled
     std::vector<Probability<bool>> foreach_distr;
