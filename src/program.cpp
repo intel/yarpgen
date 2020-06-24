@@ -444,8 +444,12 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
     stream << "#include \"init.h\"\n";
     if (options.isCXX())
         stream << "#include <algorithm>\n";
-    else if (options.isSYCL())
+    else if (options.isSYCL()) {
         stream << "#include <CL/sycl.hpp>\n";
+        stream << "#if defined(FPGA) || defined(FPGA_EMULATOR)\n";
+        stream << "    #include <CL/sycl/intel/fpga_extensions.hpp>\n";
+        stream << "#endif\n";
+    }
 
     if (options.isISPC()) {
         ctx->setIspcTypes(true);
@@ -465,7 +469,19 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
         stream << "{\n";
         stream << "    using namespace cl::sycl;\n\n";
         stream << "    {\n";
-        stream << "        queue myQueue;\n";
+
+        stream << "#if defined(CPU)\n";
+        stream << "        cpu_selector selector;\n";
+        stream << "#elif defined(GPU)\n";
+        stream << "        gpu_selector selector;\n";
+        stream << "#elif defined(FPGA_EMULATOR)\n";
+        stream << "        intel::fpga_emulator_selector selector;\n";
+        stream << "#elif defined(FPGA)\n";
+        stream << "        intel::fpga_selector selector;\n";
+        stream << "#else\n";
+        stream << "        default_selector selector;\n";
+        stream << "#endif\n";
+        stream << "        queue myQueue(selector);\n";
         emitSYCLBuffers(ctx, stream, "        ", ext_inp_sym_tbl->getVars());
         emitSYCLBuffers(ctx, stream, "        ", ext_out_sym_tbl->getVars());
 
