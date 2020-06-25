@@ -596,7 +596,7 @@ class Test(object):
         good_run = None
         good_time = 0
         for run in good_runs:
-            if not run.target.specs.name.startswith("ubsan"):
+            if "ubsan" not in run.target.specs.name:
                 continue
             time = run.build_elapsed_time + run.run_elapsed_time
             if good_run is None or time < good_time:
@@ -694,7 +694,7 @@ class Test(object):
         ubsan_run = None
         ubsan_time = 0
         for run in self.successful_test_runs:
-            if not run.target.specs.name.startswith("ubsan"):
+            if "ubsan" not in run.target.specs.name:
                 continue
             time = run.build_elapsed_time + run.run_elapsed_time
             if ubsan_run is None or time < ubsan_time:
@@ -779,7 +779,7 @@ class Test(object):
         ubsan_run = None
         ubsan_time = 0
         for run in self.successful_test_runs:
-            if not run.target.specs.name.startswith("ubsan"):
+            if "ubsan" not in run.target.specs.name:
                 continue
             time = run.build_elapsed_time + run.run_elapsed_time
             if ubsan_run is None or time < ubsan_time:
