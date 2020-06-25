@@ -108,6 +108,10 @@ known_build_fails = { \
     "relocation truncated to fit": "inp_alloc_problem", \
 }
 
+known_runtime_fails = {\
+#dpcpp
+    "Total size of kernel arguments exceeds limit": "kernel_size",\
+}
 ###############################################################################
 
 class MyManager(multiprocessing.managers.BaseManager):
@@ -933,7 +937,10 @@ class TestRun(object):
         elif self.status == self.STATUS_runfail:
             # classify runfail
             # use blame info
-            if len(self.blame_phase) != 0:
+            res = self.classify_runtime_fail()
+            if res is not None:
+                classification = res
+            elif len(self.blame_phase) != 0:
                 classification = self.blame_phase.replace(" ", "_")
 
         # Files to save: source files, own files, files from similar fails and
@@ -958,6 +965,12 @@ class TestRun(object):
     def classify_build_fail(self):
         for reg_expr, tag in known_build_fails.items():
             if re.search(reg_expr, str(self.build_stderr, "utf-8")):
+                return tag
+        return None
+
+    def classify_runtime_fail(self):
+        for reg_expr, tag in known_runtime_fails.items():
+            if re.search(reg_expr, str(self.run_stderr, "utf-8")):
                 return tag
         return None
 
