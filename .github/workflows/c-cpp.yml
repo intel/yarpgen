@@ -1,0 +1,63 @@
+name: Build YARPGen and generate sample tests
+
+on: [push, pull_request]
+
+jobs:
+  build-and-run:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check environment
+      run: |
+        cat /proc/cpuinfo
+    - name: configure and build
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        make -j4
+    - name: generate cpp tests
+      run: |
+        mkdir tests-cpp && cd tests-cpp
+        for i in {0..9}
+        do
+          mkdir $i && cd $i
+          ../../build/yarpgen --std=c++
+          cd ..
+        done
+    - name: generate sycl tests
+      run: |
+        mkdir tests-sycl && cd tests-sycl
+        for i in {0..9}
+        do
+          mkdir $i && cd $i
+          ../../build/yarpgen --std=sycl
+          cd ..
+        done
+    - name: generate ispc tests
+      run: |
+        mkdir tests-ispc && cd tests-ispc
+        for i in {0..10}
+        do
+          mkdir $i && cd $i
+          ../../build/yarpgen --std=ispc
+          cd ..
+        done
+    - name: Upload cpp tests
+      uses: actions/upload-artifact@v2
+      with:
+        name: tests-cpp
+        path: tests-cpp
+    - name: Upload sycl tests
+      uses: actions/upload-artifact@v2
+      with:
+        name: tests-sycl
+        path: tests-sycl
+    - name: Upload ispc tests
+      uses: actions/upload-artifact@v2
+      with:
+        name: tests-ispc
+        path: tests-ispc
+
+
