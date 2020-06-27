@@ -283,39 +283,10 @@ void OptionParser::initOptions() {
         OptionKind kind = item.getKind();
         std::string def_val = item.getDefaultVal();
 
-        switch (kind) {
-            case OptionKind::HELP:
-            case OptionKind::VERSION:
-                break;
-            case OptionKind::SEED:
-                parseSeed(def_val);
-                break;
-            case OptionKind::STD:
-                parseStandard(def_val);
-                break;
-            case OptionKind::ASSERTS:
-                parseAsserts(def_val);
-                break;
-            case OptionKind::INP_AS_ARGS:
-                parseInpAsArgs(def_val);
-                break;
-            case OptionKind::EMIT_ALIGN_ATTR:
-                parseEmitAlignAttr(def_val);
-                break;
-            case OptionKind::UNIQUE_ALIGN_SIZE:
-                parseUniqueAlignSize(def_val);
-                break;
-            case OptionKind::ALIGN_SIZE:
-                parseAlignSize(def_val);
-                break;
-            case OptionKind::ALLOW_DEAD_DATA:
-                parseAllowDeadData(def_val);
-                break;
-            case OptionKind::EMIT_PRAGMAS:
-                parseEmitPragmas(def_val);
-            case OptionKind::MAX_OPTION_ID:
-                break;
-        }
+        if (kind == OptionKind::HELP || kind == OptionKind::VERSION)
+            continue;
+        auto action = item.getAction();
+        action(def_val);
     }
 }
 
