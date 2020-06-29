@@ -70,6 +70,8 @@ class OptionParser {
     // Initialize options with default values
     static void initOptions();
 
+    static std::vector<OptionDescr> options_set;
+
   private:
     static void printVersion(std::string arg);
     static void printHelpAndExit(std::string error_msg = "");
@@ -90,8 +92,6 @@ class OptionParser {
     static void parseAlignSize(std::string val);
     static void parseAllowDeadData(std::string val);
     static void parseEmitPragmas(std::string val);
-
-    static std::vector<OptionDescr> options_set;
 };
 
 class Options {
@@ -132,6 +132,8 @@ class Options {
 
     void setEmitPragmas(OptionLevel _val) { emit_pragmas = _val; }
     OptionLevel getEmitPragmas() { return emit_pragmas; }
+
+    void dump(std::ostream &stream);
 
   private:
     Options()

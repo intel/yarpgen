@@ -109,6 +109,8 @@ class RandValGen {
         return vec.at(idx).getId();
     }
 
+    uint64_t getSeed() { return seed; }
+
   private:
     uint64_t seed;
     std::mt19937_64 rand_gen;
