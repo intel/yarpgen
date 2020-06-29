@@ -154,6 +154,7 @@ enum class OptionKind {
     ALIGN_SIZE,
     ALLOW_DEAD_DATA,
     EMIT_PRAGMAS,
+    OUT_DIR,
     MAX_OPTION_ID
 };
 
