@@ -149,6 +149,15 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseEmitPragmas,
      "some",
      {"none", "some", "all"}},
+    {OptionKind::OUT_DIR,
+     "-o",
+     "--out-dir",
+     true,
+     "Folder for generated test files (it should exist)",
+     "Unreachable Error",
+     OptionParser::parseOutDir,
+     ".",
+     {}},
 };
 
 void OptionParser::printVersion(std::string arg) {
@@ -393,6 +402,11 @@ void OptionParser::parseEmitPragmas(std::string val) {
         printHelpAndExit("Can't recognize emit-pragmas use level");
 }
 
+void OptionParser::parseOutDir(std::string val) {
+    Options &options = Options::getInstance();
+    options.setOutDir(std::move(val));
+}
+
 void Options::dump(std::ostream &stream) {
     for (auto &item : OptionParser::options_set) {
         OptionKind kind = item.getKind();
@@ -428,6 +442,9 @@ void Options::dump(std::ostream &stream) {
                 break;
             case OptionKind::EMIT_PRAGMAS:
                 stream << "Emit pragmas: " << toString(emit_pragmas);
+                break;
+            case OptionKind::OUT_DIR:
+                stream << "Out dir: " << out_dir;
                 break;
             case OptionKind::MAX_OPTION_ID:
                 ERROR("Bad option kind");

@@ -92,6 +92,7 @@ class OptionParser {
     static void parseAlignSize(std::string val);
     static void parseAllowDeadData(std::string val);
     static void parseEmitPragmas(std::string val);
+    static void parseOutDir(std::string val);
 };
 
 class Options {
@@ -133,6 +134,9 @@ class Options {
     void setEmitPragmas(OptionLevel _val) { emit_pragmas = _val; }
     OptionLevel getEmitPragmas() { return emit_pragmas; }
 
+    void setOutDir(std::string _out_dir) { out_dir = _out_dir; }
+    std::string getOutDir() { return out_dir; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -157,5 +161,7 @@ class Options {
     bool allow_dead_data;
 
     OptionLevel emit_pragmas;
+
+    std::string out_dir;
 };
 } // namespace yarpgen

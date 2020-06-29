@@ -553,18 +553,27 @@ void ProgramGenerator::emit() {
 
     std::ofstream out_file;
 
-    out_file.open("init.h");
+    // TODO: probably won't work on Windows
+    std::string out_dir = options.getOutDir() + "/";
+
+    auto open_file = [&out_file, &out_dir](std::string file_name) {
+        out_file.open(out_dir + file_name);
+        if (!out_file)
+            ERROR(std::string("Can't open file ") + file_name);
+    };
+
+    open_file("init.h");
     emitExtDecl(emit_ctx, out_file);
     out_file.close();
 
-    out_file.open(!options.isISPC() ? "func.cpp" : "func.ispc");
+    open_file(!options.isISPC() ? "func.cpp" : "func.ispc");
     out_file << "/*\n";
     options.dump(out_file);
     out_file << "*/\n";
     emitTest(emit_ctx, out_file);
     out_file.close();
 
-    out_file.open("driver.cpp");
+    open_file("driver.cpp");
     emitCheckFunc(out_file);
     emitDecl(emit_ctx, out_file);
     emitInit(emit_ctx, out_file);
