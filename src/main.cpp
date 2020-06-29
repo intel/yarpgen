@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
 
     Options &options = Options::getInstance();
     rand_val_gen = std::make_shared<RandValGen>(options.getSeed());
+    options.setSeed(rand_val_gen->getSeed());
 
     ProgramGenerator new_program;
     new_program.emit();

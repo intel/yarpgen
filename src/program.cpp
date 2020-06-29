@@ -558,6 +558,9 @@ void ProgramGenerator::emit() {
     out_file.close();
 
     out_file.open(!options.isISPC() ? "func.cpp" : "func.ispc");
+    out_file << "/*\n";
+    options.dump(out_file);
+    out_file << "*/\n";
     emitTest(emit_ctx, out_file);
     out_file.close();
 

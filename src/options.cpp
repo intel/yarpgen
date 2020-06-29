@@ -392,3 +392,46 @@ void OptionParser::parseEmitPragmas(std::string val) {
     else
         printHelpAndExit("Can't recognize emit-pragmas use level");
 }
+
+void Options::dump(std::ostream &stream) {
+    for (auto &item : OptionParser::options_set) {
+        OptionKind kind = item.getKind();
+        switch (kind) {
+            case OptionKind::HELP:
+            case OptionKind::VERSION:
+                break;
+            case OptionKind::SEED:
+                stream << "Seed: " << seed;
+                break;
+            case OptionKind::STD:
+                stream << "Std: " << toString(std);
+                break;
+            case OptionKind::ASSERTS:
+                stream << "Asserts: " << toString(use_asserts);
+                break;
+            case OptionKind::INP_AS_ARGS:
+                stream << "Inp as args: " << toString(inp_as_args);
+                break;
+            case OptionKind::EMIT_ALIGN_ATTR:
+                stream << "Emit align attr: " << toString(emit_align_attr);
+                break;
+            case OptionKind::UNIQUE_ALIGN_SIZE:
+                stream << "Unique align size: "
+                       << (unique_align_size ? "true" : "false");
+                break;
+            case OptionKind::ALIGN_SIZE:
+                stream << "Align size: " << toString(align_size);
+                break;
+            case OptionKind::ALLOW_DEAD_DATA:
+                stream << "Allow dead data: "
+                       << (allow_dead_data ? "true" : "false");
+                break;
+            case OptionKind::EMIT_PRAGMAS:
+                stream << "Emit pragmas: " << toString(emit_pragmas);
+                break;
+            case OptionKind::MAX_OPTION_ID:
+                ERROR("Bad option kind");
+        }
+        stream << "\n";
+    }
+}
