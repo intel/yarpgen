@@ -159,10 +159,8 @@ enum class OptionKind {
 };
 
 enum class OptionLevel { NONE, SOME, ALL, MAX_OPTION_LEVEL };
-std::string toString(OptionLevel val);
 
 enum class LangStd { CXX, ISPC, SYCL, MAX_LANG_STD };
-std::string toString(LangStd val);
 
 enum class AlignmentSize {
     A16,
@@ -170,7 +168,6 @@ enum class AlignmentSize {
     A64,
     MAX_ALIGNMENT_SIZE /*it is reserved to mean any of the above at random*/
 };
-std::string toString(AlignmentSize val);
 
 enum class PragmaKind {
     CLANG_VECTORIZE,

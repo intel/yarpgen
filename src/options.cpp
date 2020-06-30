@@ -160,10 +160,14 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      {}},
 };
 
+static void dumpVersion(std::ostream &stream) {
+    stream << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
+           << YARPGEN_VERSION_MINOR << " (build " << BUILD_VERSION << " on "
+           << BUILD_DATE << ")" << std::endl;
+}
+
 void OptionParser::printVersion(std::string arg) {
-    std::cout << "yarpgen version " << YARPGEN_VERSION_MAJOR << "."
-              << YARPGEN_VERSION_MINOR << " (build " << BUILD_VERSION << " on "
-              << BUILD_DATE << ")" << std::endl;
+    dumpVersion(std::cout);
     if (!arg.empty())
         exit(-1);
     exit(0);
@@ -275,6 +279,9 @@ bool OptionParser::parseLongAndShortArgs(int argc, size_t &argv_iter,
 }
 
 void OptionParser::parse(size_t argc, char *argv[]) {
+    Options &options = Options::getInstance();
+    options.setRawOptions(argc, argv);
+
     for (size_t i = 1; i < argc; ++i) {
         bool parsed = false;
         for (const auto &item : options_set)
@@ -408,47 +415,17 @@ void OptionParser::parseOutDir(std::string val) {
 }
 
 void Options::dump(std::ostream &stream) {
-    for (auto &item : OptionParser::options_set) {
-        OptionKind kind = item.getKind();
-        switch (kind) {
-            case OptionKind::HELP:
-            case OptionKind::VERSION:
-                break;
-            case OptionKind::SEED:
-                stream << "Seed: " << seed;
-                break;
-            case OptionKind::STD:
-                stream << "Std: " << toString(std);
-                break;
-            case OptionKind::ASSERTS:
-                stream << "Asserts: " << toString(use_asserts);
-                break;
-            case OptionKind::INP_AS_ARGS:
-                stream << "Inp as args: " << toString(inp_as_args);
-                break;
-            case OptionKind::EMIT_ALIGN_ATTR:
-                stream << "Emit align attr: " << toString(emit_align_attr);
-                break;
-            case OptionKind::UNIQUE_ALIGN_SIZE:
-                stream << "Unique align size: "
-                       << (unique_align_size ? "true" : "false");
-                break;
-            case OptionKind::ALIGN_SIZE:
-                stream << "Align size: " << toString(align_size);
-                break;
-            case OptionKind::ALLOW_DEAD_DATA:
-                stream << "Allow dead data: "
-                       << (allow_dead_data ? "true" : "false");
-                break;
-            case OptionKind::EMIT_PRAGMAS:
-                stream << "Emit pragmas: " << toString(emit_pragmas);
-                break;
-            case OptionKind::OUT_DIR:
-                stream << "Out dir: " << out_dir;
-                break;
-            case OptionKind::MAX_OPTION_ID:
-                ERROR("Bad option kind");
-        }
-        stream << "\n";
+    dumpVersion(stream);
+    stream << "Seed: " << seed << "\n";
+    stream << "Invocation:";
+    for (const auto &option : raw_options) {
+        stream << " " << option;
     }
+    stream << "\n";
+}
+
+void Options::setRawOptions(size_t argc, char *argv[]) {
+    raw_options.reserve(argc);
+    for (size_t i = 0; i < argc; ++i)
+        raw_options.emplace_back(argv[i]);
 }

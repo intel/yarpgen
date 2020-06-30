@@ -104,6 +104,8 @@ class Options {
     Options(const Options &options) = delete;
     Options &operator=(const Options &) = delete;
 
+    void setRawOptions(size_t argc, char *argv[]);
+
     void setSeed(size_t _seed) { seed = _seed; }
     size_t getSeed() { return seed; }
 
@@ -146,6 +148,8 @@ class Options {
           unique_align_size(false),
           align_size(AlignmentSize::MAX_ALIGNMENT_SIZE), allow_dead_data(false),
           emit_pragmas(OptionLevel::SOME) {}
+
+    std::vector<std::string> raw_options;
 
     size_t seed;
     LangStd std;
