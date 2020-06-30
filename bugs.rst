@@ -3,10 +3,12 @@ LLVM:
 ====================================
 Version #2
 ---------------
-| `46178 <https://bugs.llvm.org/show_bug.cgi?id=46178>`_ - Assertion `idx < size()' failed in combineX86ShufflesRecursively with -O3 -march=skx
+| `46525 <https://bugs.llvm.org/show_bug.cgi?id=46525>`_ - ICE: Assertion \`!verifyFunction(\*L->getHeader()->getParent())' failed
+| `46471 <https://bugs.llvm.org/show_bug.cgi?id=46471>`_ - [CodeGenPrepare] Assertion \`materialized_use_empty() && "Uses remain when a value is destroyed!"' failed
+| `46178 <https://bugs.llvm.org/show_bug.cgi?id=46178>`_ - Assertion \`idx < size()' failed in combineX86ShufflesRecursively with -O3 -march=skx
 
 Loop-targeting prototype
----------------
+-------------------------
 | `42833 <https://bugs.llvm.org/show_bug.cgi?id=42833>`_ - Incorrect result with -O3 -march=skx
 | `42819 <https://bugs.llvm.org/show_bug.cgi?id=42819>`_ - ICE: "Cannot select: X86ISD::SUBV_BROADCAST" with -O3 -march=skx
 
@@ -23,13 +25,13 @@ Version #1
 | `34838 <https://bugs.llvm.org/show_bug.cgi?id=34838>`_ - InstCombine - Assertion "Compare known true or false was not folded"
 | `34837 <https://bugs.llvm.org/show_bug.cgi?id=34837>`_ - UNREACHABLE in DAGTypeLegalizer::PromoteIntegerResult
 | `34830 <https://bugs.llvm.org/show_bug.cgi?id=34830>`_ - Clang failing with "Cannot emit physreg copy instruction"
-| `34828 <https://bugs.llvm.org/show_bug.cgi?id=34828>`_ - Assertion in VirtRegRewriter: `toIndex_(n) < storage_.size() && "index out of bounds!"'
-| `34787 <https://bugs.llvm.org/show_bug.cgi?id=34787>`_ - Assertion `TN->getNumChildren() == 0 && "Not a tree leaf"'
+| `34828 <https://bugs.llvm.org/show_bug.cgi?id=34828>`_ - Assertion in VirtRegRewriter: \`toIndex_(n) < storage\_.size() && "index out of bounds!"'
+| `34787 <https://bugs.llvm.org/show_bug.cgi?id=34787>`_ - Assertion \`TN->getNumChildren() == 0 && "Not a tree leaf"'
 | `34782 <https://bugs.llvm.org/show_bug.cgi?id=34782>`_ - Assertion "Deleted edge still exists in the CFG!"
 | `34381 <https://bugs.llvm.org/show_bug.cgi?id=34381>`_ - Clang produces incorrect code at -O0
 | `34377 <https://bugs.llvm.org/show_bug.cgi?id=34377>`_ - Clang produces incorrect code with -O1 and higher
 | `34137 <https://bugs.llvm.org/show_bug.cgi?id=34137>`_ - clang crash in llvm::SelectionDAG::Combine on -O0
-| `33844 <https://bugs.llvm.org/show_bug.cgi?id=33844>`_ - Assertion `loBit <= BitWidth && "loBit out of range"' failed with -O1
+| `33844 <https://bugs.llvm.org/show_bug.cgi?id=33844>`_ - Assertion \`loBit <= BitWidth && "loBit out of range"' failed with -O1
 | `33828 <https://bugs.llvm.org/show_bug.cgi?id=33828>`_ - Crash in X86DAGToDAGISel::RunSDNodeXForm: "getConstant with a uint64_t value that doesn't fit in the type!"
 | `33765 <https://bugs.llvm.org/show_bug.cgi?id=33765>`_ - Replacing instructions in instcombine violates dominance relation
 | `33695 <https://bugs.llvm.org/show_bug.cgi?id=33695>`_ - Bit-Tracking Dead Code Elimination (BDCE) fails to invalidate nsw/nuw after transforms
@@ -40,37 +42,37 @@ Version #1
 | `32830 <https://bugs.llvm.org/show_bug.cgi?id=32830>`_ - Clang produces incorrect code with -O2 and higher
 | `32525 <https://bugs.llvm.org/show_bug.cgi?id=32525>`_ - Assertion is hit: "The number of nodes scheduled doesn't match the expected number!"
 | `32515 <https://bugs.llvm.org/show_bug.cgi?id=32515>`_ - Assertion "DELETED_NODE in CSEMap!" fires a lot with -march=skx
-| `32345 <https://bugs.llvm.org/show_bug.cgi?id=32345>`_ - Assertion `Op.getScalarValueSizeInBits() == BitWidth && "Mask size mismatches value type size!"' failed with -O0.
-| `32340 <https://bugs.llvm.org/show_bug.cgi?id=32340>`_ - Assertion `N->getOpcode() != ISD::DELETED_NODE && "Deleted Node added to Worklist"' failed with -O0
+| `32345 <https://bugs.llvm.org/show_bug.cgi?id=32345>`_ - Assertion \`Op.getScalarValueSizeInBits() == BitWidth && "Mask size mismatches value type size!"' failed with -O0.
+| `32340 <https://bugs.llvm.org/show_bug.cgi?id=32340>`_ - Assertion \`N->getOpcode() != ISD::DELETED_NODE && "Deleted Node added to Worklist"' failed with -O0
 | `32329 <https://bugs.llvm.org/show_bug.cgi?id=32329>`_ - Silent failure in X86 DAG->DAG Instruction Selection with -march=skx -O3
-| `32316 <https://bugs.llvm.org/show_bug.cgi?id=32316>`_ - Assertion `N1.getValueType() == N2.getValueType() && N1.getValueType() == VT && "Binary operator types must match!"' failed with -O1 -march=skx
-| `32284 <https://bugs.llvm.org/show_bug.cgi?id=32284>`_ - Assertion `Num < NumOperands && "Invalid child # of SDNode!"' failed with -O0 -march=skx.
-| `32256 <https://bugs.llvm.org/show_bug.cgi?id=32256>`_ - Assertion `!isHReg(DestReg) && "Cannot move between mask and h-reg"' failed with -m32 -O0 -march=skx.
+| `32316 <https://bugs.llvm.org/show_bug.cgi?id=32316>`_ - Assertion \`N1.getValueType() == N2.getValueType() && N1.getValueType() == VT && "Binary operator types must match!"' failed with -O1 -march=skx
+| `32284 <https://bugs.llvm.org/show_bug.cgi?id=32284>`_ - Assertion \`Num < NumOperands && "Invalid child # of SDNode!"' failed with -O0 -march=skx.
+| `32256 <https://bugs.llvm.org/show_bug.cgi?id=32256>`_ - Assertion \`!isHReg(DestReg) && "Cannot move between mask and h-reg"' failed with -m32 -O0 -march=skx.
 | `32241 <https://bugs.llvm.org/show_bug.cgi?id=32241>`_ - Incorrect result with -march=skx -O0 -m32.
 | `31306 <https://bugs.llvm.org/show_bug.cgi?id=31306>`_ - [AVX-512] Compiler crash: Cannot select: t41: v8i64 = X86ISD::SUBV_BROADCAST
 | `31045 <https://bugs.llvm.org/show_bug.cgi?id=31045>`_ - Clang fails in insertDAGNode
-| `31044 <https://bugs.llvm.org/show_bug.cgi?id=31044>`_ - Assertion `Index.getValueType() == MVT::i32 && "Expect to be extending 32-bit registers for use in LEA"' failed
-| `30813 <https://bugs.llvm.org/show_bug.cgi?id=30813>`_ - Assertion `ShiftBits != 0 && MaskBits <= Size' failed.
-| `30783 <https://bugs.llvm.org/show_bug.cgi?id=30783>`_ - Assertion `New->getType() == getType() && "replaceAllUses of value with new value of different type!"' failed
-| `30777 <https://bugs.llvm.org/show_bug.cgi?id=30777>`_ - Assertion `DestBits == SrcBits && "Illegal cast to vector (wrong type or size)"' failed
-| `30775 <https://bugs.llvm.org/show_bug.cgi?id=30775>`_ - Assertion `NodeToMatch->getOpcode() != ISD::DELETED_NODE && "NodeToMatch was removed partway through selection"' failed.
+| `31044 <https://bugs.llvm.org/show_bug.cgi?id=31044>`_ - Assertion \`Index.getValueType() == MVT::i32 && "Expect to be extending 32-bit registers for use in LEA"' failed
+| `30813 <https://bugs.llvm.org/show_bug.cgi?id=30813>`_ - Assertion \`ShiftBits != 0 && MaskBits <= Size' failed.
+| `30783 <https://bugs.llvm.org/show_bug.cgi?id=30783>`_ - Assertion \`New->getType() == getType() && "replaceAllUses of value with new value of different type!"' failed
+| `30777 <https://bugs.llvm.org/show_bug.cgi?id=30777>`_ - Assertion \`DestBits == SrcBits && "Illegal cast to vector (wrong type or size)"' failed
+| `30775 <https://bugs.llvm.org/show_bug.cgi?id=30775>`_ - Assertion \`NodeToMatch->getOpcode() != ISD::DELETED_NODE && "NodeToMatch was removed partway through selection"' failed.
 | `30693 <https://bugs.llvm.org/show_bug.cgi?id=30693>`_ - AVX512 Segfault: alignment incorrect for relative addressing
 | `30286 <https://bugs.llvm.org/show_bug.cgi?id=30286>`_ - [AVX-512] KNL bug at -O0
 | `30256 <https://bugs.llvm.org/show_bug.cgi?id=30256>`_ - Assert in llvm::ReassociatePass::OptimizeAdd
 | `29058 <https://bugs.llvm.org/show_bug.cgi?id=29058>`_ - Assert in llvm::SelectionDAG::Legalize()
 | `28845 <https://bugs.llvm.org/show_bug.cgi?id=28845>`_ - Incorrect codegen for "store <2 x i48>" triggered by -fslp-vectorize-aggressive
 | `28661 <https://bugs.llvm.org/show_bug.cgi?id=28661>`_ - [AVX512] incorrect code for boolean expression at -O0.
-| `28313 <https://bugs.llvm.org/show_bug.cgi?id=28313>`_ - LLVM trunk crash with knl target (Assertion `isSCEVable(V->getType()))
-| `28312 <https://bugs.llvm.org/show_bug.cgi?id=28312>`_ - LLVM trunk crash with knl target (Assertion `Res.getValueType() == N->getValueType(0))
-| `28301 <https://bugs.llvm.org/show_bug.cgi?id=28301>`_ - Clang trunk ICE (Assertion `Removed && "Register is not used by this instruction!)
-| `28291 <https://bugs.llvm.org/show_bug.cgi?id=28291>`_ - LLVM trunk crash with knl target (Assertion `C1->getType() == C2->getType())
+| `28313 <https://bugs.llvm.org/show_bug.cgi?id=28313>`_ - LLVM trunk crash with knl target (Assertion \`isSCEVable(V->getType()))
+| `28312 <https://bugs.llvm.org/show_bug.cgi?id=28312>`_ - LLVM trunk crash with knl target (Assertion \`Res.getValueType() == N->getValueType(0))
+| `28301 <https://bugs.llvm.org/show_bug.cgi?id=28301>`_ - Clang trunk ICE (Assertion \`Removed && "Register is not used by this instruction!)
+| `28291 <https://bugs.llvm.org/show_bug.cgi?id=28291>`_ - LLVM trunk crash with knl target (Assertion \`C1->getType() == C2->getType())
 | `28119 <https://bugs.llvm.org/show_bug.cgi?id=28119>`_ - [AVX-512] llc crash with UNREACHABLE executed at lib/IR/ValueTypes.cpp:128
-| `27997 <https://bugs.llvm.org/show_bug.cgi?id=27997>`_ - ICE on trunk Clang, knl target, Assertion `L.isLCSSAForm(DT)' failed
+| `27997 <https://bugs.llvm.org/show_bug.cgi?id=27997>`_ - ICE on trunk Clang, knl target, Assertion \`L.isLCSSAForm(DT)' failed
 | `27879 <https://bugs.llvm.org/show_bug.cgi?id=27879>`_ - ICE on trunk llvm (Invalid operands for select instruction)
 | `27873 <https://bugs.llvm.org/show_bug.cgi?id=27873>`_ - ICE in llvm::TargetLowering::SimplifyDemandedBits on knl
 | `27789 <https://bugs.llvm.org/show_bug.cgi?id=27789>`_ - Clang trunk crashes on knl target
 | `27638 <https://bugs.llvm.org/show_bug.cgi?id=27638>`_ - ICE in llvm::SDValue llvm::X86TargetLowering::LowerSETCC
-| `27591 <https://bugs.llvm.org/show_bug.cgi?id=27591>`_ - Clang crash with KNL target, Assertion `Emitted && "Failed to emit a zext!"' failed
+| `27591 <https://bugs.llvm.org/show_bug.cgi?id=27591>`_ - Clang crash with KNL target, Assertion \`Emitted && "Failed to emit a zext!"' failed
 | `27584 <https://bugs.llvm.org/show_bug.cgi?id=27584>`_ - LLVM trunk crash with knl target
 | `25519 <https://bugs.llvm.org/show_bug.cgi?id=25519>`_ - [AVX-512] llc generates incorrect code
 | `25518 <https://bugs.llvm.org/show_bug.cgi?id=25518>`_ - [AVX-512] llc generates incorrect code
@@ -82,9 +84,10 @@ GCC:
 
 Version #2
 ---------------
-| `95717 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95717`_ - [9/10 Regression] ICE during GIMPLE pass: vect: verify_ssa failed since r9-5325-gf25507d041de4df6
-| `95649 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95649`_ - [11 Regression] ICE during GIMPLE pass: cunroll since r11-1146-g1396fa5b91cfa0b3
-| `95487 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95487`_ - [10 Regression] ICE: verify_gimple failed (error: invalid vector types in nop conversion) with -O3 -march=skylake-avx512 since r10-1052-gc29c92c789d93848
+| `95916 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95916>`_ - [11 Regression] ICE during GIMPLE pass: slp : verify_ssa failed
+| `95717 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95717>`_ - [9/10 Regression] ICE during GIMPLE pass: vect: verify_ssa failed since r9-5325-gf25507d041de4df6
+| `95649 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95649>`_ - [11 Regression] ICE during GIMPLE pass: cunroll since r11-1146-g1396fa5b91cfa0b3
+| `95487 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95487>`_ - [10 Regression] ICE: verify_gimple failed (error: invalid vector types in nop conversion) with -O3 -march=skylake-avx512 since r10-1052-gc29c92c789d93848
 | `95401 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95401>`_ - [10/11 Regression] GCC produces incorrect instruction with -O3 for AVX2 since r10-2257-g868363d4f52df19d
 | `95396 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95396>`_ - [8/9/10/11 Regression] GCC produces incorrect code with -O3 for loops since r8-6511-g3ae129323d150621
 | `95308 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95308>`_ - [10 Regression] ICE: in maybe_canonicalize_mem_ref_addr with -O3 -march=skylake-avx512 since r10-4203-g97c146036750e7cb
@@ -96,7 +99,7 @@ Version #2
 | `94727 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=94727>`_ - [10 Regression] GCC produces incorrect code with -O3 since r10-5071-g02d895504cc59be0
 
 Loop-targeting prototype
----------------
+-------------------------
 | `91403 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91403>`_ - GCC fails with ICE.
 | `91293 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91293>`_ - [8 Regression] Wrong code with -O3 -mavx2
 | `91240 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91240>`_ - [8/9/10 Regression] Wrong code with -O3 due to unroll and jam pass
@@ -198,11 +201,12 @@ ISPC:
 ====================================
 Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q=is%3Aissue+label%3Ayarpgen+>`_
 
+| `1806	<https://github.com/ispc/ispc/issues/1806>`_ - ISPC produces wrong code with bool type iterator
 | `1793 <https://github.com/ispc/ispc/issues/1793>`_ - Wrong code for avx2-i32x16.
 | `1788 <https://github.com/ispc/ispc/issues/1788>`_ - ICE: LLVM ERROR: Instruction Combining seems stuck in an infinite loop after 1000 iterations.
 | `1771 <https://github.com/ispc/ispc/issues/1771>`_ - Wrong code for avx2-i64x4
 | `1768 <https://github.com/ispc/ispc/issues/1768>`_ - Uniform and varying types have different rounding rules.
-| `1767 <https://github.com/ispc/ispc/issues/1767>`_ - Assertion `V.getNode() && \"Getting TableId on SDValue()"' failed.
+| `1767 <https://github.com/ispc/ispc/issues/1767>`_ - Assertion \`V.getNode() && \"Getting TableId on SDValue()"' failed.
 | `1763 <https://github.com/ispc/ispc/issues/1763>`_ - Wrong code for avx2-i64x4
 | `1762 <https://github.com/ispc/ispc/issues/1762>`_ - ICE: "scatterFunc != NULL".
 | `1729 <https://github.com/ispc/ispc/issues/1729>`_ - Assertion failed: "ci != NULL".
