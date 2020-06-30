@@ -24,7 +24,6 @@ set(LIB_SRCS
     "data.h"
     "emit_policy.cpp"
     "emit_policy.h"
-    "enums.cpp"
     "enums.h"
     "expr.cpp"
     "expr.h"
