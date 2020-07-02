@@ -188,4 +188,10 @@ enum class SimilarOperators {
     MAX_SIMILAR_OP  // No limitations
 };
 
+enum class ConstUse {
+    HALF,         // Half of the leaves are constants
+    ALL,          // All of the leaves are constants
+    MAX_CONST_USE // No limitations
+};
+
 } // namespace yarpgen

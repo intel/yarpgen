@@ -197,6 +197,12 @@ GenPolicy::GenPolicy() {
         Probability<SimilarOperators>(SimilarOperators::BIT_SH, 10));
     similar_op_distr.emplace_back(
         Probability<SimilarOperators>(SimilarOperators::ADD_MUL, 10));
+
+    active_const_use = ConstUse::MAX_CONST_USE;
+    apply_const_use_distr.emplace_back(Probability<bool>(true, 10));
+    apply_const_use_distr.emplace_back(Probability<bool>(false, 90));
+    const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::HALF, 50));
+    const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::ALL, 50));
 }
 
 void GenPolicy::chooseAndApplySimilarOp() {
@@ -246,6 +252,33 @@ void GenPolicy::chooseAndApplySimilarOp() {
             Probability<BinaryOp>(BinaryOp::LOG_AND, 10));
         binary_op_distr.emplace_back(
             Probability<BinaryOp>(BinaryOp::LOG_OR, 10));
+    }
+}
+
+void GenPolicy::chooseAndApplyConstUse() {
+    if (active_const_use != ConstUse::MAX_CONST_USE)
+        return;
+    active_const_use = rand_val_gen->getRandId(const_use_distr);
+    if (active_const_use == ConstUse::ALL) {
+        arith_node_distr.clear();
+        arith_node_distr.emplace_back(
+            Probability<IRNodeKind>(IRNodeKind::CONST, 100));
+    }
+    else if (active_const_use == ConstUse::HALF) {
+        size_t sum = 0;
+        auto &vec = arith_node_distr;
+        std::for_each(vec.begin(), vec.end(),
+                      [&](Probability<IRNodeKind> n) { sum += n.getProb(); });
+        auto search_func = [](Probability<IRNodeKind> n) -> bool {
+            return n.getId() == IRNodeKind::CONST;
+        };
+        if (auto find_res = std::find_if(vec.begin(), vec.end(), search_func) !=
+                            vec.end()) {
+            sum -= vec.at(find_res).getProb();
+            vec.erase(vec.begin() + find_res);
+        }
+        arith_node_distr.emplace_back(
+            Probability<IRNodeKind>(IRNodeKind::CONST, sum));
     }
 }
 
