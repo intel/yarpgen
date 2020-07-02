@@ -114,9 +114,13 @@ class GenPolicy {
 
     std::vector<Probability<bool>> apply_similar_op_distr;
     std::vector<Probability<SimilarOperators>> similar_op_distr;
-
     // This function overrides default distributions
     void chooseAndApplySimilarOp();
+
+    std::vector<Probability<bool>> apply_const_use_distr;
+    std::vector<Probability<ConstUse>> const_use_distr;
+    // This function overrides default distributions
+    void chooseAndApplyConstUse();
 
   private:
     template <typename T>
@@ -124,6 +128,7 @@ class GenPolicy {
                             size_t min_num = 0);
 
     SimilarOperators active_similar_op;
+    ConstUse active_const_use;
 };
 
 } // namespace yarpgen

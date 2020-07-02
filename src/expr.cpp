@@ -517,6 +517,11 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     if (apply_similar_op)
         gen_pol->chooseAndApplySimilarOp();
 
+    bool apply_const_use =
+        rand_val_gen->getRandId(gen_pol->apply_const_use_distr);
+    if (apply_const_use)
+        gen_pol->chooseAndApplyConstUse();
+
     if (node_kind == IRNodeKind::CONST) {
         new_node = ConstantExpr::create(active_ctx);
     }
