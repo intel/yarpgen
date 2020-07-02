@@ -177,4 +177,15 @@ enum class PragmaKind {
     MAX_CLANG_PRAGMA_KIND
 };
 
+// TODO: convert it to a bit-vector encoding
+enum class SimilarOperators {
+    ADDITIVE,       // +, - (unary and binary)
+    BITWISE,        // ~, &, |, ^
+    LOGIC,          // !, &&, ||
+    MULTIPLICATIVE, // *, / and unary +, -
+    BIT_SH,         // ~, &, |, ^, >>, <<
+    ADD_MUL,        // +, - (unary and binary) and *, /
+    MAX_SIMILAR_OP  // No limitations
+};
+
 } // namespace yarpgen

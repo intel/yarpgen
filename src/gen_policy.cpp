@@ -92,11 +92,11 @@ GenPolicy::GenPolicy() {
     max_arith_depth = 3;
 
     arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::CONST, 20));
+        Probability<IRNodeKind>(IRNodeKind::CONST, 15));
     arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::SCALAR_VAR_USE, 20));
+        Probability<IRNodeKind>(IRNodeKind::SCALAR_VAR_USE, 15));
     arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::SUBSCRIPT, 20));
+        Probability<IRNodeKind>(IRNodeKind::SUBSCRIPT, 15));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::TYPE_CAST, 20));
     arith_node_distr.emplace_back(
@@ -181,6 +181,72 @@ GenPolicy::GenPolicy() {
         Probability<PragmaKind>(PragmaKind::CLANG_VEC_PREDICATE, 25));
     pragma_kind_distr.emplace_back(
         Probability<PragmaKind>(PragmaKind::CLANG_UNROLL, 25));
+
+    active_similar_op = SimilarOperators::MAX_SIMILAR_OP;
+    apply_similar_op_distr.emplace_back(Probability<bool>(true, 10));
+    apply_similar_op_distr.emplace_back(Probability<bool>(false, 90));
+    similar_op_distr.emplace_back(
+        Probability<SimilarOperators>(SimilarOperators::ADDITIVE, 10));
+    similar_op_distr.emplace_back(
+        Probability<SimilarOperators>(SimilarOperators::BITWISE, 10));
+    similar_op_distr.emplace_back(
+        Probability<SimilarOperators>(SimilarOperators::LOGIC, 10));
+    similar_op_distr.emplace_back(
+        Probability<SimilarOperators>(SimilarOperators::MULTIPLICATIVE, 10));
+    similar_op_distr.emplace_back(
+        Probability<SimilarOperators>(SimilarOperators::BIT_SH, 10));
+    similar_op_distr.emplace_back(
+        Probability<SimilarOperators>(SimilarOperators::ADD_MUL, 10));
+}
+
+void GenPolicy::chooseAndApplySimilarOp() {
+    if (active_similar_op != SimilarOperators::MAX_SIMILAR_OP)
+        return;
+    active_similar_op = rand_val_gen->getRandId(similar_op_distr);
+    binary_op_distr.clear();
+    unary_op_distr.clear();
+    if (active_similar_op == SimilarOperators::ADDITIVE ||
+        active_similar_op == SimilarOperators::ADD_MUL) {
+        unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 10));
+        unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 10));
+        binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::ADD, 10));
+        binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SUB, 10));
+        if (active_similar_op == SimilarOperators::ADD_MUL) {
+            binary_op_distr.emplace_back(
+                Probability<BinaryOp>(BinaryOp::MUL, 10));
+            binary_op_distr.emplace_back(
+                Probability<BinaryOp>(BinaryOp::DIV, 10));
+        }
+    }
+    if (active_similar_op == SimilarOperators::MULTIPLICATIVE) {
+        unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 10));
+        unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 10));
+        binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::MUL, 10));
+        binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::DIV, 10));
+    }
+    if (active_similar_op == SimilarOperators::BITWISE ||
+        active_similar_op == SimilarOperators::BIT_SH) {
+        unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::BIT_NOT, 10));
+        binary_op_distr.emplace_back(
+            Probability<BinaryOp>(BinaryOp::BIT_AND, 10));
+        binary_op_distr.emplace_back(
+            Probability<BinaryOp>(BinaryOp::BIT_OR, 10));
+        binary_op_distr.emplace_back(
+            Probability<BinaryOp>(BinaryOp::BIT_XOR, 10));
+        if (active_similar_op == SimilarOperators::BIT_SH) {
+            binary_op_distr.emplace_back(
+                Probability<BinaryOp>(BinaryOp::SHL, 10));
+            binary_op_distr.emplace_back(
+                Probability<BinaryOp>(BinaryOp::SHR, 10));
+        }
+    }
+    if (active_similar_op == SimilarOperators::LOGIC) {
+        unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::LOG_NOT, 10));
+        binary_op_distr.emplace_back(
+            Probability<BinaryOp>(BinaryOp::LOG_AND, 10));
+        binary_op_distr.emplace_back(
+            Probability<BinaryOp>(BinaryOp::LOG_OR, 10));
+    }
 }
 
 template <typename T>

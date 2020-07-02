@@ -481,7 +481,7 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
     std::shared_ptr<Expr> new_node;
     ctx->incArithDepth();
-    std::shared_ptr<PopulateCtx> active_ctx = ctx;
+    auto active_ctx = std::make_shared<PopulateCtx>(*ctx);
     if (active_ctx->getArithDepth() == gen_pol->max_arith_depth) {
         // We can have only constants, variables and arrays as leaves
         std::vector<Probability<IRNodeKind>> new_node_distr;
@@ -512,6 +512,10 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         active_ctx->setGenPolicy(new_gen_policy);
     }
     gen_pol = active_ctx->getGenPolicy();
+    bool apply_similar_op =
+        rand_val_gen->getRandId(gen_pol->apply_similar_op_distr);
+    if (apply_similar_op)
+        gen_pol->chooseAndApplySimilarOp();
 
     if (node_kind == IRNodeKind::CONST) {
         new_node = ConstantExpr::create(active_ctx);
