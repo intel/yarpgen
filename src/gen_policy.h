@@ -112,10 +112,18 @@ class GenPolicy {
     // Probability to generate loop header as foreach or foreach_tiled
     std::vector<Probability<bool>> foreach_distr;
 
+    std::vector<Probability<bool>> apply_similar_op_distr;
+    std::vector<Probability<SimilarOperators>> similar_op_distr;
+
+    // This function overrides default distributions
+    void chooseAndApplySimilarOp();
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,
                             size_t min_num = 0);
+
+    SimilarOperators active_similar_op;
 };
 
 } // namespace yarpgen
