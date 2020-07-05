@@ -152,7 +152,7 @@ std::string IntegralType::getNameImpl(std::shared_ptr<EmitCtx> ctx,
     return ret;
 }
 
-std::string TypeSInt::getLiteralSuffix() {
+std::string IntegralType::getLiteralSuffix() {
     Options &options = Options::getInstance();
     return !options.isISPC() ? "" : "L";
 }
