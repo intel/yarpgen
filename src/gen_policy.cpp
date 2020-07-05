@@ -92,11 +92,11 @@ GenPolicy::GenPolicy() {
     max_arith_depth = 3;
 
     arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::CONST, 15));
+        Probability<IRNodeKind>(IRNodeKind::CONST, 10));
     arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::SCALAR_VAR_USE, 15));
+        Probability<IRNodeKind>(IRNodeKind::SCALAR_VAR_USE, 10));
     arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::SUBSCRIPT, 15));
+        Probability<IRNodeKind>(IRNodeKind::SUBSCRIPT, 10));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::TYPE_CAST, 20));
     arith_node_distr.emplace_back(
@@ -203,7 +203,50 @@ GenPolicy::GenPolicy() {
     apply_const_use_distr.emplace_back(Probability<bool>(false, 90));
     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::HALF, 50));
     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::ALL, 50));
+
+    use_special_const_distr.emplace_back(Probability<bool>(true, 30));
+    use_special_const_distr.emplace_back(Probability<bool>(false, 70));
+
+    special_const_distr.emplace_back(
+        Probability<SpecialConst>(SpecialConst::ZERO, 10));
+    special_const_distr.emplace_back(
+        Probability<SpecialConst>(SpecialConst::MIN, 10));
+    special_const_distr.emplace_back(
+        Probability<SpecialConst>(SpecialConst::MAX, 10));
+    special_const_distr.emplace_back(
+        Probability<SpecialConst>(SpecialConst::BIT_BLOCK, 10));
+    special_const_distr.emplace_back(
+        Probability<SpecialConst>(SpecialConst::END_BITS, 10));
+
+    use_lsb_bit_end_distr.emplace_back(Probability<bool>(true, 50));
+    use_lsb_bit_end_distr.emplace_back(Probability<bool>(false, 50));
+
+    use_const_offset_distr.emplace_back(Probability<bool>(true, 50));
+    use_const_offset_distr.emplace_back(Probability<bool>(false, 50));
+
+    min_offset = 1;
+    max_offset = 32;
+    uniformProbFromMax(const_offset_distr, max_offset, min_offset);
+
+    pos_const_offset_distr.emplace_back(Probability<bool>(true, 50));
+    pos_const_offset_distr.emplace_back(Probability<bool>(false, 50));
+
+    replace_in_buf_distr.emplace_back(Probability<bool>(true, 50));
+    replace_in_buf_distr.emplace_back(Probability<bool>(false, 50));
+
+    reuse_const_prob.emplace_back(Probability<bool>(true, 30));
+    reuse_const_prob.emplace_back(Probability<bool>(false, 70));
+
+    use_const_transform_distr.emplace_back(Probability<bool>(true, 50));
+    use_const_transform_distr.emplace_back(Probability<bool>(false, 50));
+
+    const_transform_distr.emplace_back(
+        Probability<UnaryOp>(UnaryOp::NEGATE, 30));
+    const_transform_distr.emplace_back(
+        Probability<UnaryOp>(UnaryOp::BIT_NOT, 30));
 }
+
+size_t yarpgen::GenPolicy::const_buf_size = 10;
 
 void GenPolicy::chooseAndApplySimilarOp() {
     if (active_similar_op != SimilarOperators::MAX_SIMILAR_OP)

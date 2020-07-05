@@ -122,6 +122,20 @@ class GenPolicy {
     // This function overrides default distributions
     void chooseAndApplyConstUse();
 
+    std::vector<Probability<bool>> use_special_const_distr;
+    std::vector<Probability<SpecialConst>> special_const_distr;
+    std::vector<Probability<bool>> use_lsb_bit_end_distr;
+    std::vector<Probability<bool>> use_const_offset_distr;
+    size_t max_offset;
+    size_t min_offset;
+    std::vector<Probability<size_t>> const_offset_distr;
+    std::vector<Probability<bool>> pos_const_offset_distr;
+    static size_t const_buf_size;
+    std::vector<Probability<bool>> replace_in_buf_distr;
+    std::vector<Probability<bool>> reuse_const_prob;
+    std::vector<Probability<bool>> use_const_transform_distr;
+    std::vector<Probability<UnaryOp>> const_transform_distr;
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

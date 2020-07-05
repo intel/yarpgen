@@ -91,7 +91,7 @@ class ConstantExpr : public Expr {
     create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
-    // TODO: add various buffers to increase tests expressiveness
+    static std::vector<std::shared_ptr<ConstantExpr>> used_consts;
 };
 
 // Abstract class that represents access to all sorts of variables
