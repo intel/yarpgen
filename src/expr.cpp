@@ -640,7 +640,6 @@ void ArithmeticExpr::varyingPromotion(std::shared_ptr<Expr> &lhs,
 
 std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
-    IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
     std::shared_ptr<Expr> new_node;
     ctx->incArithDepth();
     auto active_ctx = std::make_shared<PopulateCtx>(*ctx);
@@ -669,20 +668,31 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             }
         }
 
-        std::shared_ptr<GenPolicy> new_gen_policy = gen_pol;
+        auto new_gen_policy = std::make_shared<GenPolicy>(*gen_pol);
         new_gen_policy->arith_node_distr = new_node_distr;
         active_ctx->setGenPolicy(new_gen_policy);
     }
     gen_pol = active_ctx->getGenPolicy();
+
     bool apply_similar_op =
         rand_val_gen->getRandId(gen_pol->apply_similar_op_distr);
-    if (apply_similar_op)
+    if (apply_similar_op) {
+        auto new_gen_policy = std::make_shared<GenPolicy>(*gen_pol);
+        gen_pol = new_gen_policy;
         gen_pol->chooseAndApplySimilarOp();
+        active_ctx->setGenPolicy(gen_pol);
+    }
 
     bool apply_const_use =
         rand_val_gen->getRandId(gen_pol->apply_const_use_distr);
-    if (apply_const_use)
+    if (apply_const_use) {
+        auto new_gen_policy = std::make_shared<GenPolicy>(*gen_pol);
+        gen_pol = new_gen_policy;
         gen_pol->chooseAndApplyConstUse();
+        active_ctx->setGenPolicy(gen_pol);
+    }
+
+    IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
 
     if (node_kind == IRNodeKind::CONST) {
         new_node = ConstantExpr::create(active_ctx);
