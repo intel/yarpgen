@@ -194,4 +194,13 @@ enum class ConstUse {
     MAX_CONST_USE // No limitations
 };
 
+enum class SpecialConst {
+    ZERO,
+    MIN,
+    MAX,
+    BIT_BLOCK,
+    END_BITS,
+    MAX_SPECIAL_CONST
+};
+
 } // namespace yarpgen

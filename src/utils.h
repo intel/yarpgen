@@ -109,6 +109,13 @@ class RandValGen {
         return vec.at(idx).getId();
     }
 
+    // Randomly choose element from a vector
+    template <typename T> T &getRandElem(std::vector<T> vec) {
+        std::uniform_int_distribution<size_t> distr(0, vec.size() - 1);
+        size_t idx = distr(rand_gen);
+        return vec.at(idx);
+    }
+
     uint64_t getSeed() { return seed; }
 
   private:

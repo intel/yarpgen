@@ -37,6 +37,8 @@ std::shared_ptr<Data> Expr::getValue() {
     return value;
 }
 
+std::vector<std::shared_ptr<ConstantExpr>> yarpgen::ConstantExpr::used_consts;
+
 ConstantExpr::ConstantExpr(IRValue _value) {
     // TODO: maybe we need a constant data type rather than an anonymous scalar
     // variable
@@ -89,9 +91,169 @@ void ConstantExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 std::shared_ptr<ConstantExpr>
 ConstantExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
-    IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
-    IRValue init_val = rand_val_gen->getRandValue(type_id);
-    return std::make_shared<ConstantExpr>(init_val);
+    bool reuse_const = rand_val_gen->getRandId(gen_pol->reuse_const_prob);
+    std::shared_ptr<ConstantExpr> ret;
+    bool can_add_to_buf = true;
+    bool can_use_offset = true;
+    IntTypeID type_id;
+    std::shared_ptr<IntegralType> int_type;
+    if (reuse_const && !used_consts.empty()) {
+        bool use_transformation =
+            rand_val_gen->getRandId(gen_pol->use_const_transform_distr);
+        ret = rand_val_gen->getRandElem(used_consts);
+        can_add_to_buf = use_transformation;
+        assert(ret->getKind() == IRNodeKind::CONST &&
+               "Buffer of used constants should contain only constants");
+        auto scalar_val = std::static_pointer_cast<ScalarVar>(ret->getValue());
+        int_type =
+            std::static_pointer_cast<IntegralType>(scalar_val->getType());
+        type_id = int_type->getIntTypeId();
+        if (use_transformation) {
+            UnaryOp transformation =
+                rand_val_gen->getRandId(gen_pol->const_transform_distr);
+            IRValue ir_val = scalar_val->getCurrentValue();
+
+            IntTypeID active_type_id = type_id;
+            // TODO: do we need to cast to unsigned also?
+            if (type_id < IntTypeID::INT) {
+                if (int_type->getIsSigned())
+                    active_type_id = IntTypeID::INT;
+                else
+                    active_type_id = IntTypeID::UINT;
+                ir_val = ir_val.castToType(active_type_id);
+            }
+
+            auto active_int_type = IntegralType::init(active_type_id);
+            if (transformation == UnaryOp::BIT_NOT ||
+                (transformation == UnaryOp::NEGATE &&
+                 (ir_val == active_int_type->getMin()).getValueRef<bool>()))
+                ir_val = ~ir_val;
+            else if (transformation == UnaryOp::NEGATE)
+                ir_val = -ir_val;
+            else
+                ERROR("Unsupported constant transformation");
+
+            if (type_id < IntTypeID::INT)
+                ir_val = ir_val.castToType(type_id);
+
+            ret = std::make_shared<ConstantExpr>(ir_val);
+        }
+    }
+    else {
+        bool use_special_const =
+            rand_val_gen->getRandId(gen_pol->use_special_const_distr);
+        type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
+        int_type = IntegralType::init(type_id);
+        IRValue init_val(type_id);
+        if (use_special_const) {
+            SpecialConst special_const_kind =
+                rand_val_gen->getRandId(gen_pol->special_const_distr);
+
+            // Utility function for EndBits and BitBlock
+            auto fill_bits = [](size_t start, size_t end) -> uint64_t {
+                assert(end >= start &&
+                       "Ends should be sorted in increasing order");
+                return (end - start) == 63
+                           ? UINT64_MAX
+                           : ((1ULL << (end - start + 1)) - 1ULL) << start;
+            };
+
+            if (special_const_kind == SpecialConst::ZERO)
+                init_val.setValue(IRValue::AbsValue{false, 0});
+            else if (special_const_kind == SpecialConst::MIN)
+                init_val = int_type->getMin();
+            else if (special_const_kind == SpecialConst::MAX)
+                init_val = int_type->getMax();
+            else if (special_const_kind == SpecialConst::BIT_BLOCK) {
+                size_t start = rand_val_gen->getRandValue(
+                    static_cast<size_t>(0), int_type->getBitSize() - 1);
+                size_t end = rand_val_gen->getRandValue(
+                    start, int_type->getBitSize() - 1);
+                init_val.setValue(
+                    IRValue::AbsValue{false, fill_bits(start, end)});
+                // TODO: does it make sense?
+                can_use_offset = false;
+            }
+            else if (special_const_kind == SpecialConst::END_BITS) {
+                size_t bit_idx = rand_val_gen->getRandValue(
+                    static_cast<size_t>(0), int_type->getBitSize() - 1);
+                bool use_lsb_end =
+                    rand_val_gen->getRandId(gen_pol->use_lsb_bit_end_distr);
+                if (use_lsb_end)
+                    init_val.setValue(
+                        IRValue::AbsValue{false, fill_bits(0, bit_idx)});
+                else
+                    init_val.setValue(IRValue::AbsValue{
+                        false, fill_bits(0, int_type->getBitSize() - 1)});
+                // TODO: does it make sense?
+                can_use_offset = false;
+            }
+            else
+                ERROR("Bad special const kind");
+        }
+        else
+            init_val = rand_val_gen->getRandValue(type_id);
+
+        ret = std::make_shared<ConstantExpr>(init_val);
+    }
+
+    bool use_offset = rand_val_gen->getRandId(gen_pol->use_const_offset_distr);
+    if (can_use_offset && use_offset) {
+        IRValue ir_val = std::static_pointer_cast<ScalarVar>(ret->getValue())
+                             ->getCurrentValue();
+        IRValue offset(type_id);
+        if (type_id < IntTypeID::INT) {
+            // TODO: do we need to cast to unsigned also?
+            if (int_type->getIsSigned()) {
+                offset = offset.castToType(IntTypeID::INT);
+                ir_val = ir_val.castToType(IntTypeID::INT);
+            }
+            else {
+                offset = offset.castToType(IntTypeID::UINT);
+                ir_val = ir_val.castToType(IntTypeID::UINT);
+            }
+        }
+
+        size_t offset_size =
+            rand_val_gen->getRandId(gen_pol->const_offset_distr);
+        offset.setValue(IRValue::AbsValue{false, offset_size});
+
+        bool pos_offset =
+            rand_val_gen->getRandId(gen_pol->pos_const_offset_distr);
+        if (pos_offset)
+            ir_val = ir_val + offset;
+        else
+            ir_val = ir_val - offset;
+
+        if (type_id < IntTypeID::INT)
+            ir_val = ir_val.castToType(type_id);
+
+        if (!ir_val.hasUB()) {
+            ret = std::make_shared<ConstantExpr>(ir_val);
+            can_add_to_buf = true;
+        }
+    }
+
+    bool replace_in_buf =
+        rand_val_gen->getRandId(gen_pol->replace_in_buf_distr);
+    if (can_add_to_buf && replace_in_buf) {
+        if (used_consts.size() < gen_pol->const_buf_size)
+            used_consts.push_back(ret);
+        else {
+            size_t idx = rand_val_gen->getRandValue(static_cast<size_t>(0),
+                                                    used_consts.size() - 1);
+            used_consts.at(idx) = ret;
+        }
+    }
+
+    if (std::static_pointer_cast<ScalarVar>(ret->getValue())
+            ->getCurrentValue()
+            .hasUB()) {
+        ret->emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+    }
+
+    return ret;
 }
 
 std::shared_ptr<ScalarVarUseExpr>
