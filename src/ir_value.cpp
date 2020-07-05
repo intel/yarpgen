@@ -696,6 +696,8 @@ template <typename T> static inline size_t getMSBImpl(T x) {
     return ret;
 }
 
+template <> inline size_t getMSBImpl<bool>(bool x) { return x; }
+
 size_t IRValue::getMSB() {
     switch (getIntTypeID()) {
         GetMSBCase(IntTypeID::BOOL, bool);
@@ -710,4 +712,5 @@ size_t IRValue::getMSB() {
         case IntTypeID::MAX_INT_TYPE_ID:
             ERROR("Bad IntTypeID");
     }
+    ERROR("Unreachable");
 }
