@@ -1031,13 +1031,8 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 // And we can't shift MSB pass the type size
                 if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() &&
                     ub == UBKind::ShiftRhsLarge) {
-                    IRValue::AbsValue lhs_abs_val =
-                        lhs_scalar_var->getCurrentValue().getAbsValue();
-                    size_t lhs_abs_int_val =
-                        lhs_abs_val.isNegative
-                            ? std::abs(static_cast<int64_t>(lhs_abs_val.value))
-                            : lhs_abs_val.value;
-                    max_sht_val -= findMSB(lhs_abs_int_val);
+                    max_sht_val -=
+                        (lhs_scalar_var->getCurrentValue().getMSB() - 1);
                 }
 
                 // Secondly, we choose a new shift value in a valid range

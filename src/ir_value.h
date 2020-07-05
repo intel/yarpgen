@@ -90,6 +90,8 @@ class IRValue {
 
     friend std::ostream &operator<<(std::ostream &out, IRValue &val);
 
+    size_t getMSB();
+
     AbsValue getAbsValue();
     void setValue(AbsValue val);
 
@@ -243,6 +245,9 @@ template <> uint64_t &IRValue::getValueRef();
 #define OutOperatorCase(__type_id__, __type__)                                 \
     case (__type_id__): out << val.getValueRef<__type__>(); break;
 
+#define GetMSBCase(__type_id__, __type__)                                      \
+    case (__type_id__): return getMSBImpl(getValueRef<__type__>());
+
 // clang-format on
 
 //////////////////////////////////////////////////////////////////////////////
@@ -271,19 +276,6 @@ template <> uint64_t &IRValue::getValueRef();
     } while (0)
 
 //////////////////////////////////////////////////////////////////////////////
-// Find the most significant bit
-// We also need this function to form test input, that's why it is here.
-template <typename T> inline size_t findMSB(T x) {
-    // TODO: implementation-defined!
-    if (std::is_signed<T>::value && x < 0)
-        return sizeof(T) * CHAR_BIT;
-    size_t ret = 0;
-    while (x != 0) {
-        ret++;
-        x = x >> 1;
-    }
-    return ret;
-}
 
 std::ostream &operator<<(std::ostream &out, yarpgen::IRValue &val);
 // TODO: ideally, rhs should have a const IRValue&, but it causes problem with

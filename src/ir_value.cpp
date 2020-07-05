@@ -525,7 +525,7 @@ static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
 
     size_t lhs_bit_size = sizeof(T) * CHAR_BIT;
     if (std::is_signed<T>::value) {
-        size_t max_avail_shift = lhs_bit_size - findMSB(lhs.getValueRef<T>());
+        size_t max_avail_shift = lhs_bit_size - lhs.getMSB();
         if (rhs.getValueRef<U>() > static_cast<U>(max_avail_shift)) {
             ret.setUBCode(UBKind::ShiftRhsLarge);
             return ret;
@@ -681,4 +681,33 @@ void IRValue::setValue(IRValue::AbsValue val) {
             break;
     }
     ub_code = UBKind::NoUB;
+}
+
+// Find the most significant bit
+template <typename T> static inline size_t getMSBImpl(T x) {
+    // TODO: implementation-defined!
+    if (std::is_signed<T>::value && x < 0)
+        return sizeof(T) * CHAR_BIT;
+    size_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
+}
+
+size_t IRValue::getMSB() {
+    switch (getIntTypeID()) {
+        GetMSBCase(IntTypeID::BOOL, bool);
+        GetMSBCase(IntTypeID::SCHAR, int8_t);
+        GetMSBCase(IntTypeID::UCHAR, uint8_t);
+        GetMSBCase(IntTypeID::SHORT, int16_t);
+        GetMSBCase(IntTypeID::USHORT, uint16_t);
+        GetMSBCase(IntTypeID::INT, int32_t);
+        GetMSBCase(IntTypeID::UINT, uint32_t);
+        GetMSBCase(IntTypeID::LLONG, int64_t);
+        GetMSBCase(IntTypeID::ULLONG, uint64_t);
+        case IntTypeID::MAX_INT_TYPE_ID:
+            ERROR("Bad IntTypeID");
+    }
 }
