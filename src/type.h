@@ -106,6 +106,8 @@ class IntegralType : public ArithmeticType {
     virtual IRValue getMin() = 0;
     virtual IRValue getMax() = 0;
 
+    std::string getLiteralSuffix() override;
+
     // These utility functions take IntegerTypeID and return shared pointer to
     // corresponding type
     static std::shared_ptr<IntegralType> init(IntTypeID _type_id);
@@ -246,7 +248,6 @@ class TypeSInt : public IntegralTypeHelper<int32_t> {
     std::string getName(std::shared_ptr<EmitCtx> ctx) final {
         return getNameImpl(ctx, "int");
     }
-    std::string getLiteralSuffix() final;
 
     void dbgDump() final;
 };
