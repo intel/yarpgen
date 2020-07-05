@@ -116,6 +116,32 @@ class RandValGen {
         return vec.at(idx);
     }
 
+    // To improve variety of generated tests, we implement shuffling of
+    // input probabilities (they are stored in GenPolicy).
+    // TODO: sometimes this action increases test complexity, and tests becomes
+    // non-generatable.
+    template <typename T>
+    void shuffleProb(std::vector<Probability<T>> &prob_vec) {
+        int total_prob = 0;
+        std::vector<double> discrete_dis_init;
+        std::vector<Probability<T>> new_prob;
+        for (auto i : prob_vec) {
+            total_prob += i.getProb();
+            discrete_dis_init.push_back(i.getProb());
+            new_prob.push_back(Probability<T>(i.getId(), 0));
+        }
+
+        std::uniform_int_distribution<int> dis(1, total_prob);
+        int delta = round(((double)total_prob) / dis(rand_gen));
+
+        std::discrete_distribution<int> discrete_dis(discrete_dis_init.begin(),
+                                                     discrete_dis_init.end());
+        for (int i = 0; i < total_prob; i += delta)
+            new_prob.at(discrete_dis(rand_gen)).increaseProb(delta);
+
+        prob_vec = new_prob;
+    }
+
     uint64_t getSeed() { return seed; }
 
   private:
