@@ -528,6 +528,18 @@ template <typename T> void singleBitwiseAndOrXorTest(IntTypeID type_id) {
 
 //////////////////////////////////////////////////////////////////////////////
 
+template <typename T> static inline size_t findMSB(T x) {
+    // TODO: implementation-defined!
+    if (std::is_signed<T>::value && x < 0)
+        return sizeof(T) * CHAR_BIT;
+    size_t ret = 0;
+    while (x != 0) {
+        ret++;
+        x = x >> 1;
+    }
+    return ret;
+}
+
 template <typename LT, typename RT>
 void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     IRValue a(lhs_type_id);
