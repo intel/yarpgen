@@ -145,7 +145,7 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
     // eliminate UB problems is to make sure that iterator doesn't go outside
     // array boundaries
     if (!is_uniform)
-        end_val = (end_val / 16) * 16;
+        end_val = (end_val / 64) * 64;
     auto end =
         std::make_shared<ConstantExpr>(IRValue(type_id, {false, end_val}));
 
