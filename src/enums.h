@@ -155,6 +155,7 @@ enum class OptionKind {
     ALLOW_DEAD_DATA,
     EMIT_PRAGMAS,
     OUT_DIR,
+    PARAM_SHUFFLE,
     MAX_OPTION_ID
 };
 
