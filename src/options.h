@@ -93,6 +93,7 @@ class OptionParser {
     static void parseAllowDeadData(std::string val);
     static void parseEmitPragmas(std::string val);
     static void parseOutDir(std::string val);
+    static void parseUseParamShuffle(std::string val);
 };
 
 class Options {
@@ -139,6 +140,9 @@ class Options {
     void setOutDir(std::string _out_dir) { out_dir = _out_dir; }
     std::string getOutDir() { return out_dir; }
 
+    void setUseParamShuffle(bool val) { use_param_shuffle = val; }
+    bool getUseParamShuffle() { return use_param_shuffle; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -147,7 +151,8 @@ class Options {
           inp_as_args(OptionLevel::SOME), emit_align_attr(OptionLevel::SOME),
           unique_align_size(false),
           align_size(AlignmentSize::MAX_ALIGNMENT_SIZE), allow_dead_data(false),
-          emit_pragmas(OptionLevel::SOME) {}
+          emit_pragmas(OptionLevel::SOME), out_dir("."),
+          use_param_shuffle(false) {}
 
     std::vector<std::string> raw_options;
 
@@ -167,5 +172,7 @@ class Options {
     OptionLevel emit_pragmas;
 
     std::string out_dir;
+
+    bool use_param_shuffle;
 };
 } // namespace yarpgen

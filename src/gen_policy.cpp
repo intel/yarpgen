@@ -22,6 +22,14 @@ using namespace yarpgen;
 
 size_t GenPolicy::leaves_prob_bump = 30;
 
+template <typename T>
+static void shuffleProbProxy(std::vector<Probability<T>> &vec) {
+    Options &options = Options::getInstance();
+    if (!options.getUseParamShuffle())
+        return;
+    rand_val_gen->shuffleProb(vec);
+}
+
 GenPolicy::GenPolicy() {
     Options &options = Options::getInstance();
 
@@ -62,11 +70,11 @@ GenPolicy::GenPolicy() {
         Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
     stmt_kind_struct_distr.emplace_back(
         Probability<IRNodeKind>{IRNodeKind::STUB, 70});
-    rand_val_gen->shuffleProb(stmt_kind_struct_distr);
+    shuffleProbProxy(stmt_kind_struct_distr);
 
     else_br_distr.emplace_back(Probability<bool>{true, 20});
     else_br_distr.emplace_back(Probability<bool>{false, 80});
-    rand_val_gen->shuffleProb(else_br_distr);
+    shuffleProbProxy(else_br_distr);
 
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::BOOL, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SCHAR, 10));
@@ -77,7 +85,7 @@ GenPolicy::GenPolicy() {
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::LLONG, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::ULLONG, 10));
-    rand_val_gen->shuffleProb(int_type_distr);
+    shuffleProbProxy(int_type_distr);
 
     min_inp_vars_num = 10;
     max_inp_vars_num = 20;
@@ -91,7 +99,7 @@ GenPolicy::GenPolicy() {
 
     out_kind_distr.emplace_back(Probability<DataKind>(DataKind::VAR, 20));
     out_kind_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 20));
-    rand_val_gen->shuffleProb(out_kind_distr);
+    shuffleProbProxy(out_kind_distr);
 
     max_arith_depth = 3;
 
@@ -112,13 +120,13 @@ GenPolicy::GenPolicy() {
             Probability<IRNodeKind>(IRNodeKind::CALL, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
-    rand_val_gen->shuffleProb(arith_node_distr);
+    shuffleProbProxy(arith_node_distr);
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::LOG_NOT, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::BIT_NOT, 25));
-    rand_val_gen->shuffleProb(unary_op_distr);
+    shuffleProbProxy(unary_op_distr);
 
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::ADD, 10));
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SUB, 10));
@@ -138,17 +146,17 @@ GenPolicy::GenPolicy() {
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_XOR, 10));
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHL, 10));
     binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHR, 10));
-    rand_val_gen->shuffleProb(binary_op_distr);
+    shuffleProbProxy(binary_op_distr);
 
     foreach_distr.emplace_back(Probability<bool>(true, 20));
     foreach_distr.emplace_back(Probability<bool>(false, 80));
-    rand_val_gen->shuffleProb(foreach_distr);
+    shuffleProbProxy(foreach_distr);
 
     cxx_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::MAX, 20));
     cxx_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::MIN, 20));
-    rand_val_gen->shuffleProb(cxx_lib_call_distr);
+    shuffleProbProxy(cxx_lib_call_distr);
 
     ispc_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::MAX, 20));
@@ -170,7 +178,7 @@ GenPolicy::GenPolicy() {
         Probability<LibCallKind>(LibCallKind::RED_EQ, 20));
     ispc_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::EXTRACT, 20));
-    rand_val_gen->shuffleProb(ispc_lib_call_distr);
+    shuffleProbProxy(ispc_lib_call_distr);
 
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::CONST, 30));
@@ -178,7 +186,7 @@ GenPolicy::GenPolicy() {
         Probability<LoopEndKind>(LoopEndKind::VAR, 30));
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
-    rand_val_gen->shuffleProb(loop_end_kind_distr);
+    shuffleProbProxy(loop_end_kind_distr);
 
     uniformProbFromMax(pragma_num_distr,
                        static_cast<int>(PragmaKind::MAX_CLANG_PRAGMA_KIND) - 1,
@@ -192,13 +200,13 @@ GenPolicy::GenPolicy() {
         Probability<PragmaKind>(PragmaKind::CLANG_VEC_PREDICATE, 25));
     pragma_kind_distr.emplace_back(
         Probability<PragmaKind>(PragmaKind::CLANG_UNROLL, 25));
-    rand_val_gen->shuffleProb(pragma_kind_distr);
+    shuffleProbProxy(pragma_kind_distr);
 
     active_similar_op = SimilarOperators::MAX_SIMILAR_OP;
 
     apply_similar_op_distr.emplace_back(Probability<bool>(true, 10));
     apply_similar_op_distr.emplace_back(Probability<bool>(false, 90));
-    rand_val_gen->shuffleProb(apply_similar_op_distr);
+    shuffleProbProxy(apply_similar_op_distr);
 
     similar_op_distr.emplace_back(
         Probability<SimilarOperators>(SimilarOperators::ADDITIVE, 10));
@@ -212,21 +220,21 @@ GenPolicy::GenPolicy() {
         Probability<SimilarOperators>(SimilarOperators::BIT_SH, 10));
     similar_op_distr.emplace_back(
         Probability<SimilarOperators>(SimilarOperators::ADD_MUL, 10));
-    rand_val_gen->shuffleProb(similar_op_distr);
+    shuffleProbProxy(similar_op_distr);
 
     active_const_use = ConstUse::MAX_CONST_USE;
 
     apply_const_use_distr.emplace_back(Probability<bool>(true, 10));
     apply_const_use_distr.emplace_back(Probability<bool>(false, 90));
-    rand_val_gen->shuffleProb(apply_const_use_distr);
+    shuffleProbProxy(apply_const_use_distr);
 
     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::HALF, 50));
     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::ALL, 50));
-    rand_val_gen->shuffleProb(const_use_distr);
+    shuffleProbProxy(const_use_distr);
 
     use_special_const_distr.emplace_back(Probability<bool>(true, 30));
     use_special_const_distr.emplace_back(Probability<bool>(false, 70));
-    rand_val_gen->shuffleProb(use_special_const_distr);
+    shuffleProbProxy(use_special_const_distr);
 
     special_const_distr.emplace_back(
         Probability<SpecialConst>(SpecialConst::ZERO, 10));
@@ -238,15 +246,15 @@ GenPolicy::GenPolicy() {
         Probability<SpecialConst>(SpecialConst::BIT_BLOCK, 10));
     special_const_distr.emplace_back(
         Probability<SpecialConst>(SpecialConst::END_BITS, 10));
-    rand_val_gen->shuffleProb(special_const_distr);
+    shuffleProbProxy(special_const_distr);
 
     use_lsb_bit_end_distr.emplace_back(Probability<bool>(true, 50));
     use_lsb_bit_end_distr.emplace_back(Probability<bool>(false, 50));
-    rand_val_gen->shuffleProb(use_lsb_bit_end_distr);
+    shuffleProbProxy(use_lsb_bit_end_distr);
 
     use_const_offset_distr.emplace_back(Probability<bool>(true, 50));
     use_const_offset_distr.emplace_back(Probability<bool>(false, 50));
-    rand_val_gen->shuffleProb(use_const_offset_distr);
+    shuffleProbProxy(use_const_offset_distr);
 
     min_offset = 1;
     max_offset = 32;
@@ -254,25 +262,25 @@ GenPolicy::GenPolicy() {
 
     pos_const_offset_distr.emplace_back(Probability<bool>(true, 50));
     pos_const_offset_distr.emplace_back(Probability<bool>(false, 50));
-    rand_val_gen->shuffleProb(pos_const_offset_distr);
+    shuffleProbProxy(pos_const_offset_distr);
 
     replace_in_buf_distr.emplace_back(Probability<bool>(true, 50));
     replace_in_buf_distr.emplace_back(Probability<bool>(false, 50));
-    rand_val_gen->shuffleProb(replace_in_buf_distr);
+    shuffleProbProxy(replace_in_buf_distr);
 
     reuse_const_prob.emplace_back(Probability<bool>(true, 30));
     reuse_const_prob.emplace_back(Probability<bool>(false, 70));
-    rand_val_gen->shuffleProb(reuse_const_prob);
+    shuffleProbProxy(reuse_const_prob);
 
     use_const_transform_distr.emplace_back(Probability<bool>(true, 50));
     use_const_transform_distr.emplace_back(Probability<bool>(false, 50));
-    rand_val_gen->shuffleProb(use_const_offset_distr);
+    shuffleProbProxy(use_const_offset_distr);
 
     const_transform_distr.emplace_back(
         Probability<UnaryOp>(UnaryOp::NEGATE, 30));
     const_transform_distr.emplace_back(
         Probability<UnaryOp>(UnaryOp::BIT_NOT, 30));
-    rand_val_gen->shuffleProb(const_transform_distr);
+    shuffleProbProxy(const_transform_distr);
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;

@@ -134,7 +134,7 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
     {OptionKind::ALLOW_DEAD_DATA,
      "",
      "--allow-dead-data",
-     false,
+     true,
      "Allow to create data(vars and arrays) that will be never used",
      "Can't parse allow dead data",
      OptionParser::parseAllowDeadData,
@@ -158,6 +158,15 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseOutDir,
      ".",
      {}},
+    {OptionKind::PARAM_SHUFFLE,
+     "",
+     "--param-shuffle",
+     true,
+     "Use parameters shuffling",
+     "Can't parse use parameters shuffling",
+     OptionParser::parseUseParamShuffle,
+     "true",
+     {"true", "false"}},
 };
 
 static void dumpVersion(std::ostream &stream) {
@@ -389,7 +398,7 @@ void OptionParser::parseAlignSize(std::string val) {
 
 void OptionParser::parseAllowDeadData(std::string val) {
     Options &options = Options::getInstance();
-    if (val.empty())
+    if (val == "true")
         options.setAllowDeadData(true);
     else if (val == "false")
         options.setAllowDeadData(false);
@@ -412,6 +421,16 @@ void OptionParser::parseEmitPragmas(std::string val) {
 void OptionParser::parseOutDir(std::string val) {
     Options &options = Options::getInstance();
     options.setOutDir(std::move(val));
+}
+
+void OptionParser::parseUseParamShuffle(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "true")
+        options.setUseParamShuffle(true);
+    else if (val == "false")
+        options.setUseParamShuffle(false);
+    else
+        printHelpAndExit("Can't recognize allow dead data");
 }
 
 void Options::dump(std::ostream &stream) {
