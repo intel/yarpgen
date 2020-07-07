@@ -41,7 +41,7 @@ clang       | clang++             | clang             | -w                      
 ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -Werror=implicitly-unsigned-literal | -march=
 ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive | -march=
 icc         | icpc                | icc               | -w                                                          | -x
-icx         | icpx                | icx               | -w                                                          | -march=
+icx         | icpx                | icx               | -w -mllvm -vec-threshold=0                                  | -march=
 dpcpp       | clang++             | clang             | -fsycl -w                                                   | -march=
 ispc        | ispc-proxy          | ispc-proxy        | -woff                                                       | --target=
 
@@ -93,6 +93,12 @@ icc_opt          | icc       | -O3       |                |
 
 icx_no_opt       | icx       | -O0       |                |
 icx_opt          | icx       | -O3       |                |
+icx_skx_no_opt   | icx       | -O0       | skx            | skx
+icx_skx_opt      | icx       | -O3       | skx            | skx
+icx_icx_no_opt   | icx       | -O0       | icelake-server | icx
+icx_icx_opt      | icx       | -O3       | icelake-server | icx
+icx_tgl_no_opt   | icx       | -O0       | tigerlake      | tgl
+icx_tgl_opt      | icx       | -O3       | tigerlake      | tgl
 
 #dpcpp_no_opt     | dpcpp     | -O0       |                |
 #dpcpp_opt        | dpcpp     | -O3       |                |
