@@ -156,6 +156,10 @@ class SdeTarget (object):
 
 SdeArch = dict()
 # This list should be ordered!
+
+#TODO: I don't know if it is safe, but looks like it works
+SdeArch["arm"]  = SdeTarget("arm" , -1)
+
 SdeArch["p4"]  = SdeTarget("p4" , 0)
 SdeArch["p4p"] = SdeTarget("p4p", 1)
 SdeArch["mrm"] = SdeTarget("mrm", 2)

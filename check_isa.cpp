@@ -22,6 +22,7 @@ limitations under the License.
 #include <intrin.h>
 #endif
 
+#if !defined(__arm__) && !defined(__aarch64__)
 #if !defined(IS_WINDOWS)
 static void __cpuid(int info[4], int infoType) {
     __asm__ __volatile__("cpuid" : "=a"(info[0]), "=b"(info[1]), "=c"(info[2]), "=d"(info[3]) : "0"(infoType));
@@ -67,9 +68,12 @@ static bool __os_has_avx512_support() {
     return (rEAX & 0xE6) == 0xE6;
 #endif // !defined(IS_WINDOWS)
 }
-
+#endif //!__arm__
 
 static const char *getSystemISA() {
+#if defined(__arm__) || defined(__aarch64__)
+    return "arm";
+#else
     int info[4];
     __cpuid(info, 1);
 
@@ -121,6 +125,7 @@ static const char *getSystemISA() {
     } else {
         return "Error";
     }
+#endif
 }
 
 int main () {
