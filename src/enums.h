@@ -175,7 +175,8 @@ enum class PragmaKind {
     CLANG_INTERLEAVE,
     CLANG_VEC_PREDICATE,
     CLANG_UNROLL,
-    MAX_CLANG_PRAGMA_KIND
+    OMP_SIMD,
+    MAX_PRAGMA_KIND,
 };
 
 // TODO: convert it to a bit-vector encoding

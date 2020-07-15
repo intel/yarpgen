@@ -237,9 +237,17 @@ void LoopHead::createPragmas(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     size_t pragmas_num = rand_val_gen->getRandId(gen_pol->pragma_num_distr);
     if (options.getEmitPragmas() == OptionLevel::ALL)
-        pragmas_num =
-            static_cast<size_t>(PragmaKind::MAX_CLANG_PRAGMA_KIND) - 1;
+        pragmas_num = static_cast<size_t>(PragmaKind::MAX_PRAGMA_KIND) - 1;
     pragmas = Pragma::create(pragmas_num, ctx);
+}
+
+bool LoopHead::hasSIMDPragma() {
+    auto search_func = [](std::shared_ptr<Pragma> pragma) -> bool {
+        return pragma->getKind() == PragmaKind::OMP_SIMD;
+    };
+
+    return std::find_if(pragmas.begin(), pragmas.end(), search_func) !=
+           pragmas.end();
 }
 
 void LoopSeqStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -304,23 +312,30 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         auto loop_head = loop.first;
         if (loop_head->getPrefix().use_count() != 0)
             loop_head->getPrefix()->populate(ctx);
+
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
-        new_ctx->incLoopDepth(1);
-        loop_head->populateIterators(ctx);
-        loop_head->createPragmas(ctx);
+
+        loop_head->createPragmas(new_ctx);
+        bool old_simd_state = new_ctx->isInsideOMPSimd();
+        new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
+        loop_head->populateIterators(new_ctx);
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
+        new_ctx->incLoopDepth(1);
         bool old_ctx_state = new_ctx->isTaken();
         // TODO: what if we have multiple iterators
         if (loop_head->getIterators().front()->isDegenerate())
             new_ctx->setTaken(false);
         new_ctx->setInsideForeach(loop.first->isForeach());
+
         loop.second->populate(new_ctx);
+
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
         new_ctx->setInsideForeach(false);
         new_ctx->setTaken(old_ctx_state);
+        new_ctx->setInsideOMPSimd(old_simd_state);
         if (loop_head->getSuffix().use_count() != 0)
-            loop_head->getSuffix()->populate(ctx);
+            loop_head->getSuffix()->populate(new_ctx);
     }
 }
 
@@ -395,14 +410,21 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto new_ctx = std::make_shared<PopulateCtx>(ctx);
     bool old_ctx_state = new_ctx->isTaken();
     std::vector<std::shared_ptr<LoopHead>>::iterator taken_switch_id;
+    auto simd_switch_id = loops.end();
     for (auto i = loops.begin(); i != loops.end(); ++i) {
         if ((*i)->getPrefix().use_count() != 0) {
             (*i)->getPrefix()->populate(new_ctx);
             taken_switch_id = i;
         }
+
+        (*i)->createPragmas(new_ctx);
+        if (simd_switch_id == loops.end() && (*i)->hasSIMDPragma()) {
+            new_ctx->setInsideOMPSimd(true);
+            simd_switch_id = i;
+        }
+
+        (*i)->populateIterators(new_ctx);
         new_ctx->incLoopDepth(1);
-        (*i)->populateIterators(ctx);
-        (*i)->createPragmas(ctx);
         new_ctx->getLocalSymTable()->addIters((*i)->getIterators());
         if ((*i)->isForeach())
             new_ctx->setInsideForeach(true);
@@ -415,6 +437,8 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->getLocalSymTable()->deleteLastIters();
         if (i == taken_switch_id)
             new_ctx->setTaken(old_ctx_state);
+        if (i == simd_switch_id)
+            new_ctx->setInsideOMPSimd(false);
         if ((*i)->isForeach())
             new_ctx->setInsideForeach(false);
         if ((*i)->getSuffix().use_count() != 0)
@@ -518,7 +542,10 @@ void Pragma::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         case PragmaKind::CLANG_UNROLL:
             clang_emit_helper("unroll");
             break;
-        case PragmaKind::MAX_CLANG_PRAGMA_KIND:
+        case PragmaKind::OMP_SIMD:
+            stream << "omp simd";
+            break;
+        case PragmaKind::MAX_PRAGMA_KIND:
             ERROR("Bad PragmaKind");
     }
 }
@@ -527,7 +554,7 @@ std::shared_ptr<Pragma> Pragma::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     PragmaKind pragma_kind =
         rand_val_gen->getRandId(gen_pol->pragma_kind_distr);
-    if (pragma_kind == PragmaKind::MAX_CLANG_PRAGMA_KIND)
+    if (pragma_kind == PragmaKind::MAX_PRAGMA_KIND)
         ERROR("Bad PragmaKind");
     return std::make_shared<Pragma>(pragma_kind);
 }
@@ -538,18 +565,35 @@ Pragma::create(size_t num, std::shared_ptr<PopulateCtx> ctx) {
     pragmas.reserve(num);
     auto tmp_ctx = std::make_shared<PopulateCtx>(*ctx);
     auto tmp_gen_pol = std::make_shared<GenPolicy>(*(tmp_ctx->getGenPolicy()));
-    for (size_t i = 0; i < num; ++i) {
-        auto new_pragma = create(tmp_ctx);
-        pragmas.push_back(new_pragma);
-        PragmaKind kind =
-            std::static_pointer_cast<Pragma>(new_pragma)->getKind();
-        auto search_func = [&kind](Probability<PragmaKind> &elem) -> bool {
-            return elem.getId() == kind;
+
+    auto modify_disrt = [&tmp_gen_pol](PragmaKind _kind) {
+        auto search_func = [&_kind](Probability<PragmaKind> &elem) -> bool {
+            return elem.getId() == _kind;
         };
         auto &vec = tmp_gen_pol->pragma_kind_distr;
         vec.erase(std::remove_if(vec.begin(), vec.end(), search_func),
                   vec.end());
-        if (vec.empty())
+    };
+
+    if (ctx->isInsideOMPSimd()) {
+        modify_disrt(PragmaKind::OMP_SIMD);
+        if (tmp_gen_pol->pragma_kind_distr.empty())
+            return {};
+    }
+    tmp_ctx->setGenPolicy(tmp_gen_pol);
+
+    for (size_t i = 0; i < num; ++i) {
+        auto new_pragma = create(tmp_ctx);
+        PragmaKind kind =
+            std::static_pointer_cast<Pragma>(new_pragma)->getKind();
+        // TODO: we need a smarter way to put them in right order
+        if (kind == PragmaKind::OMP_SIMD)
+            // Clang's pragmas want to be next to a loop
+            pragmas.insert(pragmas.begin(), new_pragma);
+        else
+            pragmas.push_back(new_pragma);
+        modify_disrt(kind);
+        if (tmp_gen_pol->pragma_kind_distr.empty())
             break;
         tmp_ctx->setGenPolicy(tmp_gen_pol);
     }

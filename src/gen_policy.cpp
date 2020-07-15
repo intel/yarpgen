@@ -189,17 +189,19 @@ GenPolicy::GenPolicy() {
     shuffleProbProxy(loop_end_kind_distr);
 
     uniformProbFromMax(pragma_num_distr,
-                       static_cast<int>(PragmaKind::MAX_CLANG_PRAGMA_KIND) - 1,
+                       static_cast<int>(PragmaKind::MAX_PRAGMA_KIND) - 1,
                        static_cast<size_t>(PragmaKind::CLANG_VECTORIZE));
 
     pragma_kind_distr.emplace_back(
-        Probability<PragmaKind>(PragmaKind::CLANG_VECTORIZE, 25));
+        Probability<PragmaKind>(PragmaKind::CLANG_VECTORIZE, 20));
     pragma_kind_distr.emplace_back(
-        Probability<PragmaKind>(PragmaKind::CLANG_INTERLEAVE, 25));
+        Probability<PragmaKind>(PragmaKind::CLANG_INTERLEAVE, 20));
     pragma_kind_distr.emplace_back(
-        Probability<PragmaKind>(PragmaKind::CLANG_VEC_PREDICATE, 25));
+        Probability<PragmaKind>(PragmaKind::CLANG_VEC_PREDICATE, 20));
     pragma_kind_distr.emplace_back(
-        Probability<PragmaKind>(PragmaKind::CLANG_UNROLL, 25));
+        Probability<PragmaKind>(PragmaKind::CLANG_UNROLL, 20));
+    pragma_kind_distr.emplace_back(
+        Probability<PragmaKind>(PragmaKind::OMP_SIMD, 20));
     shuffleProbProxy(pragma_kind_distr);
 
     active_similar_op = SimilarOperators::MAX_SIMILAR_OP;

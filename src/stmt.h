@@ -138,6 +138,7 @@ class LoopHead {
 
     void populateIterators(std::shared_ptr<PopulateCtx> ctx);
     void createPragmas(std::shared_ptr<PopulateCtx> ctx);
+    bool hasSIMDPragma();
 
   private:
     std::shared_ptr<StmtBlock> prefix;
