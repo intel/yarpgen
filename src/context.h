@@ -132,6 +132,9 @@ class PopulateCtx : public GenCtx {
     bool isTaken() { return taken; }
     void setTaken(bool _taken) { taken = _taken; }
 
+    void setInsideOMPSimd(bool val) { inside_omp_simd = val; }
+    bool isInsideOMPSimd() { return inside_omp_simd; }
+
   private:
     std::shared_ptr<PopulateCtx> par_ctx;
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
@@ -140,6 +143,10 @@ class PopulateCtx : public GenCtx {
     size_t arith_depth;
     // If the test will actually execute the code
     bool taken;
+
+    // As of now, the pragma omp simd is attached to a loop and can't be nested.
+    // TODO: we need to think about pragma omp ordered simd
+    bool inside_omp_simd;
 };
 
 // TODO: maybe we need to inherit from some class

@@ -31,7 +31,7 @@ Compiler specs:
 
 # Spec name | C++ executable name | C executable name | Common arguments                                            | Arch prefix
 gcc         | g++                 | gcc               | -w -fpermissive                                             | -march=
-clang       | clang++             | clang             | -w                                                          | -march=
+clang       | clang++             | clang             | -w -fopenmp-simd                                            | -march=
 # Ubsan is clang or gcc with sanitizer options. It is used for generator check.
 # If you want to use sanitizer with -m32, please make sure that you pass "-rtlib=compiler-rt -lgcc_s" options if you are using clang.
 # Otherwise it may fail with "undefined reference to `__mulodi4'" error message.
@@ -41,7 +41,7 @@ clang       | clang++             | clang             | -w                      
 ubsan_clang | clang++             | clang             | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -Werror=implicitly-unsigned-literal | -march=
 ubsan_gcc   | g++                 | gcc               | -fsanitize=undefined -fno-sanitize-recover=undefined -Werror=uninitialized -fpermissive | -march=
 icc         | icpc                | icc               | -w                                                          | -x
-icx         | icpx                | icx               | -w                                                          | -march=
+icx         | icpx                | icx               | -w -fopenmp-simd -mllvm -vec-threshold=0                    | -march=
 dpcpp       | clang++             | clang             | -fsycl -w                                                   | -march=
 ispc        | ispc-proxy          | ispc-proxy        | -woff                                                       | --target=
 
@@ -66,23 +66,23 @@ gcc_opt          | gcc       | -O3       |                |
 #gcc_bdw_opt      | gcc       | -O3       | broadwell      | bdw
 #gcc_knl_no_opt   | gcc       | -O0       | knl            | knl
 #gcc_knl_opt      | gcc       | -O3       | knl            | knl
-gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
+#gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
 gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
-gcc_icx_no_opt   | gcc       | -O0       | icelake-server | icx
+#gcc_icx_no_opt   | gcc       | -O0       | icelake-server | icx
 gcc_icx_opt      | gcc       | -O3       | icelake-server | icx
-gcc_tgl_no_opt   | gcc       | -O0       | tigerlake      | tgl
-gcc_tgl_opt      | gcc       | -O3       | tigerlake      | tgl
+#gcc_tgl_no_opt   | gcc       | -O0       | tigerlake      | tgl
+#gcc_tgl_opt      | gcc       | -O3       | tigerlake      | tgl
 
 clang_no_opt     | clang     | -O0       |                |
 clang_opt        | clang     | -O3       |                |
 #clang_knl_no_opt | clang     | -O0       | knl            | knl
 #clang_knl_opt    | clang     | -O3       | knl            | knl
-clang_skx_no_opt | clang     | -O0       | skx            | skx
+#clang_skx_no_opt | clang     | -O0       | skx            | skx
 clang_skx_opt    | clang     | -O3       | skx            | skx
-clang_icx_no_opt | clang     | -O0       | icelake-server | icx
+#clang_icx_no_opt | clang     | -O0       | icelake-server | icx
 clang_icx_opt    | clang     | -O3       | icelake-server | icx
-clang_tgl_no_opt | clang     | -O0       | tigerlake      | tgl
-clang_tgl_opt    | clang     | -O3       | tigerlake      | tgl
+#clang_tgl_no_opt | clang     | -O0       | tigerlake      | tgl
+#clang_tgl_opt    | clang     | -O3       | tigerlake      | tgl
 
 icc_no_opt       | icc       | -O0       |                |
 icc_opt          | icc       | -O3       |                |
@@ -93,6 +93,12 @@ icc_opt          | icc       | -O3       |                |
 
 icx_no_opt       | icx       | -O0       |                |
 icx_opt          | icx       | -O3       |                |
+#icx_skx_no_opt   | icx       | -O0       | skx            | skx
+icx_skx_opt      | icx       | -O3       | skx            | skx
+#icx_icx_no_opt   | icx       | -O0       | icelake-server | icx
+icx_icx_opt      | icx       | -O3       | icelake-server | icx
+#icx_tgl_no_opt   | icx       | -O0       | tigerlake      | tgl
+#icx_tgl_opt      | icx       | -O3       | tigerlake      | tgl
 
 #dpcpp_no_opt     | dpcpp     | -O0       |                |
 #dpcpp_opt        | dpcpp     | -O3       |                |
