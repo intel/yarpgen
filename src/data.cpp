@@ -44,6 +44,8 @@ std::shared_ptr<ScalarVar> ScalarVar::create(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 std::string ScalarVar::getName(std::shared_ptr<EmitCtx> ctx) {
+    if (!ctx)
+        return name;
     std::string ret;
     if (!ctx->getSYCLPrefix().empty())
         ret = ctx->getSYCLPrefix();
