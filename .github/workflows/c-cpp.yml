@@ -17,6 +17,12 @@ jobs:
         mkdir build && cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make -j4
+    - name: run tests
+      run: |
+        build/type_test
+        build/data_test
+        build/expr_test
+        build/gen_test
     - name: generate cpp tests
       run: |
         mkdir tests-cpp && cd tests-cpp
