@@ -724,7 +724,7 @@ void singleCastTest(IntTypeID to_type_id, IntTypeID from_type_id) {
 ///////////////////////////////////////////////////////////////////////////
 
 void ir_value_test() {
-    int test_num = 10000000;
+    int test_num = 100000;
 
     for (int i = 0; i < test_num; ++i) {
         singleAddTest<TypeSInt::value_type>(IntTypeID::INT);

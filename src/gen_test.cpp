@@ -25,7 +25,7 @@ limitations under the License.
 using namespace yarpgen;
 
 int main() {
-    rand_val_gen = std::make_shared<RandValGen>(RandValGen(42));
+    rand_val_gen = std::make_shared<RandValGen>(0);
 
     auto gen_ctx = std::make_shared<GenCtx>();
     auto scope_stmt = ScopeStmt::generateStructure(gen_ctx);
