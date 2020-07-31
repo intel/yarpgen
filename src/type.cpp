@@ -138,6 +138,9 @@ std::shared_ptr<Type> IntegralType::makeVarying() {
 
 std::string IntegralType::getNameImpl(std::shared_ptr<EmitCtx> ctx,
                                       std::string raw_name) {
+    if (!ctx)
+        ERROR("Can't give a name without a context");
+
     std::string ret = std::move(raw_name);
     if (ctx->useIspcTypes()) {
         ret = getIspcNameHelper();
