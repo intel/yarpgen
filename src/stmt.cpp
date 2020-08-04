@@ -178,27 +178,44 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         return iter != iters.end() - 1 ? std::move(sep) : "";
     };
 
+    auto emit_iter_param_val = [&stream](std::shared_ptr<Expr> expr) {
+        EvalCtx eval_ctx;
+        // TODO: do we want to recalculate it every time?
+        auto eval_res = expr->evaluate(eval_ctx);
+        assert(eval_res->isScalarVar() &&
+               "Iterator should have a scalar value");
+        auto scalar_eval_res = std::static_pointer_cast<ScalarVar>(eval_res);
+        IRValue val = scalar_eval_res->getCurrentValue();
+        stream << "/*" << val << "*/";
+    };
+
     if (!isForeach()) {
         stream << "for (";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getType()->getName(ctx) << " ";
             stream << (*iter)->getName(ctx) << " = ";
-            (*iter)->getStart()->emit(ctx, stream);
+            auto start = (*iter)->getStart();
+            start->emit(ctx, stream);
+            emit_iter_param_val(start);
             stream << place_sep(iter, ", ");
         }
         stream << "; ";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getName(ctx) << " < ";
-            (*iter)->getEnd()->emit(ctx, stream);
+            auto end = (*iter)->getEnd();
+            end->emit(ctx, stream);
+            emit_iter_param_val(end);
             stream << place_sep(iter, ", ");
         }
         stream << "; ";
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getName(ctx) << " += ";
-            (*iter)->getStep()->emit(ctx, stream);
+            auto step = (*iter)->getStep();
+            step->emit(ctx, stream);
+            emit_iter_param_val(step);
             stream << place_sep(iter, ", ");
         }
         stream << ") ";
@@ -208,9 +225,13 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getName(ctx) << " = (";
-            (*iter)->getStart()->emit(ctx, stream);
+            auto start = (*iter)->getStart();
+            start->emit(ctx, stream);
+            emit_iter_param_val(start);
             stream << ")...(";
-            (*iter)->getEnd()->emit(ctx, stream);
+            auto end = (*iter)->getEnd();
+            end->emit(ctx, stream);
+            emit_iter_param_val(end);
             stream << ")";
             stream << place_sep(iter, ", ");
         }
