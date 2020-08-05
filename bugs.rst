@@ -3,6 +3,11 @@ LLVM:
 ====================================
 Version #2
 ---------------
+| `46950 <https://bugs.llvm.org/show_bug.cgi?id=46950>`_ - ICE: UNREACHABLE executed at llvm/lib/Transforms/Vectorize/LoopVectorize.cpp:6481!
+| `46680 <https://bugs.llvm.org/show_bug.cgi?id=46680>`_ - ICE in backend: Instruction Combining seems stuck in an infinite loop after 100 iterations
+| `46661 <https://bugs.llvm.org/show_bug.cgi?id=46661>`_ - ICE in backend: Instruction Combining seems stuck in an infinite loop after 100 iterations.
+| `46586 <https://bugs.llvm.org/show_bug.cgi?id=46586>`_ - [x86] Clang produces wrong code with -O1
+| `46561 <https://bugs.llvm.org/show_bug.cgi?id=46561>`_ - Clang produces wrong code with -O1 (Combine redundant instructions on function)
 | `46525 <https://bugs.llvm.org/show_bug.cgi?id=46525>`_ - ICE: Assertion \`!verifyFunction(\*L->getHeader()->getParent())' failed
 | `46471 <https://bugs.llvm.org/show_bug.cgi?id=46471>`_ - [CodeGenPrepare] Assertion \`materialized_use_empty() && "Uses remain when a value is destroyed!"' failed
 | `46178 <https://bugs.llvm.org/show_bug.cgi?id=46178>`_ - Assertion \`idx < size()' failed in combineX86ShufflesRecursively with -O3 -march=skx
@@ -84,6 +89,7 @@ GCC:
 
 Version #2
 ---------------
+| `96022 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96022>`_ - ICE during GIMPLE pass: slp in operator[], at vec.h:867
 | `95916 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95916>`_ - [11 Regression] ICE during GIMPLE pass: slp : verify_ssa failed
 | `95717 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95717>`_ - [9/10 Regression] ICE during GIMPLE pass: vect: verify_ssa failed since r9-5325-gf25507d041de4df6
 | `95649 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95649>`_ - [11 Regression] ICE during GIMPLE pass: cunroll since r11-1146-g1396fa5b91cfa0b3
@@ -201,6 +207,7 @@ ISPC:
 ====================================
 Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q=is%3Aissue+label%3Ayarpgen+>`_
 
+| `1844 <https://github.com/ispc/ispc/issues/1844>`_ - ICE in LLVM: "Unexpected illegal type" at llvm/lib/CodeGen/SelectionDAG/LegalizeDAG.cpp:978
 | `1806	<https://github.com/ispc/ispc/issues/1806>`_ - ISPC produces wrong code with bool type iterator
 | `1793 <https://github.com/ispc/ispc/issues/1793>`_ - Wrong code for avx2-i32x16.
 | `1788 <https://github.com/ispc/ispc/issues/1788>`_ - ICE: LLVM ERROR: Instruction Combining seems stuck in an infinite loop after 1000 iterations.
