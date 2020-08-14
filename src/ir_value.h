@@ -243,7 +243,9 @@ template <> uint64_t &IRValue::getValueRef();
     } while (0)
 
 #define OutOperatorCase(__type_id__, __type__)                                 \
-    case (__type_id__): out << val.getValueRef<__type__>(); break;
+    case (__type_id__):                                                        \
+        out << std::to_string(val.getValueRef<__type__>());                    \
+        break;
 
 #define GetMSBCase(__type_id__, __type__)                                      \
     case (__type_id__): return getMSBImpl(getValueRef<__type__>());
