@@ -116,14 +116,6 @@ StmtBlock::generateStructure(std::shared_ptr<GenCtx> ctx) {
 void StmtBlock::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
 
-    if (ctx->getLoopDepth() != 0) {
-        size_t new_arrays_num =
-            rand_val_gen->getRandId(gen_pol->new_arr_num_distr);
-        for (size_t i = 0; i < new_arrays_num; ++i) {
-            ctx->getExtInpSymTable()->addArray(Array::create(ctx, true));
-        }
-    }
-
     for (auto &stmt : stmts) {
         if (stmt->getKind() != IRNodeKind::STUB)
             stmt->populate(ctx);
@@ -245,10 +237,6 @@ void LoopHead::emitSuffix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     if (suffix.use_count() != 0)
         suffix->emit(ctx, stream, std::move(offset));
 }
-void LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
-    for (auto &iter : iters)
-        iter->populate(ctx);
-}
 
 void LoopHead::createPragmas(std::shared_ptr<PopulateCtx> ctx) {
     Options &options = Options::getInstance();
@@ -269,6 +257,26 @@ bool LoopHead::hasSIMDPragma() {
 
     return std::find_if(pragmas.begin(), pragmas.end(), search_func) !=
            pragmas.end();
+}
+
+void LoopHead::populateArrays(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+    size_t new_arrays_num = rand_val_gen->getRandId(gen_pol->new_arr_num_distr);
+    for (size_t i = 0; i < new_arrays_num; ++i) {
+        ctx->getExtInpSymTable()->addArray(Array::create(ctx, true));
+    }
+}
+
+void LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+    size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
+    for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
+        auto new_iter = Iterator::create(ctx, /*is_uniform*/ !isForeach());
+        // TODO: at some point we might use only some iterators
+        new_iter->setIsDead(false);
+        new_iter->populate(ctx);
+        addIterator(new_iter);
+    }
 }
 
 void LoopSeqStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -308,13 +316,6 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
             new_loop_head->setIsForeach();
         }
 
-        size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
-        for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
-            auto new_iter = Iterator::create(ctx, /*is_uniform*/ !gen_foreach);
-            // TODO: at some point we might use only some iterators
-            new_iter->setIsDead(false);
-            new_loop_head->addIterator(new_iter);
-        }
         auto new_loop_body = ScopeStmt::generateStructure(new_ctx);
         new_loop_seq->addLoop(std::make_pair(new_loop_head, new_loop_body));
 
@@ -329,6 +330,8 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
 }
 
 void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+
     for (auto &loop : loops) {
         auto loop_head = loop.first;
         if (loop_head->getPrefix().use_count() != 0)
@@ -339,8 +342,15 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         loop_head->createPragmas(new_ctx);
         bool old_simd_state = new_ctx->isInsideOMPSimd();
         new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
+
+        size_t new_dim = rand_val_gen->getRandValue(
+            gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+        new_ctx->addDimension(new_dim);
         loop_head->populateIterators(new_ctx);
+        LoopHead::populateArrays(new_ctx);
+
         new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
+
         new_ctx->incLoopDepth(1);
         bool old_ctx_state = new_ctx->isTaken();
         // TODO: what if we have multiple iterators
@@ -352,6 +362,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
+        new_ctx->deleteLastDim();
         new_ctx->setInsideForeach(false);
         new_ctx->setTaken(old_ctx_state);
         new_ctx->setInsideOMPSimd(old_simd_state);
@@ -407,13 +418,6 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
             ctx->setInsideForeach(true);
         }
 
-        size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
-        for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
-            auto new_iter = Iterator::create(ctx, !gen_foreach);
-            // TODO: at some point we might create dead iterators
-            new_iter->setIsDead(false);
-            new_loop->addIterator(new_iter);
-        }
         new_loop_nest->addLoop(new_loop);
     }
 
@@ -428,6 +432,7 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
 }
 
 void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
     auto new_ctx = std::make_shared<PopulateCtx>(ctx);
     bool old_ctx_state = new_ctx->isTaken();
     std::vector<std::shared_ptr<LoopHead>>::iterator taken_switch_id;
@@ -444,18 +449,27 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             simd_switch_id = i;
         }
 
+        size_t new_dim = rand_val_gen->getRandValue(
+            gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+        new_ctx->addDimension(new_dim);
         (*i)->populateIterators(new_ctx);
-        new_ctx->incLoopDepth(1);
+        LoopHead::populateArrays(new_ctx);
+
         new_ctx->getLocalSymTable()->addIters((*i)->getIterators());
+
+        new_ctx->incLoopDepth(1);
         if ((*i)->isForeach())
             new_ctx->setInsideForeach(true);
         if ((*i)->getIterators().front()->isDegenerate())
             new_ctx->setTaken(false);
     }
+
     body->populate(new_ctx);
+
     for (auto i = loops.begin(); i != loops.end(); ++i) {
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
+        new_ctx->deleteLastDim();
         if (i == taken_switch_id)
             new_ctx->setTaken(old_ctx_state);
         if (i == simd_switch_id)

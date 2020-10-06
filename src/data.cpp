@@ -91,8 +91,7 @@ void Array::setValue(std::shared_ptr<Data> _val) {
 
 std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
                                      bool inp) {
-    std::vector<std::shared_ptr<Iterator>> used_iters;
-    auto array_type = ArrayType::create(ctx, used_iters);
+    auto array_type = ArrayType::create(ctx);
     auto base_type = array_type->getBaseType();
     if (!base_type->isIntType())
         ERROR("We support only array of integers for now");
@@ -102,17 +101,6 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
     NameHandler &nh = NameHandler::getInstance();
     auto new_array =
         std::make_shared<Array>(nh.getArrayName(), array_type, init_var);
-    std::shared_ptr<Expr> prev_expr = std::make_shared<ArrayUseExpr>(new_array);
-    for (auto &used_iter : used_iters) {
-        auto iter_use_expr = std::make_shared<IterUseExpr>(used_iter);
-        prev_expr = std::make_shared<SubscriptExpr>(prev_expr, iter_use_expr);
-    }
-    if (inp)
-        ctx->getLocalSymTable()->addSubsExpr(
-            std::static_pointer_cast<SubscriptExpr>(prev_expr));
-    else
-        ctx->getExtOutSymTable()->addSubsExpr(
-            std::static_pointer_cast<SubscriptExpr>(prev_expr));
     return new_array;
 }
 
@@ -125,7 +113,7 @@ void Iterator::setParameters(std::shared_ptr<Expr> _start,
     step = std::move(_step);
 }
 
-std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
+std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
                                            bool is_uniform) {
     // TODO: this function is full of magic constants and weird hacks to cut
     //  some corners for ISPC and overflows
@@ -139,8 +127,7 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<GenCtx> ctx,
 
     auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, 0}});
 
-    size_t end_val = rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                                gen_pol->iter_end_limit_max);
+    size_t end_val = ctx->getDimensions().back();
     // We can't go pass the maximal value of the type
     end_val =
         std::min((uint64_t)end_val, int_type->getMax().getAbsValue().value);
@@ -265,7 +252,8 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
                 rand_val_gen->getRandId(gen_pol->out_kind_distr);
             if (data_kind == DataKind::VAR || type->isUniform() ||
                 (data_kind == DataKind::ARR &&
-                 ctx->getExtInpSymTable()->getAvailSubs().empty())) {
+                 (ctx->getExtInpSymTable()->getArrays().empty() ||
+                  ctx->getLocalSymTable()->getIters().empty()))) {
                 auto new_scalar_var_expr = ScalarVarUseExpr::create(ctx);
                 new_scalar_var_expr->setIsDead(false);
                 ret = new_scalar_var_expr;

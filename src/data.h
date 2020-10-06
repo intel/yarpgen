@@ -178,7 +178,7 @@ class Iterator : public Data {
 
     void dbgDump() final;
 
-    static std::shared_ptr<Iterator> create(std::shared_ptr<GenCtx> ctx,
+    static std::shared_ptr<Iterator> create(std::shared_ptr<PopulateCtx> ctx,
                                             bool is_uniform = true);
     void populate(std::shared_ptr<PopulateCtx> ctx);
 
