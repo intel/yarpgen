@@ -246,13 +246,6 @@ ConstantExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         }
     }
 
-    if (std::static_pointer_cast<ScalarVar>(ret->getValue())
-            ->getCurrentValue()
-            .hasUB()) {
-        ret->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
-    }
-
     return ret;
 }
 
@@ -698,7 +691,8 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         new_node = ConstantExpr::create(active_ctx);
     }
     else if (node_kind == IRNodeKind::SCALAR_VAR_USE ||
-             (active_ctx->getLocalSymTable()->getAvailSubs().empty() &&
+             ((active_ctx->getExtInpSymTable()->getArrays().empty() ||
+               active_ctx->getLocalSymTable()->getIters().empty()) &&
               node_kind == IRNodeKind::SUBSCRIPT)) {
         auto new_scalar_var_use_expr = ScalarVarUseExpr::create(active_ctx);
         new_scalar_var_use_expr->setIsDead(false);
@@ -1332,6 +1326,7 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
 Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     propagateType();
 
+    auto emit_ctx = std::make_shared<EmitCtx>();
     EvalResType array_eval_res = array->evaluate(ctx);
     if (!array_eval_res->getType()->isArrayType()) {
         ERROR("Subscription operation is supported only for Array");
@@ -1410,10 +1405,31 @@ void SubscriptExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
 std::shared_ptr<SubscriptExpr>
 SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
-    size_t inp_arr_idx = rand_val_gen->getRandValue(
-        static_cast<size_t>(0),
-        ctx->getLocalSymTable()->getAvailSubs().size() - 1);
-    return ctx->getLocalSymTable()->getAvailSubs().at(inp_arr_idx);
+    auto arrs_with_dim =
+        ctx->getExtInpSymTable()->getArraysWithDimNum(ctx->getLoopDepth());
+    std::vector<std::shared_ptr<Array>> avail_arrs;
+    for (auto &arr : arrs_with_dim) {
+        assert(arr->getType()->isArrayType() &&
+               "Array should have an array type");
+        auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
+        bool suit_arr = true;
+        assert(arr_type->getDimensions().size() <= ctx->getLoopDepth() &&
+               "Array and context should have same number of dimensions to "
+               "create a SubscriptionExpr");
+        assert(ctx->getLoopDepth() <= ctx->getDimensions().size());
+        for (size_t i = 0; i < arr_type->getDimensions().size(); ++i) {
+            if (arr_type->getDimensions().at(i) < ctx->getDimensions().at(i)) {
+                suit_arr = false;
+                break;
+            }
+        }
+        if (suit_arr)
+            avail_arrs.push_back(arr);
+    }
+    assert(!avail_arrs.empty());
+    size_t inp_arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0),
+                                                    avail_arrs.size() - 1);
+    return init(avail_arrs.at(inp_arr_idx), ctx);
 }
 
 SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
@@ -1448,6 +1464,28 @@ void SubscriptExpr::setIsDead(bool val) {
     }
     else
         ERROR("Bad IRNodeKind");
+}
+
+std::shared_ptr<SubscriptExpr>
+SubscriptExpr::init(std::shared_ptr<Array> arr,
+                    std::shared_ptr<PopulateCtx> ctx) {
+    // TODO: relax assumptions
+    std::shared_ptr<Expr> res_expr = std::make_shared<ArrayUseExpr>(arr);
+    assert(!ctx->getDimensions().empty() &&
+           "We can create a SubscriptExpr only inside loops");
+    assert(arr->getType()->isArrayType() &&
+           "We can create a SubscriptExpr only for arrays");
+    auto array_type = std::static_pointer_cast<ArrayType>(arr->getType());
+    assert(array_type->getDimensions().size() <=
+               ctx->getLocalSymTable()->getIters().size() &&
+           "We can create a SubscriptExpr only if we have enough iterators");
+    for (size_t i = 0; i < array_type->getDimensions().size(); ++i) {
+        auto iter = rand_val_gen->getRandElem(
+            ctx->getLocalSymTable()->getIters().at(i));
+        auto iter_use_expr = std::make_shared<IterUseExpr>(iter);
+        res_expr = std::make_shared<SubscriptExpr>(res_expr, iter_use_expr);
+    }
+    return std::static_pointer_cast<SubscriptExpr>(res_expr);
 }
 
 bool AssignmentExpr::propagateType() {
@@ -1538,7 +1576,7 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     else if (out_kind == DataKind::ARR) {
         auto new_array = Array::create(ctx, false);
         ctx->getExtOutSymTable()->addArray(new_array);
-        auto new_subs_expr = ctx->getExtOutSymTable()->getAvailSubs().back();
+        auto new_subs_expr = SubscriptExpr::init(new_array, ctx);
         new_subs_expr->setIsDead(false);
         to = new_subs_expr;
     }

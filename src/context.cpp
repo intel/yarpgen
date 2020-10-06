@@ -34,6 +34,7 @@ PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
         arith_depth = par_ctx->getArithDepth();
         taken = par_ctx->isTaken();
         inside_omp_simd = par_ctx->inside_omp_simd;
+        dims = par_ctx->dims;
     }
 }
 
@@ -45,4 +46,20 @@ PopulateCtx::PopulateCtx() {
     arith_depth = 0;
     taken = true;
     inside_omp_simd = false;
+}
+
+void SymbolTable::addArray(std::shared_ptr<Array> array) {
+    arrays.push_back(array);
+    assert(array->getType()->isArrayType() &&
+           "Array should have an array type");
+    auto array_type = std::static_pointer_cast<ArrayType>(array->getType());
+    array_dim_map[array_type->getDimensions().size()].push_back(array);
+}
+
+std::vector<std::shared_ptr<Array>>
+SymbolTable::getArraysWithDimNum(size_t dim) {
+    auto find_res = array_dim_map.find(dim);
+    if (find_res != array_dim_map.end())
+        return find_res->second;
+    return {};
 }

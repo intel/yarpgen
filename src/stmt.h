@@ -140,6 +140,9 @@ class LoopHead {
     void createPragmas(std::shared_ptr<PopulateCtx> ctx);
     bool hasSIMDPragma();
 
+    static void populateArrays(std::shared_ptr<PopulateCtx> ctx);
+    void populateIters(std::shared_ptr<PopulateCtx> ctx);
+
   private:
     std::shared_ptr<StmtBlock> prefix;
     // Loop iterations space is defined by the iterators that we can use

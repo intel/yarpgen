@@ -73,7 +73,7 @@ class GenCtx {
 class SymbolTable {
   public:
     void addVar(std::shared_ptr<ScalarVar> var) { vars.push_back(var); }
-    void addArray(std::shared_ptr<Array> array) { arrays.push_back(array); }
+    void addArray(std::shared_ptr<Array> array);
     void addIters(std::vector<std::shared_ptr<Iterator>> iter) {
         iters.push_back(iter);
     }
@@ -81,15 +81,9 @@ class SymbolTable {
 
     std::vector<std::shared_ptr<ScalarVar>> getVars() { return vars; }
     std::vector<std::shared_ptr<Array>> getArrays() { return arrays; }
+    std::vector<std::shared_ptr<Array>> getArraysWithDimNum(size_t dim);
     std::vector<std::vector<std::shared_ptr<Iterator>>> getIters() {
         return iters;
-    }
-
-    void addSubsExpr(std::shared_ptr<SubscriptExpr> expr) {
-        avail_subs.push_back(expr);
-    }
-    std::vector<std::shared_ptr<SubscriptExpr>> getAvailSubs() {
-        return avail_subs;
     }
 
     void addVarExpr(std::shared_ptr<ScalarVarUseExpr> var) {
@@ -103,8 +97,8 @@ class SymbolTable {
   private:
     std::vector<std::shared_ptr<ScalarVar>> vars;
     std::vector<std::shared_ptr<Array>> arrays;
+    std::map<size_t, std::vector<std::shared_ptr<Array>>> array_dim_map;
     std::vector<std::vector<std::shared_ptr<Iterator>>> iters;
-    std::vector<std::shared_ptr<SubscriptExpr>> avail_subs;
     std::vector<std::shared_ptr<ScalarVarUseExpr>> avail_vars;
 };
 
@@ -135,6 +129,10 @@ class PopulateCtx : public GenCtx {
     void setInsideOMPSimd(bool val) { inside_omp_simd = val; }
     bool isInsideOMPSimd() { return inside_omp_simd; }
 
+    void addDimension(size_t dim) { dims.push_back(dim); }
+    std::vector<size_t> getDimensions() { return dims; }
+    void deleteLastDim() { dims.pop_back(); }
+
   private:
     std::shared_ptr<PopulateCtx> par_ctx;
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
@@ -147,6 +145,9 @@ class PopulateCtx : public GenCtx {
     // As of now, the pragma omp simd is attached to a loop and can't be nested.
     // TODO: we need to think about pragma omp ordered simd
     bool inside_omp_simd;
+
+    // Each loop header has a limit that any iterator should respect
+    std::vector<size_t> dims;
 };
 
 // TODO: maybe we need to inherit from some class

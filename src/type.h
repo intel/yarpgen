@@ -320,9 +320,7 @@ class ArrayType : public Type {
          bool _is_static, CVQualifier _cv_qual, bool _is_uniform = true);
     static std::shared_ptr<ArrayType> init(std::shared_ptr<Type> _base_type,
                                            std::vector<size_t> _dims);
-    static std::shared_ptr<ArrayType>
-    create(std::shared_ptr<PopulateCtx> ctx,
-           std::vector<std::shared_ptr<Iterator>> &used_iters);
+    static std::shared_ptr<ArrayType> create(std::shared_ptr<PopulateCtx> ctx);
 
     std::shared_ptr<Type> makeVarying() override;
 
