@@ -37,10 +37,10 @@ RandValGen::RandValGen(uint64_t _seed) {
     rand_gen = std::mt19937_64(seed);
 }
 
-#define RandValueCase(__type_id__, type_name)                                  \
+#define RandValueCase(__type_id__, gen_name, type_name)                        \
     case __type_id__:                                                          \
         do {                                                                   \
-            ret.getValueRef<type_name>() = getRandValue<type_name>();          \
+            ret.getValueRef<type_name>() = gen_name<type_name>();              \
             ret.setUBCode(UBKind::NoUB);                                       \
             return ret;                                                        \
         } while (false)
@@ -52,15 +52,19 @@ IRValue RandValGen::getRandValue(IntTypeID type_id) {
     IRValue ret(type_id);
     switch (type_id) {
         // TODO: if we use chains of if we can make it simpler
-        RandValueCase(IntTypeID::BOOL, TypeBool::value_type);
-        RandValueCase(IntTypeID::SCHAR, TypeSChar::value_type);
-        RandValueCase(IntTypeID::UCHAR, TypeUChar::value_type);
-        RandValueCase(IntTypeID::SHORT, TypeSShort::value_type);
-        RandValueCase(IntTypeID::USHORT, TypeUShort::value_type);
-        RandValueCase(IntTypeID::INT, TypeSInt::value_type);
-        RandValueCase(IntTypeID::UINT, TypeUInt::value_type);
-        RandValueCase(IntTypeID::LLONG, TypeSLLong::value_type);
-        RandValueCase(IntTypeID::ULLONG, TypeULLong::value_type);
+        RandValueCase(IntTypeID::BOOL, getRandValue, TypeBool::value_type);
+        RandValueCase(IntTypeID::SCHAR, getRandValue, TypeSChar::value_type);
+        RandValueCase(IntTypeID::UCHAR, getRandUnsignedValue,
+                      TypeUChar::value_type);
+        RandValueCase(IntTypeID::SHORT, getRandValue, TypeSShort::value_type);
+        RandValueCase(IntTypeID::USHORT, getRandUnsignedValue,
+                      TypeUShort::value_type);
+        RandValueCase(IntTypeID::INT, getRandValue, TypeSInt::value_type);
+        RandValueCase(IntTypeID::UINT, getRandUnsignedValue,
+                      TypeUInt::value_type);
+        RandValueCase(IntTypeID::LLONG, getRandValue, TypeSLLong::value_type);
+        RandValueCase(IntTypeID::ULLONG, getRandUnsignedValue,
+                      TypeULLong::value_type);
         case IntTypeID::MAX_INT_TYPE_ID:
             ERROR("Bad IntTypeID");
             break;
