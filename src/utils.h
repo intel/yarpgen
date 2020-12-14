@@ -95,6 +95,14 @@ class RandValGen {
         return dis(rand_gen);
     }
 
+    template <typename T> T getRandUnsignedValue() {
+        // See note above about long long hack
+        std::uniform_int_distribution<unsigned long long> dis(
+            0,
+            static_cast<unsigned long long>(std::numeric_limits<T>::max()));
+        return dis(rand_gen);
+    }
+
     IRValue getRandValue(IntTypeID type_id);
 
     // Randomly chooses one of IDs, basing on std::vector<Probability<id>>.
