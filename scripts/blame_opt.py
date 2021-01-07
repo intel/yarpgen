@@ -79,7 +79,12 @@ def dump_exec_output(msg, ret_code, output, err_output, time_expired, num):
 
 
 def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
-    gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, inject_str + "-1")
+    gen_test_makefile.gen_makefile(
+            out_file_name = blame_test_makefile_name,
+            force = True,
+            config_file = None,
+            only_target = fail_target,
+            inject_blame_opt = inject_str + "-1")
     ret_code, output, err_output, time_expired, elapsed_time = \
         common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
     opt_num_regex = re.compile(compilers_blame_patterns[fail_target.specs.name][phase_num])
@@ -111,7 +116,12 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
         eff = ((start_opt + 1) >= cur_opt)  # Earliest fail was found
 
         common.log_msg(logging.DEBUG, "Trying opt (process " + str(num) + "): " + str(start_opt) + "/" + str(cur_opt) + "/" + str(end_opt))
-        gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, inject_str + str(cur_opt))
+        gen_test_makefile.gen_makefile(
+                out_file_name = blame_test_makefile_name,
+                force = True,
+                config_file = None,
+                only_target = fail_target,
+                inject_blame_opt = inject_str + str(cur_opt))
 
         ret_code, output, err_output, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
@@ -166,10 +176,16 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
                 blame_str += " "
                 phase_num += 1
         except:
-            common.log_msg(logging.ERROR, "Something went wrong while executing bpame_opt.py on " + str(fail_dir))
+            common.log_msg(logging.ERROR, "Something went wrong while executing blame_opt.py on " + str(fail_dir))
             return False
 
-        gen_test_makefile.gen_makefile(blame_test_makefile_name, True, None, fail_target, blame_str)
+        # Wrap up results
+        gen_test_makefile.gen_makefile(
+                out_file_name = blame_test_makefile_name,
+                force = True,
+                config_file = None,
+                only_target = fail_target,
+                inject_blame_opt = blame_str)
         ret_code, stdout, stderr, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
 
