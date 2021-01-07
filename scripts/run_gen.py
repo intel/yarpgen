@@ -1418,7 +1418,10 @@ def print_online_statistics_and_cleanup(lock, stat, targets, task_threads, num_j
 
 def gen_test_makefile_and_copy(dest, config_file):
     test_makefile = os.path.abspath(os.path.join(dest, gen_test_makefile.Test_Makefile_name))
-    gen_test_makefile.gen_makefile(test_makefile, True, config_file)
+    gen_test_makefile.gen_makefile(
+            out_file_name = test_makefile,
+            force = True,
+            config_file = config_file)
     return test_makefile
 
 
