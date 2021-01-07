@@ -111,6 +111,9 @@ known_build_fails = { \
 known_runtime_fails = {\
 #dpcpp
     "Total size of kernel arguments exceeds limit": "kernel_size",\
+    "CL_DEVICE_NOT_FOUND": "device_not_found",\
+    "Killed": "killed",\
+    "Aborted": "aborted",\
 }
 ###############################################################################
 
