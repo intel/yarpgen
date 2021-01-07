@@ -295,7 +295,7 @@ def detect_native_arch():
     common.print_and_exit("Can't detect system ISA")
 
 
-def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None,
+def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None, inject_blame_env=None,
                  creduce_file=None, stat_targets=None):
     # Somebody can prepare test specs and target, so we don't need to parse config file
     common.check_if_std_defined()
@@ -391,6 +391,13 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
     for target in CompilerTarget.all_targets:
         if only_target is not None and only_target.name != target.name:
             continue
+        # Define the rules in Makefile, which look like this:
+        # my_target: export VAR=value
+        # This will trigger exporting these variables before executing the test.
+        if inject_blame_env is not None:
+            for s in inject_blame_env.split():
+                output += "run_" + target.name + ": export " + s + "\n"
+
         output += "run_" + target.name + ": " + target.name + "_" + executable.value + "\n"
         output += "\t@"
         required_sde_arch = define_sde_arch(native_arch, target.arch.sde_arch)
