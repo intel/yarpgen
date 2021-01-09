@@ -156,6 +156,7 @@ enum class OptionKind {
     EMIT_PRAGMAS,
     OUT_DIR,
     PARAM_SHUFFLE,
+    EXPL_LOOP_PARAM,
     MAX_OPTION_ID
 };
 
