@@ -170,7 +170,9 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         return iter != iters.end() - 1 ? std::move(sep) : "";
     };
 
-    auto emit_iter_param_val = [&stream](std::shared_ptr<Expr> expr) {
+    Options &options = Options::getInstance();
+
+    auto emit_iter_param_val = [&stream, &options](std::shared_ptr<Expr> expr) {
         EvalCtx eval_ctx;
         // TODO: do we want to recalculate it every time?
         auto eval_res = expr->evaluate(eval_ctx);
@@ -178,7 +180,11 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                "Iterator should have a scalar value");
         auto scalar_eval_res = std::static_pointer_cast<ScalarVar>(eval_res);
         IRValue val = scalar_eval_res->getCurrentValue();
-        stream << "/*" << val << "*/";
+        if (!options.getExplLoopParams())
+            stream << "/*";
+        stream << val;
+        if (!options.getExplLoopParams())
+            stream << "*/";
     };
 
     if (!isForeach()) {
@@ -188,7 +194,8 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
             stream << (*iter)->getType()->getName(ctx) << " ";
             stream << (*iter)->getName(ctx) << " = ";
             auto start = (*iter)->getStart();
-            start->emit(ctx, stream);
+            if (!options.getExplLoopParams())
+                start->emit(ctx, stream);
             emit_iter_param_val(start);
             stream << place_sep(iter, ", ");
         }
@@ -197,7 +204,8 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getName(ctx) << " < ";
             auto end = (*iter)->getEnd();
-            end->emit(ctx, stream);
+            if (!options.getExplLoopParams())
+                end->emit(ctx, stream);
             emit_iter_param_val(end);
             stream << place_sep(iter, ", ");
         }
@@ -206,7 +214,8 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getName(ctx) << " += ";
             auto step = (*iter)->getStep();
-            step->emit(ctx, stream);
+            if (!options.getExplLoopParams())
+                step->emit(ctx, stream);
             emit_iter_param_val(step);
             stream << place_sep(iter, ", ");
         }
@@ -218,11 +227,13 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (auto iter = iters.begin(); iter != iters.end(); ++iter) {
             stream << (*iter)->getName(ctx) << " = (";
             auto start = (*iter)->getStart();
-            start->emit(ctx, stream);
+            if (!options.getExplLoopParams())
+                start->emit(ctx, stream);
             emit_iter_param_val(start);
             stream << ")...(";
             auto end = (*iter)->getEnd();
-            end->emit(ctx, stream);
+            if (!options.getExplLoopParams())
+                end->emit(ctx, stream);
             emit_iter_param_val(end);
             stream << ")";
             stream << place_sep(iter, ", ");

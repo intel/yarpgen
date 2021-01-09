@@ -94,6 +94,7 @@ class OptionParser {
     static void parseEmitPragmas(std::string val);
     static void parseOutDir(std::string val);
     static void parseUseParamShuffle(std::string val);
+    static void parseExplLoopParams(std::string val);
 };
 
 class Options {
@@ -143,6 +144,9 @@ class Options {
     void setUseParamShuffle(bool val) { use_param_shuffle = val; }
     bool getUseParamShuffle() { return use_param_shuffle; }
 
+    void setExplLoopParams(bool val) { expl_loop_params = val; }
+    bool getExplLoopParams() { return expl_loop_params; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -174,5 +178,8 @@ class Options {
     std::string out_dir;
 
     bool use_param_shuffle;
+
+    // Explicit loop parameters. Some applications need that option available
+    bool expl_loop_params;
 };
 } // namespace yarpgen

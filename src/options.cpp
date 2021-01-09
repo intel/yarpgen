@@ -167,6 +167,15 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseUseParamShuffle,
      "true",
      {"true", "false"}},
+    {OptionKind::EXPL_LOOP_PARAM,
+     "",
+     "--expl-loop-param",
+     true,
+     "Emit explicit loop's parameters",
+     "Can't parse use explicit loop parameters",
+     OptionParser::parseExplLoopParams,
+     "false",
+     {"true", "false"}},
 };
 
 static void dumpVersion(std::ostream &stream) {
@@ -431,6 +440,16 @@ void OptionParser::parseUseParamShuffle(std::string val) {
         options.setUseParamShuffle(false);
     else
         printHelpAndExit("Can't recognize allow dead data");
+}
+
+void OptionParser::parseExplLoopParams(std::string val) {
+    Options &options = Options::getInstance();
+    if (val == "true")
+        options.setExplLoopParams(true);
+    else if (val == "false")
+        options.setExplLoopParams(false);
+    else
+        printHelpAndExit("Can't recognize explicit loop parameters");
 }
 
 void Options::dump(std::ostream &stream) {
