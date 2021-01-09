@@ -3,6 +3,12 @@ LLVM:
 ====================================
 Version #2
 ---------------
+| `48554 <https://bugs.llvm.org/show_bug.cgi?id=48554>`_ - ICE: polly/lib/External/isl/isl_ast_build_expr.c:1745: cannot handle void expression
+| `48445 <https://bugs.llvm.org/show_bug.cgi?id=48445>`_ - Assertion \`StmtDomain\.is_subset(NewDomain) && "Partial READ accesses not supported"' failed
+| `48422 <https://bugs.llvm.org/show_bug.cgi?id=48422>`_ - Assertion \`SE->DT\.dominates(ENT\.ExitingBlock, Latch) && "We should only have known counts for exiting blocks that dominate " "latch!"' failed
+| `48326 <https://bugs.llvm.org/show_bug.cgi?id=48326>`_ - ICE: Assertion \`Num < NumOperands && "Invalid child # of SDNode!"' failed with -march=skylake-avx512 -O3
+| `47292 <https://bugs.llvm.org/show_bug.cgi?id=47292>`_ - ICE in polly with -O3
+| `47098 <https://bugs.llvm.org/show_bug.cgi?id=47098>`_ - Polly crashes while running pass 'Polly - Forward operand tree' on skx
 | `46950 <https://bugs.llvm.org/show_bug.cgi?id=46950>`_ - ICE: UNREACHABLE executed at llvm/lib/Transforms/Vectorize/LoopVectorize.cpp:6481!
 | `46680 <https://bugs.llvm.org/show_bug.cgi?id=46680>`_ - ICE in backend: Instruction Combining seems stuck in an infinite loop after 100 iterations
 | `46661 <https://bugs.llvm.org/show_bug.cgi?id=46661>`_ - ICE in backend: Instruction Combining seems stuck in an infinite loop after 100 iterations.
@@ -89,6 +95,14 @@ GCC:
 
 Version #2
 ---------------
+| `98381 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98381>`_ - [11 Regression] Wrong code with -O3 -march=skylake-avx512 by r11-3072
+| `98308 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98308>`_ - [11 Regression] ICE in vect_slp_analyze_node_operations, at tree-vect-slp.c:3764 with -O3 -march=skylake-avx512 since r11-615-gdc0c0196340f7ac5
+| `98096 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98096>`_ - [8/9/10 Regression] Miscompilation with -O3 since r8-2380-g2d7744d4ef93bfff
+| `98064 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98064>`_ - ICE in check_loop_closed_ssa_def, at tree-ssa-loop-manip.c:726 with -O3 since r11-4921-g86cca5cc14602814
+| `98048 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98048>`_ - [11 Regression] ICE in build_vector_from_val, at tree.c:1985 by r11-5429
+| `96755 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96755>`_ - [11 Regression] ICE in final_scan_insn_1, at final.c:3073 with -O3 -march=skylake-avx512
+| `96693 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96693>`_ - [11 Regression] GCC produces incorrect code with -O2 for loops
+| `96415 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96415>`_ - GCC produces incorrect code for loops with -O3 for skylake-avx512 and icelake-server
 | `96022 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96022>`_ - ICE during GIMPLE pass: slp in operator[], at vec.h:867
 | `95916 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95916>`_ - [11 Regression] ICE during GIMPLE pass: slp : verify_ssa failed
 | `95717 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95717>`_ - [9/10 Regression] ICE during GIMPLE pass: vect: verify_ssa failed since r9-5325-gf25507d041de4df6
@@ -207,6 +221,7 @@ ISPC:
 ====================================
 Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q=is%3Aissue+label%3Ayarpgen+>`_
 
+| `1851 <https://github.com/ispc/ispc/issues/1851>`_ - LLVM assertion `Def == PreviousDef' failed.
 | `1844 <https://github.com/ispc/ispc/issues/1844>`_ - ICE in LLVM: "Unexpected illegal type" at llvm/lib/CodeGen/SelectionDAG/LegalizeDAG.cpp:978
 | `1806	<https://github.com/ispc/ispc/issues/1806>`_ - ISPC produces wrong code with bool type iterator
 | `1793 <https://github.com/ispc/ispc/issues/1793>`_ - Wrong code for avx2-i32x16.
