@@ -98,8 +98,7 @@ class RandValGen {
     template <typename T> T getRandUnsignedValue() {
         // See note above about long long hack
         std::uniform_int_distribution<unsigned long long> dis(
-            0,
-            static_cast<unsigned long long>(std::numeric_limits<T>::max()));
+            0, static_cast<unsigned long long>(std::numeric_limits<T>::max()));
         return dis(rand_gen);
     }
 
