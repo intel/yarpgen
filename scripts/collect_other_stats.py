@@ -107,7 +107,8 @@ def prepare_and_start(work_dir, config_file, timeout, num_jobs, csmith_bin_path,
     # TODO: need to add some check, but I hope that it is safe
     common.log_msg(logging.DEBUG, "Csmith version: " + csmith_version_str)
 
-    gen_test_makefile.set_standard("c99")
+    common.set_standard("c99")
+    gen_test_makefile.set_standard()
     gen_test_makefile.parse_config(config_file)
 
     compiler_run_args = {}

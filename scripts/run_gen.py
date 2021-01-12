@@ -205,7 +205,7 @@ class Test(object):
     def __init__(self, stat, seed="", proc_num=-1, blame=False, creduce_makefile=None):
         # Run generator
         yarpgen_run_list = [".." + os.sep + "yarpgen",
-                            "--std=" + common.GenStdID.get_pretty_std_name(common.selected_gen_std)]
+                            "--std=" + common.StdID.get_pretty_std_name(common.selected_standard)]
         if seed:
             yarpgen_run_list += ["-s", seed]
         self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
@@ -430,7 +430,7 @@ class Test(object):
         log.write("YARPGEN version: " + common.yarpgen_version_str + "\n")
         log.write("Seed: " + str(self.seed) + "\n")
         log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
-        log.write("Language standard: " + gen_test_makefile.get_standard() + "\n")
+        log.write("Language standard: " + common.get_standard() + "\n")
         log.write("Type: " + self.status_string() + "\n")
         if self.blame:
             log.write("Blaming " + self.blame_result + "\n")
@@ -595,7 +595,7 @@ class Test(object):
         # Run creduce
         cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout",
                           str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name),
-                          "func" + gen_test_makefile.get_file_ext()]
+                          common.append_file_ext("func")]
         cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
@@ -621,8 +621,8 @@ class Test(object):
         common.check_and_copy(cr_log.name, "..")
         self.files.append(cr_log.name)
 
-        reduced_file_name = "func_reduced_" + bad_run.optset + gen_test_makefile.get_file_ext()
-        common.check_and_copy("func" + gen_test_makefile.get_file_ext(), ".." + os.sep+reduced_file_name)
+        reduced_file_name = common.append_file_ext("func_reduced_" + bad_run.optset)
+        common.check_and_copy(common.append_file_ext("func"), ".." + os.sep + reduced_file_name)
         self.files.append(reduced_file_name)
 
         self.check_for_creduce_fails()
@@ -680,7 +680,7 @@ class Test(object):
         # Run creduce
         cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout",
                           str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name),
-                          "func" + gen_test_makefile.get_file_ext()]
+                          common.append_file_ext("func")]
         cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
@@ -706,8 +706,8 @@ class Test(object):
         common.check_and_copy(cr_log.name, "..")
         self.files.append(cr_log.name)
 
-        reduced_file_name = "func_reduced_" + buildfail_run.optset + gen_test_makefile.get_file_ext()
-        common.check_and_copy("func" + gen_test_makefile.get_file_ext(), ".." + os.sep + reduced_file_name)
+        reduced_file_name = common.append_file_ext("func_reduced_" + buildfail_run.optset)
+        common.check_and_copy(common.append_file_ext("func"), ".." + os.sep + reduced_file_name)
         self.files.append(reduced_file_name)
 
         self.check_for_creduce_fails()
@@ -773,7 +773,7 @@ class Test(object):
         # Run creduce
         cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout",
                           str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name),
-                          "func" + gen_test_makefile.get_file_ext()]
+                          common.append_file_ext("func")]
         cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
@@ -799,8 +799,8 @@ class Test(object):
         common.check_and_copy(cr_log.name, "..")
         self.files.append(cr_log.name)
 
-        reduced_file_name = "func_reduced_" + runfail_run.optset + gen_test_makefile.get_file_ext()
-        common.check_and_copy("func" + gen_test_makefile.get_file_ext(), ".." + os.sep + reduced_file_name)
+        reduced_file_name = common.append_file_ext("func_reduced_" + runfail_run.optset)
+        common.check_and_copy(common.append_file_ext("func"), ".." + os.sep + reduced_file_name)
         self.files.append(reduced_file_name)
 
         self.check_for_creduce_fails()
@@ -982,7 +982,7 @@ class TestRun(object):
         log.write("Time: " + datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S') + "\n")
         tests = [self] + self.same_type_fails
         log.write("Optsets: " + ", ".join(t.optset for t in tests) + "\n")
-        log.write("Language standard: " + gen_test_makefile.get_standard() + "\n")
+        log.write("Language standard: " + common.get_standard() + "\n")
         log.write("Type: " + self.status_string() + "\n")
         if self.test.blame:
             log.write("Blaming " + self.blame_result + "\n")
@@ -1433,9 +1433,9 @@ def print_compilers_version(targets):
         if i not in gen_test_makefile.CompilerSpecs.all_comp_specs:
             common.print_and_exit("Know nothing about " + i + " target")
         comp_exec_name = None
-        if gen_test_makefile.selected_standard.is_c():
+        if common.selected_standard.is_c():
             comp_exec_name = gen_test_makefile.CompilerSpecs.all_comp_specs[i].comp_c_name
-        if gen_test_makefile.selected_standard.is_cxx():
+        if common.selected_standard.is_cxx():
             comp_exec_name = gen_test_makefile.CompilerSpecs.all_comp_specs[i].comp_cxx_name
         if not common.if_exec_exist(comp_exec_name):
             common.print_and_exit("Can't find " + comp_exec_name + " binary")
@@ -1505,7 +1505,7 @@ def proccess_seeds(seeds_option_value):
 
 def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_file, seeds_option_value, blame, creduce,
                                   no_tmp_cln, collect_stat):
-    gen_test_makefile.check_if_std_defined()
+    common.check_if_std_defined()
     common.check_dir_and_create(out_dir)
 
     # Check for binary of generator
@@ -1525,7 +1525,7 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
                 out_file_name = creduce_makefile,
                 force = True,
                 config_file = config_file,
-                creduce_file = "func" + gen_test_makefile.get_file_ext())
+                creduce_file = common.append_file_ext("func"))
 
     makefile = os.path.abspath(os.path.join(out_dir, gen_test_makefile.Test_Makefile_name))
     gen_test_makefile.gen_makefile(
@@ -1715,7 +1715,7 @@ Use specified folder for testing
     parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=CustomFormatter)
 
     parser.add_argument('--std', dest="std_str", default="c++", type=str,
-                        help='Language standard. Possible variants are ' + str(list(common.StrToGenStdId))[1:-1])
+                        help='Language standard. Possible variants are ' + str(list(common.StrToStdID))[1:-1])
     parser.add_argument("-o", "--output", dest="out_dir", default="testing", type=str,
                         help="Directory, which is used for testing.")
     parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=1,
@@ -1770,9 +1770,8 @@ Use specified folder for testing
     if args.creduce:
         creduce_n = args.creduce
 
-    #TODO: we need to support more standards
-    common.set_gen_standard(args.std_str)
-    gen_test_makefile.set_standard(gen_test_makefile.StdID.get_pretty_std_name(gen_test_makefile.StdID.CXX11))
+    common.set_standard(args.std_str)
+    gen_test_makefile.set_standard()
 
     Test.ignore_comp_time_exp = args.ignore_comp_time_exp
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,

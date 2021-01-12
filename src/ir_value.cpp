@@ -526,7 +526,12 @@ static IRValue leftShiftOperator(IRValue &lhs, IRValue &rhs) {
     size_t lhs_bit_size = sizeof(T) * CHAR_BIT;
     if (std::is_signed<T>::value) {
         size_t max_avail_shift = lhs_bit_size - lhs.getMSB();
-        if (rhs.getValueRef<U>() > static_cast<U>(max_avail_shift)) {
+        Options &options = Options::getInstance();
+        // C and C++ have different rules for UB in left shift operator
+        if ((options.isC() &&
+             rhs.getValueRef<U>() >= static_cast<U>(max_avail_shift)) ||
+            (!options.isC() &&
+             rhs.getValueRef<U>() > static_cast<U>(max_avail_shift))) {
             ret.setUBCode(UBKind::ShiftRhsLarge);
             return ret;
         }

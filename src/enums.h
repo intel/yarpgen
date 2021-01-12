@@ -162,7 +162,7 @@ enum class OptionKind {
 
 enum class OptionLevel { NONE, SOME, ALL, MAX_OPTION_LEVEL };
 
-enum class LangStd { CXX, ISPC, SYCL, MAX_LANG_STD };
+enum class LangStd { C, CXX, ISPC, SYCL, MAX_LANG_STD };
 
 enum class AlignmentSize {
     A16,
