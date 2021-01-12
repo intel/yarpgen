@@ -366,13 +366,16 @@ class MinMaxCallBase : public LibCallExpr {
         return evaluate(ctx);
     }
     void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
-              std::string offset = "");
+              std::string offset = "") override;
 
   protected:
     MinMaxCallBase(std::shared_ptr<Expr> _a, std::shared_ptr<Expr> _b,
                    LibCallKind _kind);
     static std::shared_ptr<LibCallExpr>
     createHelper(std::shared_ptr<PopulateCtx> ctx, LibCallKind kind);
+    static void emitCDefinitionImpl(std::shared_ptr<EmitCtx> ctx,
+                                    std::ostream &stream, std::string offset,
+                                    LibCallKind kind);
     std::shared_ptr<Expr> a;
     std::shared_ptr<Expr> b;
     LibCallKind kind;
@@ -386,6 +389,10 @@ class MinCall : public MinMaxCallBase {
     create(std::shared_ptr<PopulateCtx> ctx) {
         return createHelper(std::move(ctx), LibCallKind::MIN);
     }
+    static void emitCDefinition(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream, std::string offset = "") {
+        emitCDefinitionImpl(ctx, stream, offset, LibCallKind::MAX);
+    }
 };
 
 class MaxCall : public MinMaxCallBase {
@@ -395,6 +402,10 @@ class MaxCall : public MinMaxCallBase {
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx) {
         return createHelper(std::move(ctx), LibCallKind::MAX);
+    }
+    static void emitCDefinition(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream, std::string offset = "") {
+        emitCDefinitionImpl(ctx, stream, offset, LibCallKind::MIN);
     }
 };
 

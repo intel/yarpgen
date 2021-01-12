@@ -174,5 +174,6 @@ if __name__ == '__main__':
     common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
-    gen_test_makefile.set_standard(args.std_str)
+    common.set_standard(args.std_str)
+    gen_test_makefile.set_standard()
     prepare_env_and_recheck(args.input_dir, args.out_dir, args.target, args.num_jobs, args.config_file)

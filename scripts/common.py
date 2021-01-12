@@ -47,32 +47,72 @@ stat_logger = None
 
 
 @enum.unique
-class GenStdID(enum.IntEnum):
+class StdID(enum.IntEnum):
     # Better to use enum.auto, but it is available only since python3.6
+    C = enum.auto()
     CXX = enum.auto()
     SYCL = enum.auto()
     ISPC = enum.auto()
-    MAX_GEN_STD_ID = enum.auto()
+    MAX_STD_ID = enum.auto()
+
+    def is_c (self):
+        return self.value == StdID.C
+
+    def is_cxx (self):
+        return self.value == StdID.CXX or \
+               self.value == StdID.SYCL or \
+               self.value == StdID.ISPC
 
     ''' Enum doesn't allow to use '++' in names, so we need this function. '''
     @staticmethod
     def get_pretty_std_name (std_id):
-        if std_id == GenStdID.CXX:
+        if std_id == StdID.CXX:
             return std_id.name.replace("CXX", "c++")
         return std_id.name.lower()
 
+    ''' Enum doesn't allow to use '++' in names, so we need this function. '''
+    @staticmethod
+    def get_full_pretty_std_name (std_id):
+        if std_id == StdID.CXX:
+            return std_id.name.replace("CXX", "c++") + "11"
+        return std_id.name.lower() + "99"
+
 ''' Easy way to convert string to StdID '''
-StrToGenStdId = collections.OrderedDict()
-for i in GenStdID:
+StrToStdID = collections.OrderedDict()
+for i in StdID:
     if not i.name.startswith("MAX"):
-        StrToGenStdId[GenStdID.get_pretty_std_name(i)] = i
+        StrToStdID[StdID.get_pretty_std_name(i)] = i
 
-selected_gen_std = None
+selected_standard = None
 
-def set_gen_standard(std_str):
-    global selected_gen_std
-    selected_gen_std = StrToGenStdId[std_str]
+def get_file_ext():
+    if selected_standard.is_c():
+        return ".c"
+    if selected_standard.is_cxx():
+        return ".cpp"
+    return None
 
+def append_file_ext(file):
+    if (file.startswith("func") and selected_standard == StdID.ISPC):
+        return file + ".ispc"
+    if selected_standard.is_c():
+        return file + ".c"
+    if selected_standard.is_cxx():
+        return file + ".cpp"
+    return None
+
+def set_standard(std_str):
+    global selected_standard
+    selected_standard = StrToStdID[std_str]
+
+def get_standard ():
+    global selected_standard
+    return StdID.get_pretty_std_name(selected_standard)
+
+def check_if_std_defined ():
+    if selected_standard is None or \
+       selected_standard == StdID.MAX_STD_ID:
+        print_and_exit("Language standard wasn't selected!")
 
 def print_and_exit(msg):
     log_msg(logging.ERROR, msg)

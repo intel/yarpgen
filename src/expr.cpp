@@ -1031,12 +1031,18 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 auto lhs_scalar_var =
                     std::static_pointer_cast<ScalarVar>(lhs->getValue());
                 // We can't shift pass the type size
+                Options &options = Options::getInstance();
                 size_t max_sht_val = lhs_int_type->getBitSize() - 1;
                 // And we can't shift MSB pass the type size
                 if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() &&
                     ub == UBKind::ShiftRhsLarge) {
-                    max_sht_val -=
-                        (lhs_scalar_var->getCurrentValue().getMSB() - 1);
+                    int msb = lhs_scalar_var->getCurrentValue().getMSB();
+                    if (msb > 0) {
+                        max_sht_val -= (msb - 1);
+                        // For C the resulting value has to fit in type itself
+                        if (options.isC() && max_sht_val > 0)
+                            max_sht_val -= 1;
+                    }
                 }
 
                 // Secondly, we choose a new shift value in a valid range
@@ -1595,7 +1601,9 @@ LibCallExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     LibCallKind call_kind = LibCallKind::MAX_LIB_CALL_KIND;
     Options &options = Options::getInstance();
-    if (options.isCXX())
+    if (options.isC())
+        call_kind = rand_val_gen->getRandId(gen_pol->c_lib_call_distr);
+    else if (options.isCXX())
         call_kind = rand_val_gen->getRandId(gen_pol->cxx_lib_call_distr);
     else if (options.isISPC())
         call_kind = rand_val_gen->getRandId(gen_pol->ispc_lib_call_distr);
@@ -1803,6 +1811,24 @@ MinMaxCallBase::createHelper(std::shared_ptr<PopulateCtx> ctx,
         return std::make_shared<MinCall>(a, b);
     else
         ERROR("Unsupported LibCallKind");
+}
+
+void MinMaxCallBase::emitCDefinitionImpl(std::shared_ptr<EmitCtx> ctx,
+                                         std::ostream &stream,
+                                         std::string offset, LibCallKind kind) {
+    std::string func_name, func_sign;
+    if (kind == LibCallKind::MAX) {
+        func_name = "max";
+        func_sign = ">";
+    }
+    else {
+        func_name = "min";
+        func_sign = "<";
+    }
+    stream << "#define " << func_name << "(a,b) \\\n";
+    stream << "    ({ __typeof__ (a) _a = (a); \\\n";
+    stream << "       __typeof__ (b) _b = (b); \\\n";
+    stream << "       _a " << func_sign << " _b ? _a : _b; })\n";
 }
 
 SelectCall::SelectCall(std::shared_ptr<Expr> _cond,

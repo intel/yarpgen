@@ -58,8 +58,12 @@ void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
     out_file << "#include <stdio.h>\n\n";
 
     Options &options = Options::getInstance();
-    if (options.useAsserts() != OptionLevel::NONE)
-        stream << "#include <cassert>\n\n";
+    if (options.useAsserts() != OptionLevel::NONE) {
+        if (options.isC())
+            stream << "#include <assert.h>\n\n";
+        else
+            stream << "#include <cassert>\n\n";
+    }
 
     out_file << "unsigned long long int seed = 0;\n";
     out_file << "void hash(unsigned long long int *seed, unsigned long long "
@@ -442,6 +446,10 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
                                 std::ostream &stream) {
     Options &options = Options::getInstance();
     stream << "#include \"init.h\"\n";
+    if (options.isC()) {
+        MinCall::emitCDefinition(ctx, stream);
+        MaxCall::emitCDefinition(ctx, stream);
+    }
     if (options.isCXX())
         stream << "#include <algorithm>\n";
     else if (options.isSYCL()) {
@@ -566,14 +574,27 @@ void ProgramGenerator::emit() {
     emitExtDecl(emit_ctx, out_file);
     out_file.close();
 
-    open_file(!options.isISPC() ? "func.cpp" : "func.ispc");
+    std::string func_file_ext, driver_file_ext;
+    if (options.isC()) {
+        func_file_ext = "c";
+        driver_file_ext = "c";
+    }
+    else if (options.isCXX()) {
+        func_file_ext = "cpp";
+        driver_file_ext = "cpp";
+    }
+    else if (options.isISPC()) {
+        func_file_ext = "ispc";
+        driver_file_ext = "cpp";
+    }
+    open_file("func." + func_file_ext);
     out_file << "/*\n";
     options.dump(out_file);
     out_file << "*/\n";
     emitTest(emit_ctx, out_file);
     out_file.close();
 
-    open_file("driver.cpp");
+    open_file("driver." + driver_file_ext);
     emitCheckFunc(out_file);
     emitDecl(emit_ctx, out_file);
     emitInit(emit_ctx, out_file);

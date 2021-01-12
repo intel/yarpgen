@@ -81,74 +81,15 @@ Makefile_variable_list.append(stat_options)
 
 ###############################################################################
 # Section for language standards
-@enum.unique
-class StdID(enum.IntEnum):
-    # Better to use enum.auto, but it is available only since python3.6
-    C99 = 0
-    C11 = 1
-    MAX_C_ID = 2
-    CXX98 = 3
-    CXX03 = 4
-    CXX11 = 5
-    CXX14 = 6
-    CXX17 = 7
-    MAX_CXX_ID = 8
-
-    def is_c (self):
-        return StdID.C99.value <= self.value < StdID.MAX_C_ID.value
-
-    def is_cxx (self):
-        return StdID.CXX98.value <= self.value < StdID.MAX_CXX_ID.value
-
-    ''' Enum doesn't allow to use '++' in names, so we need this function. '''
-    @staticmethod
-    def get_pretty_std_name (std_id):
-        if std_id.is_c():
-            return std_id.name.replace("C", "c")
-        if std_id.is_cxx():
-            return std_id.name.replace("CXX", "c++")
-
-''' Easy way to convert string to StdID '''
-StrToStdId = collections.OrderedDict()
-for i in StdID:
-    if not i.name.startswith("MAX"):
-        StrToStdId[StdID.get_pretty_std_name(i)] = i
-
-selected_standard = None
-
-def get_file_ext():
-    if selected_standard.is_c():
-        return ".c"
-    if selected_standard.is_cxx():
-        return ".cpp"
-    return None
-
 def adjust_sources_to_standard():
-    #sources.value = re.sub("\s+|$", get_file_ext() + " ", sources.value)
     new_sources = ""
     for source in sources.value.split():
-        if source == "func" and common.selected_gen_std == common.GenStdID.ISPC:
-            new_sources += source + ".ispc"
-        else:
-            new_sources += source + get_file_ext()
-        new_sources += " "
+        new_sources += common.append_file_ext(source) + " "
     sources.value = new_sources.strip()
 
-def set_standard (std_str):
-    global selected_standard
-    selected_standard = StrToStdId[std_str]
-    std_flags.value += StdID.get_pretty_std_name(selected_standard)
+def set_standard ():
+    std_flags.value += common.StdID.get_full_pretty_std_name(common.selected_standard)
     adjust_sources_to_standard()
-
-def get_standard ():
-    global selected_standard
-    return StdID.get_pretty_std_name(selected_standard)
-
-def check_if_std_defined ():
-    if selected_standard is None or \
-       selected_standard == StdID.MAX_C_ID or \
-       selected_standard == StdID.MAX_CXX_ID:
-        common.print_and_exit("Language standard wasn't selected!")
 
 ###############################################################################
 # Section for sde
@@ -357,7 +298,7 @@ def detect_native_arch():
 def gen_makefile(out_file_name, force, config_file, only_target=None, inject_blame_opt=None,
                  creduce_file=None, stat_targets=None):
     # Somebody can prepare test specs and target, so we don't need to parse config file
-    check_if_std_defined()
+    common.check_if_std_defined()
     if config_file is not None:
         parse_config(config_file)
     output = ""
@@ -387,9 +328,9 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         if only_target is not None and only_target.name != target.name:
             continue
         compiler_name = None
-        if selected_standard.is_c():
+        if common.selected_standard.is_c():
             compiler_name = target.specs.comp_c_name
-        if selected_standard.is_cxx():
+        if common.selected_standard.is_cxx():
             compiler_name = target.specs.comp_cxx_name
         output += target.name + ": " + "COMPILER=" + compiler_name + "\n"
 
@@ -412,10 +353,10 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
                     stat_targets.remove(stat_target)
         output += target.name + ": " + "EXECUTABLE=" + target.name + "_" + executable.value + "\n"
         output += target.name + ": " + "$(addprefix " + target.name + "_,"
-        if common.selected_gen_std != common.GenStdID.ISPC:
-            output += "$(SOURCES:" + get_file_ext() + "=.o))\n"
+        if common.selected_standard != common.StdID.ISPC:
+            output += "$(SOURCES:" + common.get_file_ext() + "=.o))\n"
         else:
-            output += "$(patsubst %.ispc,%.o," + "$(SOURCES:" + get_file_ext() + "=.o))" + ")\n"
+            output += "$(patsubst %.ispc,%.o," + "$(SOURCES:" + common.get_file_ext() + "=.o))" + ")\n"
         output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
 
     if stat_targets is not None and len(stat_targets) != 0:
@@ -480,7 +421,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--std', dest="std_str", default="c++", type=str,
-                        help='Language standard. Possible variants are ' + str(list(common.StrToGenStdId))[1:-1])
+                        help='Language standard. Possible variants are ' + str(list(common.StrToStdID))[1:-1])
     parser.add_argument("--config-file", dest="config_file",
                         default=os.path.join(common.yarpgen_scripts, default_test_sets_file_name), type=str,
                         help="Configuration file for testing")
@@ -502,8 +443,7 @@ if __name__ == '__main__':
     common.setup_logger(args.log_file, log_level)
 
     common.check_python_version()
-    common.set_gen_standard(args.std_str)
-    set_standard(StdID.get_pretty_std_name(StdID.CXX11))
-
+    common.set_standard(args.std_str)
+    set_standard()
     gen_makefile(os.path.abspath(args.out_file), args.force, args.config_file, creduce_file=args.creduce_file,
                  stat_targets=args.collect_stat.split())

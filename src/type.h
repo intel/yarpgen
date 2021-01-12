@@ -177,6 +177,9 @@ class TypeBool : public IntegralTypeHelper<bool> {
     // different.
     IntTypeID getIntTypeId() final { return IntTypeID::BOOL; }
     std::string getName(std::shared_ptr<EmitCtx> ctx) final {
+        Options &options = Options::getInstance();
+        if (options.isC())
+            return getNameImpl(ctx, "_Bool");
         return getNameImpl(ctx, "bool");
     }
 

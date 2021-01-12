@@ -113,6 +113,7 @@ class Options {
 
     void setLangStd(LangStd _std) { std = _std; }
     LangStd getLangStd() { return std; }
+    bool isC() { return std == LangStd::C; }
     bool isCXX() { return std == LangStd::CXX; }
     bool isISPC() { return std == LangStd::ISPC; }
     bool isSYCL() { return std == LangStd::SYCL; }

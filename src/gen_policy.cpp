@@ -152,6 +152,12 @@ GenPolicy::GenPolicy() {
     foreach_distr.emplace_back(Probability<bool>(false, 80));
     shuffleProbProxy(foreach_distr);
 
+    c_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::MAX, 20));
+    c_lib_call_distr.emplace_back(
+        Probability<LibCallKind>(LibCallKind::MIN, 20));
+    shuffleProbProxy(c_lib_call_distr);
+
     cxx_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::MAX, 20));
     cxx_lib_call_distr.emplace_back(
