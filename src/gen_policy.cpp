@@ -188,11 +188,13 @@ GenPolicy::GenPolicy() {
 
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::CONST, 30));
-    loop_end_kind_distr.emplace_back(
-        Probability<LoopEndKind>(LoopEndKind::VAR, 30));
-    loop_end_kind_distr.emplace_back(
-        Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
-    shuffleProbProxy(loop_end_kind_distr);
+    if (!options.getExplLoopParams()) {
+        loop_end_kind_distr.emplace_back(
+            Probability<LoopEndKind>(LoopEndKind::VAR, 30));
+        loop_end_kind_distr.emplace_back(
+            Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
+        shuffleProbProxy(loop_end_kind_distr);
+    }
 
     uniformProbFromMax(pragma_num_distr,
                        static_cast<int>(PragmaKind::MAX_PRAGMA_KIND) - 1,
