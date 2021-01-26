@@ -47,11 +47,17 @@ clang_opt_patterns = ["BISECT: running pass \(\d+\)"]
 clang_opt_name_prefix = "BISECT: running pass \(\d+\) "
 clang_opt_name_suffix = " \(.*\)"
 
-compilers_blame_opts = {"icc": icc_blame_opts, "icx": icx_blame_opts, "clang": clang_blame_opts}
-compilers_blame_patterns = {"icc": icc_opt_patterns, "icx": icx_opt_patterns, "clang": clang_opt_patterns}
+dpcpp_gpu_blame_opts = ["IGC_ShaderDumpEnableAll=1 IGC_ShaderDisableOptPassesAfter="]
+dpcpp_gpu_patterns = ["Skipping optimization pass: .* (threshold: \(\d+\))."]
+dpcpp_gpu_opt_name_prefix = "Skipping optimization pass: '"
+dpcpp_gpu_opt_name_suffix = "' \(.*\)."
+
+compilers_blame_opts = {"icc": icc_blame_opts, "icx": icx_blame_opts, "clang": clang_blame_opts, "dpcpp": dpcpp_gpu_blame_opts}
+compilers_blame_patterns = {"icc": icc_opt_patterns, "icx": icx_opt_patterns, "clang": clang_opt_patterns, "dpcpp": dpcpp_gpu_patterns}
 compilers_opt_name_cutter = {"icc": [icc_opt_name_prefix, icc_opt_name_suffix], \
                              "icx": [icx_opt_name_prefix, icx_opt_name_suffix], \
-                             "clang": [clang_opt_name_prefix, clang_opt_name_suffix]}
+                             "clang": [clang_opt_name_prefix, clang_opt_name_suffix], \
+                             "dpcpp": [dpcpp_gpu_opt_name_prefix, dpcpp_gpu_opt_name_suffix]}
 
 blame_test_makefile_name = "Blame_Makefile"
 
@@ -84,20 +90,28 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
             force = True,
             config_file = None,
             only_target = fail_target,
-            inject_blame_opt = inject_str + "-1")
+            inject_blame_opt = inject_str + "-1" if fail_target.specs.name != "dpcpp" else None,
+            inject_blame_env = inject_str + "1" if fail_target.specs.name == "dpcpp" else None)
     ret_code, output, err_output, time_expired, elapsed_time = \
         common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
+    if fail_target.specs.name == "dpcpp":
+        ret_code, output, err_output, time_expired, elapsed_time = \
+            common.run_cmd(["make", "-f", blame_test_makefile_name, "run_" + fail_target.name], run_gen.compiler_timeout, num)
+
     opt_num_regex = re.compile(compilers_blame_patterns[fail_target.specs.name][phase_num])
     try:
-        matches = opt_num_regex.findall(str(err_output, "utf-8"))
-        # Some icc phases may not support going to phase "2", i.e. drilling down to num_case level,
-        # in this case we are done.
-        if phase_num == 2 and not matches:
-            return str(-1)
-        max_opt_num_str = matches[-1]
-        remove_brackets_pattern = re.compile("\d+")
-        max_opt_num = int(remove_brackets_pattern.findall(max_opt_num_str)[-1])
-        common.log_msg(logging.DEBUG, "Max opt num (process " + str(num) + "): " + str(max_opt_num))
+        if fail_target.specs.name == "dpcpp":
+            max_opt_num = 250
+        else:
+            matches = opt_num_regex.findall(str(err_output, "utf-8"))
+            # Some icc phases may not support going to phase "2", i.e. drilling down to num_case level,
+            # in this case we are done.
+            if phase_num == 2 and not matches:
+                return str(-1)
+            max_opt_num_str = matches[-1]
+            remove_brackets_pattern = re.compile("\d+")
+            max_opt_num = int(remove_brackets_pattern.findall(max_opt_num_str)[-1])
+            common.log_msg(logging.DEBUG, "Max opt num (process " + str(num) + "): " + str(max_opt_num))
     except IndexError:
         common.log_msg(logging.ERROR, "Can't decode max opt number using \"" + compilers_blame_patterns[fail_target.specs.name][phase_num]
                        + "\" regexp (phase " + str(phase_num) + ") in the following output:\n" + str(err_output, "utf-8")
@@ -121,8 +135,8 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
                 force = True,
                 config_file = None,
                 only_target = fail_target,
-                inject_blame_opt = inject_str + str(cur_opt))
-
+                inject_blame_opt = inject_str + str(cur_opt) if fail_target.specs.name != "dpcpp" else None,
+                inject_blame_env = inject_str + str(cur_opt) if fail_target.specs.name == "dpcpp" else None)
         ret_code, output, err_output, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
         if time_expired or ret_code != 0:
@@ -144,7 +158,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
                 break
 
         if str(output, "utf-8").split()[-1] != valid_res:
-            common.log_msg(logging.DEBUG, "Out differs (process " + str(num) + ")")
+            common.log_msg(logging.DEBUG, "Output differs (process " + str(num) + "): " + str(output, "utf-8").split()[-1] + " vs " + valid_res + " (expected)")
             failed_flag = True
             if not eff:
                 continue
@@ -160,7 +174,7 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
 
     common.log_msg(logging.DEBUG, "Finished blame phase, result: " + str(inject_str) + str(cur_opt) + " (process " + str(num) + ")")
 
-    return str(cur_opt)
+    return cur_opt
 
 
 def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
@@ -169,10 +183,17 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
     if not re.search("-O0", fail_target.args):
         blame_opts = compilers_blame_opts[fail_target.specs.name]
         phase_num = 0
+        blame_phase_num = 0
+        # Do blaming
         try:
             for i in blame_opts:
                 blame_str += i
-                blame_str += execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
+                blame_phase_num = execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
+                if fail_target.specs.name == "dpcpp":
+                    # Special case becasue triagging mechanism is different and there's only one level of triagging.
+                    blame_str += str(blame_phase_num-1)
+                else:
+                    blame_str += str(blame_phase_num)
                 blame_str += " "
                 phase_num += 1
         except:
@@ -185,17 +206,34 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
                 force = True,
                 config_file = None,
                 only_target = fail_target,
-                inject_blame_opt = blame_str)
+                inject_blame_opt = blame_str if fail_target.specs.name != "dpcpp" else None,
+                inject_blame_env = blame_str if fail_target.specs.name == "dpcpp" else None)
         ret_code, stdout, stderr, time_expired, elapsed_time = \
             common.run_cmd(["make", "-f", blame_test_makefile_name, fail_target.name], run_gen.compiler_timeout, num)
+        if fail_target.specs.name == "dpcpp":
+            ret_code, stdout, stderr, time_expired, elapsed_time = \
+                common.run_cmd(["make", "-f", blame_test_makefile_name, "run_" + fail_target.name], run_gen.compiler_timeout, num)
 
-        opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
-                                      compilers_opt_name_cutter[fail_target.specs.name][1])
-        opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[-1]
-        opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][0], "", opt_name)
-        opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][1], "", opt_name)
-        real_opt_name = opt_name
-        opt_name = opt_name.replace(" ", "_")
+        if fail_target.specs.name != "dpcpp":
+            opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
+                                          compilers_opt_name_cutter[fail_target.specs.name][1])
+            opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[-1]
+            opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][0], "", opt_name)
+            opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][1], "", opt_name)
+            real_opt_name = opt_name
+            opt_name = opt_name.replace(" ", "_")
+        else:
+            if blame_phase_num == 1:
+                # It's special case for DPC++. 1 means that triagging failed, no specific phase can be blamed.
+                real_opt_name = opt_name = "FailedToBlame"
+            else:
+                opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +
+                                              compilers_opt_name_cutter[fail_target.specs.name][1])
+                opt_name = opt_name_pattern.findall(str(stderr, "utf-8"))[0]
+                opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][0], "", opt_name)
+                opt_name = re.sub(compilers_opt_name_cutter[fail_target.specs.name][1], "", opt_name)
+                real_opt_name = opt_name
+                opt_name = opt_name.replace(" ", "_")
     else:
         real_opt_name = opt_name = "O0_bug"
 
