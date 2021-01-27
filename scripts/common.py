@@ -71,11 +71,10 @@ class StdID(enum.IntEnum):
         return std_id.name.lower()
 
     ''' Enum doesn't allow to use '++' in names, so we need this function. '''
-    @staticmethod
-    def get_full_pretty_std_name (std_id):
-        if std_id == StdID.CXX:
-            return std_id.name.replace("CXX", "c++") + "11"
-        return std_id.name.lower() + "99"
+    def get_full_pretty_std_name (self):
+        if self.is_cxx():
+            return "c++11"
+        return "c99"
 
 ''' Easy way to convert string to StdID '''
 StrToStdID = collections.OrderedDict()

@@ -579,7 +579,7 @@ void ProgramGenerator::emit() {
         func_file_ext = "c";
         driver_file_ext = "c";
     }
-    else if (options.isCXX()) {
+    else if (options.isCXX() || options.isSYCL()) {
         func_file_ext = "cpp";
         driver_file_ext = "cpp";
     }
