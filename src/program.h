@@ -39,6 +39,15 @@ class ProgramGenerator {
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
     std::shared_ptr<SymbolTable> ext_out_sym_tbl;
     std::shared_ptr<ScopeStmt> new_test;
+
+    unsigned long long int hash_seed;
+    void hash(unsigned long long int const v);
+    void hashArray(std::shared_ptr<Array> const &arr);
+    void hashArrayStep(std::shared_ptr<Array> const &arr,
+                       std::vector<size_t> &dims, std::vector<size_t> &idx_vec,
+                       size_t cur_idx, bool has_to_use_init_val,
+                       uint64_t &init_val, uint64_t &cur_val,
+                       std::vector<size_t> &steps);
 };
 
 } // namespace yarpgen

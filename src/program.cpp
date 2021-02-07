@@ -25,7 +25,7 @@ limitations under the License.
 
 using namespace yarpgen;
 
-ProgramGenerator::ProgramGenerator() {
+ProgramGenerator::ProgramGenerator() : hash_seed(0) {
     // Generate the general structure of the test
     auto gen_ctx = std::make_shared<GenCtx>();
     new_test = ScopeStmt::generateStructure(gen_ctx);
@@ -58,12 +58,14 @@ void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
     out_file << "#include <stdio.h>\n\n";
 
     Options &options = Options::getInstance();
-    if (options.useAsserts() != OptionLevel::NONE) {
+    if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
         if (options.isC())
             stream << "#include <assert.h>\n\n";
         else
             stream << "#include <cassert>\n\n";
     }
+
+    // The exact same function should be used for hash pre-computation!
 
     out_file << "unsigned long long int seed = 0;\n";
     out_file << "void hash(unsigned long long int *seed, unsigned long long "
@@ -139,12 +141,8 @@ static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (size_t i = 0; i < idx; ++i)
             stream << "[i_" << i << "] ";
         stream << "= ";
-        auto init_var = array->getInitValues();
-        assert(init_var->getKind() == DataKind::VAR &&
-               "We support simple array for now");
-        auto init_scalar_var = std::static_pointer_cast<ScalarVar>(init_var);
-        auto init_const =
-            std::make_shared<ConstantExpr>(init_scalar_var->getInitValue());
+        auto init_val = array->getInitValues();
+        auto init_const = std::make_shared<ConstantExpr>(init_val);
         init_const->emit(ctx, stream);
         stream << ";\n";
     }
@@ -170,23 +168,23 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         ctx->setSYCLPrefix("app_");
 
     for (auto &var : ext_out_sym_tbl->getVars()) {
-        bool use_assert = false;
-        if (options.useAsserts() == OptionLevel::SOME)
-            use_assert = rand_val_gen->getRandId(emit_pol->asserts_check_distr);
-        else if (options.useAsserts() == OptionLevel::ALL)
-            use_assert = true;
-
         std::string var_name = var->getName(ctx);
 
-        if (!use_assert) {
+        if (options.getCheckAlgo() == CheckAlgo::HASH ||
+            options.getCheckAlgo() == CheckAlgo::PRECOMPUTE) {
             stream << "    hash(&seed, " << var_name << ");\n";
+            if (options.getCheckAlgo() == CheckAlgo::PRECOMPUTE)
+                hash(var->getCurrentValue().getAbsValue().value);
         }
-        else {
+        else if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val =
                 std::make_shared<ConstantExpr>(var->getCurrentValue());
             stream << "    assert(" << var_name << " == ";
             const_val->emit(ctx, stream);
             stream << ");\n";
+        }
+        else {
+            ERROR("Unsupported");
         }
     }
 
@@ -198,44 +196,37 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         assert(type->isArrayType() && "Array should have an Array type");
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         size_t idx = 0;
+        std::stringstream ss;
+        ss << array->getName(ctx) << " ";
         for (const auto &dimension : array_type->getDimensions()) {
             stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx
                    << " < " << dimension << "; ++i_" << idx << ") \n";
+            ss << "[i_" << idx << "] ";
             offset += "    ";
             idx++;
         }
 
-        bool use_assert = false;
-        if (options.useAsserts() == OptionLevel::SOME)
-            use_assert = rand_val_gen->getRandId(emit_pol->asserts_check_distr);
-        else if (options.useAsserts() == OptionLevel::ALL)
-            use_assert = true;
-
-        if (!use_assert)
+        if (options.getCheckAlgo() == CheckAlgo::HASH ||
+            options.getCheckAlgo() == CheckAlgo::PRECOMPUTE) {
             stream << offset << "hash(&seed, ";
+            if (options.getCheckAlgo() == CheckAlgo::PRECOMPUTE)
+                hashArray(array);
+        }
+        else if (options.getCheckAlgo() == CheckAlgo::ASSERTS)
+            stream << offset << "assert(";
         else
-            stream << "    assert(";
-        std::stringstream ss;
-        ss << array->getName(ctx) << " ";
-        for (size_t i = 0; i < idx; ++i)
-            ss << "[i_" << i << "] ";
+            ERROR("Unsupported");
+
         std::string arr_name = ss.str();
         stream << arr_name;
 
-        if (use_assert) {
-            if (!array->getCurrentValues()->isScalarVar())
-                ERROR("We support only scalar variables for now");
+        if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val = std::make_shared<ConstantExpr>(
-                std::static_pointer_cast<ScalarVar>(array->getCurrentValues())
-                    ->getCurrentValue());
+                std::get<0>(array->getCurrentValues()));
             stream << "== ";
             const_val->emit(ctx, stream);
             stream << " || " << arr_name << " == ";
-            if (!array->getInitValues()->isScalarVar())
-                ERROR("We support only scalar variables for now");
-            const_val = std::make_shared<ConstantExpr>(
-                std::static_pointer_cast<ScalarVar>(array->getInitValues())
-                    ->getCurrentValue());
+            const_val = std::make_shared<ConstantExpr>(array->getInitValues());
             const_val->emit(ctx, stream);
         }
         stream << ");\n";
@@ -545,6 +536,10 @@ void ProgramGenerator::emitMain(std::shared_ptr<EmitCtx> ctx,
     stream << ");\n";
     stream << "    checksum();\n";
     stream << "    printf(\"%llu\\n\", seed);\n";
+    if (options.getCheckAlgo() == CheckAlgo::PRECOMPUTE) {
+        stream << "    if (seed != " << hash_seed << "ULL) \n";
+        stream << "        printf(\"ERROR: hash mismatch\\n\");\n";
+    }
     stream << "}\n";
 }
 
@@ -601,4 +596,47 @@ void ProgramGenerator::emit() {
     emitCheck(emit_ctx, out_file);
     emitMain(emit_ctx, out_file);
     out_file.close();
+}
+
+void ProgramGenerator::hash(unsigned long long int const v) {
+    // This function has to be exactly the same as the one that we use for hash
+    // computation
+    hash_seed ^= v + 0x9e3779b9 + (hash_seed << 6) + (hash_seed >> 2);
+}
+
+void ProgramGenerator::hashArray(std::shared_ptr<Array> const &arr) {
+    assert(arr->getType()->isArrayType() && "Array should have array type");
+    auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
+    std::vector<size_t> idx_vec(arr_type->getDimensions().size(), 0);
+    auto &dims = arr_type->getDimensions();
+    uint64_t init_val = arr->getInitValues().getAbsValue().value;
+    uint64_t cur_val = std::get<0>(arr->getCurrentValues()).getAbsValue().value;
+    std::vector<size_t> steps = std::get<2>(arr->getCurrentValues());
+    hashArrayStep(arr, dims, idx_vec, 0, false, init_val, cur_val, steps);
+}
+
+void ProgramGenerator::hashArrayStep(std::shared_ptr<Array> const &arr,
+                                     std::vector<size_t> &dims,
+                                     std::vector<size_t> &idx_vec,
+                                     size_t cur_idx, bool has_to_use_init_val,
+                                     uint64_t &init_val, uint64_t &cur_val,
+                                     std::vector<size_t> &steps) {
+    size_t vec_last_idx = idx_vec.size() - 1;
+    size_t cur_val_size = std::get<1>(arr->getCurrentValues())[cur_idx];
+    size_t cur_dim = dims[cur_idx];
+    size_t cur_step = steps[cur_idx];
+
+    for (size_t i = 0; i < cur_dim; ++i) {
+        has_to_use_init_val |= (i >= cur_val_size);
+        if (cur_idx != vec_last_idx) {
+            idx_vec[cur_idx] = i;
+            hashArrayStep(arr, dims, idx_vec, cur_idx + 1,
+                          has_to_use_init_val || (i % cur_step != 0), init_val,
+                          cur_val, steps);
+        }
+        else {
+            hash(has_to_use_init_val || (i % cur_step != 0) ? init_val
+                                                            : cur_val);
+        }
+    }
 }

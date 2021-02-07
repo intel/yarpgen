@@ -31,7 +31,7 @@ void ScalarVar::dbgDump() {
     type->dbgDump();
     std::cout << "Init val: " << init_val << std::endl;
     std::cout << "Current val: " << cur_val << std::endl;
-    std::cout << "Was changed: " << changed << std::endl;
+    std::cout << "Is dead: " << is_dead << std::endl;
 }
 
 std::shared_ptr<ScalarVar> ScalarVar::create(std::shared_ptr<PopulateCtx> ctx) {
@@ -60,33 +60,53 @@ void Array::dbgDump() {
     std::cout << "Array: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
     type->dbgDump();
-    init_vals->dbgDump();
-    cur_vals->dbgDump();
+    std::cout << "Init val: " << init_vals << std::endl;
+    std::cout << "Cur val: [";
+    for (const auto &i : std::get<1>(cur_vals))
+        std::cout << i << ", ";
+    std::cout << "] : " << std::get<0>(cur_vals) << std::endl;
+    std::cout << "Steps: ";
+    for (const auto &i : std::get<2>(cur_vals))
+        std::cout << i << " ";
+    std::cout << std::endl;
+    std::cout << "Is dead: " << is_dead << std::endl;
 }
 
 Array::Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
-             std::shared_ptr<Data> _val)
-    : Data(std::move(_name), _type), init_vals(_val), cur_vals(_val),
-      was_changed(false) {
+             IRValue _val)
+    : Data(std::move(_name), _type), init_vals(_val) {
     if (!type->isArrayType())
         ERROR("Array variable should have an ArrayType");
 
     auto array_type = std::static_pointer_cast<ArrayType>(type);
-    if (array_type->getBaseType() != init_vals->getType())
-        ERROR("Can't initialize array with variable of wrong type");
+    cur_vals = std::make_tuple(
+        _val, array_type->getDimensions(),
+        std::vector<size_t>(array_type->getDimensions().size(), 1));
+    if (!array_type->getBaseType()->isIntType())
+        ERROR("Only integer types are supported by now");
+    if (std::static_pointer_cast<IntegralType>(array_type->getBaseType())
+            ->getIntTypeId() != _val.getIntTypeID())
+        ERROR("Array initialization value should have the same type as array");
 
-    ub_code = init_vals->getUBCode();
+    ub_code = init_vals.getUBCode();
 }
 
-void Array::setValue(std::shared_ptr<Data> _val) {
+void Array::setValue(IRValue _val, std::deque<size_t> &span,
+                     std::deque<size_t> &steps) {
     /*
     auto array_type = std::static_pointer_cast<ArrayType>(type);
     if (array_type->getBaseType() != _val->getType())
         ERROR("Can't initialize array with variable of wrong type");
     */
-    cur_vals = _val;
-    ub_code = cur_vals->getUBCode();
-    was_changed = true;
+    assert(type->isArrayType() && "Array should have array type");
+    auto arr_type = std::static_pointer_cast<ArrayType>(type);
+    if (span.size() != arr_type->getDimensions().size() ||
+        steps.size() != arr_type->getDimensions().size())
+        ERROR("Span and steps should have same size as array type");
+    std::vector<size_t> span_vec(span.begin(), span.end());
+    std::vector<size_t> steps_vec(steps.begin(), steps.end());
+    cur_vals = std::make_tuple(_val, span_vec, steps_vec);
+    ub_code = std::get<0>(cur_vals).getUBCode();
 }
 
 std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
@@ -97,10 +117,9 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
         ERROR("We support only array of integers for now");
     auto int_type = std::static_pointer_cast<IntegralType>(base_type);
     IRValue init_val = rand_val_gen->getRandValue(int_type->getIntTypeId());
-    auto init_var = std::make_shared<ScalarVar>("", int_type, init_val);
     NameHandler &nh = NameHandler::getInstance();
     auto new_array =
-        std::make_shared<Array>(nh.getArrayName(), array_type, init_var);
+        std::make_shared<Array>(nh.getArrayName(), array_type, init_val);
     return new_array;
 }
 

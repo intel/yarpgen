@@ -77,7 +77,7 @@ void scalarVarTest() {
                     ptr_to_type->getMax().castToType(IntTypeID::ULLONG);
                 CHECK((init_val == min_val).getValueRef<bool>(), "Init Value");
                 CHECK((cur_val == max_val).getValueRef<bool>(), "CurrentValue");
-                CHECK(scalar_var->wasChanged(), "Was Changed");
+                CHECK(scalar_var->getIsDead(), "Is dead");
             }
 }
 
@@ -106,8 +106,8 @@ void arrayTest() {
                     ArrayType::init(ptr_to_type, dims, static_cast<bool>(k),
                                     static_cast<CVQualifier>(k));
 
-                auto array = std::make_shared<Array>(std::to_string(i),
-                                                     array_type, scalar_var);
+                auto array = std::make_shared<Array>(
+                    std::to_string(i), array_type, ptr_to_type->getMin());
 
                 CHECK(array->getName(std::make_shared<EmitCtx>()) ==
                           std::to_string(i),
@@ -120,14 +120,23 @@ void arrayTest() {
                 CHECK(array->isArray(), "Array identity");
                 CHECK(array->getKind() == DataKind::ARR, "Array kind");
 
-                auto new_scalar_var = std::make_shared<ScalarVar>(
-                    std::to_string(j), ptr_to_type, ptr_to_type->getMax());
-                array->setValue(new_scalar_var);
+                std::deque<size_t> span(dims.begin(), dims.end()),
+                    steps(dims.size(), 2);
+                std::vector<size_t> span_vec(span.begin(), span.end());
+                std::vector<size_t> steps_vec(steps.begin(), steps.end());
+                array->setValue(ptr_to_type->getMax(), span, steps);
 
-                CHECK(array->getInitValues() == scalar_var, "Init Value");
-                CHECK(array->getCurrentValues() == new_scalar_var,
+                CHECK((array->getInitValues().getAbsValue() ==
+                       ptr_to_type->getMin().getAbsValue()),
+                      "Init Value");
+                CHECK((std::get<0>(array->getCurrentValues()).getAbsValue() ==
+                       ptr_to_type->getMax().getAbsValue()),
                       "CurrentValue");
-                CHECK(array->wasChanged(), "Was Changed");
+                CHECK(std::get<1>(array->getCurrentValues()) == span_vec,
+                      "CurrentValueSpan");
+                CHECK(std::get<2>(array->getCurrentValues()) == steps_vec,
+                      "CurrentValueSteps");
+                CHECK(array->getIsDead(), "Is dead");
             }
 }
 

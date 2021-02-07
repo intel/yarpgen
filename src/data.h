@@ -21,6 +21,7 @@ limitations under the License.
 
 #include "enums.h"
 #include "type.h"
+#include <deque>
 #include <string>
 #include <utility>
 
@@ -89,7 +90,7 @@ class ScalarVar : public Data {
     ScalarVar(std::string _name, const std::shared_ptr<IntegralType> &_type,
               IRValue _init_value)
         : Data(std::move(_name), _type), init_val(_init_value),
-          cur_val(_init_value), changed(false) {
+          cur_val(_init_value) {
         ub_code = init_val.getUBCode();
     }
     bool isScalarVar() final { return true; }
@@ -102,9 +103,7 @@ class ScalarVar : public Data {
     void setCurrentValue(IRValue _val) {
         cur_val = _val;
         ub_code = cur_val.getUBCode();
-        changed = true;
     }
-    bool wasChanged() { return changed; }
 
     void dbgDump() final;
 
@@ -117,17 +116,20 @@ class ScalarVar : public Data {
   private:
     IRValue init_val;
     IRValue cur_val;
-    bool changed;
 };
 
 class Array : public Data {
   public:
+    // Value, end, step
+    using array_val_t =
+        std::tuple<IRValue, std::vector<size_t>, std::vector<size_t>>;
+
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
-          std::shared_ptr<Data> _val);
-    std::shared_ptr<Data> getInitValues() { return init_vals; }
-    std::shared_ptr<Data> getCurrentValues() { return cur_vals; }
-    void setValue(std::shared_ptr<Data> _val);
-    bool wasChanged() { return was_changed; }
+          IRValue _val);
+    IRValue getInitValues() { return init_vals; }
+    array_val_t getCurrentValues() { return cur_vals; }
+    void setValue(IRValue _val, std::deque<size_t> &span,
+                  std::deque<size_t> &steps);
 
     bool isArray() final { return true; }
     DataKind getKind() final { return DataKind::ARR; }
@@ -150,9 +152,11 @@ class Array : public Data {
     // typical target architecture vector size. This way we can cover
     // all of the interesting cases while preserving the simplicity of
     // the analysis.
-    std::shared_ptr<Data> init_vals;
-    std::shared_ptr<Data> cur_vals;
-    bool was_changed;
+
+    // Span of initialization value can always be determined from array
+    // dimensions and current value span
+    IRValue init_vals;
+    array_val_t cur_vals;
 };
 
 class Expr;

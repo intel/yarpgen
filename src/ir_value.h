@@ -48,6 +48,10 @@ class IRValue {
     struct AbsValue {
         bool isNegative;
         uint64_t value;
+
+        bool operator==(const AbsValue &b) const {
+            return isNegative == b.isNegative && value == b.value;
+        }
     };
 
     IRValue();

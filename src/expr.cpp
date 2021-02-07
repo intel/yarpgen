@@ -21,6 +21,7 @@ limitations under the License.
 #include "context.h"
 #include "options.h"
 #include <algorithm>
+#include <deque>
 #include <utility>
 
 using namespace yarpgen;
@@ -306,7 +307,9 @@ std::shared_ptr<ArrayUseExpr> ArrayUseExpr::init(std::shared_ptr<Data> _val) {
     return ret;
 }
 
-void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr) {
+void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr,
+                            std::deque<size_t> &span,
+                            std::deque<size_t> &steps) {
     /*
     std::shared_ptr<Data> new_val = _expr->getValue();
     assert(new_val->isArray() && "ArrayUseExpr can store only Arrays");
@@ -316,7 +319,11 @@ void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr) {
     }
     */
     auto arr_val = std::static_pointer_cast<Array>(value);
-    arr_val->setValue(_expr->getValue());
+    if (!_expr->getValue()->isScalarVar())
+        ERROR("Only scalar variables are supported for now");
+    auto expr_scalar_var =
+        std::static_pointer_cast<ScalarVar>(_expr->getValue());
+    arr_val->setValue(expr_scalar_var->getCurrentValue(), span, steps);
 }
 
 Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
@@ -1361,7 +1368,12 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         value = array_eval_res;
     else {
         auto array_val = std::static_pointer_cast<Array>(array_eval_res);
-        value = array_val->getCurrentValues();
+        if (!array_type->getBaseType()->isIntType())
+            ERROR("Only integral types are supported for now");
+        value = std::make_shared<ScalarVar>(
+            "",
+            std::static_pointer_cast<IntegralType>(array_type->getBaseType()),
+            std::get<0>(array_val->getCurrentValues()));
     }
 
     Options &options = Options::getInstance();
@@ -1446,14 +1458,43 @@ SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
     evaluate(ctx);
 }
 
-void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr) {
+void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr,
+                             std::deque<size_t> &span,
+                             std::deque<size_t> &steps) {
+    EvalCtx ctx;
+    auto eval_res = idx->evaluate(ctx);
+    // TODO: step can be negative
+    size_t step = 0;
+    bool is_idx_iter = eval_res->isIterator();
+    if (is_idx_iter) {
+        auto iter_eval_res = std::static_pointer_cast<Iterator>(eval_res);
+        eval_res = iter_eval_res->getEnd()->evaluate(ctx);
+        auto step_eval = iter_eval_res->getStep()->evaluate(ctx);
+        if (!step_eval->isScalarVar())
+            ERROR("only scalar variables are supported for now");
+        auto step_scalar_val = std::static_pointer_cast<ScalarVar>(step_eval);
+        step = step_scalar_val->getCurrentValue()
+                   .castToType(IntTypeID::ULLONG)
+                   .getValueRef<size_t>();
+    }
+    if (!eval_res->isScalarVar())
+        ERROR("only scalar variables are supported for now");
+    auto eval_scalar_val = std::static_pointer_cast<ScalarVar>(eval_res);
+
+    IRValue cur_idx =
+        eval_scalar_val->getCurrentValue().castToType(IntTypeID::ULLONG);
+    if (!is_idx_iter)
+        step = cur_idx.getValueRef<size_t>();
+    span.push_front(cur_idx.getValueRef<size_t>());
+    steps.push_front(step);
+
     if (array->getKind() == IRNodeKind::SUBSCRIPT) {
         auto subs = std::static_pointer_cast<SubscriptExpr>(array);
-        subs->setValue(_expr);
+        subs->setValue(_expr, span, steps);
     }
     else if (array->getKind() == IRNodeKind::ARRAY_USE) {
         auto array_use = std::static_pointer_cast<ArrayUseExpr>(array);
-        array_use->setValue(_expr);
+        array_use->setValue(_expr, span, steps);
     }
     else
         ERROR("Bad IRNodeKind");
@@ -1534,7 +1575,8 @@ Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
     }
     else if (to->getKind() == IRNodeKind::SUBSCRIPT) {
         auto to_array = std::static_pointer_cast<SubscriptExpr>(to);
-        to_array->setValue(from);
+        std::deque<size_t> span, steps;
+        to_array->setValue(from, span, steps);
     }
     else
         ERROR("Bad IRNodeKind");
