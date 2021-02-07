@@ -610,7 +610,7 @@ std::ostream &yarpgen::operator<<(std::ostream &out, yarpgen::IRValue &val) {
 
 IRValue::AbsValue IRValue::getAbsValue() {
     AbsValue ret{false, 0};
-    // TODO: function can be called on value wich is undefined and we need
+    // TODO: function can be called on value which is undefined and we need
     // somehow to pass this information
     switch (type_id) {
         // TODO: use defines to make it shorter

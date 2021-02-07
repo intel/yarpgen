@@ -58,7 +58,9 @@ GenPolicy::GenPolicy() {
     iter_end_limit_max = 25;
     iters_step_distr.emplace_back(Probability<size_t>{1, 10});
     iters_step_distr.emplace_back(Probability<size_t>{2, 10});
+    iters_step_distr.emplace_back(Probability<size_t>{3, 10});
     iters_step_distr.emplace_back(Probability<size_t>{4, 10});
+    shuffleProbProxy(iters_step_distr);
 
     if (!options.isSYCL()) {
         stmt_kind_struct_distr.emplace_back(

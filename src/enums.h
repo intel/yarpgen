@@ -147,7 +147,6 @@ enum class OptionKind {
     VERSION,
     SEED,
     STD,
-    ASSERTS,
     INP_AS_ARGS,
     EMIT_ALIGN_ATTR,
     UNIQUE_ALIGN_SIZE,
@@ -157,6 +156,7 @@ enum class OptionKind {
     OUT_DIR,
     PARAM_SHUFFLE,
     EXPL_LOOP_PARAM,
+    CHECK_ALGO,
     MAX_OPTION_ID
 };
 
@@ -206,4 +206,5 @@ enum class SpecialConst {
     MAX_SPECIAL_CONST
 };
 
+enum class CheckAlgo { HASH, ASSERTS, PRECOMPUTE, MAX_CHECK_ALGO };
 } // namespace yarpgen

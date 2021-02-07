@@ -86,15 +86,15 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseStandard,
      "c++",
      {"c", "c++", "ispc", "sycl"}},
-    {OptionKind::ASSERTS,
+    {OptionKind::CHECK_ALGO,
      "",
-     "--asserts",
+     "--check-algo",
      true,
-     "Use asserts in check function",
-     "Can't parse asserts",
-     OptionParser::parseAsserts,
-     "some",
-     {"none", "some", "all"}},
+     "What check algorithm to use",
+     "Can't parse check algo",
+     OptionParser::parseCheckAlgo,
+     "hash",
+     {"hash", "asserts", "precompute"}},
     {OptionKind::INP_AS_ARGS,
      "",
      "--inp-as-args",
@@ -346,16 +346,16 @@ void OptionParser::parseStandard(std::string std) {
         printHelpAndExit("Bad language standard");
 }
 
-void OptionParser::parseAsserts(std::string val) {
+void OptionParser::parseCheckAlgo(std::string val) {
     Options &options = Options::getInstance();
-    if (val == "none")
-        options.setUseAsserts(OptionLevel::NONE);
-    else if (val == "some")
-        options.setUseAsserts(OptionLevel::SOME);
-    else if (val == "all")
-        options.setUseAsserts(OptionLevel::ALL);
+    if (val == "hash")
+        options.setCheckAlgo(CheckAlgo::HASH);
+    else if (val == "asserts")
+        options.setCheckAlgo(CheckAlgo::ASSERTS);
+    else if (val == "precompute")
+        options.setCheckAlgo(CheckAlgo::PRECOMPUTE);
     else
-        printHelpAndExit("Can't recognize asserts use level");
+        printHelpAndExit("Can't recognize checking algorithm");
 }
 
 void OptionParser::parseInpAsArgs(std::string val) {
@@ -367,7 +367,7 @@ void OptionParser::parseInpAsArgs(std::string val) {
     else if (val == "all")
         options.setInpAsArgs(OptionLevel::ALL);
     else
-        printHelpAndExit("Can't recognize asserts use level");
+        printHelpAndExit("Can't recognize input as arguments use level");
 }
 
 void OptionParser::parseEmitAlignAttr(std::string val) {

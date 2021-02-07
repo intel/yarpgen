@@ -85,7 +85,7 @@ class OptionParser {
 
     static void parseSeed(std::string seed_str);
     static void parseStandard(std::string std);
-    static void parseAsserts(std::string val);
+    static void parseCheckAlgo(std::string val);
     static void parseInpAsArgs(std::string val);
     static void parseEmitAlignAttr(std::string val);
     static void parseUniqueAlignSize(std::string val);
@@ -118,8 +118,8 @@ class Options {
     bool isISPC() { return std == LangStd::ISPC; }
     bool isSYCL() { return std == LangStd::SYCL; }
 
-    void setUseAsserts(OptionLevel val) { use_asserts = val; }
-    OptionLevel useAsserts() { return use_asserts; }
+    void setCheckAlgo(CheckAlgo val) { check_algo = val; }
+    CheckAlgo getCheckAlgo() { return check_algo; }
 
     void setInpAsArgs(OptionLevel val) { inp_as_args = val; }
     OptionLevel inpAsArgs() { return inp_as_args; }
@@ -152,7 +152,7 @@ class Options {
 
   private:
     Options()
-        : seed(0), std(LangStd::CXX), use_asserts(OptionLevel::SOME),
+        : seed(0), std(LangStd::CXX), check_algo(CheckAlgo::HASH),
           inp_as_args(OptionLevel::SOME), emit_align_attr(OptionLevel::SOME),
           unique_align_size(false),
           align_size(AlignmentSize::MAX_ALIGNMENT_SIZE), allow_dead_data(false),
@@ -163,7 +163,7 @@ class Options {
 
     size_t seed;
     LangStd std;
-    OptionLevel use_asserts;
+    CheckAlgo check_algo;
     // Pass input data to a test function as parameters
     OptionLevel inp_as_args;
 

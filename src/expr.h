@@ -19,6 +19,7 @@ limitations under the License.
 
 #pragma once
 
+#include <deque>
 #include <map>
 #include <memory>
 #include <utility>
@@ -98,7 +99,6 @@ class ConstantExpr : public Expr {
 class VarUseExpr : public Expr {
   public:
     explicit VarUseExpr(std::shared_ptr<Data> _val) : Expr(std::move(_val)) {}
-    virtual void setValue(std::shared_ptr<Expr> _expr) = 0;
     void setIsDead(bool val) { value->setIsDead(val); }
 };
 
@@ -111,7 +111,7 @@ class ScalarVarUseExpr : public VarUseExpr {
     static std::shared_ptr<ScalarVarUseExpr> init(std::shared_ptr<Data> _val);
     IRNodeKind getKind() final { return IRNodeKind::SCALAR_VAR_USE; }
 
-    void setValue(std::shared_ptr<Expr> _expr) final;
+    void setValue(std::shared_ptr<Expr> _expr);
 
     bool propagateType() final { return true; }
     EvalResType evaluate(EvalCtx &ctx) final;
@@ -137,7 +137,8 @@ class ArrayUseExpr : public VarUseExpr {
     static std::shared_ptr<ArrayUseExpr> init(std::shared_ptr<Data> _val);
     IRNodeKind getKind() final { return IRNodeKind::ARRAY_USE; }
 
-    void setValue(std::shared_ptr<Expr> _expr) final;
+    void setValue(std::shared_ptr<Expr> _expr, std::deque<size_t> &span,
+                  std::deque<size_t> &steps);
 
     bool propagateType() final { return true; }
     EvalResType evaluate(EvalCtx &ctx) final;
@@ -161,7 +162,7 @@ class IterUseExpr : public VarUseExpr {
     static std::shared_ptr<IterUseExpr> init(std::shared_ptr<Data> _iter);
     IRNodeKind getKind() final { return IRNodeKind::ITER_USE; }
 
-    void setValue(std::shared_ptr<Expr> _expr) final;
+    void setValue(std::shared_ptr<Expr> _expr);
 
     bool propagateType() final { return true; }
     EvalResType evaluate(EvalCtx &ctx) final;
@@ -293,7 +294,8 @@ class SubscriptExpr : public Expr {
     init(std::shared_ptr<Array> arr, std::shared_ptr<PopulateCtx> ctx);
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
-    void setValue(std::shared_ptr<Expr> _expr);
+    void setValue(std::shared_ptr<Expr> _expr, std::deque<size_t> &span,
+                  std::deque<size_t> &steps);
 
     void setIsDead(bool val);
 
