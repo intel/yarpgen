@@ -25,6 +25,7 @@ limitations under the License.
 #include <iostream>
 #include <memory>
 #include <random>
+#include <sstream>
 #include <string>
 
 namespace yarpgen {
@@ -150,10 +151,14 @@ class RandValGen {
     }
 
     uint64_t getSeed() { return seed; }
+    void setSeed(uint64_t new_seed);
+
+    void switchMutationStates();
 
   private:
     uint64_t seed;
     std::mt19937_64 rand_gen;
+    std::mt19937_64 prev_gen;
 };
 
 template <> inline bool RandValGen::getRandValue<bool>(bool from, bool to) {

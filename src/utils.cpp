@@ -71,3 +71,13 @@ IRValue RandValGen::getRandValue(IntTypeID type_id) {
     }
     return ret;
 }
+
+void RandValGen::switchMutationStates() {
+    std::stringstream tmp_state;
+    std::swap(prev_gen, rand_gen);
+}
+
+void RandValGen::setSeed(uint64_t new_seed) {
+    seed = new_seed;
+    rand_gen = std::mt19937_64(seed);
+}
