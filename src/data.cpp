@@ -261,6 +261,7 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
                    std::shared_ptr<Expr> expr) -> std::shared_ptr<Expr> {
         LoopEndKind loop_end_kind =
             rand_val_gen->getRandId(gen_pol->loop_end_kind_distr);
+
         // TODO: add fall-back safety mechanism
         std::shared_ptr<Expr> ret = expr;
         if (loop_end_kind == LoopEndKind::CONST)

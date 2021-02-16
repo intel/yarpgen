@@ -1605,6 +1605,15 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     auto from = ArithmeticExpr::create(ctx);
 
+    Options &options = Options::getInstance();
+    if (options.getMutate()) {
+        rand_val_gen->switchMutationStates();
+        bool mutate = rand_val_gen->getRandId(gen_pol->mutation_probability);
+        if (mutate)
+            from = ArithmeticExpr::create(ctx);
+        rand_val_gen->switchMutationStates();
+    }
+
     EvalCtx eval_ctx;
     EvalResType from_val = from->evaluate(eval_ctx);
 

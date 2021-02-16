@@ -356,6 +356,18 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         size_t new_dim = rand_val_gen->getRandValue(
             gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+
+        Options &options = Options::getInstance();
+        if (options.getMutate()) {
+            rand_val_gen->switchMutationStates();
+            bool mutate =
+                rand_val_gen->getRandId(gen_pol->mutation_probability);
+            if (mutate)
+                new_dim = rand_val_gen->getRandValue(
+                    gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+            rand_val_gen->switchMutationStates();
+        }
+
         new_ctx->addDimension(new_dim);
         loop_head->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);
@@ -462,6 +474,18 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         size_t new_dim = rand_val_gen->getRandValue(
             gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+
+        Options &options = Options::getInstance();
+        if (options.getMutate()) {
+            rand_val_gen->switchMutationStates();
+            bool mutate =
+                rand_val_gen->getRandId(gen_pol->mutation_probability);
+            if (mutate)
+                new_dim = rand_val_gen->getRandValue(
+                    gen_pol->iters_end_limit_min, gen_pol->iter_end_limit_max);
+            rand_val_gen->switchMutationStates();
+        }
+
         new_ctx->addDimension(new_dim);
         (*i)->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);

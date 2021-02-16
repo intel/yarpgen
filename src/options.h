@@ -95,6 +95,8 @@ class OptionParser {
     static void parseOutDir(std::string val);
     static void parseUseParamShuffle(std::string val);
     static void parseExplLoopParams(std::string val);
+    static void parseMutate(std::string mutate_str);
+    static void parseMutationSeed(std::string mutation_seed_str);
 };
 
 class Options {
@@ -148,6 +150,12 @@ class Options {
     void setExplLoopParams(bool val) { expl_loop_params = val; }
     bool getExplLoopParams() { return expl_loop_params; }
 
+    void setMutate(bool val) { mutate = val; }
+    bool getMutate() { return mutate; }
+
+    void setMutationSeed(size_t val) { mutation_seed = val; }
+    size_t getMutationSeed() { return mutation_seed; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -182,5 +190,8 @@ class Options {
 
     // Explicit loop parameters. Some applications need that option available
     bool expl_loop_params;
+
+    bool mutate;
+    size_t mutation_seed;
 };
 } // namespace yarpgen

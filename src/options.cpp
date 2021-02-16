@@ -176,6 +176,24 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseExplLoopParams,
      "false",
      {"true", "false"}},
+    {OptionKind::MUTATE,
+     "",
+     "--mutate",
+     true,
+     "Mutate the test",
+     "Can't parse mutate parameter",
+     OptionParser::parseMutate,
+     "false",
+     {"true", "false"}},
+    {OptionKind::MUTATION_SEED,
+     "",
+     "--mutation-seed",
+     true,
+     "Pass a predefined mutation seed (0 is reserved for random)",
+     "Unreachable Error",
+     OptionParser::parseMutationSeed,
+     "0",
+     {}},
 };
 
 static void dumpVersion(std::ostream &stream) {
@@ -452,6 +470,24 @@ void OptionParser::parseExplLoopParams(std::string val) {
         options.setExplLoopParams(false);
     else
         printHelpAndExit("Can't recognize explicit loop parameters");
+}
+
+void OptionParser::parseMutationSeed(std::string mutation_seed_str) {
+    std::stringstream arg_ss(mutation_seed_str);
+    Options &options = Options::getInstance();
+    size_t seed = 0;
+    arg_ss >> seed;
+    options.setMutationSeed(seed);
+}
+
+void OptionParser::parseMutate(std::string mutate_str) {
+    Options &options = Options::getInstance();
+    if (mutate_str == "true")
+        options.setMutate(true);
+    else if (mutate_str == "false")
+        options.setMutate(false);
+    else
+        printHelpAndExit("Can't recognize mutation parameters");
 }
 
 void Options::dump(std::ostream &stream) {

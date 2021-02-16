@@ -34,6 +34,19 @@ int main(int argc, char *argv[]) {
     rand_val_gen = std::make_shared<RandValGen>(options.getSeed());
     options.setSeed(rand_val_gen->getSeed());
 
+    if (options.getMutate()) {
+        if (options.getMutationSeed() == 0)
+            options.setMutationSeed(
+                rand_val_gen->getRandValue(std::numeric_limits<size_t>::min(),
+                                           std::numeric_limits<size_t>::max()));
+        rand_val_gen->switchMutationStates();
+        rand_val_gen->setSeed(options.getMutationSeed());
+        rand_val_gen->switchMutationStates();
+
+        std::cout << "/*MUTATION_SEED " << options.getMutationSeed() << "*/"
+                  << std::endl;
+    }
+
     ProgramGenerator new_program;
     new_program.emit();
 

@@ -293,6 +293,9 @@ GenPolicy::GenPolicy() {
     const_transform_distr.emplace_back(
         Probability<UnaryOp>(UnaryOp::BIT_NOT, 30));
     shuffleProbProxy(const_transform_distr);
+
+    mutation_probability.emplace_back(Probability<bool>(true, 10));
+    mutation_probability.emplace_back(Probability<bool>(false, 90));
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;

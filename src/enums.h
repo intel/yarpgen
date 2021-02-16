@@ -157,6 +157,8 @@ enum class OptionKind {
     PARAM_SHUFFLE,
     EXPL_LOOP_PARAM,
     CHECK_ALGO,
+    MUTATE,
+    MUTATION_SEED,
     MAX_OPTION_ID
 };
 
