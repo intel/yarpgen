@@ -59,10 +59,9 @@ void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
 
     Options &options = Options::getInstance();
     if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
-        if (options.isC())
-            stream << "#include <assert.h>\n\n";
-        else
-            stream << "#include <cassert>\n\n";
+        stream << "static ";
+        stream << (options.isC() ? "_Bool" : "bool") << " value_mismatch = ";
+        stream << (options.isC() ? "0" : "false") << ";\n";
     }
 
     // The exact same function should be used for hash pre-computation!
@@ -179,9 +178,9 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         else if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val =
                 std::make_shared<ConstantExpr>(var->getCurrentValue());
-            stream << "    assert(" << var_name << " == ";
+            stream << "    value_mismatch |= " << var_name << " != ";
             const_val->emit(ctx, stream);
-            stream << ");\n";
+            stream << ";\n";
         }
         else {
             ERROR("Unsupported");
@@ -213,7 +212,7 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
                 hashArray(array);
         }
         else if (options.getCheckAlgo() == CheckAlgo::ASSERTS)
-            stream << offset << "assert(";
+            stream << offset << "value_mismatch |= ";
         else
             ERROR("Unsupported");
 
@@ -223,13 +222,15 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val = std::make_shared<ConstantExpr>(
                 std::get<0>(array->getCurrentValues()));
-            stream << "== ";
+            stream << "!= ";
             const_val->emit(ctx, stream);
-            stream << " || " << arr_name << " == ";
+            stream << " && " << arr_name << " != ";
             const_val = std::make_shared<ConstantExpr>(array->getInitValues());
             const_val->emit(ctx, stream);
         }
-        stream << ");\n";
+        else
+            stream << ")";
+        stream << ";\n";
     }
     stream << "}\n";
 }
@@ -539,6 +540,10 @@ void ProgramGenerator::emitMain(std::shared_ptr<EmitCtx> ctx,
     if (options.getCheckAlgo() == CheckAlgo::PRECOMPUTE) {
         stream << "    if (seed != " << hash_seed << "ULL) \n";
         stream << "        printf(\"ERROR: hash mismatch\\n\");\n";
+    }
+    if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
+        stream << "    if (value_mismatch) \n";
+        stream << "        printf(\"ERROR: value mismatch\\n\");\n";
     }
     stream << "}\n";
 }
