@@ -127,3 +127,41 @@ jobs:
         name: tests-ispc-mac
         path: tests-ispc
 
+  build-and-run-win:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check environment
+      shell: cmd
+      run: |
+        wmic cpu get caption, deviceid, name, numberofcores, maxclockspeed, status
+    - name: configure and build
+      shell: cmd
+      run: |
+        mkdir build
+        cmake -B build -DCMAKE_BUILD_TYPE=Release .
+        cmake --build build -j4 --config Release
+    - name: run tests
+      shell: cmd
+      run: |
+        cd build\Release
+        type_test.exe
+        data_test.exe
+        expr_test.exe
+        gen_test.exe
+    - name: generate cpp tests
+      shell: cmd
+      run: |
+        mkdir tests-cpp && cd tests-cpp
+        ..\build\Release\yarpgen.exe --std=c++
+    - name: generate sycl tests
+      shell: cmd
+      run: |
+        mkdir tests-sycl && cd tests-sycl
+        ..\build\Release\yarpgen.exe --std=sycl
+    - name: generate ispc tests
+      shell: cmd
+      run: |
+        mkdir tests-ispc && cd tests-ispc
+        ..\build\Release\yarpgen.exe --std=ispc
