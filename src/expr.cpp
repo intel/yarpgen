@@ -1464,7 +1464,9 @@ void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr,
     EvalCtx ctx;
     auto eval_res = idx->evaluate(ctx);
     // TODO: step can be negative
-    size_t step = 0;
+    // We can't use size_t, because MacOS maps it to unsigned long, and
+    // getValueRef doesn't support it
+    uint64_t step = 0;
     bool is_idx_iter = eval_res->isIterator();
     if (is_idx_iter) {
         auto iter_eval_res = std::static_pointer_cast<Iterator>(eval_res);
@@ -1475,7 +1477,7 @@ void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr,
         auto step_scalar_val = std::static_pointer_cast<ScalarVar>(step_eval);
         step = step_scalar_val->getCurrentValue()
                    .castToType(IntTypeID::ULLONG)
-                   .getValueRef<size_t>();
+                   .getValueRef<uint64_t>();
     }
     if (!eval_res->isScalarVar())
         ERROR("only scalar variables are supported for now");
@@ -1484,8 +1486,8 @@ void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr,
     IRValue cur_idx =
         eval_scalar_val->getCurrentValue().castToType(IntTypeID::ULLONG);
     if (!is_idx_iter)
-        step = cur_idx.getValueRef<size_t>();
-    span.push_front(cur_idx.getValueRef<size_t>());
+        step = cur_idx.getValueRef<uint64_t>();
+    span.push_front(cur_idx.getValueRef<uint64_t>());
     steps.push_front(step);
 
     if (array->getKind() == IRNodeKind::SUBSCRIPT) {
