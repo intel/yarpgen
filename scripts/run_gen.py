@@ -349,7 +349,7 @@ class Test(object):
                 results[t.checksum].append(t)
 
         # Check if test passed.
-        if len(results) == 1:
+        if len(results) == 1 and not "ERROR" in next(iter(results)):
             return
         elif len(results) == 2:
             self.status = self.STATUS_miscompare
@@ -909,7 +909,7 @@ class TestRun(object):
         else:
             self.stat.update_target_runs(self.optset, ok)
             self.status = self.STATUS_ok
-            self.checksum = str(self.run_stdout, "utf-8").split()[-1]
+            self.checksum = str(self.run_stdout, "utf-8")
         self.stat.update_target_duration(self.optset, datetime.timedelta(seconds=self.build_elapsed_time+self.run_elapsed_time))
         return self.status == self.STATUS_ok
 

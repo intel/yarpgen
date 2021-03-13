@@ -157,8 +157,8 @@ def execute_blame_phase(valid_res, fail_target, inject_str, num, phase_num):
             else:
                 break
 
-        if str(output, "utf-8").split()[-1] != valid_res:
-            common.log_msg(logging.DEBUG, "Output differs (process " + str(num) + "): " + str(output, "utf-8").split()[-1] + " vs " + valid_res + " (expected)")
+        if str(output, "utf-8") != valid_res:
+            common.log_msg(logging.DEBUG, "Output differs (process " + str(num) + "): " + str(output, "utf-8") + " vs " + valid_res + " (expected)")
             failed_flag = True
             if not eff:
                 continue
