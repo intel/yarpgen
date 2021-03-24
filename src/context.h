@@ -167,10 +167,14 @@ class EmitCtx {
     void setSYCLPrefix(std::string _val) { sycl_prefix = std::move(_val); }
     std::string getSYCLPrefix() { return sycl_prefix; }
 
+    void setISPCPrefix(std::string _val) { ispc_prefix = std::move(_val); }
+    std::string getISPCPrefix() { return ispc_prefix; }
+
   private:
     std::shared_ptr<EmitPolicy> emit_policy;
     bool ispc_types;
     bool sycl_access;
     std::string sycl_prefix;
+    std::string ispc_prefix;
 };
 } // namespace yarpgen

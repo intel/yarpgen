@@ -50,6 +50,8 @@ std::string ScalarVar::getName(std::shared_ptr<EmitCtx> ctx) {
     std::string ret;
     if (!ctx->getSYCLPrefix().empty())
         ret = ctx->getSYCLPrefix();
+    else if (!ctx->getISPCPrefix().empty())
+        ret = ctx->getISPCPrefix();
     ret += Data::getName(ctx);
     if (ctx->useSYCLAccess())
         ret += "[0]";
@@ -121,6 +123,17 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
     auto new_array =
         std::make_shared<Array>(nh.getArrayName(), array_type, init_val);
     return new_array;
+}
+
+std::string Array::getName(std::shared_ptr<EmitCtx> ctx) {
+    if (!ctx)
+        ERROR("Can't give a name without a context");
+
+    std::string ret;
+    if (!ctx->getISPCPrefix().empty())
+        ret = ctx->getISPCPrefix();
+    ret += Data::getName(ctx);
+    return ret;
 }
 
 void Iterator::setParameters(std::shared_ptr<Expr> _start,

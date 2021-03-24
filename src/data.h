@@ -126,6 +126,7 @@ class Array : public Data {
 
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
           IRValue _val);
+    std::string getName(std::shared_ptr<EmitCtx> ctx) override;
     IRValue getInitValues() { return init_vals; }
     array_val_t getCurrentValues() { return cur_vals; }
     void setValue(IRValue _val, std::deque<size_t> &span,

@@ -36,6 +36,8 @@ class ProgramGenerator {
     void emitTest(std::shared_ptr<EmitCtx> ctx, std::ostream &stream);
     void emitMain(std::shared_ptr<EmitCtx> ctx, std::ostream &stream);
 
+    void emitISPCParams(std::shared_ptr<EmitCtx> ctx, std::ostream &stream);
+
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
     std::shared_ptr<SymbolTable> ext_out_sym_tbl;
     std::shared_ptr<ScopeStmt> new_test;
