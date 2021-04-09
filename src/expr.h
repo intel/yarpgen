@@ -292,6 +292,7 @@ class SubscriptExpr : public Expr {
               std::string offset = "") final;
     static std::shared_ptr<SubscriptExpr>
     init(std::shared_ptr<Array> arr, std::shared_ptr<PopulateCtx> ctx);
+    static std::vector<std::shared_ptr<Array>> getSuitableArrays(std::shared_ptr<PopulateCtx> ctx);
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
     void setValue(std::shared_ptr<Expr> _expr, std::deque<size_t> &span,
@@ -299,8 +300,11 @@ class SubscriptExpr : public Expr {
 
     void setIsDead(bool val);
 
-  private:
+//  private:
     bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);
+
+    void setOffset(int32_t _offset) { stencil_offset = _offset; }
+    int32_t getOffset() { return stencil_offset; }
 
     std::shared_ptr<Expr> array;
     std::shared_ptr<Expr> idx;
@@ -308,6 +312,8 @@ class SubscriptExpr : public Expr {
     // Auxiliary fields that prevents double computation
     size_t active_size;
     IntTypeID idx_int_type_id;
+    // It is a hack for stencil
+    int32_t stencil_offset;
 };
 
 class AssignmentExpr : public Expr {

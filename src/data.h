@@ -182,7 +182,7 @@ class Iterator : public Data {
 
     void dbgDump() final;
 
-    static std::shared_ptr<Iterator> create(std::shared_ptr<PopulateCtx> ctx,
+    static std::tuple<std::shared_ptr<Iterator>, size_t, size_t> create(std::shared_ptr<PopulateCtx> ctx,
                                             bool is_uniform = true);
     void populate(std::shared_ptr<PopulateCtx> ctx);
 

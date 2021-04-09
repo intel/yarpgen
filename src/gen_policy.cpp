@@ -103,7 +103,7 @@ GenPolicy::GenPolicy() {
     out_kind_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 20));
     shuffleProbProxy(out_kind_distr);
 
-    max_arith_depth = 3;
+    max_arith_depth = 4;
 
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::CONST, 10));
@@ -122,7 +122,8 @@ GenPolicy::GenPolicy() {
             Probability<IRNodeKind>(IRNodeKind::CALL, 20));
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
-    shuffleProbProxy(arith_node_distr);
+    arith_node_distr.emplace_back(IRNodeKind::STENCIL, 5000);
+    //shuffleProbProxy(arith_node_distr);
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 25));
@@ -238,7 +239,7 @@ GenPolicy::GenPolicy() {
 
     apply_const_use_distr.emplace_back(Probability<bool>(true, 10));
     apply_const_use_distr.emplace_back(Probability<bool>(false, 90));
-    shuffleProbProxy(apply_const_use_distr);
+    //shuffleProbProxy(apply_const_use_distr);
 
     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::HALF, 50));
     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::ALL, 50));
@@ -296,6 +297,12 @@ GenPolicy::GenPolicy() {
 
     mutation_probability.emplace_back(Probability<bool>(true, 10));
     mutation_probability.emplace_back(Probability<bool>(false, 90));
+
+    allow_stencil_prob.emplace_back(Probability<bool>(true, 10000));
+    allow_stencil_prob.emplace_back(Probability<bool>(false, 90));
+    uniformProbFromMax(stencil_span_distr, max_stencil_span);
+    stencil_in_dim_prob.emplace_back(Probability<bool>(true, 30000));
+    stencil_in_dim_prob.emplace_back(Probability<bool>(false, 70));
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
@@ -367,10 +374,10 @@ void GenPolicy::chooseAndApplyConstUse() {
         auto search_func = [](Probability<IRNodeKind> n) -> bool {
             return n.getId() == IRNodeKind::CONST;
         };
-        if (auto find_res = std::find_if(vec.begin(), vec.end(), search_func) !=
-                            vec.end()) {
-            sum -= vec.at(find_res).getProb();
-            vec.erase(vec.begin() + find_res);
+        auto find_res = std::find_if(vec.begin(), vec.end(), search_func);
+        if (find_res != vec.end()) {
+            sum -= find_res->getProb();
+            vec.erase(find_res);
         }
         arith_node_distr.emplace_back(
             Probability<IRNodeKind>(IRNodeKind::CONST, sum));

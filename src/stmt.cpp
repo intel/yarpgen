@@ -278,16 +278,20 @@ void LoopHead::populateArrays(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-void LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
+std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>> LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
+    std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>> ret;
     for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
-        auto new_iter = Iterator::create(ctx, /*is_uniform*/ !isForeach());
+        auto new_iter_params = Iterator::create(ctx, /*is_uniform*/ !isForeach());
+        ret.push_back(new_iter_params);
         // TODO: at some point we might use only some iterators
+        auto new_iter = std::get<0>(new_iter_params);
         new_iter->setIsDead(false);
         new_iter->populate(ctx);
         addIterator(new_iter);
     }
+    return ret;
 }
 
 void LoopSeqStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -379,10 +383,10 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             });
 
         new_ctx->addDimension(new_dim);
-        loop_head->populateIterators(new_ctx);
+        auto new_iters = loop_head->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);
 
-        new_ctx->getLocalSymTable()->addIters(loop_head->getIterators());
+        new_ctx->getLocalSymTable()->addIters(new_iters);
 
         new_ctx->incLoopDepth(1);
         bool old_ctx_state = new_ctx->isTaken();
@@ -488,10 +492,10 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         });
 
         new_ctx->addDimension(new_dim);
-        (*i)->populateIterators(new_ctx);
+        auto new_iters = (*i)->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);
 
-        new_ctx->getLocalSymTable()->addIters((*i)->getIterators());
+        new_ctx->getLocalSymTable()->addIters(new_iters);
 
         new_ctx->incLoopDepth(1);
         if ((*i)->isForeach())

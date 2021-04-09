@@ -99,7 +99,9 @@ enum class IRNodeKind {
     LOOP_NEST,
     IF_ELSE,
     STUB,
-    MAX_STMT_KIND
+    MAX_STMT_KIND,
+    // Fake node kinds so we can use Probability mechanism
+    STENCIL,
 };
 
 enum class UnaryOp { PLUS, NEGATE, LOG_NOT, BIT_NOT, MAX_UN_OP };
