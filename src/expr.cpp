@@ -652,7 +652,7 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         for (auto &item : gen_pol->arith_node_distr) {
             if (item.getId() == IRNodeKind::CONST ||
                 item.getId() == IRNodeKind::SCALAR_VAR_USE ||
-                item.getId() == IRNodeKind::ARRAY_USE)
+                item.getId() == IRNodeKind::SUBSCRIPT)
                 new_node_distr.push_back(item);
         }
 
@@ -697,13 +697,20 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
 
+    std::cout << ctx->getInStencil() << " " << (active_ctx->getArithDepth() == gen_pol->max_arith_depth) << std::endl;
+        for (auto &i : gen_pol->arith_node_distr)
+            std::cout << static_cast<int>(i.getId()) << ": " << i.getProb() << " ";
+        std::cout << std::endl;
+
+
     if (node_kind == IRNodeKind::CONST) {
         new_node = ConstantExpr::create(active_ctx);
     }
     else if (node_kind == IRNodeKind::SCALAR_VAR_USE ||
              ((active_ctx->getExtInpSymTable()->getArrays().empty() ||
                active_ctx->getLocalSymTable()->getIters().empty()) &&
-              node_kind == IRNodeKind::SUBSCRIPT)) {
+              (node_kind == IRNodeKind::SUBSCRIPT ||
+               node_kind == IRNodeKind::STENCIL))) {
         auto new_scalar_var_use_expr = ScalarVarUseExpr::create(active_ctx);
         new_scalar_var_use_expr->setIsDead(false);
         new_node = new_scalar_var_use_expr;
@@ -727,6 +734,32 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     }
     else if (node_kind == IRNodeKind::TERNARY) {
         new_node = TernaryExpr::create(active_ctx);
+    }
+    else if (node_kind == IRNodeKind::STENCIL) {
+        // Disable other kind of exprs
+        std::vector<Probability<IRNodeKind>> new_node_distr;
+        for (auto &item : gen_pol->arith_node_distr) {
+            if (item.getId() != IRNodeKind::SCALAR_VAR_USE &&
+                item.getId() != IRNodeKind::STENCIL)
+                new_node_distr.push_back(item);
+        }
+        auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+        new_gen_pol->arith_node_distr = new_node_distr;
+        auto new_ctx = std::make_shared<PopulateCtx>(*active_ctx);
+        new_ctx->setGenPolicy(new_gen_pol);
+
+        // Prepare data for stencil
+        auto avail_arrays = SubscriptExpr::getSuitableArrays(new_ctx);
+        auto new_sym_table = std::make_shared<SymbolTable>();
+        for (auto &i : new_ctx->getLocalSymTable()->getIters())
+            new_sym_table->addIters(i);
+        size_t arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0),
+                                                        avail_arrays.size() - 1);
+        new_sym_table->addArray(avail_arrays.at(arr_idx));
+        new_ctx->setExtInpSymTable(new_sym_table);
+        new_ctx->setInStencil(true);
+        new_node = ArithmeticExpr::create(new_ctx);
+        new_ctx->setInStencil(false);
     }
     else
         ERROR("Bad node kind");
@@ -1421,13 +1454,16 @@ void SubscriptExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     array->emit(ctx, stream);
     stream << " [";
     idx->emit(ctx, stream);
+    if (stencil_offset != 0) {
+        stream << (stencil_offset > 0 ? " + " : " - ") << std::to_string(std::abs(stencil_offset));
+    }
     stream << "]";
 }
 
-std::shared_ptr<SubscriptExpr>
-SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+
+std::vector<std::shared_ptr<Array>> SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
     auto arrs_with_dim =
-        ctx->getExtInpSymTable()->getArraysWithDimNum(ctx->getLoopDepth());
+            ctx->getExtInpSymTable()->getArraysWithDimNum(ctx->getLoopDepth());
     std::vector<std::shared_ptr<Array>> avail_arrs;
     for (auto &arr : arrs_with_dim) {
         assert(arr->getType()->isArrayType() &&
@@ -1448,6 +1484,12 @@ SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             avail_arrs.push_back(arr);
     }
     assert(!avail_arrs.empty());
+    return avail_arrs;
+}
+
+std::shared_ptr<SubscriptExpr>
+SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto avail_arrs = getSuitableArrays(ctx);
     size_t inp_arr_idx = rand_val_gen->getRandValue(static_cast<size_t>(0),
                                                     avail_arrs.size() - 1);
     return init(avail_arrs.at(inp_arr_idx), ctx);
@@ -1456,7 +1498,7 @@ SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
                              std::shared_ptr<Expr> _idx)
     : array(std::move(_arr)), idx(std::move(_idx)), active_dim(0),
-      active_size(-1), idx_int_type_id(IntTypeID::MAX_INT_TYPE_ID) {
+      active_size(-1), idx_int_type_id(IntTypeID::MAX_INT_TYPE_ID), stencil_offset(0) {
     EvalCtx ctx;
     evaluate(ctx);
 }
@@ -1522,6 +1564,7 @@ std::shared_ptr<SubscriptExpr>
 SubscriptExpr::init(std::shared_ptr<Array> arr,
                     std::shared_ptr<PopulateCtx> ctx) {
     // TODO: relax assumptions
+    auto gen_pol = ctx->getGenPolicy();
     std::shared_ptr<Expr> res_expr = std::make_shared<ArrayUseExpr>(arr);
     assert(!ctx->getDimensions().empty() &&
            "We can create a SubscriptExpr only inside loops");
@@ -1534,8 +1577,15 @@ SubscriptExpr::init(std::shared_ptr<Array> arr,
     for (size_t i = 0; i < array_type->getDimensions().size(); ++i) {
         auto iter = rand_val_gen->getRandElem(
             ctx->getLocalSymTable()->getIters().at(i));
-        auto iter_use_expr = std::make_shared<IterUseExpr>(iter);
-        res_expr = std::make_shared<SubscriptExpr>(res_expr, iter_use_expr);
+        std::shared_ptr<Expr> iter_use_expr = std::make_shared<IterUseExpr>(std::get<0>(iter));
+        int32_t offset = 0;
+        if (ctx->getInStencil() && rand_val_gen->getRandId(gen_pol->stencil_in_dim_prob) &&
+            (std::get<1>(iter) > 0 || std::get<2>(iter) > 0)) {
+            offset = rand_val_gen->getRandValue(-std::get<1>(iter), std::get<2>(iter));
+        }
+        auto new_expr = std::make_shared<SubscriptExpr>(res_expr, iter_use_expr);
+        new_expr->setOffset(offset);
+        res_expr = new_expr;
     }
     return std::static_pointer_cast<SubscriptExpr>(res_expr);
 }

@@ -74,7 +74,7 @@ class SymbolTable {
   public:
     void addVar(std::shared_ptr<ScalarVar> var) { vars.push_back(var); }
     void addArray(std::shared_ptr<Array> array);
-    void addIters(std::vector<std::shared_ptr<Iterator>> iter) {
+    void addIters(std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>> iter) {
         iters.push_back(iter);
     }
     void deleteLastIters() { iters.pop_back(); }
@@ -82,7 +82,7 @@ class SymbolTable {
     std::vector<std::shared_ptr<ScalarVar>> getVars() { return vars; }
     std::vector<std::shared_ptr<Array>> getArrays() { return arrays; }
     std::vector<std::shared_ptr<Array>> getArraysWithDimNum(size_t dim);
-    std::vector<std::vector<std::shared_ptr<Iterator>>> getIters() {
+    std::vector<std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>>> getIters() {
         return iters;
     }
 
@@ -98,7 +98,7 @@ class SymbolTable {
     std::vector<std::shared_ptr<ScalarVar>> vars;
     std::vector<std::shared_ptr<Array>> arrays;
     std::map<size_t, std::vector<std::shared_ptr<Array>>> array_dim_map;
-    std::vector<std::vector<std::shared_ptr<Iterator>>> iters;
+    std::vector<std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>>> iters;
     std::vector<std::shared_ptr<ScalarVarUseExpr>> avail_vars;
 };
 
@@ -136,6 +136,9 @@ class PopulateCtx : public GenCtx {
     std::vector<size_t> getDimensions() { return dims; }
     void deleteLastDim() { dims.pop_back(); }
 
+    void setInStencil(bool _val) { in_stencil = _val; }
+    bool getInStencil() { return in_stencil; }
+
   private:
     std::shared_ptr<PopulateCtx> par_ctx;
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
@@ -154,6 +157,8 @@ class PopulateCtx : public GenCtx {
 
     // Each loop header has a limit that any iterator should respect
     std::vector<size_t> dims;
+
+    bool in_stencil;
 };
 
 // TODO: maybe we need to inherit from some class

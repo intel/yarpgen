@@ -140,6 +140,11 @@ class GenPolicy {
     std::vector<Probability<bool>> use_const_transform_distr;
     std::vector<Probability<UnaryOp>> const_transform_distr;
 
+    std::vector<Probability<bool>> allow_stencil_prob;
+    size_t max_stencil_span = 4;
+    std::vector<Probability<size_t>> stencil_span_distr;
+    std::vector<Probability<bool>> stencil_in_dim_prob;
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

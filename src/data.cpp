@@ -132,7 +132,7 @@ void Iterator::setParameters(std::shared_ptr<Expr> _start,
     step = std::move(_step);
 }
 
-std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
+std::tuple<std::shared_ptr<Iterator>, size_t, size_t> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
                                            bool is_uniform) {
     // TODO: this function is full of magic constants and weird hacks to cut
     //  some corners for ISPC and overflows
@@ -144,12 +144,28 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
         type = type->makeVarying();
     auto int_type = std::static_pointer_cast<IntegralType>(type);
 
-    auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, 0}});
+    // Stencil left span logic
+    bool allow_stencil = rand_val_gen->getRandId(gen_pol->allow_stencil_prob);
+    uint64_t type_max_val = int_type->getMax().getAbsValue().value;
+    auto roll_stencil_span = [&allow_stencil, &gen_pol]() -> size_t { ;
+        if (!allow_stencil)
+            return 0;
+        return rand_val_gen->getRandId(gen_pol->stencil_span_distr);
+    };
+    size_t left_span = roll_stencil_span();
+    left_span = left_span > ctx->getDimensions().back() ? 0 : left_span;
+    left_span = left_span > type_max_val ? 0 : left_span;
+
+    auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, left_span}});
 
     size_t end_val = ctx->getDimensions().back();
     // We can't go pass the maximal value of the type
     end_val =
         std::min((uint64_t)end_val, int_type->getMax().getAbsValue().value);
+    size_t right_span = roll_stencil_span();
+    right_span = end_val < right_span ? 0 : right_span;
+    right_span = end_val - right_span < left_span ? 0 : right_span;
+    end_val = end_val - right_span;
     // TODO: ISPC doesn't execute division under mask, so the easiest way to
     // eliminate UB problems is to make sure that iterator doesn't go outside
     // array boundaries
@@ -171,9 +187,11 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
 
     NameHandler &nh = NameHandler::getInstance();
     auto iter = std::make_shared<Iterator>(nh.getIterName(), type, start, end,
-                                           step, end_val == 0);
+                                           step, end_val == left_span);
 
-    return iter;
+    //std::cout << iter->getName(std::make_shared<EmitCtx>()) << " ";
+    //std::cout << allow_stencil << " " << left_span << " " << right_span << std::endl;
+    return std::make_tuple(iter, left_span, right_span);
 }
 
 void Iterator::dbgDump() {
