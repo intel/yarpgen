@@ -164,16 +164,18 @@ class Expr;
 class Iterator : public Data {
   public:
     Iterator(std::string _name, std::shared_ptr<Type> _type,
-             std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
+             std::shared_ptr<Expr> _start, size_t _max_left_offset, std::shared_ptr<Expr> _end, size_t  _max_right_offset,
              std::shared_ptr<Expr> _step, bool _degenerate)
-        : Data(std::move(_name), std::move(_type)), start(std::move(_start)),
-          end(std::move(_end)), step(std::move(_step)),
+        : Data(std::move(_name), std::move(_type)), start(std::move(_start)), max_left_offset(_max_left_offset),
+          end(std::move(_end)), max_right_offset(_max_right_offset), step(std::move(_step)),
           degenerate(_degenerate) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
 
     std::shared_ptr<Expr> getStart() { return start; }
+    size_t getMaxLeftOffset() { return max_left_offset; }
+    size_t getMaxRightOffset() { return max_right_offset; }
     std::shared_ptr<Expr> getEnd() { return end; }
     std::shared_ptr<Expr> getStep() { return step; }
     void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
@@ -182,8 +184,7 @@ class Iterator : public Data {
 
     void dbgDump() final;
 
-    static std::tuple<std::shared_ptr<Iterator>, size_t, size_t> create(std::shared_ptr<PopulateCtx> ctx,
-                                            bool is_uniform = true);
+    static std::shared_ptr<Iterator> create(std::shared_ptr<PopulateCtx> ctx, size_t _end_val, bool is_uniform = true);
     void populate(std::shared_ptr<PopulateCtx> ctx);
 
     std::shared_ptr<Data> makeVarying() override {
@@ -195,7 +196,9 @@ class Iterator : public Data {
     // the "meaningful" part?
     // For know we assume the latter, but it limits expressiveness
     std::shared_ptr<Expr> start;
+    size_t max_left_offset;
     std::shared_ptr<Expr> end;
+    size_t max_right_offset;
     std::shared_ptr<Expr> step;
     bool degenerate;
 };

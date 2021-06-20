@@ -277,6 +277,8 @@ class TernaryExpr : public ArithmeticExpr {
     std::shared_ptr<Expr> false_br;
 };
 
+class ArrayStencilParams;
+
 class SubscriptExpr : public Expr {
   public:
     SubscriptExpr(std::shared_ptr<Expr> _arr, std::shared_ptr<Expr> _idx);
@@ -300,7 +302,9 @@ class SubscriptExpr : public Expr {
 
     void setIsDead(bool val);
 
-//  private:
+  private:
+    static std::shared_ptr<SubscriptExpr>
+    initImpl(ArrayStencilParams array_params, std::shared_ptr<PopulateCtx> ctx);
     bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);
 
     void setOffset(int32_t _offset) { stencil_offset = _offset; }

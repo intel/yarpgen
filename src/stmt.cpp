@@ -278,20 +278,14 @@ void LoopHead::populateArrays(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>> LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx) {
+std::shared_ptr<Iterator> LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val) {
     auto gen_pol = ctx->getGenPolicy();
-    size_t iter_num = rand_val_gen->getRandId(gen_pol->iters_num_distr);
-    std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>> ret;
-    for (size_t iter_idx = 0; iter_idx < iter_num; ++iter_idx) {
-        auto new_iter_params = Iterator::create(ctx, /*is_uniform*/ !isForeach());
-        ret.push_back(new_iter_params);
-        // TODO: at some point we might use only some iterators
-        auto new_iter = std::get<0>(new_iter_params);
-        new_iter->setIsDead(false);
-        new_iter->populate(ctx);
-        addIterator(new_iter);
-    }
-    return ret;
+    auto new_iter =
+        Iterator::create(ctx, _end_val, /*is_uniform*/ !isForeach());
+    new_iter->setIsDead(false);
+    new_iter->populate(ctx);
+    addIterator(new_iter);
+    return new_iter;
 }
 
 void LoopSeqStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -382,8 +376,8 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
                                                   gen_pol->iter_end_limit_max);
             });
 
+        auto new_iters = loop_head->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
-        auto new_iters = loop_head->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
@@ -491,8 +485,8 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
                                               gen_pol->iter_end_limit_max);
         });
 
+        auto new_iters = (*i)->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
-        auto new_iters = (*i)->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
