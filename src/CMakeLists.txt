@@ -48,7 +48,7 @@ set(LIB_SRCS
     "utils.h")
 
 # Common std and build flags for all executables
-set(STD cxx_std_14)
+set(STD cxx_std_17)
 set(FLAGS #  $<$<CXX_COMPILER_ID:MSVC>:/WX>
   $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>
   -DBUILD_VERSION="${GIT_HASH}" -DBUILD_DATE="${BUILD_DATE}"

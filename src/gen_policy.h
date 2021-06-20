@@ -52,11 +52,6 @@ class GenPolicy {
     size_t scope_stmt_max_num;
     std::vector<Probability<size_t>> scope_stmt_num_distr;
 
-    // Number of iterators per loop
-    size_t min_iters_num;
-    size_t max_iters_num;
-    std::vector<Probability<size_t>> iters_num_distr;
-
     // TODO: we want to replace constant parameters of iterators with something
     // smarter
 
@@ -143,7 +138,17 @@ class GenPolicy {
     std::vector<Probability<bool>> allow_stencil_prob;
     size_t max_stencil_span = 4;
     std::vector<Probability<size_t>> stencil_span_distr;
+    size_t max_arrs_in_stencil = 4;
+    std::vector<Probability<size_t>> arrs_in_stencil_distr;
+    // If we want to use same dimensions for all arrays
+    std::vector<Probability<bool>> stencil_same_dims_all_distr;
+    // If we want to use the same dimension for each array
+    std::vector<Probability<bool>> stencil_same_dims_one_arr_distr;
+    // If we want to use same offsets in the same dimensions for all arrays
+    std::vector<Probability<bool>> stencil_reuse_offset_distr;
     std::vector<Probability<bool>> stencil_in_dim_prob;
+
+    double stencil_prob_weight_alternation = 0.75;
 
   private:
     template <typename T>

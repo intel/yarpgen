@@ -70,11 +70,38 @@ class GenCtx {
     bool inside_foreach;
 };
 
+// Auxiliary class for stencil generation
+class ArrayStencilParams {
+  public:
+    explicit ArrayStencilParams(std::shared_ptr<Array> _arr) : arr(std::move(_arr)) {}
+
+    std::shared_ptr<Array> getArray() { return arr; }
+
+    void setDims(std::vector<size_t> _dims) { dims = std::move(_dims); }
+    std::vector<size_t>& getDims() { return dims; }
+
+    void setIters(std::vector<std::shared_ptr<Iterator>> _iters) { iters = std::move(_iters); }
+    std::vector<std::shared_ptr<Iterator>> getIters() { return iters; }
+
+    void setOffsets(std::vector<int64_t> _offsets) { offsets = std::move(_offsets); }
+    std::vector<int64_t> getOffsets() { return offsets; }
+
+  private:
+    std::shared_ptr<Array> arr;
+    // The total number of dims should be equal to the total number of dims
+    // in array. We set it to 1 if we want to have offset in that dimension and to 0 otherwise.
+    // This should have a bool type, but vector<bool> is a bad thing,
+    // so we use size_t instead
+    std::vector<size_t> dims;
+    std::vector<std::shared_ptr<Iterator>> iters;
+    std::vector<int64_t> offsets;
+};
+
 class SymbolTable {
   public:
     void addVar(std::shared_ptr<ScalarVar> var) { vars.push_back(var); }
     void addArray(std::shared_ptr<Array> array);
-    void addIters(std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>> iter) {
+    void addIters(std::shared_ptr<Iterator> iter) {
         iters.push_back(iter);
     }
     void deleteLastIters() { iters.pop_back(); }
@@ -82,7 +109,7 @@ class SymbolTable {
     std::vector<std::shared_ptr<ScalarVar>> getVars() { return vars; }
     std::vector<std::shared_ptr<Array>> getArrays() { return arrays; }
     std::vector<std::shared_ptr<Array>> getArraysWithDimNum(size_t dim);
-    std::vector<std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>>> getIters() {
+    std::vector<std::shared_ptr<Iterator>>& getIters() {
         return iters;
     }
 
@@ -94,12 +121,16 @@ class SymbolTable {
         return avail_vars;
     }
 
+    void setStencilsParams(std::vector<ArrayStencilParams> _stencils) { stencils = _stencils; }
+    std::vector<ArrayStencilParams>& getStencilsParams() { return stencils; }
+
   private:
     std::vector<std::shared_ptr<ScalarVar>> vars;
     std::vector<std::shared_ptr<Array>> arrays;
     std::map<size_t, std::vector<std::shared_ptr<Array>>> array_dim_map;
-    std::vector<std::vector<std::tuple<std::shared_ptr<Iterator>, size_t, size_t>>> iters;
+    std::vector<std::shared_ptr<Iterator>> iters;
     std::vector<std::shared_ptr<ScalarVarUseExpr>> avail_vars;
+    std::vector<ArrayStencilParams> stencils;
 };
 
 // TODO: should we inherit it from Generation Context or should it be a separate

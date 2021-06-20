@@ -87,7 +87,7 @@ class RandValGen {
   public:
     // Specific seed can be passed to constructor to reproduce the test.
     // Zero value is reserved (it notifies RandValGen that it can choose any)
-    RandValGen(uint64_t _seed);
+    explicit RandValGen(uint64_t _seed);
 
     template <typename T> T getRandValue(T from, T to) {
         // Using long long instead of T is a hack.
@@ -137,6 +137,14 @@ class RandValGen {
         return vec.at(idx);
     }
 
+    // Randomly choose elements without replacement from a vector
+    template <typename T> std::vector<T> getRandElems(std::vector<T> &vec, size_t num) {
+        std::vector<T> ret;
+        ret.reserve(num);
+        std::sample(vec.begin(), vec.end(), std::back_inserter(ret), num, rand_gen);
+        return ret;
+    }
+
     // To improve variety of generated tests, we implement shuffling of
     // input probabilities (they are stored in GenPolicy).
     // TODO: sometimes this action increases test complexity, and tests becomes
@@ -153,7 +161,7 @@ class RandValGen {
         }
 
         std::uniform_int_distribution<int> dis(1, total_prob);
-        int delta = round(((double)total_prob) / dis(rand_gen));
+        int delta = static_cast<int>(round(((double)total_prob) / dis(rand_gen)));
 
         std::discrete_distribution<int> discrete_dis(discrete_dis_init.begin(),
                                                      discrete_dis_init.end());
