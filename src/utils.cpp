@@ -72,12 +72,21 @@ IRValue RandValGen::getRandValue(IntTypeID type_id) {
     return ret;
 }
 
-void RandValGen::switchMutationStates() {
-    std::stringstream tmp_state;
-    std::swap(prev_gen, rand_gen);
-}
+// Swap random generators that we use to make random decisions
+void RandValGen::switchMutationStates() { std::swap(prev_gen, rand_gen); }
 
 void RandValGen::setSeed(uint64_t new_seed) {
     seed = new_seed;
     rand_gen = std::mt19937_64(seed);
+}
+
+// Mutations are driven by auxiliary random generator.
+// We use a separate mutation seed to set its initial state
+void RandValGen::setMutationSeed(uint64_t mutation_seed) {
+    if (mutation_seed == 0) {
+        std::random_device rd;
+        mutation_seed = rd();
+    }
+    std::cout << "/*MUTATION_SEED " << mutation_seed << "*/" << std::endl;
+    prev_gen = std::mt19937_64(mutation_seed);
 }

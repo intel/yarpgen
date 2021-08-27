@@ -340,6 +340,24 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     return new_loop_seq;
 }
 
+// Auxiliary mutation function
+// It checks mutation conditions and performs one when it is possible (with some
+// probability).
+template <typename F>
+static auto makeMutableRoll(std::shared_ptr<GenPolicy> gen_pol,
+                            F function_call) {
+    auto res = function_call();
+    Options &options = Options::getInstance();
+    if (options.getMutationKind() == MutationKind::ALL) {
+        rand_val_gen->switchMutationStates();
+        bool mutate = rand_val_gen->getRandId(gen_pol->mutation_probability);
+        if (mutate)
+            res = function_call();
+        rand_val_gen->switchMutationStates();
+    }
+    return res;
+}
+
 void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
 
@@ -354,10 +372,11 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         bool old_simd_state = new_ctx->isInsideOMPSimd();
         new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
 
-        size_t new_dim = gen_pol->makeMutatableDecision([&gen_pol]() -> auto {
-            return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                              gen_pol->iter_end_limit_max);
-        });
+        size_t new_dim = makeMutableRoll(
+            gen_pol, [&gen_pol]() -> auto {
+                return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
+                                                  gen_pol->iter_end_limit_max);
+            });
 
         new_ctx->addDimension(new_dim);
         loop_head->populateIterators(new_ctx);
@@ -463,10 +482,11 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             simd_switch_id = i;
         }
 
-        size_t new_dim = gen_pol->makeMutatableDecision([&gen_pol]() {
+        size_t new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
             return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
                                               gen_pol->iter_end_limit_max);
         });
+
         new_ctx->addDimension(new_dim);
         (*i)->populateIterators(new_ctx);
         LoopHead::populateArrays(new_ctx);

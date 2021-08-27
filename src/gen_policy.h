@@ -140,19 +140,6 @@ class GenPolicy {
     std::vector<Probability<bool>> use_const_transform_distr;
     std::vector<Probability<UnaryOp>> const_transform_distr;
 
-    template <typename F> auto makeMutatableDecision(F function_call) {
-        auto res = function_call();
-        Options &options = Options::getInstance();
-        if (options.getMutate()) {
-            rand_val_gen->switchMutationStates();
-            bool mutate = rand_val_gen->getRandId(mutation_probability);
-            if (mutate)
-                res = function_call();
-            rand_val_gen->switchMutationStates();
-        }
-        return res;
-    }
-
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

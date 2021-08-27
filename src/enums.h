@@ -209,4 +209,7 @@ enum class SpecialConst {
 };
 
 enum class CheckAlgo { HASH, ASSERTS, PRECOMPUTE, MAX_CHECK_ALGO };
+
+enum class MutationKind { NONE, EXPRS, ALL, MAX_MUTATION_FIND };
+
 } // namespace yarpgen

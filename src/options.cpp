@@ -180,11 +180,12 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "",
      "--mutate",
      true,
-     "Mutate the test",
+     "Test mutation type. Can be disabled, set to mutate expressions "
+     "only or mutate mote parameters",
      "Can't parse mutate parameter",
-     OptionParser::parseMutate,
-     "false",
-     {"true", "false"}},
+     OptionParser::parseMutationKind,
+     "none",
+     {"none", "exprs", "all"}},
     {OptionKind::MUTATION_SEED,
      "",
      "--mutation-seed",
@@ -480,12 +481,14 @@ void OptionParser::parseMutationSeed(std::string mutation_seed_str) {
     options.setMutationSeed(seed);
 }
 
-void OptionParser::parseMutate(std::string mutate_str) {
+void OptionParser::parseMutationKind(std::string mutate_str) {
     Options &options = Options::getInstance();
-    if (mutate_str == "true")
-        options.setMutate(true);
-    else if (mutate_str == "false")
-        options.setMutate(false);
+    if (mutate_str == "none")
+        options.setMutationKind(MutationKind::NONE);
+    else if (mutate_str == "exprs")
+        options.setMutationKind(MutationKind::EXPRS);
+    else if (mutate_str == "all")
+        options.setMutationKind(MutationKind::ALL);
     else
         printHelpAndExit("Can't recognize mutation parameters");
 }

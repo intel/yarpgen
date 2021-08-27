@@ -56,16 +56,29 @@ template <typename T> class Probability {
     void increaseProb(uint64_t add_prob) { prob += add_prob; }
     void zeroProb() { prob = 0; }
     void setProb(uint64_t _prob) { prob = _prob; }
+
+    template <class U>
     friend std::ostream &operator<<(std::ostream &os,
-                                    const Probability<T> &_prob) {
-        os << _prob.id << " : " << _prob.prob;
-        return os;
-    }
+                                    const Probability<U> &_prob);
 
   private:
     T id;
     uint64_t prob;
 };
+
+template <class T>
+typename std::enable_if<!std::is_enum<T>::value, std::ostream &>::type
+operator<<(std::ostream &os, const Probability<T> &_prob) {
+    os << _prob.id << " : " << _prob.prob;
+    return os;
+}
+
+template <class T>
+typename std::enable_if<std::is_enum<T>::value, std::ostream &>::type
+operator<<(std::ostream &os, const Probability<T> &_prob) {
+    os << static_cast<long long int>(_prob.id) << " : " << _prob.prob;
+    return os;
+}
 
 // According to the agreement, Random Value Generator is the only way to get any
 // random value in YARPGen. It is used for different random decisions all over
@@ -152,12 +165,13 @@ class RandValGen {
 
     uint64_t getSeed() { return seed; }
     void setSeed(uint64_t new_seed);
-
     void switchMutationStates();
+    void setMutationSeed(uint64_t mutation_seed);
 
   private:
     uint64_t seed;
     std::mt19937_64 rand_gen;
+    // Auxiliary random generator, used for mutation
     std::mt19937_64 prev_gen;
 };
 

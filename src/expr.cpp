@@ -237,7 +237,10 @@ ConstantExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     bool replace_in_buf =
         rand_val_gen->getRandId(gen_pol->replace_in_buf_distr);
-    if (can_add_to_buf && replace_in_buf) {
+    // If we are inside mutation, we can't change the buffer. Otherwise,
+    // this will affect the state of the random generator outside of the mutated
+    // region
+    if (!ctx->isInsideMutation() && can_add_to_buf && replace_in_buf) {
         if (used_consts.size() < gen_pol->const_buf_size)
             used_consts.push_back(ret);
         else {
@@ -1605,8 +1608,20 @@ std::shared_ptr<AssignmentExpr>
 AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
 
-    auto from = gen_pol->makeMutatableDecision(
-        [&ctx]() { return ArithmeticExpr::create(ctx); });
+    auto from = ArithmeticExpr::create(ctx);
+    Options &options = Options::getInstance();
+    if (options.getMutationKind() == MutationKind::EXPRS ||
+        options.getMutationKind() == MutationKind::ALL) {
+        rand_val_gen->switchMutationStates();
+        bool mutate = rand_val_gen->getRandId(gen_pol->mutation_probability);
+        if (mutate) {
+            bool old_state = ctx->isInsideMutation();
+            ctx->setIsInsideMutation(true);
+            from = ArithmeticExpr::create(ctx);
+            ctx->setIsInsideMutation(old_state);
+        }
+        rand_val_gen->switchMutationStates();
+    }
 
     EvalCtx eval_ctx;
     EvalResType from_val = from->evaluate(eval_ctx);
