@@ -126,6 +126,9 @@ class PopulateCtx : public GenCtx {
     bool isTaken() { return taken; }
     void setTaken(bool _taken) { taken = _taken; }
 
+    bool isInsideMutation() { return inside_mutation; }
+    void setIsInsideMutation(bool _val) { inside_mutation = _val; }
+
     void setInsideOMPSimd(bool val) { inside_omp_simd = val; }
     bool isInsideOMPSimd() { return inside_omp_simd; }
 
@@ -141,6 +144,9 @@ class PopulateCtx : public GenCtx {
     size_t arith_depth;
     // If the test will actually execute the code
     bool taken;
+
+    // This flag indicates if we are inside a region that we try to mutate
+    bool inside_mutation;
 
     // As of now, the pragma omp simd is attached to a loop and can't be nested.
     // TODO: we need to think about pragma omp ordered simd
