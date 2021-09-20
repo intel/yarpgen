@@ -419,10 +419,6 @@ TypeCastExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 Expr::EvalResType TypeCastExpr::evaluate(EvalCtx &ctx) {
-    //    std::cout << "TypeCast eval" << std::endl;
-    //    emit(std::cout);
-    //    std::cout << std::endl;
-
     EvalResType expr_eval_res = expr->evaluate(ctx);
     std::shared_ptr<Type> base_type = expr_eval_res->getType();
     // Check that we try to convert between compatible types.
@@ -430,11 +426,6 @@ Expr::EvalResType TypeCastExpr::evaluate(EvalCtx &ctx) {
           (base_type->isArrayType() && to_type->isArrayType()))) {
         ERROR("Can't create TypeCastExpr for types that can't be casted");
     }
-
-    //    std::cout << to_type->getIspcName() << " " << to_type->isUniform() <<
-    //    std::endl; std::cout << base_type->getIspcName() << " " <<
-    //    base_type->isUniform() << std::endl; std::cout << "================"
-    //    << std::endl;
 
     if (base_type->isIntType() && expr_eval_res->isScalarVar()) {
         std::shared_ptr<IntegralType> to_int_type =
@@ -694,11 +685,6 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
 
-    if (active_ctx->getArithDepth() == gen_pol->max_arith_depth &&
-        active_ctx->getInStencil()) {
-        std::cout << "Leaf: " << static_cast<int>(node_kind) << std::endl;
-    }
-
     if (node_kind == IRNodeKind::CONST) {
         new_node = ConstantExpr::create(active_ctx);
     }
@@ -749,16 +735,8 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
         uint64_t total_prob = stencil_prob + scalar_var_prob + subscript_prob + const_prob;
 
-        std::cout << "Before: " << "st: " << stencil_prob << " | sc: " << scalar_var_prob << " | sb: " << subscript_prob << " cp: " << const_prob << std::endl;
-
         subscript_prob = total_prob * gen_pol->stencil_prob_weight_alternation;
         const_prob = scalar_var_prob = total_prob * (1 - gen_pol->stencil_prob_weight_alternation) * 0.5;
-
-        std::cout << "After: " << "st: " << stencil_prob << " | sc: " << scalar_var_prob << " | sb: " << subscript_prob << " cp: " << const_prob << std::endl;
-
-        for (const auto &item : gen_pol->arith_node_distr)
-            std::cout << item << " | ";
-        std::cout << std::endl;
 
         for (auto &item : gen_pol->arith_node_distr) {
             Probability<IRNodeKind> prob = item;
@@ -770,16 +748,9 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
                 prob.setProb(subscript_prob);
             else if (item.getId() == IRNodeKind::STENCIL)
                 continue;
-            // if (item.getId() != IRNodeKind::STENCIL &&
-            // item.getId() != IRNodeKind::SCALAR_VAR_USE &&
-            // item.getId() != IRNodeKind::CONST)
-            // prob(item);
             new_node_distr.push_back(prob);
         }
         auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
-        for (const auto &item : new_node_distr)
-            std::cout << item << " | ";
-        std::cout << std::endl;
         new_gen_pol->arith_node_distr = new_node_distr;
         auto new_ctx = std::make_shared<PopulateCtx>(*active_ctx);
         new_ctx->setGenPolicy(new_gen_pol);
@@ -794,8 +765,6 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         for (auto &i : used_arrays) {
             stencils.emplace_back(i);
         }
-
-        //std::cout << "Arrs: " << avail_arrays.size() << " | " << used_arrays.size() << std::endl;
 
         // Pick dimensions
         bool same_dims_each = rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
@@ -871,25 +840,6 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             for (auto &stencil : stencils)
                 stencil.setOffsets(used_offsets);
         }
-
-
-        std::cout << "Same dims all : " << same_dims_all << std::endl;
-        std::cout << "Same dims each: " << same_dims_each << std::endl;
-        std::cout << "Same offset   : " << reuse_offset << std::endl;
-        for (auto& stencil : stencils) {
-            std::cout << stencil.getArray()->getName(std::make_shared<EmitCtx>()) << std::endl;
-            for (auto& dim : stencil.getDims())
-                std::cout << dim << " ";
-            std::cout << std::endl;
-            for (auto& iter : stencil.getIters())
-                std::cout << (iter.use_count() ? iter->getName(std::make_shared<EmitCtx>()) : "") << " ";
-            std::cout << std::endl;
-            for (auto &offset : stencil.getOffsets())
-                std::cout << offset << " ";
-            std::cout << std::endl;
-            std::cout << "-----" << std::endl;
-        }
-        std::cout << "============" << std::endl;
 
         new_ctx->getLocalSymTable()->setStencilsParams(stencils);
 
@@ -1731,11 +1681,8 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params, std::shared_ptr<Populat
     //    1    |    1     |    1    |      0     ||  Gen |  Gen
     //    1    |    1     |    1    |      1     ||  Ld  |  Ld
 
-    std::cout << "Subs:" << std::endl;
-
     auto stencil_dims = array_params.getDims();
     for (size_t i = 0; i < array_type->getDimensions().size(); ++i) {
-        std::cout << "i: " << i << " | ";
         // Create iterator
         std::shared_ptr<Iterator> iter;
         std::shared_ptr<Expr> iter_use_expr = nullptr;
@@ -1751,8 +1698,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params, std::shared_ptr<Populat
             iter_use_expr = std::make_shared<IterUseExpr>(iter);
         }
 
-        std::cout << "od: " << offsets_defined << " | ";
-
         // Create offsets
         int64_t offset = 0;
         if (offsets_defined) {
@@ -1763,7 +1708,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params, std::shared_ptr<Populat
             // Generate offset
             //TODO: create a loop to draw a non-zero offset
             bool offset_prob = false;
-            std::cout << "op: " << offset_prob << " | ";
             if (stencil_dims.empty())
                 offset_prob = rand_val_gen->getRandId(gen_pol->stencil_in_dim_prob);
             size_t max_left_offset = iter->getMaxLeftOffset();
@@ -1773,30 +1717,11 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params, std::shared_ptr<Populat
                 while (offset == 0)
                     offset = rand_val_gen->getRandValue(-static_cast<int64_t>(max_left_offset), static_cast<int64_t>(max_right_offset));
             }
-            std::cout << "go: " << (offset_prob || offset_in_dim) << " | ";
-            std::cout << "il: " << (int64_t)(-max_left_offset) << ", " << (max_right_offset) << " | ";
-            std::cout << "n0o: " << non_zero_offset_exists << " | ";
         }
-        std::cout << "of: " << offset << " | ";
         auto new_expr = std::make_shared<SubscriptExpr>(res_expr, iter_use_expr);
         new_expr->setOffset(offset);
         res_expr = new_expr;
-        std::cout << std::endl;
     }
-
-    std::cout << array_params.getArray()->getName(std::make_shared<EmitCtx>()) << std::endl;
-    for (auto &dim : array_params.getDims())
-        std::cout << dim << " ";
-    std::cout << std::endl;
-    for (auto& iter : array_params.getIters())
-        std::cout << (iter.use_count() ? iter->getName(std::make_shared<EmitCtx>()) : "") << " ";
-    std::cout << std::endl;
-    for (auto &offset : array_params.getOffsets())
-        std::cout << offset << " ";
-    std::cout << std::endl;
-    res_expr->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-    std::cout << "===========" << std::endl;
 
     return std::static_pointer_cast<SubscriptExpr>(res_expr);
 }
@@ -1982,13 +1907,8 @@ IntTypeID LibCallExpr::getTopIntID(std::vector<std::shared_ptr<Expr>> args) {
         if (!arg_type->isIntType())
             ERROR("We support only Integral Types for now");
         auto arg_int_type = std::static_pointer_cast<IntegralType>(arg_type);
-        // arg->emit(std::cout);
-        // std::cout << " | " << static_cast<int>(arg_int_type->getIntTypeId())
-        //<< " | ";
         top_id = std::max(arg_int_type->getIntTypeId(), top_id);
-        // std::cout << static_cast<int>(top_id) << " # ";
     }
-    // std::cout << std::endl;
     return top_id;
 }
 

@@ -524,7 +524,7 @@ void IfElseStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     stream << ")\n";
     then_br->emit(ctx, stream, offset);
     if (else_br.use_count() != 0) {
-        stream << "else ";
+        stream << offset << "else\n";
         else_br->emit(ctx, stream, offset);
     }
 }

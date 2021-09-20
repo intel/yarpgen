@@ -119,7 +119,7 @@ GenPolicy::GenPolicy() {
     arith_node_distr.emplace_back(
         Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
     arith_node_distr.emplace_back(IRNodeKind::STENCIL, 20);
-    //shuffleProbProxy(arith_node_distr);
+    shuffleProbProxy(arith_node_distr);
 
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::NEGATE, 25));
@@ -296,7 +296,7 @@ GenPolicy::GenPolicy() {
 
     allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
     allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
-    //shuffleProbProxy(allow_stencil_prob);
+    shuffleProbProxy(allow_stencil_prob);
 
     uniformProbFromMax(stencil_span_distr, max_stencil_span, 1);
 
@@ -307,19 +307,19 @@ GenPolicy::GenPolicy() {
 
     stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
     stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
-    //shuffleProbProxy(stencil_same_dims_one_arr_distr);
+    shuffleProbProxy(stencil_same_dims_one_arr_distr);
 
     stencil_same_dims_all_distr.emplace_back(Probability<bool>(true, 40));
     stencil_same_dims_all_distr.emplace_back(Probability<bool>(false, 60));
-    //shuffleProbProxy(stencil_same_dims_all_distr);
+    shuffleProbProxy(stencil_same_dims_all_distr);
 
     stencil_reuse_offset_distr.emplace_back(Probability<bool>(true, 30));
     stencil_reuse_offset_distr.emplace_back(Probability<bool>(false, 70));
-    //shuffleProbProxy(stencil_reuse_offset_distr);
+    shuffleProbProxy(stencil_reuse_offset_distr);
 
     stencil_in_dim_prob.emplace_back(Probability<bool>(true, 30));
     stencil_in_dim_prob.emplace_back(Probability<bool>(false, 70));
-    //shuffleProbProxy(stencil_in_dim_prob);
+    shuffleProbProxy(stencil_in_dim_prob);
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
