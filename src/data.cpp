@@ -137,8 +137,6 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
     //  some corners for ISPC and overflows
     auto gen_pol = ctx->getGenPolicy();
 
-    std::cout << "Iter: " << std::endl;
-
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
     std::shared_ptr<Type> type = IntegralType::init(type_id);
     if (!is_uniform)
@@ -146,7 +144,6 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
     auto int_type = std::static_pointer_cast<IntegralType>(type);
 
     // Stencil left span logic
-    std::cout << "ASP: " << gen_pol->allow_stencil_prob.front().getProb() << " " << gen_pol->allow_stencil_prob.back().getProb() << std::endl;
     bool allow_stencil = rand_val_gen->getRandId(gen_pol->allow_stencil_prob);
     uint64_t type_max_val = int_type->getMax().getAbsValue().value;
     auto roll_stencil_span = [&allow_stencil, &gen_pol]() -> size_t { ;
@@ -154,16 +151,11 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
             return 0;
         return rand_val_gen->getRandId(gen_pol->stencil_span_distr);
     };
-    std::cout << "_ev: " << _end_val << " | ";
-    std::cout << "as: " << allow_stencil << " | ";
     size_t left_span = roll_stencil_span();
-    std::cout << "ls: " << left_span << ", ";
     // The start of the iteration space will be at lest_span, so it can't be
     // larger than the target end value
     left_span = left_span > _end_val ? 0 : left_span;
-    std::cout << left_span << ", ";
     left_span = left_span > type_max_val ? 0 : left_span;
-    std::cout << left_span << " | ";
 
     auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, left_span}});
 
@@ -171,13 +163,10 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
     // We can't go pass the maximal value of the type
     end_val = std::min((uint64_t)end_val, type_max_val);
     size_t right_span = roll_stencil_span();
-    std::cout << "rs: " << right_span << ", ";
     right_span = end_val < right_span ? 0 : right_span;
-    std::cout << right_span << ", ";
     // end_val - right_span is the smallest number that we can start to iterate
     // from, so it has to be larger than the start value
     right_span = end_val - right_span < left_span ? 0 : right_span;
-    std::cout << right_span << " | ";
     end_val = end_val - right_span;
     // TODO: ISPC doesn't execute division under mask, so the easiest way to
     // eliminate UB problems is to make sure that iterator doesn't go outside
@@ -186,7 +175,6 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
         end_val = (end_val / 64) * 64;
     auto end =
         std::make_shared<ConstantExpr>(IRValue(type_id, {false, end_val}));
-    std::cout << "ev: " << end_val << " | ";
 
     size_t step_val = rand_val_gen->getRandId(gen_pol->iters_step_distr);
     if (!is_uniform)
@@ -202,8 +190,6 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
     NameHandler &nh = NameHandler::getInstance();
     auto iter = std::make_shared<Iterator>(nh.getIterName(), type, start, left_span, end, right_span,
                                            step, end_val == left_span);
-
-    std::cout << iter->getName(std::make_shared<EmitCtx>()) << std::endl;
 
     return iter;
 }
