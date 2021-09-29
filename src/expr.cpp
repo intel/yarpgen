@@ -629,6 +629,159 @@ void ArithmeticExpr::varyingPromotion(std::shared_ptr<Expr> &lhs,
         return;
 }
 
+static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+    std::shared_ptr<Expr> new_node;
+    // Disable other kind of leaf exprs
+    // TODO: This is not the best option
+    std::vector<Probability<IRNodeKind>> new_node_distr;
+    auto find_prob = [&gen_pol](IRNodeKind kind) -> uint64_t {
+        auto find_res = std::find_if(
+            gen_pol->arith_node_distr.begin(), gen_pol->arith_node_distr.end(),
+            [kind](Probability<IRNodeKind> prob) -> bool {
+                return prob.getId() == kind;
+            });
+        return (find_res != gen_pol->arith_node_distr.end())
+                   ? find_res->getProb()
+                   : 0;
+    };
+    uint64_t stencil_prob = find_prob(IRNodeKind::STENCIL);
+    uint64_t scalar_var_prob = find_prob(IRNodeKind::SCALAR_VAR_USE);
+    uint64_t subscript_prob = find_prob(IRNodeKind::SUBSCRIPT);
+    uint64_t const_prob = find_prob(IRNodeKind::CONST);
+
+    uint64_t total_prob =
+        stencil_prob + scalar_var_prob + subscript_prob + const_prob;
+
+    subscript_prob = total_prob * gen_pol->stencil_prob_weight_alternation;
+    const_prob = scalar_var_prob =
+        total_prob * (1 - gen_pol->stencil_prob_weight_alternation) * 0.5;
+
+    for (auto &item : gen_pol->arith_node_distr) {
+        Probability<IRNodeKind> prob = item;
+        if (item.getId() == IRNodeKind::SCALAR_VAR_USE)
+            prob.setProb(scalar_var_prob);
+        else if (item.getId() == IRNodeKind::CONST)
+            prob.setProb(const_prob);
+        else if (item.getId() == IRNodeKind::SUBSCRIPT)
+            prob.setProb(subscript_prob);
+        else if (item.getId() == IRNodeKind::STENCIL)
+            continue;
+        new_node_distr.push_back(prob);
+    }
+    auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+    new_gen_pol->arith_node_distr = new_node_distr;
+    auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
+    new_ctx->setGenPolicy(new_gen_pol);
+
+    // Pick arrays for stencil
+    auto avail_arrays = SubscriptExpr::getSuitableArrays(new_ctx);
+    size_t arrs_in_stencil_num =
+        rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr);
+    auto used_arrays =
+        rand_val_gen->getRandElems(avail_arrays, arrs_in_stencil_num);
+
+    std::vector<ArrayStencilParams> stencils;
+    stencils.reserve(arrs_in_stencil_num);
+    for (auto &i : used_arrays) {
+        stencils.emplace_back(i);
+    }
+
+    // Pick dimensions
+    bool same_dims_each =
+        rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
+    bool same_dims_all =
+        rand_val_gen->getRandId(gen_pol->stencil_same_dims_all_distr);
+    if (same_dims_each || same_dims_all) {
+        for (auto &stencil : stencils) {
+            assert(new_ctx->getDimensions().size() > 0 &&
+                   "Can't create stencil in scalar context!");
+            size_t num_of_dims_used = rand_val_gen->getRandValue(
+                static_cast<size_t>(1), new_ctx->getDimensions().size());
+            std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> dims_idx;
+            for (size_t i = 0; i < new_ctx->getDimensions().size(); ++i) {
+                auto used_iter = new_ctx->getLocalSymTable()->getIters().at(i);
+                size_t max_left_offset = used_iter->getMaxLeftOffset();
+                size_t max_right_offset = used_iter->getMaxRightOffset();
+                bool non_zero_offset_exists =
+                    (max_left_offset > 0) || (max_right_offset > 0);
+                if (non_zero_offset_exists)
+                    dims_idx.emplace_back(i, used_iter);
+            }
+            auto chosen_dims =
+                rand_val_gen->getRandElems(dims_idx, num_of_dims_used);
+            auto cmp_func =
+                [](std::pair<size_t, std::shared_ptr<Iterator>> a,
+                   std::pair<size_t, std::shared_ptr<Iterator>> b) -> bool {
+                return a.first < b.first;
+            };
+            std::sort(chosen_dims.begin(), chosen_dims.end(), cmp_func);
+            std::vector<std::pair<size_t, std::shared_ptr<Iterator>>>
+                new_dims_params(new_ctx->getDimensions().size(),
+                                std::make_pair(false, nullptr));
+            for (const auto &chosen_dim : chosen_dims)
+                new_dims_params.at(chosen_dim.first) =
+                    std::make_pair(true, chosen_dim.second);
+
+            std::vector<size_t> new_dims;
+            std::vector<std::shared_ptr<Iterator>> new_iters;
+
+            for (auto it = std::make_move_iterator(new_dims_params.begin()),
+                      end = std::make_move_iterator(new_dims_params.end());
+                 it != end; ++it) {
+                new_dims.push_back(it->first);
+                new_iters.push_back(std::move(it->second));
+            }
+
+            if (same_dims_all) {
+                for (auto &item : stencils) {
+                    item.setDims(new_dims);
+                    item.setIters(new_iters);
+                }
+                break;
+            }
+            // If same_dims_each is set is the only possible case
+            stencil.setDims(new_dims);
+            stencil.setIters(new_iters);
+        }
+    }
+
+    bool reuse_offset =
+        rand_val_gen->getRandId(gen_pol->stencil_reuse_offset_distr);
+    // It makes sense to have
+    if (same_dims_all && reuse_offset) {
+        std::vector<int64_t> used_offsets(new_ctx->getDimensions().size(), 0);
+        for (size_t i = 0; i < new_ctx->getDimensions().size(); ++i) {
+            // They all are supposed to be the same, so we can pick the first one
+            auto &used_dims = stencils.front().getDims();
+            if (!used_dims.at(i))
+                continue;
+            auto used_iter = new_ctx->getLocalSymTable()->getIters().at(i);
+            size_t max_left_offset = used_iter->getMaxLeftOffset();
+            size_t max_right_offset = used_iter->getMaxRightOffset();
+            bool non_zero_offset_exists =
+                (max_left_offset > 0) || (max_right_offset > 0);
+            int64_t offset = 0;
+            if (non_zero_offset_exists) {
+                while (offset == 0)
+                    offset = rand_val_gen->getRandValue(
+                        -static_cast<int64_t>(max_left_offset),
+                        static_cast<int64_t>(max_right_offset));
+            }
+            used_offsets.at(i) = offset;
+        }
+        for (auto &stencil : stencils)
+            stencil.setOffsets(used_offsets);
+    }
+
+    new_ctx->getLocalSymTable()->setStencilsParams(stencils);
+
+    new_ctx->setInStencil(true);
+    new_node = ArithmeticExpr::create(new_ctx);
+    new_ctx->setInStencil(false);
+    return new_node;
+}
+
 std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     std::shared_ptr<Expr> new_node;
@@ -718,134 +871,7 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         new_node = TernaryExpr::create(active_ctx);
     }
     else if (node_kind == IRNodeKind::STENCIL) {
-        // Disable other kind of leaf exprs
-        //TODO: This is not the best option
-        std::vector<Probability<IRNodeKind>> new_node_distr;
-        auto find_prob = [&gen_pol] (IRNodeKind kind) -> uint64_t {
-            auto find_res = std::find_if(gen_pol->arith_node_distr.begin(), gen_pol->arith_node_distr.end(),
-                                [kind](Probability<IRNodeKind> prob) -> bool {
-                return prob.getId() == kind;
-            });
-            return (find_res != gen_pol->arith_node_distr.end()) ? find_res->getProb() : 0;
-        };
-        uint64_t stencil_prob = find_prob(IRNodeKind::STENCIL);
-        uint64_t scalar_var_prob = find_prob(IRNodeKind::SCALAR_VAR_USE);
-        uint64_t subscript_prob = find_prob(IRNodeKind::SUBSCRIPT);
-        uint64_t const_prob = find_prob(IRNodeKind::CONST);
-
-        uint64_t total_prob = stencil_prob + scalar_var_prob + subscript_prob + const_prob;
-
-        subscript_prob = total_prob * gen_pol->stencil_prob_weight_alternation;
-        const_prob = scalar_var_prob = total_prob * (1 - gen_pol->stencil_prob_weight_alternation) * 0.5;
-
-        for (auto &item : gen_pol->arith_node_distr) {
-            Probability<IRNodeKind> prob = item;
-            if (item.getId() == IRNodeKind::SCALAR_VAR_USE)
-                prob.setProb(scalar_var_prob);
-            else if (item.getId() == IRNodeKind::CONST)
-                prob.setProb(const_prob);
-            else if (item.getId() == IRNodeKind::SUBSCRIPT)
-                prob.setProb(subscript_prob);
-            else if (item.getId() == IRNodeKind::STENCIL)
-                continue;
-            new_node_distr.push_back(prob);
-        }
-        auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
-        new_gen_pol->arith_node_distr = new_node_distr;
-        auto new_ctx = std::make_shared<PopulateCtx>(*active_ctx);
-        new_ctx->setGenPolicy(new_gen_pol);
-
-        // Pick arrays for stencil
-        auto avail_arrays = SubscriptExpr::getSuitableArrays(new_ctx);
-        size_t arrs_in_stencil_num = rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr);
-        auto used_arrays = rand_val_gen->getRandElems(avail_arrays, arrs_in_stencil_num);
-
-        std::vector<ArrayStencilParams> stencils;
-        stencils.reserve(arrs_in_stencil_num);
-        for (auto &i : used_arrays) {
-            stencils.emplace_back(i);
-        }
-
-        // Pick dimensions
-        bool same_dims_each = rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
-        bool same_dims_all = rand_val_gen->getRandId(gen_pol->stencil_same_dims_all_distr);
-        if (same_dims_each || same_dims_all) {
-            for (auto &stencil : stencils) {
-                assert(new_ctx->getDimensions().size() > 0 && "Can't create stencil in scalar context!");
-                size_t num_of_dims_used = rand_val_gen->getRandValue(static_cast<size_t>(1),
-                                                                     new_ctx->getDimensions().size());
-                std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> dims_idx;
-                for (size_t i = 0; i < new_ctx->getDimensions().size(); ++i) {
-                    auto used_iter =
-                        new_ctx->getLocalSymTable()->getIters().at(i);
-                    size_t max_left_offset = used_iter->getMaxLeftOffset();
-                    size_t max_right_offset = used_iter->getMaxRightOffset();
-                    bool non_zero_offset_exists =
-                        (max_left_offset > 0) || (max_right_offset > 0);
-                    if (non_zero_offset_exists)
-                        dims_idx.emplace_back(i, used_iter);
-                }
-                auto chosen_dims = rand_val_gen->getRandElems(dims_idx, num_of_dims_used);
-                auto cmp_func = [](std::pair<size_t, std::shared_ptr<Iterator>> a, std::pair<size_t, std::shared_ptr<Iterator>> b) -> bool {
-                    return a.first < b.first;
-                };
-                std::sort(chosen_dims.begin(), chosen_dims.end(), cmp_func);
-                std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> new_dims_params (new_ctx->getDimensions().size(), std::make_pair(false, nullptr));
-                for (const auto &chosen_dim : chosen_dims)
-                    new_dims_params.at(chosen_dim.first) = std::make_pair(true, chosen_dim.second);
-
-                std::vector<size_t> new_dims;
-                std::vector<std::shared_ptr<Iterator>> new_iters;
-
-                for (auto it = std::make_move_iterator(new_dims_params.begin()),
-                          end = std::make_move_iterator(new_dims_params.end()); it != end; ++it)
-                {
-                    new_dims.push_back(it->first);
-                    new_iters.push_back(std::move(it->second));
-                }
-
-                if (same_dims_all) {
-                    for (auto &item : stencils) {
-                        item.setDims(new_dims);
-                        item.setIters(new_iters);
-                    }
-                    break;
-                }
-                // If same_dims_each is set is the only possible case
-                stencil.setDims(new_dims);
-                stencil.setIters(new_iters);
-            }
-        }
-
-        bool reuse_offset = rand_val_gen->getRandId(gen_pol->stencil_reuse_offset_distr);
-        // It makes sense to have
-        if (same_dims_all && reuse_offset) {
-            std::vector<int64_t> used_offsets (new_ctx->getDimensions().size(), 0);
-            for (size_t i = 0; i < new_ctx->getDimensions().size(); ++i) {
-                // They all are supposed to be the same, so we can pick the first one
-                auto& used_dims = stencils.front().getDims();
-                if (!used_dims.at(i))
-                    continue;
-                auto used_iter = new_ctx->getLocalSymTable()->getIters().at(i);
-                size_t max_left_offset = used_iter->getMaxLeftOffset();
-                size_t max_right_offset = used_iter->getMaxRightOffset();
-                bool non_zero_offset_exists = (max_left_offset > 0) || (max_right_offset > 0);
-                int64_t offset = 0;
-                if (non_zero_offset_exists) {
-                    while(offset == 0)
-                        offset = rand_val_gen->getRandValue(-static_cast<int64_t>(max_left_offset), static_cast<int64_t>(max_right_offset));
-                }
-                used_offsets.at(i) = offset;
-            }
-            for (auto &stencil : stencils)
-                stencil.setOffsets(used_offsets);
-        }
-
-        new_ctx->getLocalSymTable()->setStencilsParams(stencils);
-
-        new_ctx->setInStencil(true);
-        new_node = ArithmeticExpr::create(new_ctx);
-        new_ctx->setInStencil(false);
+        new_node = createStencil(active_ctx);
     }
     else
         ERROR("Bad node kind");
