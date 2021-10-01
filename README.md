@@ -40,7 +40,7 @@ make
 
 To run ``yarpgen`` we recommend using [``run_gen.py``](scripts/run_gen.py) script, which will run the generator for you
 on a number of available compilers with a set of pre-defined options. Feel free to hack
-[``test_set.txt``](scripts/test_sets.txt) to add or remove compiler options.
+[``test_sets.txt``](scripts/test_sets.txt) to add or remove compiler options.
 
 The script will run several compilers with several compiler options and run executables to compare the output results. If the results mismatch, the test program will be saved in "testing/results" folder for your analysis.
 
