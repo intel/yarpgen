@@ -1,7 +1,16 @@
-#!/bin/bash
+#!/bin/bash -e
+# Args: GCC_REPO GCC_VERSION
 
-if [[ -z "${TESTING_HOME}" ]] || [[ -z "${GCC_HOME}" ]] || [[ -z "${GCC_REPO}" ]] || [[ -z "${GCC_VERSION}" ]]; then
-    echo "Error! There are undefined environmental variables!"
+if [[ -z "${GCC_HOME}" ]]; then
+    echo "Error! Environmental variable for GCC_HOME is not set!"
+    exit 127
+fi
+
+GCC_REPO=$1
+GCC_VERSION=$2
+
+if [[ -z "${GCC_REPO}" ]] || [[ -z "${GCC_VERSION}" ]]; then
+    echo "Error! Parameters for GCC repository are incorrect"
     exit 127
 fi
 

@@ -8,7 +8,6 @@ then
 else
     # Create output dir
     DATE=$(date '+%m-%d-%y')
-    HOST_HOSTNAME=ohm
     OUT_DIR=$RESULT_DIR/$DATE-$HOST_HOSTNAME
     mkdir $OUT_DIR
 
@@ -20,5 +19,5 @@ else
 
     # Test
     cd $YARPGEN_HOME/scripts
-    ./run_gen.py --output $OUT_DIR --log-file $OUT_DIR/log.txt
+    nice -n 10 ./run_gen.py --output $OUT_DIR --log-file $OUT_DIR/log.txt $@
 fi

@@ -1,7 +1,16 @@
-#!/bin/bash
+#!/bin/bash -e
+# Args: LLVM_REPO LLVM_VERSION
 
-if [[ -z "${TESTING_HOME}" ]] || [[ -z "${LLVM_HOME}" ]] || [[ -z "${LLVM_REPO}" ]] || [[ -z "${LLVM_VERSION}" ]]; then
-    echo "Error! There are undefined environmental variables!"
+if [[ -z "${LLVM_HOME}" ]]; then
+    echo "Error! Environmental variable for LLVM_HOME is not set!"
+    exit 127
+fi
+
+LLVM_REPO=$1
+LLVM_VERSION=$2
+
+if [[ -z "${LLVM_REPO}" ]] || [[ -z "${LLVM_VERSION}" ]]; then
+    echo "Error! Parameters for LLVM repository are incorrect"
     exit 127
 fi
 
