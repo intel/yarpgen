@@ -48,16 +48,22 @@ ENV PATH=$TESTING_HOME/$SDE_VERSION:$PATH
 
 RUN $YARPGEN_HOME/scripts/build_yarpgen.sh
 
-ENV PATH=$GCC_HOME/bin/bin:$PATH
-ENV LD_LIBRARY_PATH=$GCC_HOME/bin/lib64/:$LD_LIBRARY_PATH
+ENV PATH=$GCC_HOME/bin_$GCC_VERSION/bin:$PATH
+ENV LD_LIBRARY_PATH=$GCC_HOME/bin_$GCC_VERSION/lib64/:$LD_LIBRARY_PATH
 
-ENV PATH=$LLVM_HOME/bin/bin/:$PATH
-ENV LD_LIBRARY_PATH=$LLVM_HOME/bin/lib/:$LD_LIBRARY_PATH
+ENV PATH=$LLVM_HOME/bin_$LLVM_VERSION/bin/:$PATH
+ENV LD_LIBRARY_PATH=$LLVM_HOME/bin_$LLVM_VERSION/lib/:$LD_LIBRARY_PATH
 
 ARG RESULT_DIR
 ENV RESULT_DIR=${RESULT_DIR:-$TESTING_HOME/result}
 
 COPY docker-entrypoint.sh /
+# It is reccomended to use a no-cache build, otherwise compiler won't be updated:
+# docker build --no-cache -t yarpgen-testing .
+#
+# Use this command to start a testing with 24-hours.
+# Feel free to change the parameters that are passed to run_gen.py
+# docker run --rm --name yarpgen-daily --mount source=yarpgen-result,target=/testing/result -e HOST_HOSTNAME=$(uname -n) yarpgen-testing -t 1400 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-t 1"]
 
