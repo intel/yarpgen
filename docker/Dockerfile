@@ -42,7 +42,7 @@ RUN $YARPGEN_HOME/scripts/build_gcc.sh $GCC_REPO $GCC_VERSION
 
 RUN $YARPGEN_HOME/scripts/build_llvm.sh $LLVM_REPO $LLVM_VERSION
 
-RUN wget $SDE_REPO/$SDE_VERSION.tar.bz2
+RUN wget --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 5 $SDE_REPO/$SDE_VERSION.tar.bz2
 RUN tar -xf $SDE_VERSION.tar.bz2
 ENV PATH=$TESTING_HOME/$SDE_VERSION:$PATH
 
