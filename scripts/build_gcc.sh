@@ -34,8 +34,8 @@ contrib/gcc_build -d $GCC_HOME/gcc_src \
 
 # Compilation
 cd $GCC_HOME/build
-make -j 128
-make -j 128 install
+make -j `nrpoc`
+make -j `nproc` install
 
 # Cleanup
 rm -rf $GCC_HOME/build $GCC_HOME/gcc_src
