@@ -58,12 +58,12 @@ ARG RESULT_DIR
 ENV RESULT_DIR=${RESULT_DIR:-$TESTING_HOME/result}
 
 COPY docker-entrypoint.sh /
-# It is reccomended to use a no-cache build, otherwise compiler won't be updated:
+# It is recommended to use a no-cache build, otherwise compiler won't be updated:
 # docker build --no-cache -t yarpgen-testing .
 #
-# Use this command to start a testing with 24-hours.
+# Use this command to start a testing for 24-hours.
 # Feel free to change the parameters that are passed to run_gen.py
-# docker run --rm --name yarpgen-daily --mount source=yarpgen-result,target=/testing/result -e HOST_HOSTNAME=$(uname -n) yarpgen-testing -t 1400 
+# docker run --rm --name yarpgen-daily --mount source=yarpgen-result,target=/testing/result -e HOST_HOSTNAME=$(uname -n) yarpgen-testing -t 1440 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-t 1"]
 
