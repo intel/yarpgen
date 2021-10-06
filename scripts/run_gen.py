@@ -1761,7 +1761,7 @@ Use specified folder for testing
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     if args.log_file is None:
-        args.log_file = args.out_dir + ".log"
+        args.log_file = os.path.join(os.path.dirname(args.out_dir), os.path.basename(args.out_dir) + ".log")
     common.setup_logger(args.log_file, log_level)
 
     stat_log_file = common.wrap_log_file(args.stat_log_file, parser.get_default("stat_log_file"))
