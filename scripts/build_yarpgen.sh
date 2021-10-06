@@ -5,8 +5,6 @@ if [[ -z "${YARPGEN_HOME}" ]]; then
     exit 127
 fi
 
-# Get the source code
-mkdir -p $YARPGEN_HOME
 cd $YARPGEN_HOME
 mkdir build
 git remote -v > $YARPGEN_HOME/yarpgen_rev.txt
