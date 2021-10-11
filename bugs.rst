@@ -3,6 +3,12 @@ LLVM:
 ====================================
 Version #2
 ---------------
+| `52002 <https://bugs.llvm.org/show_bug.cgi?id=52002>`_ - [BDCE with -fopenmp-simd -O3: Assertion \`materialized_use_empty() && "Uses remain when a value is destroyed!"' failed
+| `51923 <https://bugs.llvm.org/show_bug.cgi?id=51923>`_ - [Clang segfaults with loop unroll(enable)
+| `51906 <https://bugs.llvm.org/show_bug.cgi?id=51906>`_ - LICM introduces load in writeonly function (UB)
+| `51798 <https://bugs.llvm.org/show_bug.cgi?id=51798>`_ - [ICE for SKX: assertion \`hasVectorValue(Def, Instance.Part)' failed at llvm/lib/Transforms/
+| `51797 <https://bugs.llvm.org/show_bug.cgi?id=51797>`_ - [ICE in backend: Instruction Combining seems stuck in an infinite loop after 100 iterations
+| `50109 <https://bugs.llvm.org/show_bug.cgi?id=50109>`_ - [Polly crashes: "Negative unroll factor UNREACHABLE executed at llvm/polly/lib/Transform/ManualOptimizer.cpp:83!"
 | `48554 <https://bugs.llvm.org/show_bug.cgi?id=48554>`_ - ICE: polly/lib/External/isl/isl_ast_build_expr.c:1745: cannot handle void expression
 | `48445 <https://bugs.llvm.org/show_bug.cgi?id=48445>`_ - Assertion \`StmtDomain\.is_subset(NewDomain) && "Partial READ accesses not supported"' failed
 | `48422 <https://bugs.llvm.org/show_bug.cgi?id=48422>`_ - Assertion \`SE->DT\.dominates(ENT\.ExitingBlock, Latch) && "We should only have known counts for exiting blocks that dominate " "latch!"' failed
@@ -95,6 +101,12 @@ GCC:
 
 Version #2
 ---------------
+| `102622 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102622>`_ - [ [9/10/12 Regression] Wrong code with -O1 and above due to phiopt and signed one bit integer types
+| `102572 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102572>`_ - [ [11/12 Regression] ICE for skx in vect_build_gather_load_calls, at tree-vect-stmts.c:2835 since r11-3070-g783dc66f9ccb0019
+| `102511 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102511>`_ - [ [12 Regression] GCC produces incorrect code for -O3: first element of the array is skipped after r12-3903
+| `99777  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99777>`_ - [ [11 Regression] ICE in build2, at tree.c:4869 with -O3
+| `98694  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98694>`_ - [ GCC produces incorrect code for loops with -O3 for skylake-avx512 and icelake-server
+| `98640  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98640>`_ - [ [10/11 Regression] GCC produces incorrect code with -O1 and higher since r10-2711-g3ed01d5408045d80
 | `98381 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98381>`_ - [11 Regression] Wrong code with -O3 -march=skylake-avx512 by r11-3072
 | `98308 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98308>`_ - [11 Regression] ICE in vect_slp_analyze_node_operations, at tree-vect-slp.c:3764 with -O3 -march=skylake-avx512 since r11-615-gdc0c0196340f7ac5
 | `98096 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98096>`_ - [8/9/10 Regression] Miscompilation with -O3 since r8-2380-g2d7744d4ef93bfff
