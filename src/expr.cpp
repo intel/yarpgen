@@ -277,8 +277,7 @@ void ScalarVarUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 
 Expr::EvalResType ScalarVarUseExpr::evaluate(EvalCtx &ctx) {
     // This variable is defined and we can just return it.
-    auto emit_ctx = std::make_shared<EmitCtx>();
-    auto find_res = ctx.input.find(value->getName(emit_ctx));
+    auto find_res = ctx.input.find(value->getName(EmitCtx::default_emit_ctx));
     if (find_res != ctx.input.end()) {
         return find_res->second;
     }
@@ -328,8 +327,7 @@ void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr,
 
 Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
     // This Array is defined and we can just return it.
-    auto emit_ctx = std::make_shared<EmitCtx>();
-    auto find_res = ctx.input.find(value->getName(emit_ctx));
+    auto find_res = ctx.input.find(value->getName(EmitCtx::default_emit_ctx));
     if (find_res != ctx.input.end()) {
         return find_res->second;
     }
@@ -363,8 +361,7 @@ void IterUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 
 Expr::EvalResType IterUseExpr::evaluate(EvalCtx &ctx) {
     // This iterator is defined and we can just return it.
-    auto emit_ctx = std::make_shared<EmitCtx>();
-    auto find_res = ctx.input.find(value->getName(emit_ctx));
+    auto find_res = ctx.input.find(value->getName(EmitCtx::default_emit_ctx));
     if (find_res != ctx.input.end()) {
         return find_res->second;
     }
@@ -1487,7 +1484,6 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
 Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     propagateType();
 
-    auto emit_ctx = std::make_shared<EmitCtx>();
     EvalResType array_eval_res = array->evaluate(ctx);
     if (!array_eval_res->getType()->isArrayType()) {
         ERROR("Subscription operation is supported only for Array");

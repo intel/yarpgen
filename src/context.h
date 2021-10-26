@@ -195,6 +195,12 @@ class PopulateCtx : public GenCtx {
 // TODO: maybe we need to inherit from some class
 class EmitCtx {
   public:
+    // This is a hack. EmitPolicy is required to get a name of a variable.
+    // Because we use a name of a variable as a unique ID, we end up creating
+    // a lot of objects that are useless.
+    //TODO: replace UID type of vars to something better
+    static std::shared_ptr<EmitCtx> default_emit_ctx;
+
     EmitCtx() : ispc_types(false), sycl_access(false) {
         emit_policy = std::make_shared<EmitPolicy>();
     }
