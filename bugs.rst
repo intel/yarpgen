@@ -98,18 +98,30 @@ Version #1
 ====================================
 GCC:
 ====================================
+Full list of GCC bugs can be found `here <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103035>`_
+Special thanks to Martin Liška for submitting some of them.
 
 Version #2
 ---------------
-| `102622 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102622>`_ - [ [9/10/12 Regression] Wrong code with -O1 and above due to phiopt and signed one bit integer types
-| `102572 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102572>`_ - [ [11/12 Regression] ICE for skx in vect_build_gather_load_calls, at tree-vect-stmts.c:2835 since r11-3070-g783dc66f9ccb0019
-| `102511 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102511>`_ - [ [12 Regression] GCC produces incorrect code for -O3: first element of the array is skipped after r12-3903
-| `99777  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99777>`_ - [ [11 Regression] ICE in build2, at tree.c:4869 with -O3
-| `98694  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98694>`_ - [ GCC produces incorrect code for loops with -O3 for skylake-avx512 and icelake-server
-| `98640  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98640>`_ - [ [10/11 Regression] GCC produces incorrect code with -O1 and higher since r10-2711-g3ed01d5408045d80
+| `103037 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103037>`_ - [11/12 Regression] Wrong code with -O2 since r11-6100-gd41b097350d3c5d0
+| `102920 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102920>`_ - [12 Regression] Wrong code with -O3
+| `102622 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102622>`_ - [9/10/12 Regression] Wrong code with -O1 and above due to phiopt and signed one bit integer types
+| `102572 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102572>`_ - [11/12 Regression] ICE for skx in vect_build_gather_load_calls, at tree-vect-stmts.c:2835 since r11-3070-g783dc66f9ccb0019
+| `102511 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102511>`_ - [12 Regression] GCC produces incorrect code for -O3: first element of the array is skipped after r12-3903
+| `101256 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101256>`_ - [12 Regression] Wrong code with -O3 since r12-1841-g9fe9c45ae33a2df7
+| `101014 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101014>`_ - [12 Regression] Big compile time hog with -O3 since r12-1268-g9858cd1a6827ee7a
+| `100081 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100081>`_ - [11/12 Regression] Compile time hog in irange since r11-4135-ge864d395b4e862ce
+| `99927 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99927>`_ - [9/10 only] Wrong code since r11-39-gf9e1ea10e657af9f
+| `99777  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99777>`_ - [11 Regression] ICE in build2, at tree.c:4869 with -O3
+| `98694  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98694>`_ - GCC produces incorrect code for loops with -O3 for skylake-avx512 and icelake-server
+| `98640  <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98640>`_ - [10/11 Regression] GCC produces incorrect code with -O1 and higher since r10-2711-g3ed01d5408045d80
+| `98513 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98513>`_ - [10 Regression] Wrong code with -O3 since r10-2804-gbf05a3bbb58b3558
 | `98381 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98381>`_ - [11 Regression] Wrong code with -O3 -march=skylake-avx512 by r11-3072
 | `98308 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98308>`_ - [11 Regression] ICE in vect_slp_analyze_node_operations, at tree-vect-slp.c:3764 with -O3 -march=skylake-avx512 since r11-615-gdc0c0196340f7ac5
-| `98096 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98096>`_ - [8/9/10 Regression] Miscompilation with -O3 since r8-2380-g2d7744d4ef93bfff
+| `98302 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98302>`_ - [9/10 Regression] Wrong code on aarch64
+| `98213 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98213>`_ - [11 Regression] Never ending compilation at -O3 since r11-161-g283cb9ea6293e813
+| `98211 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98211>`_ - [11 Regression] Wrong code at -O3 since r11-4482-gb626b00823af9ca9
+| `98069 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98069>`_ - [8/9/10 Regression] Miscompilation with -O3 since r8-2380-g2d7744d4ef93bfff
 | `98064 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98064>`_ - ICE in check_loop_closed_ssa_def, at tree-ssa-loop-manip.c:726 with -O3 since r11-4921-g86cca5cc14602814
 | `98048 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98048>`_ - [11 Regression] ICE in build_vector_from_val, at tree.c:1985 by r11-5429
 | `96755 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96755>`_ - [11 Regression] ICE in final_scan_insn_1, at final.c:3073 with -O3 -march=skylake-avx512
@@ -233,7 +245,7 @@ ISPC:
 ====================================
 Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q=is%3Aissue+label%3Ayarpgen+>`_
 
-| `1851 <https://github.com/ispc/ispc/issues/1851>`_ - LLVM assertion `Def == PreviousDef' failed.
+| `1851 <https://github.com/ispc/ispc/issues/1851>`_ - LLVM assertion \`Def == PreviousDef' failed.
 | `1844 <https://github.com/ispc/ispc/issues/1844>`_ - ICE in LLVM: "Unexpected illegal type" at llvm/lib/CodeGen/SelectionDAG/LegalizeDAG.cpp:978
 | `1806	<https://github.com/ispc/ispc/issues/1806>`_ - ISPC produces wrong code with bool type iterator
 | `1793 <https://github.com/ispc/ispc/issues/1793>`_ - Wrong code for avx2-i32x16.
@@ -245,3 +257,10 @@ Full list of ISPC bugs can be found `here <https://github.com/ispc/ispc/issues?q
 | `1762 <https://github.com/ispc/ispc/issues/1762>`_ - ICE: "scatterFunc != NULL".
 | `1729 <https://github.com/ispc/ispc/issues/1729>`_ - Assertion failed: "ci != NULL".
 | `1719 <https://github.com/ispc/ispc/issues/1719>`_ - Division by zero leads to ICE
+
+====================================
+Alive2:
+====================================
+| `762 <https://github.com/AliveToolkit/alive2/issues/762>`_ - missed alarm bug
+| `756 <https://github.com/AliveToolkit/alive2/issues/756>`_ - False-negative when introducing stores to extern global variables
+
