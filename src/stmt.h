@@ -136,7 +136,8 @@ class LoopHead {
     void setIsForeach() { is_foreach = true; }
     bool isForeach() { return is_foreach; }
 
-    std::shared_ptr<Iterator> populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val);
+    std::shared_ptr<Iterator>
+    populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val);
     void createPragmas(std::shared_ptr<PopulateCtx> ctx);
     bool hasSIMDPragma();
 

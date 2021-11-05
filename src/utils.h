@@ -138,10 +138,12 @@ class RandValGen {
     }
 
     // Randomly choose elements without replacement from a vector
-    template <typename T> std::vector<T> getRandElems(std::vector<T> &vec, size_t num) {
+    template <typename T>
+    std::vector<T> getRandElems(std::vector<T> &vec, size_t num) {
         std::vector<T> ret;
         ret.reserve(num);
-        std::sample(vec.begin(), vec.end(), std::back_inserter(ret), num, rand_gen);
+        std::sample(vec.begin(), vec.end(), std::back_inserter(ret), num,
+                    rand_gen);
         return ret;
     }
 
@@ -161,7 +163,8 @@ class RandValGen {
         }
 
         std::uniform_int_distribution<int> dis(1, total_prob);
-        int delta = static_cast<int>(round(((double)total_prob) / dis(rand_gen)));
+        int delta =
+            static_cast<int>(round(((double)total_prob) / dis(rand_gen)));
 
         std::discrete_distribution<int> discrete_dis(discrete_dis_init.begin(),
                                                      discrete_dis_init.end());

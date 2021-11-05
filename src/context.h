@@ -71,28 +71,37 @@ class GenCtx {
 };
 
 // Auxiliary class for stencil generation
+// It defines all parameters for each stencil element
 class ArrayStencilParams {
   public:
-    explicit ArrayStencilParams(std::shared_ptr<Array> _arr) : arr(std::move(_arr)) {}
+    explicit ArrayStencilParams(std::shared_ptr<Array> _arr)
+        : arr(std::move(_arr)) {}
 
     std::shared_ptr<Array> getArray() { return arr; }
 
-    void setDims(std::vector<size_t> _dims) { dims = std::move(_dims); }
-    std::vector<size_t>& getDims() { return dims; }
+    void setActiveDims(std::vector<size_t> _dims) {
+        active_dims = std::move(_dims);
+    }
+    std::vector<size_t> &getActiveDims() { return active_dims; }
 
-    void setIters(std::vector<std::shared_ptr<Iterator>> _iters) { iters = std::move(_iters); }
+    void setIters(std::vector<std::shared_ptr<Iterator>> _iters) {
+        iters = std::move(_iters);
+    }
     std::vector<std::shared_ptr<Iterator>> getIters() { return iters; }
 
-    void setOffsets(std::vector<int64_t> _offsets) { offsets = std::move(_offsets); }
+    void setOffsets(std::vector<int64_t> _offsets) {
+        offsets = std::move(_offsets);
+    }
     std::vector<int64_t> getOffsets() { return offsets; }
 
   private:
     std::shared_ptr<Array> arr;
-    // The total number of dims should be equal to the total number of dims
-    // in array. We set it to 1 if we want to have offset in that dimension and to 0 otherwise.
-    // This should have a bool type, but vector<bool> is a bad thing,
-    // so we use size_t instead
-    std::vector<size_t> dims;
+    // The total number of active_dims should be equal to the total number of
+    // active_dims in array. We set it to 1 if we want to have offset in that
+    // dimension and to 0 otherwise. This should have a bool type, but
+    // vector<bool> is a bad thing, so we use size_t instead
+    std::vector<size_t> active_dims;
+    // Same idea applies to iterators. They are set to nullptr for inactive dims
     std::vector<std::shared_ptr<Iterator>> iters;
     std::vector<int64_t> offsets;
 };
@@ -101,17 +110,13 @@ class SymbolTable {
   public:
     void addVar(std::shared_ptr<ScalarVar> var) { vars.push_back(var); }
     void addArray(std::shared_ptr<Array> array);
-    void addIters(std::shared_ptr<Iterator> iter) {
-        iters.push_back(iter);
-    }
+    void addIters(std::shared_ptr<Iterator> iter) { iters.push_back(iter); }
     void deleteLastIters() { iters.pop_back(); }
 
     std::vector<std::shared_ptr<ScalarVar>> getVars() { return vars; }
     std::vector<std::shared_ptr<Array>> getArrays() { return arrays; }
     std::vector<std::shared_ptr<Array>> getArraysWithDimNum(size_t dim);
-    std::vector<std::shared_ptr<Iterator>>& getIters() {
-        return iters;
-    }
+    std::vector<std::shared_ptr<Iterator>> &getIters() { return iters; }
 
     void addVarExpr(std::shared_ptr<ScalarVarUseExpr> var) {
         avail_vars.push_back(var);
@@ -121,8 +126,10 @@ class SymbolTable {
         return avail_vars;
     }
 
-    void setStencilsParams(std::vector<ArrayStencilParams> _stencils) { stencils = _stencils; }
-    std::vector<ArrayStencilParams>& getStencilsParams() { return stencils; }
+    void setStencilsParams(std::vector<ArrayStencilParams> _stencils) {
+        stencils = _stencils;
+    }
+    std::vector<ArrayStencilParams> &getStencilsParams() { return stencils; }
 
   private:
     std::vector<std::shared_ptr<ScalarVar>> vars;
@@ -189,6 +196,8 @@ class PopulateCtx : public GenCtx {
     // Each loop header has a limit that any iterator should respect
     std::vector<size_t> dims;
 
+    // This flag indicates if we are inside arithmetic tree generation for
+    // stencil pattern
     bool in_stencil;
 };
 
@@ -198,7 +207,7 @@ class EmitCtx {
     // This is a hack. EmitPolicy is required to get a name of a variable.
     // Because we use a name of a variable as a unique ID, we end up creating
     // a lot of objects that are useless.
-    //TODO: replace UID type of vars to something better
+    // TODO: replace UID type of vars to something better
     static std::shared_ptr<EmitCtx> default_emit_ctx;
 
     EmitCtx() : ispc_types(false), sycl_access(false) {

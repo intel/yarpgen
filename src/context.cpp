@@ -22,7 +22,8 @@ limitations under the License.
 
 using namespace yarpgen;
 
-std::shared_ptr<EmitCtx> EmitCtx::default_emit_ctx = std::make_shared<EmitCtx>();
+std::shared_ptr<EmitCtx> EmitCtx::default_emit_ctx =
+    std::make_shared<EmitCtx>();
 
 PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
     : par_ctx(std::move(_par_ctx)), ext_inp_sym_tbl(par_ctx->ext_inp_sym_tbl),
