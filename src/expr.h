@@ -294,7 +294,8 @@ class SubscriptExpr : public Expr {
               std::string offset = "") final;
     static std::shared_ptr<SubscriptExpr>
     init(std::shared_ptr<Array> arr, std::shared_ptr<PopulateCtx> ctx);
-    static std::vector<std::shared_ptr<Array>> getSuitableArrays(std::shared_ptr<PopulateCtx> ctx);
+    static std::vector<std::shared_ptr<Array>>
+    getSuitableArrays(std::shared_ptr<PopulateCtx> ctx);
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
     void setValue(std::shared_ptr<Expr> _expr, std::deque<size_t> &span,

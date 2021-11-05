@@ -278,7 +278,8 @@ void LoopHead::populateArrays(std::shared_ptr<PopulateCtx> ctx) {
     }
 }
 
-std::shared_ptr<Iterator> LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val) {
+std::shared_ptr<Iterator>
+LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val) {
     auto gen_pol = ctx->getGenPolicy();
     auto new_iter =
         Iterator::create(ctx, _end_val, /*is_uniform*/ !isForeach());

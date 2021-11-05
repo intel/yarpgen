@@ -132,7 +132,8 @@ void Iterator::setParameters(std::shared_ptr<Expr> _start,
     step = std::move(_step);
 }
 
-std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, size_t _end_val, bool is_uniform) {
+std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
+                                           size_t _end_val, bool is_uniform) {
     // TODO: this function is full of magic constants and weird hacks to cut
     //  some corners for ISPC and overflows
     auto gen_pol = ctx->getGenPolicy();
@@ -146,18 +147,19 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
     // Stencil left span logic
     bool allow_stencil = rand_val_gen->getRandId(gen_pol->allow_stencil_prob);
     uint64_t type_max_val = int_type->getMax().getAbsValue().value;
-    auto roll_stencil_span = [&allow_stencil, &gen_pol]() -> size_t { ;
+    auto roll_stencil_span = [&allow_stencil, &gen_pol]() -> size_t {
         if (!allow_stencil)
             return 0;
         return rand_val_gen->getRandId(gen_pol->stencil_span_distr);
     };
     size_t left_span = roll_stencil_span();
-    // The start of the iteration space will be at lest_span, so it can't be
+    // The start of the iteration space will be at left_span, so it can't be
     // larger than the target end value
     left_span = left_span > _end_val ? 0 : left_span;
     left_span = left_span > type_max_val ? 0 : left_span;
 
-    auto start = std::make_shared<ConstantExpr>(IRValue{type_id, {false, left_span}});
+    auto start =
+        std::make_shared<ConstantExpr>(IRValue{type_id, {false, left_span}});
 
     size_t end_val = _end_val;
     // We can't go pass the maximal value of the type
@@ -188,8 +190,9 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx, siz
         std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});
 
     NameHandler &nh = NameHandler::getInstance();
-    auto iter = std::make_shared<Iterator>(nh.getIterName(), type, start, left_span, end, right_span,
-                                           step, end_val == left_span);
+    auto iter =
+        std::make_shared<Iterator>(nh.getIterName(), type, start, left_span,
+                                   end, right_span, step, end_val == left_span);
 
     return iter;
 }
