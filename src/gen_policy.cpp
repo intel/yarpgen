@@ -320,6 +320,10 @@ GenPolicy::GenPolicy() {
     stencil_in_dim_prob.emplace_back(Probability<bool>(true, 30));
     stencil_in_dim_prob.emplace_back(Probability<bool>(false, 70));
     shuffleProbProxy(stencil_in_dim_prob);
+
+    ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
+    ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));
+    shuffleProbProxy(ub_in_dc_prob);
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;

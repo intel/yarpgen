@@ -161,6 +161,7 @@ enum class OptionKind {
     CHECK_ALGO,
     MUTATE,
     MUTATION_SEED,
+    UB_IN_DC,
     MAX_OPTION_ID
 };
 

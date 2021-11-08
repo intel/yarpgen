@@ -894,9 +894,18 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     ctx->decArithDepth();
 
     if (ctx->getArithDepth() == 0) {
-        new_node->propagateType();
-        EvalCtx eval_ctx;
-        new_node->rebuild(eval_ctx);
+        Options &options = Options::getInstance();
+        bool allow_ub = !ctx->isTaken() &&
+                        (options.getAllowUBInDC() == OptionLevel::ALL ||
+                         (options.getAllowUBInDC() == OptionLevel::SOME &&
+                          rand_val_gen->getRandId(gen_pol->ub_in_dc_prob)));
+        // We normally generate UB in the first place and eliminate it later.
+        // If we don't do anything to avoid it, we will get it for free
+        if (!allow_ub) {
+            new_node->propagateType();
+            EvalCtx eval_ctx;
+            new_node->rebuild(eval_ctx);
+        }
     }
 
     return new_node;

@@ -97,6 +97,7 @@ class OptionParser {
     static void parseExplLoopParams(std::string val);
     static void parseMutationKind(std::string mutate_str);
     static void parseMutationSeed(std::string mutation_seed_str);
+    static void parseAllowUBInDC(std::string allow_ub_in_dc_str);
 };
 
 class Options {
@@ -156,6 +157,9 @@ class Options {
     void setMutationSeed(uint64_t val) { mutation_seed = val; }
     uint64_t getMutationSeed() { return mutation_seed; }
 
+    void setAllowUBInDC(OptionLevel _val) { allow_ub_in_dc = _val; }
+    OptionLevel getAllowUBInDC() { return allow_ub_in_dc; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -165,7 +169,9 @@ class Options {
           unique_align_size(false),
           align_size(AlignmentSize::MAX_ALIGNMENT_SIZE), allow_dead_data(false),
           emit_pragmas(OptionLevel::SOME), out_dir("."),
-          use_param_shuffle(false) {}
+          use_param_shuffle(false), expl_loop_params(false),
+          mutation_kind(MutationKind::NONE), mutation_seed(0),
+          allow_ub_in_dc(OptionLevel::NONE) {}
 
     std::vector<std::string> raw_options;
 
@@ -193,5 +199,8 @@ class Options {
 
     MutationKind mutation_kind;
     uint64_t mutation_seed;
+
+    // If we want to allow Undefined Behavior in Dead Code
+    OptionLevel allow_ub_in_dc;
 };
 } // namespace yarpgen
