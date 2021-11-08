@@ -32,6 +32,7 @@ Compiler specs:
 # Spec name | C++ executable name | C executable name | Common arguments                                            | Arch prefix
 gcc         | g++                 | gcc               | -w -fpermissive                                             | -march=
 clang       | clang++             | clang             | -w -fopenmp-simd                                            | -march=
+polly       | clang++             | clang             | -w -fopenmp-simd -mllvm -polly -mllvm -polly-vectorizer=stripmine | -march=
 # Ubsan is clang or gcc with sanitizer options. It is used for generator check.
 # If you want to use sanitizer with -m32, please make sure that you pass "-rtlib=compiler-rt -lgcc_s" options if you are using clang.
 # Otherwise it may fail with "undefined reference to `__mulodi4'" error message.
@@ -69,9 +70,11 @@ gcc_opt          | gcc       | -O3       |                |
 #gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
 gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
 #gcc_icx_no_opt   | gcc       | -O0       | icelake-server | icx
-gcc_icx_opt      | gcc       | -O3       | icelake-server | icx
+#gcc_icx_opt      | gcc       | -O3       | icelake-server | icx
 #gcc_tgl_no_opt   | gcc       | -O0       | tigerlake      | tgl
 #gcc_tgl_opt      | gcc       | -O3       | tigerlake      | tgl
+#gcc_spr_no_opt   | gcc       | -O0       | sapphirerapids | spr
+gcc_spr_opt      | gcc       | -O3       | sapphirerapids | spr
 
 clang_no_opt     | clang     | -O0       |                |
 clang_opt        | clang     | -O3       |                |
@@ -80,9 +83,24 @@ clang_opt        | clang     | -O3       |                |
 #clang_skx_no_opt | clang     | -O0       | skx            | skx
 clang_skx_opt    | clang     | -O3       | skx            | skx
 #clang_icx_no_opt | clang     | -O0       | icelake-server | icx
-clang_icx_opt    | clang     | -O3       | icelake-server | icx
+#clang_icx_opt    | clang     | -O3       | icelake-server | icx
 #clang_tgl_no_opt | clang     | -O0       | tigerlake      | tgl
 #clang_tgl_opt    | clang     | -O3       | tigerlake      | tgl
+#clang_spr_no_opt | clang     | -O0       | sapphirerapids | spr
+clang_spr_opt    | clang     | -O3       | sapphirerapids | spr
+
+#polly_no_opt     | polly     | -O0       |                |
+polly_opt        | polly     | -O3       |                |
+#polly_knl_no_opt | polly     | -O0       | knl            | knl
+#polly_knl_opt    | polly     | -O3       | knl            | knl
+#polly_skx_no_opt | polly     | -O0       | skx            | skx
+polly_skx_opt    | polly     | -O3       | skx            | skx
+#polly_icx_no_opt | polly     | -O0       | icelake-server | icx
+#polly_icx_opt    | polly     | -O3       | icelake-server | icx
+#polly_tgl_no_opt | polly     | -O0       | tigerlake      | tgl
+#polly_tgl_opt    | polly     | -O3       | tigerlake      | tgl
+#polly_spr_no_opt | polly     | -O0       | sapphirerapids | spr
+polly_spr_opt    | polly     | -O3       | sapphirerapids | spr
 
 icc_no_opt       | icc       | -O0       |                |
 icc_opt          | icc       | -O3       |                |
