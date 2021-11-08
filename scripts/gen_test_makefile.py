@@ -118,6 +118,7 @@ SdeArch["bdw"] = SdeTarget("bdw", 9)
 SdeArch["skx"] = SdeTarget("skx", 10)
 SdeArch["icx"] = SdeTarget("icx", 11)
 SdeArch["tgl"] = SdeTarget("tgl", 12)
+SdeArch["spr"] = SdeTarget("spr", 12)
 SdeArch["knl"] = SdeTarget("knl", 13)
 SdeArch[""] = SdeTarget("", 14)  # It is a fake target and it should always be the last
 
@@ -129,6 +130,8 @@ def define_sde_arch(native, target):
         return SdeArch["icx"].name
     if target == SdeArch["tgl"] and native != SdeArch["tgl"]:
         return SdeArch["tgl"].name
+    if target == SdeArch["spr"] and native != SdeArch["spr"]:
+        return SdeArch["spr"].name
     if target == SdeArch["knl"] and native != SdeArch["knl"]:
         return SdeArch["knl"].name
     if native.enum_value < target.enum_value:
