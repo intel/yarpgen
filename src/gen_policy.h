@@ -149,6 +149,8 @@ class GenPolicy {
     std::vector<Probability<bool>> stencil_in_dim_prob;
 
     double stencil_prob_weight_alternation = 0.75;
+    // Probability to leave UB in DeadCode when it is allowed
+    std::vector<Probability<bool>> ub_in_dc_prob;
 
   private:
     template <typename T>

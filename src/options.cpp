@@ -195,6 +195,15 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseMutationSeed,
      "0",
      {}},
+    {OptionKind::UB_IN_DC,
+     "",
+     "--allow-ub-in-dc",
+     true,
+     "Whether we allow Undefined Behavior in Dead Code ",
+     "Can't parse AllowUBinDC",
+     OptionParser::parseAllowUBInDC,
+     "none",
+     {"none", "some", "all"}},
 };
 
 static void dumpVersion(std::ostream &stream) {
@@ -492,6 +501,18 @@ void OptionParser::parseMutationKind(std::string mutate_str) {
         options.setMutationKind(MutationKind::ALL);
     else
         printHelpAndExit("Can't recognize mutation parameters");
+}
+
+void OptionParser::parseAllowUBInDC(std::string allow_ub_in_dc_str) {
+    Options &options = Options::getInstance();
+    if (allow_ub_in_dc_str == "none")
+        options.setAllowUBInDC(OptionLevel::NONE);
+    else if (allow_ub_in_dc_str == "some")
+        options.setAllowUBInDC(OptionLevel::SOME);
+    else if (allow_ub_in_dc_str == "all")
+        options.setAllowUBInDC(OptionLevel::ALL);
+    else
+        printHelpAndExit("Can't recognize input as arguments use level");
 }
 
 void Options::dump(std::ostream &stream) {
