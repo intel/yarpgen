@@ -80,8 +80,8 @@ class OptionParser {
                               OptionDescr option);
     static bool parseLongArg(size_t &argv_iter, char **&argv,
                              OptionDescr option);
-    static bool parseLongAndShortArgs(int argc, size_t &argv_iter, char **&argv,
-                                      OptionDescr option);
+    static bool parseLongAndShortArgs(size_t argc, size_t &argv_iter,
+                                      char **&argv, OptionDescr option);
 
     static void parseSeed(std::string seed_str);
     static void parseStandard(std::string std);
@@ -110,8 +110,8 @@ class Options {
 
     void setRawOptions(size_t argc, char *argv[]);
 
-    void setSeed(size_t _seed) { seed = _seed; }
-    size_t getSeed() { return seed; }
+    void setSeed(uint64_t _seed) { seed = _seed; }
+    uint64_t getSeed() { return seed; }
 
     void setLangStd(LangStd _std) { std = _std; }
     LangStd getLangStd() { return std; }
@@ -153,8 +153,8 @@ class Options {
     void setMutationKind(MutationKind val) { mutation_kind = val; }
     MutationKind getMutationKind() { return mutation_kind; }
 
-    void setMutationSeed(size_t val) { mutation_seed = val; }
-    size_t getMutationSeed() { return mutation_seed; }
+    void setMutationSeed(uint64_t val) { mutation_seed = val; }
+    uint64_t getMutationSeed() { return mutation_seed; }
 
     void dump(std::ostream &stream);
 
@@ -169,7 +169,7 @@ class Options {
 
     std::vector<std::string> raw_options;
 
-    size_t seed;
+    uint64_t seed;
     LangStd std;
     CheckAlgo check_algo;
     // Pass input data to a test function as parameters
@@ -192,6 +192,6 @@ class Options {
     bool expl_loop_params;
 
     MutationKind mutation_kind;
-    size_t mutation_seed;
+    uint64_t mutation_seed;
 };
 } // namespace yarpgen

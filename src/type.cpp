@@ -162,7 +162,7 @@ std::string IntegralType::getLiteralSuffix() {
 
 template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
-                          const std::string &suffix, uint32_t bit_size,
+                          const std::string &suffix, size_t bit_size,
                           bool is_signed, T &min, T &max, bool is_static,
                           CVQualifier cv_qual) {
     std::cout << "int type id:  "

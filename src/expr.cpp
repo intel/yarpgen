@@ -650,9 +650,10 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     uint64_t total_prob =
         stencil_prob + scalar_var_prob + subscript_prob + const_prob;
 
-    subscript_prob = total_prob * gen_pol->stencil_prob_weight_alternation;
-    const_prob = scalar_var_prob =
-        total_prob * (1 - gen_pol->stencil_prob_weight_alternation) * 0.5;
+    subscript_prob = static_cast<uint64_t>(
+        total_prob * gen_pol->stencil_prob_weight_alternation);
+    const_prob = scalar_var_prob = static_cast<uint64_t>(
+        total_prob * (1 - gen_pol->stencil_prob_weight_alternation) * 0.5);
 
     for (auto &item : gen_pol->arith_node_distr) {
         Probability<IRNodeKind> prob = item;
@@ -1205,7 +1206,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                 // And we can't shift MSB pass the type size
                 if (op == BinaryOp::SHL && lhs_int_type->getIsSigned() &&
                     ub == UBKind::ShiftRhsLarge) {
-                    int msb = lhs_scalar_var->getCurrentValue().getMSB();
+                    size_t msb = lhs_scalar_var->getCurrentValue().getMSB();
                     if (msb > 0) {
                         max_sht_val -= (msb - 1);
                         // For C the resulting value has to fit in type itself
@@ -1232,16 +1233,16 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                     std::static_pointer_cast<ScalarVar>(rhs->getValue());
                 IRValue::AbsValue rhs_abs_val =
                     rhs_scalar_var->getCurrentValue().getAbsValue();
-                size_t rhs_abs_int_val =
+                uint64_t rhs_abs_int_val =
                     rhs_abs_val.isNegative
                         ? std::abs(static_cast<int64_t>(rhs_abs_val.value))
                         : rhs_abs_val.value;
                 if (ub == UBKind::ShiftRhsNeg)
                     // TODO: it won't work for INT_MIN
-                    new_val = new_val + rhs_abs_int_val;
+                    new_val = static_cast<size_t>(new_val + rhs_abs_int_val);
                 // UBKind::ShiftRhsLarge
                 else
-                    new_val = rhs_abs_int_val - new_val;
+                    new_val = static_cast<size_t>(rhs_abs_int_val - new_val);
 
                 // Finally, we need to make changes to the program
                 IRValue adjust_val = IRValue(rhs_int_type->getIntTypeId());
@@ -1666,8 +1667,8 @@ void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr,
         eval_scalar_val->getCurrentValue().castToType(IntTypeID::ULLONG);
     if (!is_idx_iter)
         step = cur_idx.getValueRef<uint64_t>();
-    span.push_front(cur_idx.getValueRef<uint64_t>());
-    steps.push_front(step);
+    span.push_front(static_cast<size_t>(cur_idx.getValueRef<uint64_t>()));
+    steps.push_front(static_cast<size_t>(step));
 
     if (array->getKind() == IRNodeKind::SUBSCRIPT) {
         auto subs = std::static_pointer_cast<SubscriptExpr>(array);

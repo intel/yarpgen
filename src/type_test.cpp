@@ -585,7 +585,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
 
     // Lhs is negative
     if (std::is_signed<LT>::value) {
-        b.getValueRef<RT>() = a_distr(generator);
+        b.getValueRef<RT>() = static_cast<RT>(a_distr(generator));
         b.setUBCode(UBKind::NoUB);
         a_distr = std::uniform_int_distribution<LT>(
             std::numeric_limits<LT>::min(), -1);
@@ -630,7 +630,7 @@ void singleLeftRightShiftTest(IntTypeID lhs_type_id, IntTypeID rhs_type_id) {
     }
 
     if (std::is_signed<LT>::value)
-        b_max = lhs_bit_size - findMSB(a.getValueRef<LT>());
+        b_max = static_cast<RT>(lhs_bit_size - findMSB(a.getValueRef<LT>()));
     b_distr = std::uniform_int_distribution<RT>(0, b_max);
     b.getValueRef<RT>() = b_distr(generator);
     b.setUBCode(UBKind::NoUB);
@@ -1007,7 +1007,7 @@ void ir_value_test() {
 }
 
 int main() {
-    uint64_t seed = rd();
+    auto seed = rd();
     std::cout << "Test seed: " << seed << std::endl;
     generator.seed(seed);
 

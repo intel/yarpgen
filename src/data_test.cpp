@@ -141,7 +141,7 @@ void arrayTest() {
 }
 
 int main() {
-    uint64_t seed = rd();
+    auto seed = rd();
     std::cout << "Test seed: " << seed << std::endl;
     generator.seed(seed);
 
