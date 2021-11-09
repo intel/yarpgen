@@ -163,7 +163,7 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
 
     size_t end_val = _end_val;
     // We can't go pass the maximal value of the type
-    end_val = std::min((uint64_t)end_val, type_max_val);
+    end_val = static_cast<size_t>(std::min((uint64_t)end_val, type_max_val));
     size_t right_span = roll_stencil_span();
     right_span = end_val < right_span ? 0 : right_span;
     // end_val - right_span is the smallest number that we can start to iterate

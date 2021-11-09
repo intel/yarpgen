@@ -233,7 +233,8 @@ void OptionParser::printHelpAndExit(std::string error_msg) {
         std::cout << "    ";
         num_printed += print_helper(item.getShortArg());
         num_printed += print_helper(item.getLongArg(), item.hasValue(), false);
-        print_helper(item.getHelpMsg(), false, false, num_printed);
+        print_helper(item.getHelpMsg(), false, false,
+                     static_cast<int>(num_printed));
         if (!item.getDefaultVal().empty())
             std::cout << " (Default: " << item.getDefaultVal() << ")";
         if (!item.getAvailVals().empty()) {
@@ -309,7 +310,7 @@ bool OptionParser::parseLongArg(size_t &argv_iter, char **&argv,
     return false;
 }
 
-bool OptionParser::parseLongAndShortArgs(int argc, size_t &argv_iter,
+bool OptionParser::parseLongAndShortArgs(size_t argc, size_t &argv_iter,
                                          char **&argv, OptionDescr option) {
     return parseLongArg(argv_iter, argv, option) ||
            parseShortArg(argc, argv_iter, argv, option);
@@ -346,7 +347,7 @@ void OptionParser::initOptions() {
 void OptionParser::parseSeed(std::string seed_str) {
     std::stringstream arg_ss(seed_str);
     Options &options = Options::getInstance();
-    size_t seed = 0;
+    uint64_t seed = 0;
     arg_ss >> seed;
     options.setSeed(seed);
 }
@@ -476,7 +477,7 @@ void OptionParser::parseExplLoopParams(std::string val) {
 void OptionParser::parseMutationSeed(std::string mutation_seed_str) {
     std::stringstream arg_ss(mutation_seed_str);
     Options &options = Options::getInstance();
-    size_t seed = 0;
+    uint64_t seed = 0;
     arg_ss >> seed;
     options.setMutationSeed(seed);
 }

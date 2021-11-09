@@ -98,7 +98,7 @@ class RandValGen {
         // $26.5.1.1e [rand.req.genl]. This issue is also discussed in issue
         // 2326 (closed as not a defect and reopened as feature request N4296).
         std::uniform_int_distribution<long long> dis(from, to);
-        return dis(rand_gen);
+        return static_cast<T>(dis(rand_gen));
     }
 
     template <typename T> T getRandValue() {
@@ -106,14 +106,14 @@ class RandValGen {
         std::uniform_int_distribution<long long> dis(
             static_cast<long long>(std::numeric_limits<T>::min()),
             static_cast<long long>(std::numeric_limits<T>::max()));
-        return dis(rand_gen);
+        return static_cast<T>(dis(rand_gen));
     }
 
     template <typename T> T getRandUnsignedValue() {
         // See note above about long long hack
         std::uniform_int_distribution<unsigned long long> dis(
             0, static_cast<unsigned long long>(std::numeric_limits<T>::max()));
-        return dis(rand_gen);
+        return static_cast<T>(dis(rand_gen));
     }
 
     IRValue getRandValue(IntTypeID type_id);
@@ -122,7 +122,7 @@ class RandValGen {
     template <typename T> T getRandId(std::vector<Probability<T>> vec) {
         std::vector<double> discrete_dis_init;
         for (auto i : vec)
-            discrete_dis_init.push_back(i.getProb());
+            discrete_dis_init.push_back(static_cast<double>(i.getProb()));
 
         std::discrete_distribution<size_t> discrete_dis(
             discrete_dis_init.begin(), discrete_dis_init.end());
@@ -153,28 +153,29 @@ class RandValGen {
     // non-generatable.
     template <typename T>
     void shuffleProb(std::vector<Probability<T>> &prob_vec) {
-        int total_prob = 0;
+        uint64_t total_prob = 0;
         std::vector<double> discrete_dis_init;
         std::vector<Probability<T>> new_prob;
         for (auto i : prob_vec) {
             total_prob += i.getProb();
-            discrete_dis_init.push_back(i.getProb());
+            discrete_dis_init.push_back(static_cast<double>(i.getProb()));
             new_prob.push_back(Probability<T>(i.getId(), 0));
         }
 
-        std::uniform_int_distribution<int> dis(1, total_prob);
-        int delta =
-            static_cast<int>(round(((double)total_prob) / dis(rand_gen)));
+        std::uniform_int_distribution<uint64_t> dis(1ULL, total_prob);
+        auto delta = static_cast<uint64_t>(
+            round(((double)total_prob) / static_cast<double>(dis(rand_gen))));
 
-        std::discrete_distribution<int> discrete_dis(discrete_dis_init.begin(),
-                                                     discrete_dis_init.end());
-        for (int i = 0; i < total_prob; i += delta)
-            new_prob.at(discrete_dis(rand_gen)).increaseProb(delta);
+        std::discrete_distribution<uint64_t> discrete_dis(
+            discrete_dis_init.begin(), discrete_dis_init.end());
+        for (uint64_t i = 0; i < total_prob; i += delta)
+            new_prob.at(static_cast<size_t>(discrete_dis(rand_gen)))
+                .increaseProb(delta);
 
         prob_vec = new_prob;
     }
 
-    uint64_t getSeed() { return seed; }
+    uint64_t getSeed() const { return seed; }
     void setSeed(uint64_t new_seed);
     void switchMutationStates();
     void setMutationSeed(uint64_t mutation_seed);

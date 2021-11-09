@@ -384,7 +384,7 @@ void GenPolicy::chooseAndApplyConstUse() {
             Probability<IRNodeKind>(IRNodeKind::CONST, 100));
     }
     else if (active_const_use == ConstUse::HALF) {
-        size_t sum = 0;
+        uint64_t sum = 0;
         auto &vec = arith_node_distr;
         std::for_each(vec.begin(), vec.end(),
                       [&](Probability<IRNodeKind> n) { sum += n.getProb(); });

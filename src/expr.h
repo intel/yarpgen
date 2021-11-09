@@ -308,8 +308,8 @@ class SubscriptExpr : public Expr {
     initImpl(ArrayStencilParams array_params, std::shared_ptr<PopulateCtx> ctx);
     bool inBounds(size_t dim, std::shared_ptr<Data> idx_val, EvalCtx &ctx);
 
-    void setOffset(int32_t _offset) { stencil_offset = _offset; }
-    int32_t getOffset() { return stencil_offset; }
+    void setOffset(int64_t _offset) { stencil_offset = _offset; }
+    int64_t getOffset() { return stencil_offset; }
 
     std::shared_ptr<Expr> array;
     std::shared_ptr<Expr> idx;
@@ -318,7 +318,7 @@ class SubscriptExpr : public Expr {
     size_t active_size;
     IntTypeID idx_int_type_id;
     // It is a hack for stencil
-    int32_t stencil_offset;
+    int64_t stencil_offset;
 };
 
 class AssignmentExpr : public Expr {

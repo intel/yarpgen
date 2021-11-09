@@ -194,7 +194,7 @@ template <typename T> static bool checkMulIsOk(T a, T b, IRValue &res) {
     using unsigned_T = typename std::make_unsigned<T>::type;
     unsigned_T ret = 0;
 
-    T sign = (((a > 0) && (b > 0)) || ((a < 0) && (b < 0))) ? 1 : -1;
+    int32_t sign = (((a > 0) && (b > 0)) || ((a < 0) && (b < 0))) ? 1 : -1;
     unsigned_T a_abs = std::abs(a);
     unsigned_T b_abs = std::abs(b);
 
@@ -203,10 +203,10 @@ template <typename T> static bool checkMulIsOk(T a, T b, IRValue &res) {
     unsigned_half_T half_all_one =
         (std::is_same<unsigned_half_T, uint32_t>::value) ? 0xFFFFFFFF : 0xFFFF;
     int32_t half_bit_size = sizeof(unsigned_half_T) * CHAR_BIT;
-    unsigned_half_T a_low = a_abs & half_all_one;
-    unsigned_half_T b_low = b_abs & half_all_one;
-    unsigned_half_T a_high = a_abs >> half_bit_size;
-    unsigned_half_T b_high = b_abs >> half_bit_size;
+    auto a_low = static_cast<unsigned_half_T>(a_abs & half_all_one);
+    auto b_low = static_cast<unsigned_half_T>(b_abs & half_all_one);
+    auto a_high = static_cast<unsigned_half_T>(a_abs >> half_bit_size);
+    auto b_high = static_cast<unsigned_half_T>(b_abs >> half_bit_size);
 
     if ((a_high != 0) && (b_high != 0))
         return false;
@@ -220,13 +220,13 @@ template <typename T> static bool checkMulIsOk(T a, T b, IRValue &res) {
     if (ret < (tmp << half_bit_size))
         return false;
 
-    if ((sign < 0) && (ret > static_cast<unsigned_T>(
-                                 std::abs(std::numeric_limits<T>::min()))))
-        return false;
-    else if ((sign > 0) && (ret > std::numeric_limits<T>::max()))
+    if (((sign < 0) && (ret > static_cast<unsigned_T>(
+                                  std::abs(std::numeric_limits<T>::min())))) ||
+        ((sign > 0) &&
+         (ret > static_cast<unsigned_T>(std::numeric_limits<T>::max()))))
         return false;
     else
-        res.getValueRef<T>() = ret * sign;
+        res.getValueRef<T>() = ret * static_cast<T>(sign);
 
     return true;
 }
@@ -658,28 +658,36 @@ void IRValue::setValue(IRValue::AbsValue val) {
             value.bool_val = val.value;
             break;
         case IntTypeID::SCHAR:
-            value.schar_val = val.value * (val.isNegative ? -1 : 1);
+            value.schar_val =
+                static_cast<signed char>(val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::UCHAR:
-            value.uchar_val = val.value * (val.isNegative ? -1 : 1);
+            value.uchar_val = static_cast<unsigned char>(
+                val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::SHORT:
-            value.shrt_val = val.value * (val.isNegative ? -1 : 1);
+            value.shrt_val =
+                static_cast<short>(val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::USHORT:
-            value.ushrt_val = val.value * (val.isNegative ? -1 : 1);
+            value.ushrt_val = static_cast<unsigned short>(
+                val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::INT:
-            value.int_val = val.value * (val.isNegative ? -1 : 1);
+            value.int_val =
+                static_cast<int>(val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::UINT:
-            value.uint_val = val.value * (val.isNegative ? -1 : 1);
+            value.uint_val = static_cast<unsigned int>(
+                val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::LLONG:
-            value.llong_val = val.value * (val.isNegative ? -1 : 1);
+            value.llong_val = static_cast<long long int>(
+                val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::ULLONG:
-            value.ullong_val = val.value * (val.isNegative ? -1 : 1);
+            value.ullong_val = static_cast<unsigned long long int>(
+                val.value * (val.isNegative ? -1 : 1));
             break;
         case IntTypeID::MAX_INT_TYPE_ID:
             ERROR("Bad IntTypeID");
