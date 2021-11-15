@@ -118,9 +118,9 @@ SdeArch["bdw"] = SdeTarget("bdw", 9)
 SdeArch["skx"] = SdeTarget("skx", 10)
 SdeArch["icx"] = SdeTarget("icx", 11)
 SdeArch["tgl"] = SdeTarget("tgl", 12)
-SdeArch["spr"] = SdeTarget("spr", 12)
-SdeArch["knl"] = SdeTarget("knl", 13)
-SdeArch[""] = SdeTarget("", 14)  # It is a fake target and it should always be the last
+SdeArch["spr"] = SdeTarget("spr", 13)
+SdeArch["knl"] = SdeTarget("knl", 14)
+SdeArch[""] = SdeTarget("", 15)  # It is a fake target and it should always be the last
 
 
 def define_sde_arch(native, target):
