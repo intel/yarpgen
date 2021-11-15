@@ -17,8 +17,15 @@ ENV YARPGEN_HOME=$TESTING_HOME/yarpgen
 ARG YARPGEN_REPO=https://github.com/intel/yarpgen
 ARG YARPGEN_VERSION=main
 
+ENV BINUTILS_HOME=$TESTING_HOME/binutils
+ARG BINUTILS_REPO=git://sourceware.org/git/binutils-gdb.git
+
+ARG USER_AGENT="Mozilla/5.0"
+
 RUN apt-get -y update &&\
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    bison \
+    bzip2 \
     cmake \
     creduce \
     curl \
@@ -27,8 +34,10 @@ RUN apt-get -y update &&\
     gcc-multilib \
     g++ \
     git \
+    libgmp3-dev \
     ninja-build \
     python3 \
+    texinfo \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
@@ -40,9 +49,15 @@ RUN git clone $YARPGEN_REPO $YARPGEN_HOME &&\
 
 RUN $YARPGEN_HOME/scripts/build_gcc.sh $GCC_REPO $GCC_VERSION
 
+# We want to test Sapphire Rapids target. The problem is that
+# the system default version of binutils doesn't support it yet.
+# Therefore, we have to build them by ourselves.
+# We should switch back to the system default version when it is updated.
+RUN $YARPGEN_HOME/scripts/build_binutils.sh $BINUTILS_REPO
+
 RUN $YARPGEN_HOME/scripts/build_llvm.sh $LLVM_REPO $LLVM_VERSION
 
-RUN wget --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 5 $SDE_REPO/$SDE_VERSION.tar.bz2
+RUN wget -U $USER_AGENT --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 5 $SDE_REPO/$SDE_VERSION.tar.bz2
 RUN tar -xf $SDE_VERSION.tar.bz2
 ENV PATH=$TESTING_HOME/$SDE_VERSION:$PATH
 
@@ -50,6 +65,9 @@ RUN $YARPGEN_HOME/scripts/build_yarpgen.sh
 
 ENV PATH=$GCC_HOME/bin_$GCC_VERSION/bin:$PATH
 ENV LD_LIBRARY_PATH=$GCC_HOME/bin_$GCC_VERSION/lib64/:$LD_LIBRARY_PATH
+
+ENV PATH=$BINUTILS_HOME/bin/bin:$PATH
+ENV LD_LIBRARY_PATH=$BINUTILS_HOME/bin/lib/:$LD_LIBRARY_PATH
 
 ENV PATH=$LLVM_HOME/bin_$LLVM_VERSION/bin/:$PATH
 ENV LD_LIBRARY_PATH=$LLVM_HOME/bin_$LLVM_VERSION/lib/:$LD_LIBRARY_PATH
