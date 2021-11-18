@@ -1318,7 +1318,7 @@ def form_statistics(stat, targets, prev_len, tasks=None):
     total_out_dif = 0
 
     for i in gen_test_makefile.CompilerTarget.all_targets:
-        if i.specs.name not in targets.split():
+        if i.specs.name not in targets:
             continue
         verbose_stat_str += "\n##########################\n"
         verbose_stat_str += i.name + " stat:" + "\n"
@@ -1428,14 +1428,14 @@ def gen_test_makefile_and_copy(dest, config_file):
 def dump_testing_sets(targets):
     test_sets = []
     for i in gen_test_makefile.CompilerTarget.all_targets:
-        if i.specs.name in targets.split():
+        if i.specs.name in targets:
             test_sets.append(i.name)
     common.log_msg(logging.INFO, "Running "+str(len(test_sets))+" test sets: "+ str(test_sets), forced_duplication=True)
     return test_sets
 
 
 def print_compilers_version(targets):
-    for i in targets.split():
+    for i in targets:
         if i not in gen_test_makefile.CompilerSpecs.all_comp_specs:
             common.print_and_exit("Know nothing about " + i + " target")
         comp_exec_name = None
@@ -1637,7 +1637,7 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
         prev_out_res_len = 1  # We can't check first result
         for t in gen_test_makefile.CompilerTarget.all_targets:
             # Skip the target we are not supposed to run.
-            if t.specs.name not in targets.split():
+            if t.specs.name not in targets:
                 continue
             target_elapsed_time = 0.0
 
@@ -1728,7 +1728,8 @@ Use specified folder for testing
                         help="Timeout for test system in minutes. -1 means infinity")
     parser.add_argument("--target", dest="target", default="clang ubsan_clang gcc", type=str,
                         help="Targets for testing (see test_sets.txt). By default, possible variants are "
-                             "clang, ubsan_clang and gcc (ubsan_clang is a clang with sanitizer options).")
+                             "clang, ubsan_clang, polly and gcc (ubsan_clang is a clang with sanitizer options)."
+                             "They can be separated by a space or comma.")
     parser.add_argument("-j", dest="num_jobs", default=multiprocessing.cpu_count(), type=int,
                         help='Maximum number of instances to run in parallel. By defaulti, it is set to'
                              ' number of processor in your system')
@@ -1779,7 +1780,9 @@ Use specified folder for testing
     common.set_standard(args.std_str)
     gen_test_makefile.set_standard()
 
+    targets = re.split(' |,', args.target)
+
     Test.ignore_comp_time_exp = args.ignore_comp_time_exp
-    prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, args.target, args.num_jobs,
+    prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, targets, args.num_jobs,
                                   args.config_file, args.seeds_option_value, args.blame, args.creduce,
                                   args.no_tmp_cleaner, args.collect_stat)
