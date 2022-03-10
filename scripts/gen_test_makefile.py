@@ -21,8 +21,6 @@
 ###############################################################################
 
 import argparse
-import collections
-import enum
 import logging
 import os
 import sys

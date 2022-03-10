@@ -23,9 +23,7 @@ Script for autonomous testing with YARP Generator
 ###############################################################################
 
 import argparse
-import collections
 import datetime
-import enum
 import logging
 import math
 import multiprocessing
@@ -599,7 +597,6 @@ class Test(object):
         cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout",
                           str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name),
                           common.append_file_ext("func")]
-        cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
 
@@ -684,7 +681,6 @@ class Test(object):
         cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout",
                           str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name),
                           common.append_file_ext("func")]
-        cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
 
@@ -777,7 +773,6 @@ class Test(object):
         cr_params_list = [creduce_bin, "--n", str(creduce_n), "--timing", "--timeout",
                           str((run_timeout+compiler_timeout)*2), os.path.abspath(test_sh_file.name),
                           common.append_file_ext("func")]
-        cr_cmd = " ".join(str(p) for p in cr_params_list)
         cr_ret_code, cr_stdout, cr_stderr, cr_is_time_expired, cr_elapsed_time = \
             common.run_cmd(cr_params_list, creduce_timeout, self.proc_num)
 
@@ -1452,7 +1447,6 @@ def print_compilers_version(targets):
 
 
 def check_creduce_version():
-    pass
     try:
         ret_code, stdout, stderr, time_expired, elapsed_time = common.run_cmd([creduce_bin, "--help"], yarpgen_timeout, 0)
         stdout_str = str(stdout, "utf-8")
@@ -1633,25 +1627,20 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
             continue
 
         # Run all required opt-sets.
-        out_res = set()
-        prev_out_res_len = 1  # We can't check first result
         for t in gen_test_makefile.CompilerTarget.all_targets:
-            # Skip the target we are not supposed to run.
-            if t.specs.name not in targets:
-                continue
-            target_elapsed_time = 0.0
+            # Run only specified targets
+            if t.specs.name in targets:
+                test_run = TestRun(test=test, stat=stat, target=t, proc_num=num,
+                                   parse_stats= True if (t.name in stat_targets) else False)
+                if not test_run.build():
+                    test.add_fail_run(test_run)
+                    continue
 
-            test_run = TestRun(test=test, stat=stat, target=t, proc_num=num,
-                               parse_stats= True if (t.name in stat_targets) else False)
-            if not test_run.build():
-                test.add_fail_run(test_run)
-                continue
+                if not test_run.run():
+                    test.add_fail_run(test_run)
+                    continue
 
-            if not test_run.run():
-                test.add_fail_run(test_run)
-                continue
-
-            test.add_success_run(test_run)
+                test.add_success_run(test_run)
 
         # Done with running tests, now verify the results.
         test.handle_results(lock)
