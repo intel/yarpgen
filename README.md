@@ -1,9 +1,9 @@
+Yet Another Random Program Generator
+====================================
+
 [![TravisCI build status (Linux and Mac)](https://travis-ci.org/intel/yarpgen.svg?branch=main)](https://travis-ci.org/intel/yarpgen)
 [![Appveyor build status (Windows and Ubuntu)](https://ci.appveyor.com/api/projects/status/meuyl409mtd4cljb/branch/main?svg=true)](https://ci.appveyor.com/project/webmasterintel/yarpgen/branch/main)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/intel/yarpgen/blob/main/LICENSE.txt)
-
-Yet Another Random Program Generator
-====================================
 
 ``yarpgen`` is a random program generator, which produces correct runnable C/C++ and DPC++(this work is in an early stage) programs. The generator is specifically designed to trigger compiler optimization bugs and is intended for compiler testing.
 
@@ -31,7 +31,8 @@ Building and running
 --------------------
 
 Building ``yarpgen`` is trivial.  All you have to do is to use cmake:
-```
+
+```sh
 mkdir build
 cd build
 cmake ..
