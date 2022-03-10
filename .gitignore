@@ -15,3 +15,8 @@ csmith_statistics_*.log
 
 !*/
 .idea
+*.log
+.vs/
+build/
+out/
+.DS_Store
