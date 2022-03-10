@@ -35,7 +35,7 @@ import sys
 scripts_dir_name = "scripts"
 # $YARPGEN_HOME environment variable should be set to YARPGen directory
 yarpgen_home = os.environ["YARPGEN_HOME"] if "YARPGEN_HOME" in os.environ else os.getcwd()
-yarpgen_scripts = os.path.join(os.environ["YARPGEN_HOME"], scripts_dir_name) if "YARPGEN_HOME" in os.environ else os.getcwd()
+yarpgen_scripts = os.path.join(os.environ["YARPGEN_HOME"], scripts_dir_name) if "YARPGEN_HOME" in os.environ else os.path.dirname(__file__)
 yarpgen_version_str = ""
 
 main_logger_name = "main_logger"
