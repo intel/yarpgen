@@ -77,11 +77,11 @@ class OptionParser {
     static void printHelpAndExit(std::string error_msg = "");
     static bool optionStartsWith(char *option, const char *test);
     static bool parseShortArg(size_t argc, size_t &argv_iter, char **&argv,
-                              OptionDescr option);
+                              OptionDescr *option);
     static bool parseLongArg(size_t &argv_iter, char **&argv,
-                             OptionDescr option);
+                             OptionDescr *option);
     static bool parseLongAndShortArgs(size_t argc, size_t &argv_iter,
-                                      char **&argv, OptionDescr option);
+                                      char **&argv, OptionDescr *option);
 
     static void parseSeed(std::string seed_str);
     static void parseStandard(std::string std);
