@@ -269,15 +269,15 @@ bool OptionParser::optionStartsWith(char *option, const char *test) {
 // This function handles command-line options in form of "-short_arg <value>"
 // and performs action(<value>)
 bool OptionParser::parseShortArg(size_t argc, size_t &argv_iter, char **&argv,
-                                 OptionDescr *option) {
-    std::string short_arg = option->getShortArg();
-    bool has_value = option->hasValue();
-    auto action = option->getAction();
+                                 OptionDescr &option) {
+    std::string short_arg = option.getShortArg();
+    bool has_value = option.hasValue();
+    auto action = option.getAction();
     if (!strcmp(argv[argv_iter], short_arg.c_str())) {
         if (has_value)
             argv_iter++;
         if (argv_iter == argc)
-            printHelpAndExit(option->getErrMsg());
+            printHelpAndExit(option.getErrMsg());
         else {
             if (has_value)
                 action(argv[argv_iter]);
@@ -292,16 +292,16 @@ bool OptionParser::parseShortArg(size_t argc, size_t &argv_iter, char **&argv,
 // This function handles command-line options in form of "--long_arg=<value>"
 // and performs action(<value>)
 bool OptionParser::parseLongArg(size_t &argv_iter, char **&argv,
-                                OptionDescr *option) {
-    std::string long_arg = option->getLongArg();
-    bool has_value = option->hasValue();
-    auto action = option->getAction();
+                                OptionDescr &option) {
+    std::string long_arg = option.getLongArg();
+    bool has_value = option.hasValue();
+    auto action = option.getAction();
     if (has_value)
         long_arg = long_arg + "=";
     if (optionStartsWith(argv[argv_iter], long_arg.c_str())) {
         if (has_value) {
             if (strlen(argv[argv_iter]) == long_arg.size())
-                printHelpAndExit(option->getErrMsg());
+                printHelpAndExit(option.getErrMsg());
             else {
                 action(argv[argv_iter] + long_arg.size());
                 return true;
@@ -313,14 +313,14 @@ bool OptionParser::parseLongArg(size_t &argv_iter, char **&argv,
                 return true;
             }
             else
-                printHelpAndExit(option->getErrMsg());
+                printHelpAndExit(option.getErrMsg());
         }
     }
     return false;
 }
 
 bool OptionParser::parseLongAndShortArgs(size_t argc, size_t &argv_iter,
-                                         char **&argv, OptionDescr *option) {
+                                         char **&argv, OptionDescr &option) {
     return parseLongArg(argv_iter, argv, option) ||
            parseShortArg(argc, argv_iter, argv, option);
 }
@@ -332,7 +332,7 @@ void OptionParser::parse(size_t argc, char *argv[]) {
     for (size_t i = 1; i < argc; ++i) {
         bool parsed = false;
         for (auto &item : options_set)
-            if (parseLongAndShortArgs(argc, i, argv, &item)) {
+            if (parseLongAndShortArgs(argc, i, argv, item)) {
                 parsed = true;
                 break;
             }
