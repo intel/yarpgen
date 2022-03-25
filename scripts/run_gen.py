@@ -1628,19 +1628,20 @@ def gen_and_test(num, makefile, lock, end_time, task_queue, stat, targets, blame
 
         # Run all required opt-sets.
         for t in gen_test_makefile.CompilerTarget.all_targets:
-            # Run only specified targets
-            if t.specs.name in targets:
-                test_run = TestRun(test=test, stat=stat, target=t, proc_num=num,
-                                   parse_stats= True if (t.name in stat_targets) else False)
-                if not test_run.build():
-                    test.add_fail_run(test_run)
-                    continue
+            # Skip the target we are not supposed to run.
+            if t.specs.name not in targets:
+                continue
+            test_run = TestRun(test=test, stat=stat, target=t, proc_num=num,
+                               parse_stats= True if (t.name in stat_targets) else False)
+            if not test_run.build():
+                test.add_fail_run(test_run)
+                continue
 
-                if not test_run.run():
-                    test.add_fail_run(test_run)
-                    continue
+            if not test_run.run():
+                test.add_fail_run(test_run)
+                continue
 
-                test.add_success_run(test_run)
+            test.add_success_run(test_run)
 
         # Done with running tests, now verify the results.
         test.handle_results(lock)
