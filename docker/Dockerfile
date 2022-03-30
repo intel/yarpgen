@@ -10,8 +10,8 @@ ENV LLVM_HOME=$TESTING_HOME/llvm
 ARG LLVM_REPO=https://github.com/llvm/llvm-project.git
 ARG LLVM_VERSION=main
 
-ARG SDE_REPO=https://software.intel.com/content/dam/develop/external/us/en/documents/downloads/
-ARG SDE_VERSION=sde-external-8.69.1-2021-07-18-lin
+ARG SDE_REPO=https://downloadmirror.intel.com/684899
+ARG SDE_VERSION=sde-external-9.0.0-2021-11-07-lin
 
 ENV YARPGEN_HOME=$TESTING_HOME/yarpgen
 ARG YARPGEN_REPO=https://github.com/intel/yarpgen
@@ -35,10 +35,12 @@ RUN apt-get -y update &&\
     g++ \
     git \
     libgmp3-dev \
+    libz-dev \
     ninja-build \
     python3 \
     texinfo \
     wget \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR $TESTING_HOME
@@ -57,8 +59,8 @@ RUN $YARPGEN_HOME/scripts/build_binutils.sh $BINUTILS_REPO
 
 RUN $YARPGEN_HOME/scripts/build_llvm.sh $LLVM_REPO $LLVM_VERSION
 
-RUN wget -U $USER_AGENT --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 5 $SDE_REPO/$SDE_VERSION.tar.bz2
-RUN tar -xf $SDE_VERSION.tar.bz2
+RUN wget -U $USER_AGENT --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 5 $SDE_REPO/$SDE_VERSION.tar.xz
+RUN tar -xf $SDE_VERSION.tar.xz
 ENV PATH=$TESTING_HOME/$SDE_VERSION:$PATH
 
 RUN $YARPGEN_HOME/scripts/build_yarpgen.sh
