@@ -3,6 +3,11 @@ LLVM:
 ====================================
 Version #2
 ---------------
+| `52561 <https://bugs.llvm.org/show_bug.cgi?id=52561>`_ - Assertion failed for sapphirerapids: \`VT.getSizeInBits() == Operand.getValueSizeInBits() && "Cannot BITCAST between types of different sizes!"'
+| `52560 <https://bugs.llvm.org/show_bug.cgi?id=52560>`_ - ICE in backend for sapphirerapids: Cannot select: t60: v8i16 = X86ISD::VZEXT_MOVL t55
+| `52504 <https://bugs.llvm.org/show_bug.cgi?id=52504>`_ - Assertion \`(!From->hasAnyUseOfValue(i) || From->getValueType(i) == To->getValueType(i)) && "Cannot use this version of ReplaceAllUsesWith!"
+| `52335 <https://bugs.llvm.org/show_bug.cgi?id=52335>`_ - Incorrect result with -O1 -march=skx
+| `52273 <https://bugs.llvm.org/show_bug.cgi?id=52273>`_ - ICE in LoopVectorizePass fails for -O1 -fopenmp-simd: Assertion \`!verifyFunction(*L->getHeader()->getParent(), &dbgs())' failed.
 | `52002 <https://bugs.llvm.org/show_bug.cgi?id=52002>`_ - [BDCE with -fopenmp-simd -O3: Assertion \`materialized_use_empty() && "Uses remain when a value is destroyed!"' failed
 | `51923 <https://bugs.llvm.org/show_bug.cgi?id=51923>`_ - [Clang segfaults with loop unroll(enable)
 | `51906 <https://bugs.llvm.org/show_bug.cgi?id=51906>`_ - LICM introduces load in writeonly function (UB)
@@ -103,6 +108,18 @@ Special thanks to Martin Liška for submitting some of them.
 
 Version #2
 ---------------
+| `105587 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105587>`_ -  [13 Regression] ICE in extract_insn, at recog.cc:2791 (error: unrecognizable insn) since r13-210-gfcda0efccad41eba
+| `105189 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105189>`_ -  [9/10/11/12 Regression] Wrong code with -O1
+| `105142 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105142>`_ -  [12 Regression] Wrong code with -O2 since r12-2591
+| `105139 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105139>`_ -  [12 Regression] GCC produces vmovw instruction with an incorrect argument for -O3 -march=sapphirerapids since r12-6215-g708b87dcb6e48cb4
+| `105132 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105132>`_ -  ICE in in operator[], at vec.h:889 with -march=skylake-avx512 -O3 since r12-7246-g4963079769c99c40
+| `104551 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=104551>`_ -  [12 Regression] Wrong code with -O3 for skylake-avx512, icelake-server, and sapphirerapids
+| `103800 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103800>`_ -  [12 Regression] ICE in vectorizable_phi, at tree-vect-loop.c:7861 with -O3 since r12-5626-g0194d92c35ca8b3a
+| `103517 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103517>`_ -  [12 Regression] ICE in as_a, at is-a.h:242 with -O2 -march=skylake-avx512 since r12-5612-g10833849b55401a5
+| `103489 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103489>`_ -  [11/12 Regression] ICE with -O3 in operator[], at vec.h:889 since r12-5394-g0fc859f5efcb4624
+| `103361 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103361>`_ -  [9/10/11/12 Regression] ICE in adjust_unroll_factor, at gimple-loop-jam.c:407 since r12-3677-gf92901a508305f29
+| `103122 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103122>`_ -  [12 Regression] ICE in fill_block_cache, at gimple-range-cache.cc:1277 with -O2 since r12-4866-gfc4076752067fb40
+| `103073 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103073>`_ -  [12 Regression] ICE in insert_access, at ipa-modref-tree.h:578 since r12-4401-gfecd145359fc981b
 | `103037 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103037>`_ - [11/12 Regression] Wrong code with -O2 since r11-6100-gd41b097350d3c5d0
 | `102920 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102920>`_ - [12 Regression] Wrong code with -O3
 | `102622 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102622>`_ - [9/10/12 Regression] Wrong code with -O1 and above due to phiopt and signed one bit integer types
