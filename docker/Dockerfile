@@ -1,4 +1,4 @@
-FROM ubuntu:21.10
+FROM ubuntu:22.04
 
 ENV TESTING_HOME=/testing
 
@@ -10,8 +10,8 @@ ENV LLVM_HOME=$TESTING_HOME/llvm
 ARG LLVM_REPO=https://github.com/llvm/llvm-project.git
 ARG LLVM_VERSION=main
 
-ARG SDE_REPO=https://downloadmirror.intel.com/684899
-ARG SDE_VERSION=sde-external-9.0.0-2021-11-07-lin
+ARG SDE_REPO=https://downloadmirror.intel.com/732268
+ARG SDE_VERSION=sde-external-9.7.0-2022-05-09-lin
 
 ENV YARPGEN_HOME=$TESTING_HOME/yarpgen
 ARG YARPGEN_REPO=https://github.com/intel/yarpgen
