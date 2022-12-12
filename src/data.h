@@ -49,6 +49,7 @@ class Data {
     virtual bool isScalarVar() { return false; }
     virtual bool isArray() { return false; }
     virtual bool isIterator() { return false; }
+    virtual bool isTypedData() { return false; }
 
     virtual DataKind getKind() { return DataKind::MAX_DATA_KIND; }
 
@@ -84,6 +85,26 @@ class Data {
 
 // Shorthand to make it simpler
 using DataType = std::shared_ptr<Data>;
+
+// This class serves as a placeholder for one of the real data classes.
+// We propagate the type information before we propagate values.
+// One option is to separate type from the value and store both. This idea has
+// several downsides:
+// 1. The value already stores the type
+// 2. Type and data will be disjoint from each other, which can lead to
+//    divergence and conflicts between them.
+// Current solution is to create a placeholder class that stores just the type.
+// It should be replaced with real data class after we start to propagate values
+class TypedData : public Data {
+  public:
+    explicit TypedData(std::shared_ptr<Type> _type) : Data("", std::move(_type)) {}
+    bool isTypedData() final { return true; }
+    DataType replaceWith (DataType _new_data);
+    void dbgDump() final;
+    std::shared_ptr<Data> makeVarying() override {
+        return makeVaryingImpl(*this);
+    };
+};
 
 class ScalarVar : public Data {
   public:
@@ -198,7 +219,7 @@ class Iterator : public Data {
   private:
     // TODO: should the expression contain full update on the iterator or only
     // the "meaningful" part?
-    // For know we assume the latter, but it limits expressiveness
+    // For now we assume the latter, but it limits expressiveness
     std::shared_ptr<Expr> start;
     size_t max_left_offset;
     std::shared_ptr<Expr> end;
