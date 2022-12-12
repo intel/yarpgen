@@ -314,7 +314,7 @@ class SubscriptExpr : public Expr {
     std::shared_ptr<Expr> array;
     std::shared_ptr<Expr> idx;
     size_t active_dim;
-    // Auxiliary fields that prevents double computation
+    // Auxiliary fields that prevent double computation
     size_t active_size;
     IntTypeID idx_int_type_id;
     // It is a hack for stencil
@@ -513,7 +513,7 @@ class MinMaxEqReductionBase : public LibCallExpr {
 
 class ReduceMinCall : public MinMaxEqReductionBase {
   public:
-    ReduceMinCall(std::shared_ptr<Expr> _arg)
+    explicit ReduceMinCall(std::shared_ptr<Expr> _arg)
         : MinMaxEqReductionBase(std::move(_arg), LibCallKind::RED_MIN) {}
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx) {
@@ -524,7 +524,7 @@ class ReduceMinCall : public MinMaxEqReductionBase {
 
 class ReduceMaxCall : public MinMaxEqReductionBase {
   public:
-    ReduceMaxCall(std::shared_ptr<Expr> _arg)
+    explicit ReduceMaxCall(std::shared_ptr<Expr> _arg)
         : MinMaxEqReductionBase(std::move(_arg), LibCallKind::RED_MAX) {}
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx) {
@@ -535,7 +535,7 @@ class ReduceMaxCall : public MinMaxEqReductionBase {
 
 class ReduceEqCall : public MinMaxEqReductionBase {
   public:
-    ReduceEqCall(std::shared_ptr<Expr> _arg)
+    explicit ReduceEqCall(std::shared_ptr<Expr> _arg)
         : MinMaxEqReductionBase(std::move(_arg), LibCallKind::RED_EQ) {}
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx) {
@@ -547,7 +547,7 @@ class ReduceEqCall : public MinMaxEqReductionBase {
 class ExtractCall : public LibCallExpr {
     // TODO: it is not a real extract call. We will always use zero as an index
   public:
-    ExtractCall(std::shared_ptr<Expr> _arg);
+    explicit ExtractCall(std::shared_ptr<Expr> _arg);
     bool propagateType() final;
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final {
