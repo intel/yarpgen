@@ -352,3 +352,31 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
     end = populate_impl(type, end);
     step = populate_impl(type, step);
 }
+
+DataType TypedData::replaceWith(DataType _new_data) {
+    auto new_type = _new_data->getType();
+    bool types_match = true;
+    if (type->isIntType() != new_type->isIntType() ||
+        type->isArrayType() != new_type->isArrayType())
+        types_match = false;
+    if (types_match && type->isIntType()) {
+        auto int_type = std::static_pointer_cast<IntegralType>(type);
+        auto new_int_type = std::static_pointer_cast<IntegralType>(new_type);
+        types_match = IntegralType::isSame(int_type, new_int_type);
+    }
+    else if (types_match && type->isArrayType()) {
+        auto array_type = std::static_pointer_cast<ArrayType>(type);
+        auto new_array_type = std::static_pointer_cast<ArrayType>(new_type);
+        types_match = ArrayType::isSame(array_type, new_array_type);
+    }
+    else if (types_match)
+        ERROR("Unsupported type");
+    if (!types_match)
+        ERROR("We can't replace typed data with a one that doesn't have the same type!");
+    return _new_data;
+}
+
+void TypedData::dbgDump() {
+    std::cout << "Typed Data" << std::endl;
+    type->dbgDump();
+}

@@ -33,6 +33,12 @@ std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ArrayUseExpr>>
 std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<IterUseExpr>>
     yarpgen::IterUseExpr::iter_use_set;
 
+static std::shared_ptr<Data> replaceValueWith(std::shared_ptr<Data> &_value, std::shared_ptr<Data> _new_value) {
+    if (_value->isTypedData())
+        return std::static_pointer_cast<TypedData>(_value)->replaceWith(std::move(_new_value));
+    return _new_value;
+}
+
 std::shared_ptr<Data> Expr::getValue() {
     // TODO: it might cause some problems in the future, but it is good for now
     return value;
@@ -276,11 +282,10 @@ void ScalarVarUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 }
 
 Expr::EvalResType ScalarVarUseExpr::evaluate(EvalCtx &ctx) {
-    // This variable is defined and we can just return it.
+    // This variable is defined, and we can just return it.
     auto find_res = ctx.input.find(value->getName(EmitCtx::default_emit_ctx));
-    if (find_res != ctx.input.end()) {
-        return find_res->second;
-    }
+    if (find_res != ctx.input.end())
+        value = find_res->second;
     return value;
 }
 
@@ -326,11 +331,10 @@ void ArrayUseExpr::setValue(std::shared_ptr<Expr> _expr,
 }
 
 Expr::EvalResType ArrayUseExpr::evaluate(EvalCtx &ctx) {
-    // This Array is defined and we can just return it.
+    // This array is defined, and we can just return it.
     auto find_res = ctx.input.find(value->getName(EmitCtx::default_emit_ctx));
-    if (find_res != ctx.input.end()) {
-        return find_res->second;
-    }
+    if (find_res != ctx.input.end())
+        value = find_res->second;
 
     return value;
 }
@@ -360,12 +364,10 @@ void IterUseExpr::setValue(std::shared_ptr<Expr> _expr) {
 }
 
 Expr::EvalResType IterUseExpr::evaluate(EvalCtx &ctx) {
-    // This iterator is defined and we can just return it.
+    // This iterator is defined, and we can just return it.
     auto find_res = ctx.input.find(value->getName(EmitCtx::default_emit_ctx));
-    if (find_res != ctx.input.end()) {
-        return find_res->second;
-    }
-
+    if (find_res != ctx.input.end())
+        value = find_res->second;
     return value;
 }
 
@@ -375,14 +377,13 @@ TypeCastExpr::TypeCastExpr(std::shared_ptr<Expr> _expr,
                            std::shared_ptr<Type> _to_type, bool _is_implicit)
     : expr(std::move(_expr)), to_type(std::move(_to_type)),
       is_implicit(_is_implicit) {
-    propagateType();
+    assert(to_type->isIntType() && "We can cast only integral types for now");
+    auto to_int_type = std::static_pointer_cast<IntegralType>(to_type);
+    value = std::make_shared<TypedData>(to_int_type);
 }
 
 bool TypeCastExpr::propagateType() {
-    assert(to_type->isIntType() && "We can cast only integral types for now");
-    auto to_int_type = std::static_pointer_cast<IntegralType>(to_type);
-    value = std::make_shared<ScalarVar>("", to_int_type,
-                                        IRValue(to_int_type->getIntTypeId()));
+    expr->propagateType();
     return true;
 }
 
@@ -441,7 +442,7 @@ Expr::EvalResType TypeCastExpr::evaluate(EvalCtx &ctx) {
                 ERROR("Can't cast varying to uniform");
         }
 
-        value = scalar_val;
+        value = replaceValueWith(value, scalar_val);
     }
     else {
         // TODO: extend it
@@ -476,7 +477,7 @@ Expr::EvalResType TypeCastExpr::rebuild(EvalCtx &ctx) {
 }
 
 std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
-    if (!arg->getValue()->isScalarVar()) {
+    if (!arg->getValue()->isScalarVar() && !arg->getValue()->isTypedData()) {
         ERROR("Can perform integral promotion only on scalar variables");
     }
 
@@ -497,7 +498,7 @@ std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
 }
 
 std::shared_ptr<Expr> ArithmeticExpr::convToBool(std::shared_ptr<Expr> arg) {
-    if (!arg->getValue()->isScalarVar()) {
+    if (!arg->getValue()->isScalarVar() && !arg->getValue()->isTypedData()) {
         ERROR("Can perform conversion to bool only on scalar variables");
     }
 
@@ -926,6 +927,7 @@ bool UnaryExpr::propagateType() {
             ERROR("Bad unary operator");
             break;
     }
+    value = std::make_shared<TypedData>(arg->getValue()->getType());
     return true;
 }
 
@@ -956,11 +958,11 @@ Expr::EvalResType UnaryExpr::evaluate(EvalCtx &ctx) {
     assert(scalar_arg->getType()->isIntType() &&
            "Unary operations are supported for Scalar Variables of Integral "
            "Types only");
-    value = std::make_shared<ScalarVar>(
+    value = replaceValueWith(value, std::make_shared<ScalarVar>(
         "",
         IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
                            arg->getValue()->getType()->isUniform()),
-        new_val);
+        new_val));
     return value;
 }
 
@@ -1029,9 +1031,6 @@ std::shared_ptr<UnaryExpr> UnaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
 UnaryExpr::UnaryExpr(UnaryOp _op, std::shared_ptr<Expr> _expr)
     : op(_op), arg(std::move(_expr)) {
-    propagateType();
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool BinaryExpr::propagateType() {
@@ -1076,21 +1075,29 @@ bool BinaryExpr::propagateType() {
             ERROR("Bad operation code");
             break;
     }
+    bool result_is_bool = op == BinaryOp::LT ||
+                          op == BinaryOp::GT ||
+                          op == BinaryOp::LE ||
+                          op == BinaryOp::GE ||
+                          op == BinaryOp::EQ ||
+                          op == BinaryOp::NE;
+    value = std::make_shared<TypedData>(result_is_bool ? IntegralType::init(IntTypeID::BOOL) : lhs->getValue()->getType());
+
     return true;
 }
 
 Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
     propagateType();
-    if (lhs->getValue()->getKind() != DataKind::VAR ||
-        rhs->getValue()->getKind() != DataKind::VAR) {
+    EvalResType lhs_eval_res = lhs->evaluate(ctx);
+    EvalResType rhs_eval_res = rhs->evaluate(ctx);
+
+    if (lhs_eval_res->getKind() != DataKind::VAR ||
+        rhs_eval_res->getKind() != DataKind::VAR) {
         ERROR("Binary operations are supported only for scalar variables");
     }
 
-    lhs->evaluate(ctx);
-    rhs->evaluate(ctx);
-
-    auto lhs_scalar_var = std::static_pointer_cast<ScalarVar>(lhs->getValue());
-    auto rhs_scalar_var = std::static_pointer_cast<ScalarVar>(rhs->getValue());
+    auto lhs_scalar_var = std::static_pointer_cast<ScalarVar>(lhs_eval_res);
+    auto rhs_scalar_var = std::static_pointer_cast<ScalarVar>(rhs_eval_res);
 
     IRValue lhs_val = lhs_scalar_var->getCurrentValue();
     IRValue rhs_val = rhs_scalar_var->getCurrentValue();
@@ -1157,11 +1164,11 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
             break;
     }
 
-    value = std::make_shared<ScalarVar>(
+    value = replaceValueWith(value, std::make_shared<ScalarVar>(
         "",
         IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
                            lhs->getValue()->getType()->isUniform()),
-        new_val);
+        new_val));
     return value;
 }
 
@@ -1381,8 +1388,6 @@ void BinaryExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 BinaryExpr::BinaryExpr(BinaryOp _op, std::shared_ptr<Expr> _lhs,
                        std::shared_ptr<Expr> _rhs)
     : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 std::shared_ptr<BinaryExpr>
@@ -1399,8 +1404,6 @@ TernaryExpr::TernaryExpr(std::shared_ptr<Expr> _cond,
                          std::shared_ptr<Expr> _false_br)
     : cond(std::move(_cond)), true_br(std::move(_true_br)),
       false_br(std::move(_false_br)) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool TernaryExpr::propagateType() {
@@ -1423,6 +1426,7 @@ bool TernaryExpr::propagateType() {
     true_br = integralProm(true_br);
     false_br = integralProm(false_br);
     arithConv(true_br, false_br);
+    value = std::make_shared<TypedData>(true_br->getValue()->getType());
     return true;
 }
 
@@ -1435,9 +1439,9 @@ Expr::EvalResType TernaryExpr::evaluate(EvalCtx &ctx) {
     IRValue cond_val =
         std::static_pointer_cast<ScalarVar>(cond_eval)->getCurrentValue();
     if (cond_val.getValueRef<bool>())
-        value = true_br->evaluate(ctx);
+        value = replaceValueWith(value, true_br->evaluate(ctx));
     else
-        value = false_br->evaluate(ctx);
+        value = replaceValueWith(value, false_br->evaluate(ctx));
     return value;
 }
 
@@ -1471,31 +1475,45 @@ TernaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 bool SubscriptExpr::propagateType() {
     array->propagateType();
     idx->propagateType();
+
+    IRNodeKind base_expr_kind = array->getKind();
+    if (base_expr_kind == IRNodeKind::ARRAY_USE)
+        active_dim = 0;
+    else if (base_expr_kind == IRNodeKind::SUBSCRIPT) {
+        auto base_expr = std::static_pointer_cast<SubscriptExpr>(array);
+        active_dim = base_expr->getActiveDim() + 1;
+    }
+    else
+        ERROR("Bad base expression for Subscription operation");
+
+    auto array_type =
+        std::static_pointer_cast<ArrayType>(array->getValue()->getType());
+    if (active_dim < array_type->getDimensions().size() - 1)
+        value = std::make_shared<TypedData>(array_type);
+    else {
+        if (!array_type->getBaseType()->isIntType())
+            ERROR("Only integral types are supported for now");
+        value = std::make_shared<TypedData>(array_type->getBaseType());
+    }
+
     return true;
 }
 
 bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
                              EvalCtx &ctx) {
+    //TODO: this function is known to cause slowdowns. We need to check it later
+
     if (idx_val->isScalarVar()) {
         auto scalar_var = std::static_pointer_cast<ScalarVar>(idx_val);
         IRValue idx_scalar_val = scalar_var->getCurrentValue();
         idx_int_type_id = idx_scalar_val.getIntTypeID();
-        IRValue zero(idx_scalar_val.getIntTypeID());
-        zero.setValue({false, 0});
-        IRValue size(idx_scalar_val.getIntTypeID());
-        size.setValue({false, dim});
-
-        assert(scalar_var->getType()->isIntType() &&
-               "Scalar variable can have only integral type for now");
-        auto int_type =
-            std::static_pointer_cast<IntegralType>(scalar_var->getType());
-        IntTypeID max_type_id =
-            int_type->getIsSigned() ? IntTypeID::LLONG : IntTypeID::ULLONG;
-        idx_scalar_val = idx_scalar_val.castToType(max_type_id);
-        zero = zero.castToType(max_type_id);
-        size = size.castToType(max_type_id);
-        return (zero <= idx_scalar_val).getValueRef<bool>() &&
-               (idx_scalar_val <= size).getValueRef<bool>();
+        // The boundary check has to be done in C++. If we try to use the
+        // fuzzer IR, this will cause a huge performance penalty (~10x slowdown)
+        auto idx_abs_val = idx_scalar_val.getAbsValue();
+        int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
+        int64_t full_idx_val = idx_int_val + stencil_offset;
+        bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
+        return in_bounds;
     }
     else if (idx_val->isIterator()) {
         auto iter_var = std::static_pointer_cast<Iterator>(idx_val);
@@ -1518,16 +1536,6 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     auto array_type =
         std::static_pointer_cast<ArrayType>(array_eval_res->getType());
 
-    IRNodeKind base_expr_kind = array->getKind();
-    if (base_expr_kind == IRNodeKind::ARRAY_USE)
-        active_dim = 0;
-    else if (base_expr_kind == IRNodeKind::SUBSCRIPT) {
-        auto base_expr = std::static_pointer_cast<SubscriptExpr>(array);
-        active_dim = base_expr->getActiveDim() + 1;
-    }
-    else
-        ERROR("Bad base expression for Subscription operation");
-
     active_size = array_type->getDimensions().at(active_dim);
     UBKind ub_code = UBKind::NoUB;
 
@@ -1536,15 +1544,15 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         ub_code = UBKind::OutOfBounds;
 
     if (active_dim < array_type->getDimensions().size() - 1)
-        value = array_eval_res;
+        value = replaceValueWith(value, array_eval_res);
     else {
         auto array_val = std::static_pointer_cast<Array>(array_eval_res);
         if (!array_type->getBaseType()->isIntType())
             ERROR("Only integral types are supported for now");
-        value = std::make_shared<ScalarVar>(
+        value = replaceValueWith(value, std::make_shared<ScalarVar>(
             "",
             std::static_pointer_cast<IntegralType>(array_type->getBaseType()),
-            std::get<0>(array_val->getCurrentValues()));
+            std::get<0>(array_val->getCurrentValues())));
     }
 
     Options &options = Options::getInstance();
@@ -1552,7 +1560,7 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         if ((!idx->getValue()->getType()->isUniform() ||
              !array->getValue()->getType()->isUniform()) &&
             value->getType()->isUniform())
-            value = value->makeVarying();
+            value = replaceValueWith(value, value->makeVarying());
     }
 
     value->setUBCode(ub_code);
@@ -1643,8 +1651,6 @@ SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
     : array(std::move(_arr)), idx(std::move(_idx)), active_dim(0),
       active_size(-1), idx_int_type_id(IntTypeID::MAX_INT_TYPE_ID),
       stencil_offset(0) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr,
@@ -1794,9 +1800,10 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
 
 bool AssignmentExpr::propagateType() {
     to->propagateType();
-    from->propagateType();
     from =
         std::make_shared<TypeCastExpr>(from, to->getValue()->getType(), true);
+    from->propagateType();
+    value = std::make_shared<TypedData>(from->getValue()->getType());
     return true;
 }
 
@@ -1996,8 +2003,6 @@ void LibCallExpr::cxxArgPromotion(std::shared_ptr<Expr> &arg,
 MinMaxCallBase::MinMaxCallBase(std::shared_ptr<Expr> _a,
                                std::shared_ptr<Expr> _b, LibCallKind _kind)
     : a(std::move(_a)), b(std::move(_b)), kind(_kind) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool MinMaxCallBase::propagateType() {
@@ -2016,7 +2021,7 @@ bool MinMaxCallBase::propagateType() {
             ispcArgPromotion(b);
         }
     }
-
+    value = std::make_shared<TypedData>(a->getValue()->getType());
     return true;
 }
 
@@ -2050,7 +2055,7 @@ Expr::EvalResType MinMaxCallBase::evaluate(yarpgen::EvalCtx &ctx) {
         res_val = (a_max_val < b_max_val).getValueRef<bool>() ? a_val : b_val;
     else
         ERROR("Unsupported LibCallKind");
-    value = std::make_shared<ScalarVar>("", a_int_type, res_val);
+    value = replaceValueWith(value, std::make_shared<ScalarVar>("", a_int_type, res_val));
 
     return value;
 }
@@ -2143,8 +2148,6 @@ SelectCall::SelectCall(std::shared_ptr<Expr> _cond,
                        std::shared_ptr<Expr> _false_arg)
     : cond(std::move(_cond)), true_arg(std::move(_true_arg)),
       false_arg(std::move(_false_arg)) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool SelectCall::propagateType() {
@@ -2181,6 +2184,7 @@ bool SelectCall::propagateType() {
             ispcArgPromotion(false_arg);
         }
     }
+    value = std::make_shared<TypedData>(true_arg->getValue()->getType());
     return true;
 }
 
@@ -2194,9 +2198,9 @@ Expr::EvalResType SelectCall::evaluate(EvalCtx &ctx) {
                         .getValueRef<bool>();
     // TODO: check if select is generated with short-circuit logic
     if (cond_val)
-        value = true_arg->evaluate(ctx);
+        value = replaceValueWith(value, true_arg->evaluate(ctx));
     else
-        value = false_arg->evaluate(ctx);
+        value = replaceValueWith(value, false_arg->evaluate(ctx));
     return value;
 }
 
@@ -2229,8 +2233,6 @@ SelectCall::create(std::shared_ptr<PopulateCtx> ctx) {
 LogicalReductionBase::LogicalReductionBase(std::shared_ptr<Expr> _arg,
                                            LibCallKind _kind)
     : arg(std::move(_arg)), kind(_kind) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool LogicalReductionBase::propagateType() {
@@ -2240,6 +2242,7 @@ bool LogicalReductionBase::propagateType() {
         cxxArgPromotion(arg, IntTypeID::BOOL);
     if (!isAnyArgVarying({arg}))
         ispcArgPromotion(arg);
+    value = std::make_shared<TypedData>(arg->getValue()->getType());
     return true;
 }
 
@@ -2260,7 +2263,7 @@ Expr::EvalResType LogicalReductionBase::evaluate(EvalCtx &ctx) {
             IRValue::AbsValue{false, !arg_val.getValueRef<bool>()});
     else
         ERROR("Unsupported LibCallKind");
-    value = std::make_shared<ScalarVar>("", type, init_val);
+    value = replaceValueWith(value, std::make_shared<ScalarVar>("", type, init_val));
     return value;
 }
 
@@ -2297,8 +2300,6 @@ LogicalReductionBase::createHelper(std::shared_ptr<PopulateCtx> ctx,
 MinMaxEqReductionBase::MinMaxEqReductionBase(std::shared_ptr<Expr> _arg,
                                              LibCallKind _kind)
     : arg(std::move(_arg)), kind(_kind) {
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool MinMaxEqReductionBase::propagateType() {
@@ -2309,6 +2310,7 @@ bool MinMaxEqReductionBase::propagateType() {
         cxxArgPromotion(arg, IntTypeID::INT);
     if (!isAnyArgVarying({arg}))
         ispcArgPromotion(arg);
+    value = std::make_shared<TypedData>(kind != LibCallKind::RED_EQ ? arg->getValue()->getType() : IntegralType::init(IntTypeID::BOOL));
     return true;
 }
 
@@ -2322,14 +2324,14 @@ Expr::EvalResType MinMaxEqReductionBase::evaluate(EvalCtx &ctx) {
     if (!arg_eval_res->getType()->isIntType())
         ERROR("Reduce_min/max accept only integral types");
     if (kind == LibCallKind::RED_MIN || kind == LibCallKind::RED_MAX)
-        value = std::make_shared<ScalarVar>(
+        value = replaceValueWith(value, std::make_shared<ScalarVar>(
             "", std::static_pointer_cast<IntegralType>(arg_eval_res->getType()),
-            arg_val);
+            arg_val));
     else if (kind == LibCallKind::RED_EQ) {
         IRValue init_val(IntTypeID::BOOL);
         init_val.setValue(IRValue::AbsValue{false, true});
-        value = std::make_shared<ScalarVar>(
-            "", IntegralType::init(IntTypeID::BOOL), init_val);
+        value = replaceValueWith(value, std::make_shared<ScalarVar>(
+            "", IntegralType::init(IntTypeID::BOOL), init_val));
     }
     else
         ERROR("Unsupported LibCallKind");
@@ -2370,12 +2372,11 @@ ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg) {
     IRValue idx_val(IntTypeID::UINT);
     idx_val.setValue(IRValue::AbsValue{false, 0});
     idx = std::make_shared<ConstantExpr>(idx_val);
-    EvalCtx ctx;
-    evaluate(ctx);
 }
 
 bool ExtractCall::propagateType() {
     arg->propagateType();
+    value = std::make_shared<TypedData>(arg->getValue()->getType());
     return true;
 }
 
@@ -2391,7 +2392,7 @@ Expr::EvalResType ExtractCall::evaluate(EvalCtx &ctx) {
     auto arg_type =
         std::static_pointer_cast<IntegralType>(arg_eval_res->getType());
     auto ret_type = IntegralType::init(arg_type->getIntTypeId());
-    value = std::make_shared<ScalarVar>("", ret_type, arg_val);
+    value = replaceValueWith(value, std::make_shared<ScalarVar>("", ret_type, arg_val));
     return value;
 }
 
