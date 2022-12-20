@@ -55,6 +55,22 @@ PopulateCtx::PopulateCtx() {
     in_stencil = false;
 }
 
+size_t PopulateCtx::generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const {
+    if (dims_use_kind == ArrayDimsUseKind::SAME ||
+        (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() == 1))
+        return dims.size();
+    else if (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() > 1)
+        return rand_val_gen->getRandValue(static_cast<size_t>(1),
+                                          dims.size() - 1);
+    else if (dims_use_kind == ArrayDimsUseKind::MORE)
+        return rand_val_gen->getRandValue(
+            dims.size() + 1,
+            static_cast<size_t>(
+                std::ceil(dims.size() * gen_policy->arrays_dims_ext_factor)));
+    else
+        ERROR("Unsupported case!");
+}
+
 void SymbolTable::addArray(std::shared_ptr<Array> array) {
     arrays.push_back(array);
     assert(array->getType()->isArrayType() &&

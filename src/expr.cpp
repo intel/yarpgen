@@ -22,6 +22,7 @@ limitations under the License.
 #include "options.h"
 #include <algorithm>
 #include <deque>
+#include <stack>
 #include <utility>
 
 using namespace yarpgen;
@@ -673,6 +674,235 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
     new_ctx->setGenPolicy(new_gen_pol);
 
+    std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> avail_dims;
+    std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> chosen_dims;
+    // We check if iterator can be used to create a
+    // subscription expr with offset
+    // TODO: each iterator can be used only once for now. We need to fix that
+    for (size_t i = 0; i < new_ctx->getDimensions().size(); ++i) {
+        auto used_iter = new_ctx->getLocalSymTable()->getIters().at(i);
+        size_t max_left_offset = used_iter->getMaxLeftOffset();
+        size_t max_right_offset = used_iter->getMaxRightOffset();
+        bool non_zero_offset_exists =
+            (max_left_offset > 0) || (max_right_offset > 0);
+        if (non_zero_offset_exists)
+            avail_dims.emplace_back(i, used_iter);
+    }
+
+    std::vector<std::shared_ptr<Array>> active_arrs;
+
+    // Check if we need to make a synchronized decisions about arrays
+    bool same_dims_all =
+        rand_val_gen->getRandId(gen_pol->stencil_same_dims_all_distr);
+    if (same_dims_all && !avail_dims.empty()) {
+        // First, we need to check which iterators can support stencil
+        // We want to save information about iterator and
+        // dimension's idx correspondence
+        assert(!new_ctx->getDimensions().empty() &&
+               "Can't create stencil in scalar context!");
+        // The total number of active dims can't be larger than the one that we
+        // have
+        // TODO: the uniform distribution is probably not the best option here
+        // TODO: we might want to have more active dims than iterators can
+        // provide
+        // TODO: we might want to have a separate item in generation policy to
+        // control this
+        size_t num_of_active_dims = rand_val_gen->getRandValue(
+            static_cast<size_t>(1), avail_dims.size());
+        chosen_dims =
+            rand_val_gen->getRandElems(avail_dims, num_of_active_dims);
+        size_t max_dim_idx =
+            std::max_element(
+                chosen_dims.begin(), chosen_dims.end(),
+                [](const std::pair<size_t, std::shared_ptr<Iterator>> &a,
+                   const std::pair<size_t, std::shared_ptr<Iterator>> &b)
+                    -> bool { return a.first < b.first; })
+                ->first;
+        // Second, we need to see which arrays can satisfy these constraints
+        std::vector<std::shared_ptr<Array>> avail_arrays;
+        for (const auto &array : SubscriptExpr::getSuitableArrays(new_ctx)) {
+            auto arr_type = array->getType();
+            assert(arr_type->isArrayType() && "Array should have array type");
+            auto real_arr_type = std::static_pointer_cast<ArrayType>(arr_type);
+            if (real_arr_type->getDimensions().size() >= num_of_active_dims &&
+                real_arr_type->getDimensions().size() < max_dim_idx)
+                avail_arrays.push_back(array);
+        }
+        // Third, we need to pick active arrays
+        // TODO: we need a better mechanism to pick arrays
+        if (!avail_arrays.empty()) {
+            size_t num_of_active_arrs = std::min(
+                rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
+                avail_arrays.size());
+            active_arrs =
+                rand_val_gen->getRandElems(avail_arrays, num_of_active_arrs);
+        }
+
+        // Fallback strategy
+        if (active_arrs.empty())
+            same_dims_all = false;
+    }
+
+    // After that, we can process other special cases that doesn't involve
+    // synchronized decisions
+    bool same_dims_each = !same_dims_all &&
+        rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
+    if (same_dims_each && !avail_dims.empty()) {
+        // TODO: this is a possible place to cause a significant slowdown.
+        // We need to check the performance and fix it if necessary
+        std::vector<std::shared_ptr<Array>> avail_arrs;
+        for (const auto &array : SubscriptExpr::getSuitableArrays(new_ctx)) {
+            auto array_type = array->getType();
+            assert(array_type->isArrayType() &&
+                   "Array should have an array type");
+            auto true_array_type =
+                std::static_pointer_cast<ArrayType>(array_type);
+            size_t array_dims = true_array_type->getDimensions().size();
+            auto dims_kind = rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
+            bool suit_array = (dims_kind == ArrayDimsUseKind::FEWER &&
+                               array_dims < new_ctx->getDimensions().size()) ||
+                              (dims_kind == ArrayDimsUseKind::SAME &&
+                               array_dims == new_ctx->getDimensions().size()) ||
+                              (dims_kind == ArrayDimsUseKind::MORE &&
+                               array_dims > new_ctx->getDimensions().size());
+            if (suit_array)
+                avail_arrs.push_back(array);
+        }
+
+        // This is a fall-back strategy. If we've decided to have a stencil, it
+        // is more important than subscription settings
+        if (avail_arrs.empty())
+            avail_arrs = SubscriptExpr::getSuitableArrays(new_ctx);
+
+        size_t num_of_active_arrs =
+            std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
+                     avail_arrs.size());
+
+        active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
+    }
+
+    if (active_arrs.empty()) {
+        auto avail_arrs = SubscriptExpr::getSuitableArrays(new_ctx);
+        size_t num_of_active_arrs =
+            std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
+                     avail_arrs.size());
+        active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
+    }
+
+    std::vector<ArrayStencilParams> stencils;
+    // TODO: we can do it with initialization list
+    stencils.reserve(active_arrs.size());
+    for (auto &i : active_arrs) {
+        auto arr_type = std::static_pointer_cast<ArrayType>(i->getType());
+        assert(new_ctx->getDimensions().front() <= arr_type->getDimensions().front() &&
+               "Array dimensions can't be larger than context dimensions");
+        stencils.emplace_back(i);
+    }
+
+    // Generate offsets for special cases
+    // It is easier to do it in this loop, so we don't have to process the
+    // stencil parameters twice
+    bool same_offset_all =
+        same_dims_all &&
+        rand_val_gen->getRandId(gen_pol->stencil_reuse_offset_distr);
+    std::vector<int64_t> chosen_offsets;
+    for (auto &stencil : stencils) {
+        if (!same_dims_each || !same_dims_all)
+            break;
+
+        auto array_type =
+            std::static_pointer_cast<ArrayType>(stencil.getArray()->getType());
+        size_t array_dims = array_type->getDimensions().size();
+
+        // This is the case only for same_dims_each
+        // Otherwise, we would select chosen_dims earlier.
+        // avail_dims check is also a precaution
+        if (same_dims_each) {
+            assert(chosen_dims.empty() && "chosen_dims should not be selected before");
+            assert(!avail_dims.empty() && "We can't create a subscript access with offset if none of the iterators support it");
+            size_t num_of_active_dims = std::min(
+                array_dims, rand_val_gen->getRandValue(static_cast<size_t>(1),
+                                                       avail_dims.size()));
+            chosen_dims =
+                rand_val_gen->getRandElems(avail_dims, num_of_active_dims);
+        }
+
+        if (same_offset_all) {
+            for (auto &dim : chosen_dims) {
+                size_t max_left_offset = dim.second->getMaxLeftOffset();
+                size_t max_right_offset = dim.second->getMaxRightOffset();
+                assert((max_left_offset > 0 || max_right_offset > 0) &&
+                       "We should have a non-zero offset at this point");
+                int64_t new_offset = 0;
+                while (new_offset == 0) {
+                    new_offset = rand_val_gen->getRandValue(
+                        -static_cast<int64_t>(max_left_offset),
+                        static_cast<int64_t>(max_right_offset));
+                }
+                chosen_offsets.push_back(new_offset);
+            }
+        }
+
+        // We use binary vector to indicate if dimension can be used for
+        // subscript expr with offset. Now we convert chosen active
+        // dimensions indexes to such vector
+
+        std::vector<size_t> new_dims(array_dims, false);
+        std::vector<std::shared_ptr<Iterator>> new_iters(array_dims, nullptr);
+        std::vector<int64_t> new_offsets;
+        if (same_offset_all)
+            new_offsets = std::vector<int64_t>(array_dims, 0);
+
+        // TODO: we don't care about matching iterator with its proper dimension
+        //  for now
+        std::vector<size_t> tmp_indexes(array_dims, 0);
+        std::iota(std::begin(tmp_indexes), std::end(tmp_indexes), 0);
+        rand_val_gen->shuffleVector(tmp_indexes);
+        assert(chosen_dims.size() <= tmp_indexes.size() &&
+               "We can't have more active dims than the array has");
+        std::stack<size_t, std::vector<size_t>> indexes(tmp_indexes);
+
+        for (const auto &chosen_dim : chosen_dims) {
+            size_t idx = chosen_dim.first;
+            // TODO: looks bad
+            // This hack allows us to use the chosen dimensions in a random
+            // array's dimension
+            if (same_dims_each) {
+                idx = indexes.top();
+                indexes.pop();
+            }
+            new_dims.at(idx) = true;
+            new_iters.at(idx) = chosen_dim.second;
+            if (same_offset_all)
+                new_offsets.at(idx) = chosen_offsets.at(idx);
+        }
+
+        if (same_dims_all) {
+            for (auto &item : stencils) {
+                item.setActiveDims(new_dims);
+                item.setIters(new_iters);
+                if (same_offset_all)
+                    item.setOffsets(new_offsets);
+            }
+            break;
+        }
+
+        // If same_dims_each is set is the only possible case
+        stencil.setActiveDims(new_dims);
+        stencil.setIters(new_iters);
+        if (same_dims_each)
+            chosen_dims.clear();
+    }
+
+    new_ctx->getLocalSymTable()->setStencilsParams(stencils);
+
+    new_ctx->setInStencil(true);
+    new_node = ArithmeticExpr::create(new_ctx);
+    new_ctx->setInStencil(false);
+    return new_node;
+
+#if 0
+
     // Pick arrays for stencil
     auto avail_arrays = SubscriptExpr::getSuitableArrays(new_ctx);
     size_t arrs_in_stencil_num =
@@ -796,6 +1026,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     new_node = ArithmeticExpr::create(new_ctx);
     new_ctx->setInStencil(false);
     return new_node;
+#endif
 }
 
 std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
@@ -1513,6 +1744,9 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
         int64_t full_idx_val = idx_int_val + stencil_offset;
         bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
+        if (!in_bounds) {
+            std::cout << "Bounds: " << dim << " " << idx_abs_val.value << std::endl;
+        }
         return in_bounds;
     }
     else if (idx_val->isIterator()) {
@@ -1540,6 +1774,7 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     UBKind ub_code = UBKind::NoUB;
 
     EvalResType idx_eval_res = idx->evaluate(ctx);
+
     if (!inBounds(active_size, idx_eval_res, ctx))
         ub_code = UBKind::OutOfBounds;
 
@@ -1564,6 +1799,15 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     }
 
     value->setUBCode(ub_code);
+
+    if (value->hasUB()) {
+        std::cout << "UB: " << std::endl;
+        emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+
+        std::cout << active_size << " " << (std::static_pointer_cast<ScalarVar>(idx_eval_res)->getCurrentValue().getAbsValue().value) << std::endl;
+    }
+
 
     return value;
 }
@@ -1606,26 +1850,15 @@ void SubscriptExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
 std::vector<std::shared_ptr<Array>>
 SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
-    auto arrs_with_dim =
-        ctx->getExtInpSymTable()->getArraysWithDimNum(ctx->getLoopDepth());
+    auto arrays = ctx->getExtInpSymTable()->getArrays();
     std::vector<std::shared_ptr<Array>> avail_arrs;
-    for (auto &arr : arrs_with_dim) {
+    for (auto &arr : arrays) {
         assert(arr->getType()->isArrayType() &&
                "Array should have an array type");
         auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
-        bool suit_arr = true;
-        assert(arr_type->getDimensions().size() <= ctx->getLoopDepth() &&
-               "Array and context should have same number of dimensions to "
-               "create a SubscriptionExpr");
-        assert(ctx->getLoopDepth() <= ctx->getDimensions().size());
-        for (size_t i = 0; i < arr_type->getDimensions().size(); ++i) {
-            if (arr_type->getDimensions().at(i) < ctx->getDimensions().at(i)) {
-                suit_arr = false;
-                break;
-            }
-        }
-        if (suit_arr)
-            avail_arrs.push_back(arr);
+        if (arr_type->getDimensions().front() < ctx->getDimensions().front())
+            continue;
+        avail_arrs.push_back(arr);
     }
     assert(!avail_arrs.empty());
     return avail_arrs;
@@ -1634,12 +1867,19 @@ SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
 std::shared_ptr<SubscriptExpr>
 SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     if (ctx->getInStencil()) {
+        std::cout << "Stencil" << std::endl;
         auto array_params = rand_val_gen->getRandElem(
             ctx->getLocalSymTable()->getStencilsParams());
-        return initImpl(array_params, ctx);
+        auto new_expr = initImpl(array_params, ctx);
+        return new_expr;
     }
     else {
+        std::cout << "Normal " << ctx->getDimensions().front() << std::endl;
         auto avail_arrs = getSuitableArrays(ctx);
+        for (const auto &arr : avail_arrs) {
+            std::cout << arr->getName(std::make_shared<EmitCtx>()) << " ";
+            std::cout << std::static_pointer_cast<ArrayType>(arr->getType())->getDimensions().front() << std::endl;
+        }
         auto inp_arr = rand_val_gen->getRandElem(avail_arrs);
         return init(inp_arr, ctx);
     }
@@ -1713,7 +1953,7 @@ void SubscriptExpr::setIsDead(bool val) {
 std::shared_ptr<SubscriptExpr>
 SubscriptExpr::init(std::shared_ptr<Array> arr,
                     std::shared_ptr<PopulateCtx> ctx) {
-    return initImpl(ArrayStencilParams(arr), ctx);
+    return initImpl(ArrayStencilParams(std::move(arr)), std::move(ctx));
 }
 
 std::shared_ptr<SubscriptExpr>
@@ -1728,17 +1968,14 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     assert(array->getType()->isArrayType() &&
            "We can create a SubscriptExpr only for arrays");
     auto array_type = std::static_pointer_cast<ArrayType>(array->getType());
-    assert(array_type->getDimensions().size() <=
-               ctx->getLocalSymTable()->getIters().size() &&
-           "We can create a SubscriptExpr only if we have enough iterators");
 
     // Generation Rules
     // Stencil | Dims defined | Active dim | Offset set || Iter  | Offset
-    //    0    |    X         |    X       |      X     ||  Gen  |  0
-    //    1    |    0       --|--> 0     --|-->   0     ||  Gen  |  Gen w/ prob
-    //    1    |    1         |    0     --|-->   0     ||  Gen  |  0
-    //    1    |    1         |    1       |      0     ||  Gen  |  Gen
-    //    1    |    1         |    1       |      1     ||  Load |  Load
+    //    0    |      X       |     X      |      X     ||  Gen  | 0
+    //    1    |      0     --|-->  0    --|-->   0     ||  Gen  | Gen w/ prob
+    //    1    |      1       |     0    --|-->   0     ||  Gen  | 0
+    //    1    |      1       |     1      |      0     ||  Gen  | Gen
+    //    1    |      1       |     1      |      1     ||  Load | Load
 
     auto stencil_dims = array_params.getActiveDims();
     for (size_t i = 0; i < array_type->getDimensions().size(); ++i) {
@@ -1756,7 +1993,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         }
         else {
             // Generate iter
-            iter = ctx->getLocalSymTable()->getIters().at(i);
+            iter = rand_val_gen->getRandElem(ctx->getLocalSymTable()->getIters());
             iter_use_expr = std::make_shared<IterUseExpr>(iter);
         }
 
@@ -1795,7 +2032,14 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         res_expr = new_expr;
     }
 
-    return std::static_pointer_cast<SubscriptExpr>(res_expr);
+    auto new_expr = std::static_pointer_cast<SubscriptExpr>(res_expr);
+
+    std::cout << "Subs create: ";
+    new_expr->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << std::endl;
+    std::cout << (ctx->getDimensions().empty() ? 0 : ctx->getDimensions().back()) << std::endl;
+
+    return new_expr;
 }
 
 bool AssignmentExpr::propagateType() {

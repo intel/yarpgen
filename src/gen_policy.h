@@ -152,6 +152,25 @@ class GenPolicy {
     // Probability to leave UB in DeadCode when it is allowed
     std::vector<Probability<bool>> ub_in_dc_prob;
 
+    // Probability to generate array with dims that are in natural order of
+    // context
+    std::vector<Probability<bool>> array_dims_in_order_prob;
+    std::vector<Probability<bool>> array_reuse_dim_prob;
+    std::vector<Probability<ArrayDimsReuseKind>> array_dims_reuse_kind_prob;
+    size_t max_dim_offset_factor = max_stencil_span;
+    double max_dim_scale_factor = 2.0;
+    // TODO: this is not the proper way to do it, but it's good enough for now
+    size_t max_combined_dims_num = 2;
+
+    // It determines the number of dimensions that array have in relation
+    // to the current loop depth
+    std::vector<Probability<ArrayDimsUseKind>> array_dims_use_kind;
+
+    // The factor that determines maximal array dimension for each context
+    double arrays_dims_ext_factor = 1.3;
+
+    std::vector<Probability<SubscriptKind>> subs_kind_prob;
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

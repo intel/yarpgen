@@ -215,4 +215,9 @@ enum class CheckAlgo { HASH, ASSERTS, PRECOMPUTE, MAX_CHECK_ALGO };
 
 enum class MutationKind { NONE, EXPRS, ALL, MAX_MUTATION_FIND };
 
+//TODO: not all of the cases are supported yet
+enum class ArrayDimsUseKind { FEWER, SAME, MORE };
+enum class ArrayDimsReuseKind { SAME, OFFSET, SCALE, COMBINE };
+enum class SubscriptKind { CONST, ITER, SCALE, OFFSET, REPEAT, COMBINE };
+
 } // namespace yarpgen

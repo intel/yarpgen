@@ -324,6 +324,36 @@ GenPolicy::GenPolicy() {
     ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
     ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));
     shuffleProbProxy(ub_in_dc_prob);
+
+    array_dims_in_order_prob.emplace_back(Probability<bool>(true, 85));
+    array_dims_in_order_prob.emplace_back(Probability<bool>(false, 15));
+    shuffleProbProxy(array_dims_in_order_prob);
+
+    array_reuse_dim_prob.emplace_back(Probability<bool>(true, 50));
+    array_reuse_dim_prob.emplace_back(Probability<bool>(false, 50));
+    shuffleProbProxy(array_reuse_dim_prob);
+
+    array_dims_reuse_kind_prob.emplace_back(
+        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::SAME, 25));
+    array_dims_reuse_kind_prob.emplace_back(
+        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::OFFSET, 25));
+    array_dims_reuse_kind_prob.emplace_back(
+        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::SCALE, 25));
+    array_dims_reuse_kind_prob.emplace_back(
+        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::COMBINE, 25));
+    shuffleProbProxy(array_dims_reuse_kind_prob);
+
+    array_dims_use_kind.emplace_back(
+        Probability<ArrayDimsUseKind>(ArrayDimsUseKind::FEWER, 33));
+    array_dims_use_kind.emplace_back(
+        Probability<ArrayDimsUseKind>(ArrayDimsUseKind::SAME, 33));
+    array_dims_use_kind.emplace_back(
+        Probability<ArrayDimsUseKind>(ArrayDimsUseKind::MORE, 33));
+
+    // subs_kind_prob.emplace_back(Probability<SubscriptKind>(SubscriptKind::CONST, 25));
+    subs_kind_prob.emplace_back(
+        Probability<SubscriptKind>(SubscriptKind::ITER, 25));
+    // TODO: we need to support more
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
