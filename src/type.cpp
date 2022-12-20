@@ -253,7 +253,14 @@ std::shared_ptr<ArrayType> ArrayType::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     IntTypeID base_type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
     auto base_type = IntegralType::init(base_type_id);
-    return init(base_type, ctx->getDimensions());
+
+    // Determine how many dimensions do we want, relative to the current
+    // ctx loop depth
+    auto dims_use_kind = rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
+    size_t dims_num = ctx->generateNumberOfDims(dims_use_kind);
+    std::vector<size_t> dims (dims_num, ctx->getDimensions().front());
+
+    return init(base_type, dims);
 }
 
 std::shared_ptr<Type> ArrayType::makeVarying() {

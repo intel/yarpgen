@@ -139,12 +139,18 @@ class RandValGen {
 
     // Randomly choose elements without replacement from a vector
     template <typename T>
-    std::vector<T> getRandElems(std::vector<T> &vec, size_t num) {
+    std::vector<T> getRandElems(const std::vector<T> &vec, size_t num) {
         std::vector<T> ret;
         ret.reserve(num);
         std::sample(vec.begin(), vec.end(), std::back_inserter(ret), num,
                     rand_gen);
+        std::shuffle(ret.begin(), ret.end(), rand_gen);
         return ret;
+    }
+
+    template <class T>
+    void shuffleVector(std::vector<T> vec) {
+        std::shuffle(vec.begin(), vec.end(), rand_gen);
     }
 
     // To improve variety of generated tests, we implement shuffling of

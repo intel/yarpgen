@@ -170,6 +170,7 @@ class PopulateCtx : public GenCtx {
     void setInsideOMPSimd(bool val) { inside_omp_simd = val; }
     bool isInsideOMPSimd() { return inside_omp_simd; }
 
+    size_t generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const;
     void addDimension(size_t dim) { dims.push_back(dim); }
     std::vector<size_t> getDimensions() { return dims; }
     void deleteLastDim() { dims.pop_back(); }
@@ -194,6 +195,13 @@ class PopulateCtx : public GenCtx {
     bool inside_omp_simd;
 
     // Each loop header has a limit that any iterator should respect
+    // For the simplicity, we assume that the limit is the same for all
+    // iterators in the same loop nest. Different loop nests can have different
+    // limits
+    // TODO: We need to eliminate this constraint in the future
+    // For now, we use vector with the same number in all elements to keep track
+    // of the loop depth. This way, it will be easier to change the code in the
+    // future
     std::vector<size_t> dims;
 
     // This flag indicates if we are inside arithmetic tree generation for

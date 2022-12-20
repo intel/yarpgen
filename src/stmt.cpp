@@ -371,11 +371,13 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         bool old_simd_state = new_ctx->isInsideOMPSimd();
         new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
 
-        size_t new_dim = makeMutableRoll(
-            gen_pol, [&gen_pol]() -> auto {
+        size_t new_dim = 0;
+        if (ctx->getDimensions().empty())
+            new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
                 return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                                  gen_pol->iter_end_limit_max);
-            });
+                                                  gen_pol->iter_end_limit_max);});
+        else
+            new_dim = ctx->getDimensions().front();
 
         auto new_iters = loop_head->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
@@ -481,10 +483,13 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             simd_switch_id = i;
         }
 
-        size_t new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
-            return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                              gen_pol->iter_end_limit_max);
-        });
+        size_t new_dim = 0;
+        if (new_ctx->getDimensions().empty())
+            new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
+                return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
+                                                  gen_pol->iter_end_limit_max);});
+        else
+            new_dim = new_ctx->getDimensions().front();
 
         auto new_iters = (*i)->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
