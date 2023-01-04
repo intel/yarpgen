@@ -34,7 +34,8 @@ RUN apt-get -y update &&\
     gcc-multilib \
     g++ \
     git \
-    libgmp3-dev \
+    libgmp-dev \
+    libmpfr-dev \
     libz-dev \
     ninja-build \
     python3 \
