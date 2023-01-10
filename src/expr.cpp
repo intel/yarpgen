@@ -720,7 +720,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                 ->first;
         // Second, we need to see which arrays can satisfy these constraints
         std::vector<std::shared_ptr<Array>> avail_arrays;
-        for (const auto &array : new_ctx->getExtInpSymTable()->getArrays()) {
+        for (const auto &array : SubscriptExpr::getSuitableArrays(new_ctx)) {
             auto arr_type = array->getType();
             assert(arr_type->isArrayType() && "Array should have array type");
             auto real_arr_type = std::static_pointer_cast<ArrayType>(arr_type);
@@ -751,7 +751,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         // TODO: this is a possible place to cause a significant slowdown.
         // We need to check the performance and fix it if necessary
         std::vector<std::shared_ptr<Array>> avail_arrs;
-        for (const auto &array : new_ctx->getExtInpSymTable()->getArrays()) {
+        for (const auto &array : SubscriptExpr::getSuitableArrays(new_ctx)) {
             auto array_type = array->getType();
             assert(array_type->isArrayType() &&
                    "Array should have an array type");
@@ -772,29 +772,32 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         // This is a fall-back strategy. If we've decided to have a stencil, it
         // is more important than subscription settings
         if (avail_arrs.empty())
-            avail_arrs = new_ctx->getExtInpSymTable()->getArrays();
+            avail_arrs = SubscriptExpr::getSuitableArrays(new_ctx);
 
         size_t num_of_active_arrs =
             std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
-                     new_ctx->getExtInpSymTable()->getArrays().size());
+                     avail_arrs.size());
 
-        active_arrs = rand_val_gen->getRandElems(
-            new_ctx->getExtInpSymTable()->getArrays(), num_of_active_arrs);
+        active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
     }
 
     if (active_arrs.empty()) {
+        auto avail_arrs = SubscriptExpr::getSuitableArrays(new_ctx);
         size_t num_of_active_arrs =
             std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
-                     new_ctx->getExtInpSymTable()->getArrays().size());
-        active_arrs = rand_val_gen->getRandElems(
-            new_ctx->getExtInpSymTable()->getArrays(), num_of_active_arrs);
+                     avail_arrs.size());
+        active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
     }
 
     std::vector<ArrayStencilParams> stencils;
     // TODO: we can do it with initialization list
     stencils.reserve(active_arrs.size());
-    for (auto &i : active_arrs)
+    for (auto &i : active_arrs) {
+        auto arr_type = std::static_pointer_cast<ArrayType>(i->getType());
+        assert(new_ctx->getDimensions().front() <= arr_type->getDimensions().front() &&
+               "Array dimensions can't be larger than context dimensions");
         stencils.emplace_back(i);
+    }
 
     // Generate offsets for special cases
     // It is easier to do it in this loop, so we don't have to process the
@@ -1741,6 +1744,9 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
         int64_t full_idx_val = idx_int_val + stencil_offset;
         bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
+        if (!in_bounds) {
+            std::cout << "Bounds: " << dim << " " << idx_abs_val.value << std::endl;
+        }
         return in_bounds;
     }
     else if (idx_val->isIterator()) {
@@ -1794,6 +1800,15 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
 
     value->setUBCode(ub_code);
 
+    if (value->hasUB()) {
+        std::cout << "UB: " << std::endl;
+        emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+
+        std::cout << active_size << " " << (std::static_pointer_cast<ScalarVar>(idx_eval_res)->getCurrentValue().getAbsValue().value) << std::endl;
+    }
+
+
     return value;
 }
 
@@ -1841,13 +1856,9 @@ SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
         assert(arr->getType()->isArrayType() &&
                "Array should have an array type");
         auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
-        bool suit_arr = true;
-        if (arr_type->getDimensions().front() > ctx->getDimensions().front()) {
-                suit_arr = false;
-                break;
-            }
-        if (suit_arr)
-            avail_arrs.push_back(arr);
+        if (arr_type->getDimensions().front() < ctx->getDimensions().front())
+            continue;
+        avail_arrs.push_back(arr);
     }
     assert(!avail_arrs.empty());
     return avail_arrs;
@@ -1856,12 +1867,19 @@ SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
 std::shared_ptr<SubscriptExpr>
 SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     if (ctx->getInStencil()) {
+        std::cout << "Stencil" << std::endl;
         auto array_params = rand_val_gen->getRandElem(
             ctx->getLocalSymTable()->getStencilsParams());
-        return initImpl(array_params, ctx);
+        auto new_expr = initImpl(array_params, ctx);
+        return new_expr;
     }
     else {
+        std::cout << "Normal " << ctx->getDimensions().front() << std::endl;
         auto avail_arrs = getSuitableArrays(ctx);
+        for (const auto &arr : avail_arrs) {
+            std::cout << arr->getName(std::make_shared<EmitCtx>()) << " ";
+            std::cout << std::static_pointer_cast<ArrayType>(arr->getType())->getDimensions().front() << std::endl;
+        }
         auto inp_arr = rand_val_gen->getRandElem(avail_arrs);
         return init(inp_arr, ctx);
     }
@@ -2015,6 +2033,12 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     }
 
     auto new_expr = std::static_pointer_cast<SubscriptExpr>(res_expr);
+
+    std::cout << "Subs create: ";
+    new_expr->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << std::endl;
+    std::cout << (ctx->getDimensions().empty() ? 0 : ctx->getDimensions().back()) << std::endl;
+
     return new_expr;
 }
 

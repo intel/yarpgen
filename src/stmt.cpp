@@ -372,16 +372,26 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
 
         size_t new_dim = 0;
-        if (ctx->getDimensions().empty())
+        if (new_ctx->getDimensions().empty())
             new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
                 return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
                                                   gen_pol->iter_end_limit_max);});
         else
-            new_dim = ctx->getDimensions().front();
+            new_dim = new_ctx->getDimensions().front();
+
+        std::cout << "Seq before: ";
+        for (const auto &item : new_ctx->getDimensions())
+            std::cout << item << " ";
+        std::cout << std::endl;
 
         auto new_iters = loop_head->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
+
+        std::cout << "Seq after: ";
+        for (const auto &item : new_ctx->getDimensions())
+            std::cout << item << " ";
+        std::cout << std::endl;
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
 
@@ -491,9 +501,19 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         else
             new_dim = new_ctx->getDimensions().front();
 
+        std::cout << "Nest before: ";
+        for (const auto &item : new_ctx->getDimensions())
+            std::cout << item << " ";
+        std::cout << std::endl;
+
         auto new_iters = (*i)->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
+
+        std::cout << "Nest after: ";
+        for (const auto &item : new_ctx->getDimensions())
+            std::cout << item << " ";
+        std::cout << std::endl;
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
 
