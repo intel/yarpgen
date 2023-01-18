@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 ENV TESTING_HOME=/testing
 
 ENV GCC_HOME=$TESTING_HOME/gcc
-ARG GCC_REPO=git://gcc.gnu.org/git/gcc.git
+ARG GCC_REPO=https://gcc.gnu.org/git/gcc.git
 ARG GCC_VERSION=master
 
 ENV LLVM_HOME=$TESTING_HOME/llvm
@@ -18,7 +18,7 @@ ARG YARPGEN_REPO=https://github.com/intel/yarpgen
 ARG YARPGEN_VERSION=main
 
 ENV BINUTILS_HOME=$TESTING_HOME/binutils
-ARG BINUTILS_REPO=git://sourceware.org/git/binutils-gdb.git
+ARG BINUTILS_REPO=https://sourceware.org/git/binutils-gdb.git
 
 ARG USER_AGENT="Mozilla/5.0"
 
