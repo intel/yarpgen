@@ -8,8 +8,9 @@ then
     cd $YARPGEN_HOME/scripts
 else
     # Create output dir
-    DATE=$(date '+%m-%d-%y')
-    OUT_DIR=$RESULT_DIR/$DATE-$HOST_HOSTNAME
+    # date-time format is the following: 20230123_1622 for 2023 Jan 23, 16:22.
+    DATETIME=$(date '+%Y%m%d_%k%M')
+    OUT_DIR=$RESULT_DIR/$DATETIME-$HOST_HOSTNAME
     mkdir $OUT_DIR
 
     # Save revisions
