@@ -9,7 +9,7 @@ then
 else
     # Create output dir
     # date-time format is the following: 20230123_1622 for 2023 Jan 23, 16:22.
-    DATETIME=$(date '+%Y%m%d_%k%M')
+    DATETIME=$(date '+%F_%H%M')
     OUT_DIR=$RESULT_DIR/$DATETIME-$HOST_HOSTNAME
     mkdir $OUT_DIR
 
