@@ -281,3 +281,15 @@ Alive2:
 | `762 <https://github.com/AliveToolkit/alive2/issues/762>`_ - missed alarm bug
 | `756 <https://github.com/AliveToolkit/alive2/issues/756>`_ - False-negative when introducing stores to extern global variables
 
+
+====================================
+OpenWatcom v2
+====================================
+Version #2
+---------------
+| `1043 <https://github.com/open-watcom/open-watcom-v2/issues/1043>`_ - Add support for typeof (needed for C23 and YARPGen master)
+
+Version #1
+---------------
+| `1044 <https://github.com/open-watcom/open-watcom-v2/issues/1044>`_ - OW fails with: E1112: Initializer list cannot be empty. # yarpgen(v1)
+| `1045 <https://github.com/open-watcom/open-watcom-v2/issues/1045>`_ - OW is very very slow for a big testfile # (yarpgen_v1 with seed 25) 
