@@ -146,9 +146,10 @@ class GenPolicy {
     std::vector<Probability<bool>> stencil_same_dims_one_arr_distr;
     // If we want to use same offsets in the same dimensions for all arrays
     std::vector<Probability<bool>> stencil_reuse_offset_distr;
-    std::vector<Probability<bool>> stencil_in_dim_prob;
+    std::map<size_t, std::vector<Probability<bool>>> stencil_in_dim_prob;
+    double stencil_in_dim_prob_offset = 0.2;
 
-    double stencil_prob_weight_alternation = 0.75;
+    double stencil_prob_weight_alternation = 0.3;
     // Probability to leave UB in DeadCode when it is allowed
     std::vector<Probability<bool>> ub_in_dc_prob;
 
@@ -171,7 +172,7 @@ class GenPolicy {
 
     std::vector<Probability<SubscriptKind>> subs_kind_prob;
 
-  private:
+  //private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,
                             size_t min_num = 0);

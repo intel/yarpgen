@@ -295,7 +295,7 @@ GenPolicy::GenPolicy() {
     mutation_probability.emplace_back(Probability<bool>(false, 90));
 
     allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
-    allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
+    //allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(allow_stencil_prob);
 
     uniformProbFromMax(stencil_span_distr, max_stencil_span, 1);
@@ -305,21 +305,27 @@ GenPolicy::GenPolicy() {
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(3, 15));
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(4, 10));
 
-    stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
+    //stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
     stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
     shuffleProbProxy(stencil_same_dims_one_arr_distr);
 
-    stencil_same_dims_all_distr.emplace_back(Probability<bool>(true, 40));
+    //stencil_same_dims_all_distr.emplace_back(Probability<bool>(true, 40));
     stencil_same_dims_all_distr.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(stencil_same_dims_all_distr);
 
-    stencil_reuse_offset_distr.emplace_back(Probability<bool>(true, 30));
+    //stencil_reuse_offset_distr.emplace_back(Probability<bool>(true, 30));
     stencil_reuse_offset_distr.emplace_back(Probability<bool>(false, 70));
     shuffleProbProxy(stencil_reuse_offset_distr);
 
-    stencil_in_dim_prob.emplace_back(Probability<bool>(true, 30));
-    stencil_in_dim_prob.emplace_back(Probability<bool>(false, 70));
-    shuffleProbProxy(stencil_in_dim_prob);
+    // Arrays with single dimension require a separate treatment. Otherwise, we
+    // do not get the desired distribution.
+    stencil_in_dim_prob.emplace(1, std::initializer_list<Probability<bool>>{{true, 80}, {false, 20}});
+    shuffleProbProxy(stencil_in_dim_prob[1]);
+    for (size_t i = 2; i <= std::ceil(loop_depth_limit * arrays_dims_ext_factor); i++) {
+        size_t gen_prob = (1.0 / i + stencil_in_dim_prob_offset) * 100;
+        stencil_in_dim_prob.emplace(i, std::initializer_list<Probability<bool>>{{true, gen_prob}, {false, 100 - gen_prob}});
+        shuffleProbProxy(stencil_in_dim_prob[i]);
+    }
 
     ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
     ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));

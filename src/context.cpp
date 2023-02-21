@@ -31,6 +31,7 @@ PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
       inside_mutation(false), inside_omp_simd(false), in_stencil(false) {
     local_sym_tbl = std::make_shared<SymbolTable>();
     if (par_ctx.use_count() != 0) {
+        gen_policy = par_ctx->gen_policy;
         local_sym_tbl =
             std::make_shared<SymbolTable>(*(par_ctx->getLocalSymTable()));
         loop_depth = par_ctx->getLoopDepth();
@@ -62,11 +63,12 @@ size_t PopulateCtx::generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const {
     else if (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() > 1)
         return rand_val_gen->getRandValue(static_cast<size_t>(1),
                                           dims.size() - 1);
-    else if (dims_use_kind == ArrayDimsUseKind::MORE)
+    else if (dims_use_kind == ArrayDimsUseKind::MORE) {
         return rand_val_gen->getRandValue(
             dims.size() + 1,
             static_cast<size_t>(
                 std::ceil(dims.size() * gen_policy->arrays_dims_ext_factor)));
+    }
     else
         ERROR("Unsupported case!");
 }
