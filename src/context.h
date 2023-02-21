@@ -147,6 +147,8 @@ class PopulateCtx : public GenCtx {
     PopulateCtx();
     explicit PopulateCtx(std::shared_ptr<PopulateCtx> ctx);
 
+    std::shared_ptr<PopulateCtx> getParentCtx() { return par_ctx; }
+
     std::shared_ptr<SymbolTable> getExtInpSymTable() { return ext_inp_sym_tbl; }
     std::shared_ptr<SymbolTable> getExtOutSymTable() { return ext_out_sym_tbl; }
     std::shared_ptr<SymbolTable> getLocalSymTable() { return local_sym_tbl; }

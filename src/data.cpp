@@ -120,7 +120,6 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
     NameHandler &nh = NameHandler::getInstance();
     auto new_array =
         std::make_shared<Array>(nh.getArrayName(), array_type, init_val);
-    std::cout << "Array: " << new_array->getName(std::make_shared<EmitCtx>()) << " " << ctx->getDimensions().front() << std::endl;
     return new_array;
 }
 
@@ -195,7 +194,6 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
         std::make_shared<Iterator>(nh.getIterName(), type, start, left_span,
                                    end, right_span, step, end_val == left_span);
 
-    std::cout << iter->getName(std::make_shared<EmitCtx>()) << " " << end_val << std::endl;
     return iter;
 }
 

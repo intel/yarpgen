@@ -631,49 +631,44 @@ void ArithmeticExpr::varyingPromotion(std::shared_ptr<Expr> &lhs,
 static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     std::shared_ptr<Expr> new_node;
-    // Disable other kind of leaf exprs
-    // TODO: This is not the best option
+    // Change distribution of leaf exprs
+    //TODO: maybe we need to bump up the probability of binary operators to get a proper stencil pattern
+    uint64_t scalar_var_prob = 0, const_prob = 0;
+    for (auto &node_distr : gen_pol->arith_node_distr) {
+        switch (node_distr.getId()) {
+            case IRNodeKind::SCALAR_VAR_USE:
+                scalar_var_prob = node_distr.getProb();
+                break;
+            case IRNodeKind::CONST:
+                const_prob = node_distr.getProb();
+                break;
+            default:
+                break;
+        }
+    }
+
+    scalar_var_prob = scalar_var_prob * gen_pol->stencil_prob_weight_alternation;
+    const_prob = const_prob * gen_pol->stencil_prob_weight_alternation;
+
     std::vector<Probability<IRNodeKind>> new_node_distr;
-    auto find_prob = [&gen_pol](IRNodeKind kind) -> uint64_t {
-        auto find_res = std::find_if(
-            gen_pol->arith_node_distr.begin(), gen_pol->arith_node_distr.end(),
-            [kind](Probability<IRNodeKind> prob) -> bool {
-                return prob.getId() == kind;
-            });
-        return (find_res != gen_pol->arith_node_distr.end())
-                   ? find_res->getProb()
-                   : 0;
-    };
-    uint64_t stencil_prob = find_prob(IRNodeKind::STENCIL);
-    uint64_t scalar_var_prob = find_prob(IRNodeKind::SCALAR_VAR_USE);
-    uint64_t subscript_prob = find_prob(IRNodeKind::SUBSCRIPT);
-    uint64_t const_prob = find_prob(IRNodeKind::CONST);
-
-    uint64_t total_prob =
-        stencil_prob + scalar_var_prob + subscript_prob + const_prob;
-
-    subscript_prob = static_cast<uint64_t>(
-        total_prob * gen_pol->stencil_prob_weight_alternation);
-    const_prob = scalar_var_prob = static_cast<uint64_t>(
-        total_prob * (1 - gen_pol->stencil_prob_weight_alternation) * 0.5);
-
     for (auto &item : gen_pol->arith_node_distr) {
         Probability<IRNodeKind> prob = item;
         if (item.getId() == IRNodeKind::SCALAR_VAR_USE)
             prob.setProb(scalar_var_prob);
         else if (item.getId() == IRNodeKind::CONST)
             prob.setProb(const_prob);
-        else if (item.getId() == IRNodeKind::SUBSCRIPT)
-            prob.setProb(subscript_prob);
         else if (item.getId() == IRNodeKind::STENCIL)
             continue;
         new_node_distr.push_back(prob);
     }
+
     auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
     new_gen_pol->arith_node_distr = new_node_distr;
     auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
     new_ctx->setGenPolicy(new_gen_pol);
 
+
+    // Start of the stencil generation
     std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> avail_dims;
     std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> chosen_dims;
     // We check if iterator can be used to create a
@@ -718,13 +713,22 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                    const std::pair<size_t, std::shared_ptr<Iterator>> &b)
                     -> bool { return a.first < b.first; })
                 ->first;
+        size_t min_dim_idx =
+            std::min_element(
+                chosen_dims.begin(), chosen_dims.end(),
+                [](const std::pair<size_t, std::shared_ptr<Iterator>> &a,
+                   const std::pair<size_t, std::shared_ptr<Iterator>> &b)
+                    -> bool { return a.first < b.first; })
+                ->first;
+        (void)min_dim_idx;
         // Second, we need to see which arrays can satisfy these constraints
         std::vector<std::shared_ptr<Array>> avail_arrays;
         for (const auto &array : SubscriptExpr::getSuitableArrays(new_ctx)) {
             auto arr_type = array->getType();
             assert(arr_type->isArrayType() && "Array should have array type");
             auto real_arr_type = std::static_pointer_cast<ArrayType>(arr_type);
-            if (real_arr_type->getDimensions().size() >= num_of_active_dims &&
+            if (//real_arr_type->getDimensions().size() >= num_of_active_dims &&
+                real_arr_type->getDimensions().size() > min_dim_idx &&
                 real_arr_type->getDimensions().size() < max_dim_idx)
                 avail_arrays.push_back(array);
         }
@@ -899,6 +903,11 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     new_ctx->setInStencil(true);
     new_node = ArithmeticExpr::create(new_ctx);
     new_ctx->setInStencil(false);
+
+    new_node->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << std::endl;
+    std::cout << "===============" << std::endl;
+
     return new_node;
 
 #if 0
@@ -1033,21 +1042,19 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     std::shared_ptr<Expr> new_node;
     ctx->incArithDepth();
-    auto active_ctx = std::make_shared<PopulateCtx>(*ctx);
+    auto active_ctx = std::make_shared<PopulateCtx>(ctx);
+    // If we are getting close to the maximum depth, we need to make sure that we generate leaves
     if (active_ctx->getArithDepth() == gen_pol->max_arith_depth) {
         // We can have only constants, variables and arrays as leaves
         std::vector<Probability<IRNodeKind>> new_node_distr;
+        bool zero_prob = true;
         for (auto &item : gen_pol->arith_node_distr) {
             if (item.getId() == IRNodeKind::CONST ||
                 item.getId() == IRNodeKind::SCALAR_VAR_USE ||
-                item.getId() == IRNodeKind::SUBSCRIPT)
+                item.getId() == IRNodeKind::SUBSCRIPT) {
                 new_node_distr.push_back(item);
-        }
-
-        bool zero_prob = true;
-        for (auto &item : new_node_distr) {
-            if (item.getProb())
-                zero_prob = false;
+                zero_prob &= item.getProb() == 0;
+            }
         }
 
         // If after the option shuffling probability of all appropriate leaves
@@ -1074,16 +1081,26 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         active_ctx->setGenPolicy(gen_pol);
     }
 
+    IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
+
+    bool guaranteed_non_leaf = active_ctx->getInStencil() && (!active_ctx || !active_ctx->getParentCtx()->getInStencil()) && active_ctx->getArithDepth() < gen_pol->max_arith_depth;
+    assert((!guaranteed_non_leaf || (guaranteed_non_leaf && active_ctx->getArithDepth() < gen_pol->max_arith_depth)) &&
+           "We can't reach a threshold and guarantee a non-leaf expression at the same time");
+
+    while (guaranteed_non_leaf && (node_kind == IRNodeKind::CONST ||
+                                node_kind == IRNodeKind::SCALAR_VAR_USE ||
+                                node_kind == IRNodeKind::SUBSCRIPT)) {
+        node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
+    }
+
     bool apply_const_use =
-        rand_val_gen->getRandId(gen_pol->apply_const_use_distr);
+        rand_val_gen->getRandId(gen_pol->apply_const_use_distr) && node_kind != IRNodeKind::STENCIL;
     if (apply_const_use) {
         auto new_gen_policy = std::make_shared<GenPolicy>(*gen_pol);
         gen_pol = new_gen_policy;
         gen_pol->chooseAndApplyConstUse();
         active_ctx->setGenPolicy(gen_pol);
     }
-
-    IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
 
     if (node_kind == IRNodeKind::CONST) {
         new_node = ConstantExpr::create(active_ctx);
@@ -1744,9 +1761,6 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
         int64_t full_idx_val = idx_int_val + stencil_offset;
         bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
-        if (!in_bounds) {
-            std::cout << "Bounds: " << dim << " " << idx_abs_val.value << std::endl;
-        }
         return in_bounds;
     }
     else if (idx_val->isIterator()) {
@@ -1799,16 +1813,6 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     }
 
     value->setUBCode(ub_code);
-
-    if (value->hasUB()) {
-        std::cout << "UB: " << std::endl;
-        emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
-
-        std::cout << active_size << " " << (std::static_pointer_cast<ScalarVar>(idx_eval_res)->getCurrentValue().getAbsValue().value) << std::endl;
-    }
-
-
     return value;
 }
 
@@ -1867,19 +1871,13 @@ SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
 std::shared_ptr<SubscriptExpr>
 SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     if (ctx->getInStencil()) {
-        std::cout << "Stencil" << std::endl;
         auto array_params = rand_val_gen->getRandElem(
             ctx->getLocalSymTable()->getStencilsParams());
         auto new_expr = initImpl(array_params, ctx);
         return new_expr;
     }
     else {
-        std::cout << "Normal " << ctx->getDimensions().front() << std::endl;
         auto avail_arrs = getSuitableArrays(ctx);
-        for (const auto &arr : avail_arrs) {
-            std::cout << arr->getName(std::make_shared<EmitCtx>()) << " ";
-            std::cout << std::static_pointer_cast<ArrayType>(arr->getType())->getDimensions().front() << std::endl;
-        }
         auto inp_arr = rand_val_gen->getRandElem(avail_arrs);
         return init(inp_arr, ctx);
     }
@@ -1977,6 +1975,11 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     //    1    |      1       |     1      |      0     ||  Gen  | Gen
     //    1    |      1       |     1      |      1     ||  Load | Load
 
+    auto find_res = gen_pol->stencil_in_dim_prob.find(array_type->getDimensions().size());
+    if (find_res == gen_pol->stencil_in_dim_prob.end())
+        ERROR("We can't have arrays that have more dimensions than the total limit");
+    auto stencil_in_dim_prob = find_res->second;
+
     auto stencil_dims = array_params.getActiveDims();
     for (size_t i = 0; i < array_type->getDimensions().size(); ++i) {
         // Create iterator
@@ -2009,8 +2012,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
             // In case where stencil offset dimensions are not defined,
             // we pick them at random
             if (stencil_dims.empty())
-                offset_prob =
-                    rand_val_gen->getRandId(gen_pol->stencil_in_dim_prob);
+                offset_prob = rand_val_gen->getRandId(stencil_in_dim_prob);
             // Otherwise, we check if it is a dimension that should have offset
             bool offset_in_dim = !stencil_dims.empty() && stencil_dims.at(i);
             bool generate_offset = offset_prob || offset_in_dim;
@@ -2033,11 +2035,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     }
 
     auto new_expr = std::static_pointer_cast<SubscriptExpr>(res_expr);
-
-    std::cout << "Subs create: ";
-    new_expr->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-    std::cout << (ctx->getDimensions().empty() ? 0 : ctx->getDimensions().back()) << std::endl;
 
     return new_expr;
 }

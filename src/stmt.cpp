@@ -379,19 +379,9 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         else
             new_dim = new_ctx->getDimensions().front();
 
-        std::cout << "Seq before: ";
-        for (const auto &item : new_ctx->getDimensions())
-            std::cout << item << " ";
-        std::cout << std::endl;
-
         auto new_iters = loop_head->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
-
-        std::cout << "Seq after: ";
-        for (const auto &item : new_ctx->getDimensions())
-            std::cout << item << " ";
-        std::cout << std::endl;
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
 
@@ -501,19 +491,9 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         else
             new_dim = new_ctx->getDimensions().front();
 
-        std::cout << "Nest before: ";
-        for (const auto &item : new_ctx->getDimensions())
-            std::cout << item << " ";
-        std::cout << std::endl;
-
         auto new_iters = (*i)->populateIterators(new_ctx, new_dim);
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
-
-        std::cout << "Nest after: ";
-        for (const auto &item : new_ctx->getDimensions())
-            std::cout << item << " ";
-        std::cout << std::endl;
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
 
