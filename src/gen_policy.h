@@ -147,7 +147,7 @@ class GenPolicy {
     // If we want to use same offsets in the same dimensions for all arrays
     std::vector<Probability<bool>> stencil_reuse_offset_distr;
     std::map<size_t, std::vector<Probability<bool>>> stencil_in_dim_prob;
-    double stencil_in_dim_prob_offset = 0.2;
+    double stencil_in_dim_prob_offset = 0.1;
 
     double stencil_prob_weight_alternation = 0.3;
     // Probability to leave UB in DeadCode when it is allowed
@@ -155,7 +155,10 @@ class GenPolicy {
 
     // Probability to generate array with dims that are in natural order of
     // context
-    std::vector<Probability<bool>> array_dims_in_order_prob;
+    std::vector<Probability<bool>> subs_dims_in_order_prob;
+    std::vector<Probability<SubscriptKind>> subs_kind_prob;
+    std::vector<Probability<bool>> subs_diagonal_prob;
+
     std::vector<Probability<bool>> array_reuse_dim_prob;
     std::vector<Probability<ArrayDimsReuseKind>> array_dims_reuse_kind_prob;
     size_t max_dim_offset_factor = max_stencil_span;
@@ -170,7 +173,7 @@ class GenPolicy {
     // The factor that determines maximal array dimension for each context
     double arrays_dims_ext_factor = 1.3;
 
-    std::vector<Probability<SubscriptKind>> subs_kind_prob;
+
 
   //private:
     template <typename T>
