@@ -218,6 +218,13 @@ enum class MutationKind { NONE, EXPRS, ALL, MAX_MUTATION_FIND };
 //TODO: not all of the cases are supported yet
 enum class ArrayDimsUseKind { FEWER, SAME, MORE };
 enum class ArrayDimsReuseKind { SAME, OFFSET, SCALE, COMBINE };
-enum class SubscriptKind { CONST, ITER, SCALE, OFFSET, REPEAT, COMBINE };
+// TODO: add scale, combine, and swap (?) cases
+// And maybe combine repeat with offset somehow
+// REPEAT means that we repeat the iterator that we've used before. It also
+// conflicts with the dimensions in-order setting
+// SWAP means that we swap new iterator with one that we've used before.
+// The goal here is to alternate the order so we can generate somthing like
+// matrix multiplication
+enum class SubscriptKind { CONST, ITER, OFFSET, REPEAT };
 
 } // namespace yarpgen

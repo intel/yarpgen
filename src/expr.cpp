@@ -906,7 +906,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
 
     new_node->emit(std::make_shared<EmitCtx>(), std::cout);
     std::cout << std::endl;
-    std::cout << "===============" << std::endl;
+    std::cout << "=============== Stencil" << std::endl;
 
     return new_node;
 
@@ -1509,7 +1509,7 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
                     new_val = static_cast<size_t>(rhs_abs_int_val - new_val);
 
                 // Finally, we need to make changes to the program
-                IRValue adjust_val = IRValue(rhs_int_type->getIntTypeId());
+                auto adjust_val = IRValue(rhs_int_type->getIntTypeId());
                 assert(new_val > 0 && "Correction values can't be negative");
                 adjust_val.setValue(IRValue::AbsValue{false, new_val});
                 auto const_val = std::make_shared<ConstantExpr>(adjust_val);
@@ -1981,7 +1981,59 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     auto stencil_in_dim_prob = find_res->second;
 
     auto stencil_dims = array_params.getActiveDims();
+
+    // Auxiliary variable that keeps track of the maximum dimension if the used
+    // iterator. We need when we keep track that iterators are used in order
+    auto dims_in_order = rand_val_gen->getRandId(gen_pol->subs_dims_in_order_prob);
+    std::vector<std::shared_ptr<Iterator>> sorted_iters;
+    if (dims_in_order) {
+        sorted_iters = rand_val_gen->getRandElemsInOrder(
+            ctx->getLocalSymTable()->getIters(), array_type->getDimensions().size());
+
+        if (sorted_iters.size() < array_type->getDimensions().size()) {
+            size_t iters_to_generate = array_type->getDimensions().size() - sorted_iters.size();
+
+            // Choose which iters we will duplicate via index
+            std::vector<size_t> idx_vec;
+            idx_vec.reserve(iters_to_generate);
+            for (size_t i = 0; i < iters_to_generate; ++i)
+                idx_vec.push_back(rand_val_gen->getRandValue(static_cast<size_t>(0), sorted_iters.size() - 1));
+
+            // Combine existing vectors of iterators and duplicates via index
+            std::vector<size_t> sorted_idx_vec (sorted_iters.size(), 0);
+            std::iota(sorted_idx_vec.begin(), sorted_idx_vec.end(), 0);
+            sorted_idx_vec.insert(sorted_idx_vec.end(), idx_vec.begin(), idx_vec.end());
+            std::sort(sorted_idx_vec.begin(), sorted_idx_vec.end());
+
+            // Create new vector of iterators
+            std::vector<std::shared_ptr<Iterator>> new_sorted_iters;
+            for (auto &idx : sorted_idx_vec)
+                new_sorted_iters.push_back(sorted_iters.at(idx));
+
+            std::swap(sorted_iters, new_sorted_iters);
+        }
+    }
+
+    // We save used iterator in a cache so that we can use them later
+    std::vector<std::shared_ptr<Expr>> iter_use_exprs_cache;
+
     for (size_t i = 0; i < array_type->getDimensions().size(); ++i) {
+        auto subs_kind = rand_val_gen->getRandId(gen_pol->subs_kind_prob);
+
+        // Check if we need to have an offset and set the subscript kind accordingly
+        bool offset_prob = false;
+        bool offset_in_dim = false;
+        if (ctx->getInStencil()) {
+            // In case where stencil offset dimensions are not defined,
+            // we pick them at random
+            if (stencil_dims.empty())
+                offset_prob = rand_val_gen->getRandId(stencil_in_dim_prob);
+            // Otherwise, we check if it is a dimension that should have offset
+            offset_in_dim = !stencil_dims.empty() && stencil_dims.at(i);
+            if (offset_prob || offset_in_dim)
+                subs_kind = SubscriptKind::OFFSET;
+        }
+
         // Create iterator
         // There is only one case when we need to load it
         std::shared_ptr<Iterator> iter = nullptr;
@@ -1995,9 +2047,34 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                 std::make_shared<IterUseExpr>(array_params.getIters().at(i));
         }
         else {
-            // Generate iter
-            iter = rand_val_gen->getRandElem(ctx->getLocalSymTable()->getIters());
-            iter_use_expr = std::make_shared<IterUseExpr>(iter);
+            if (subs_kind == SubscriptKind::ITER ||
+                subs_kind == SubscriptKind::OFFSET ||
+                (subs_kind == SubscriptKind::REPEAT && iter_use_exprs_cache.empty())) {
+                // Generate iter
+                if (dims_in_order)
+                    iter = sorted_iters.at(i);
+                else
+                    iter = rand_val_gen->getRandElem(
+                        ctx->getLocalSymTable()->getIters());
+                iter_use_expr = std::make_shared<IterUseExpr>(iter);
+            }
+            else if (subs_kind == SubscriptKind::CONST) {
+                uint64_t init_val = rand_val_gen->getRandValue(
+                    static_cast<int64_t>(0),
+                    static_cast<int64_t>(array_type->getDimensions().at(i) - 1));
+                IRValue new_val (rand_val_gen->getRandId(gen_pol->int_type_distr));
+                new_val.setValue(IRValue::AbsValue{false, init_val});
+                iter_use_expr = std::make_shared<ConstantExpr>(new_val);
+            }
+            else if (subs_kind == SubscriptKind::REPEAT) {
+                iter_use_expr = rand_val_gen->getRandElem(iter_use_exprs_cache);
+            }
+            else {
+                ERROR("Unknown SubscriptKind");
+            }
+
+            if (subs_kind != SubscriptKind::REPEAT)
+                iter_use_exprs_cache.push_back(iter_use_expr);
         }
 
         // Create offsets
@@ -2006,22 +2083,13 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
             // Load offset
             offset = array_params.getOffsets().at(i);
         }
-        else if (ctx->getInStencil()) {
+        else if (subs_kind == SubscriptKind::OFFSET) {
             // Generate offset
-            bool offset_prob = false;
-            // In case where stencil offset dimensions are not defined,
-            // we pick them at random
-            if (stencil_dims.empty())
-                offset_prob = rand_val_gen->getRandId(stencil_in_dim_prob);
-            // Otherwise, we check if it is a dimension that should have offset
-            bool offset_in_dim = !stencil_dims.empty() && stencil_dims.at(i);
-            bool generate_offset = offset_prob || offset_in_dim;
-
             size_t max_left_offset = iter->getMaxLeftOffset();
             size_t max_right_offset = iter->getMaxRightOffset();
             bool non_zero_offset_exists =
                 max_left_offset > 0 || max_right_offset > 0;
-            if (generate_offset && non_zero_offset_exists) {
+            if (non_zero_offset_exists) {
                 while (offset == 0)
                     offset = rand_val_gen->getRandValue(
                         -static_cast<int64_t>(max_left_offset),
@@ -2035,6 +2103,9 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     }
 
     auto new_expr = std::static_pointer_cast<SubscriptExpr>(res_expr);
+
+    new_expr->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << "\n=========== Subs" << std::endl;
 
     return new_expr;
 }

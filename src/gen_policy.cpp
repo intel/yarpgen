@@ -295,7 +295,7 @@ GenPolicy::GenPolicy() {
     mutation_probability.emplace_back(Probability<bool>(false, 90));
 
     allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
-    //allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
+    allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(allow_stencil_prob);
 
     uniformProbFromMax(stencil_span_distr, max_stencil_span, 1);
@@ -331,9 +331,19 @@ GenPolicy::GenPolicy() {
     ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));
     shuffleProbProxy(ub_in_dc_prob);
 
-    array_dims_in_order_prob.emplace_back(Probability<bool>(true, 85));
-    array_dims_in_order_prob.emplace_back(Probability<bool>(false, 15));
-    shuffleProbProxy(array_dims_in_order_prob);
+    subs_dims_in_order_prob.emplace_back(true, 70);
+    subs_dims_in_order_prob.emplace_back(false, 30);
+    shuffleProbProxy(subs_dims_in_order_prob);
+
+    subs_kind_prob.emplace_back(SubscriptKind::CONST, 10);
+    subs_kind_prob.emplace_back(SubscriptKind::ITER, 35);
+    subs_kind_prob.emplace_back(SubscriptKind::OFFSET, 15);
+    subs_kind_prob.emplace_back(SubscriptKind::REPEAT, 15);
+    shuffleProbProxy(subs_kind_prob);
+
+    subs_diagonal_prob.emplace_back(true, 5);
+    subs_diagonal_prob.emplace_back(false, 95);
+    shuffleProbProxy(subs_diagonal_prob);
 
     array_reuse_dim_prob.emplace_back(Probability<bool>(true, 50));
     array_reuse_dim_prob.emplace_back(Probability<bool>(false, 50));
@@ -355,11 +365,6 @@ GenPolicy::GenPolicy() {
         Probability<ArrayDimsUseKind>(ArrayDimsUseKind::SAME, 33));
     array_dims_use_kind.emplace_back(
         Probability<ArrayDimsUseKind>(ArrayDimsUseKind::MORE, 33));
-
-    // subs_kind_prob.emplace_back(Probability<SubscriptKind>(SubscriptKind::CONST, 25));
-    subs_kind_prob.emplace_back(
-        Probability<SubscriptKind>(SubscriptKind::ITER, 25));
-    // TODO: we need to support more
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
