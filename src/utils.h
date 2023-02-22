@@ -148,6 +148,16 @@ class RandValGen {
         return ret;
     }
 
+    // Randomly choose elements without replacement from a vector in order
+    template <typename T>
+    std::vector<T> getRandElemsInOrder(const std::vector<T> &vec, size_t num) {
+        std::vector<T> ret;
+        ret.reserve(num);
+        std::sample(vec.begin(), vec.end(), std::back_inserter(ret), num,
+                    rand_gen);
+        return ret;
+    }
+
     template <class T>
     void shuffleVector(std::vector<T> vec) {
         std::shuffle(vec.begin(), vec.end(), rand_gen);
