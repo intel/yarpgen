@@ -294,6 +294,10 @@ GenPolicy::GenPolicy() {
     mutation_probability.emplace_back(Probability<bool>(true, 10));
     mutation_probability.emplace_back(Probability<bool>(false, 90));
 
+    ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
+    ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));
+    shuffleProbProxy(ub_in_dc_prob);
+
     allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
     allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(allow_stencil_prob);
@@ -305,17 +309,17 @@ GenPolicy::GenPolicy() {
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(3, 15));
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(4, 10));
 
-    //stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
-    stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
+    stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
+    //stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
     shuffleProbProxy(stencil_same_dims_one_arr_distr);
 
     //stencil_same_dims_all_distr.emplace_back(Probability<bool>(true, 40));
     stencil_same_dims_all_distr.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(stencil_same_dims_all_distr);
 
-    //stencil_reuse_offset_distr.emplace_back(Probability<bool>(true, 30));
-    stencil_reuse_offset_distr.emplace_back(Probability<bool>(false, 70));
-    shuffleProbProxy(stencil_reuse_offset_distr);
+    //stencil_same_offset_all_distr.emplace_back(Probability<bool>(true, 30));
+    stencil_same_offset_all_distr.emplace_back(Probability<bool>(false, 70));
+    shuffleProbProxy(stencil_same_offset_all_distr);
 
     // Arrays with single dimension require a separate treatment. Otherwise, we
     // do not get the desired distribution.
@@ -327,11 +331,7 @@ GenPolicy::GenPolicy() {
         shuffleProbProxy(stencil_in_dim_prob[i]);
     }
 
-    ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
-    ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));
-    shuffleProbProxy(ub_in_dc_prob);
-
-    subs_dims_in_order_prob.emplace_back(true, 70);
+    //subs_dims_in_order_prob.emplace_back(true, 70);
     subs_dims_in_order_prob.emplace_back(false, 30);
     shuffleProbProxy(subs_dims_in_order_prob);
 
@@ -344,20 +344,6 @@ GenPolicy::GenPolicy() {
     subs_diagonal_prob.emplace_back(true, 5);
     subs_diagonal_prob.emplace_back(false, 95);
     shuffleProbProxy(subs_diagonal_prob);
-
-    array_reuse_dim_prob.emplace_back(Probability<bool>(true, 50));
-    array_reuse_dim_prob.emplace_back(Probability<bool>(false, 50));
-    shuffleProbProxy(array_reuse_dim_prob);
-
-    array_dims_reuse_kind_prob.emplace_back(
-        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::SAME, 25));
-    array_dims_reuse_kind_prob.emplace_back(
-        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::OFFSET, 25));
-    array_dims_reuse_kind_prob.emplace_back(
-        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::SCALE, 25));
-    array_dims_reuse_kind_prob.emplace_back(
-        Probability<ArrayDimsReuseKind>(ArrayDimsReuseKind::COMBINE, 25));
-    shuffleProbProxy(array_dims_reuse_kind_prob);
 
     array_dims_use_kind.emplace_back(
         Probability<ArrayDimsUseKind>(ArrayDimsUseKind::FEWER, 33));
