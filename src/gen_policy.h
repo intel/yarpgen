@@ -145,7 +145,7 @@ class GenPolicy {
     // If we want to use the same dimension for each array
     std::vector<Probability<bool>> stencil_same_dims_one_arr_distr;
     // If we want to use same offsets in the same dimensions for all arrays
-    std::vector<Probability<bool>> stencil_reuse_offset_distr;
+    std::vector<Probability<bool>> stencil_same_offset_all_distr;
     std::map<size_t, std::vector<Probability<bool>>> stencil_in_dim_prob;
     double stencil_in_dim_prob_offset = 0.1;
 
@@ -158,13 +158,6 @@ class GenPolicy {
     std::vector<Probability<bool>> subs_dims_in_order_prob;
     std::vector<Probability<SubscriptKind>> subs_kind_prob;
     std::vector<Probability<bool>> subs_diagonal_prob;
-
-    std::vector<Probability<bool>> array_reuse_dim_prob;
-    std::vector<Probability<ArrayDimsReuseKind>> array_dims_reuse_kind_prob;
-    size_t max_dim_offset_factor = max_stencil_span;
-    double max_dim_scale_factor = 2.0;
-    // TODO: this is not the proper way to do it, but it's good enough for now
-    size_t max_combined_dims_num = 2;
 
     // It determines the number of dimensions that array have in relation
     // to the current loop depth
