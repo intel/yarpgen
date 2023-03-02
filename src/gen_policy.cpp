@@ -309,12 +309,12 @@ GenPolicy::GenPolicy() {
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(3, 15));
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(4, 10));
 
-    //stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
-    stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
+    stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
+    //stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
     shuffleProbProxy(stencil_same_dims_one_arr_distr);
 
-    stencil_same_dims_all_distr.emplace_back(Probability<bool>(true, 40));
-    //stencil_same_dims_all_distr.emplace_back(Probability<bool>(false, 60));
+    //stencil_same_dims_all_distr.emplace_back(Probability<bool>(true, 40));
+    stencil_same_dims_all_distr.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(stencil_same_dims_all_distr);
 
     //stencil_same_offset_all_distr.emplace_back(Probability<bool>(true, 30));

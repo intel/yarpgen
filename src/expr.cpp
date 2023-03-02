@@ -736,7 +736,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                 avail_arrays.push_back(array);
         }
 
-        std::cout << "Avail arrays pull: " << avail_arrays.size() << std::endl;
+        std::cout << "Avail arrays pool: " << avail_arrays.size() << std::endl;
 
         // Third, we need to pick active arrays
         // TODO: we need a better mechanism to pick arrays
@@ -763,6 +763,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     bool same_dims_each = !same_dims_all &&
         rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
     if (same_dims_each && !avail_dims.empty()) {
+        std::cout << "Same dims each start" << std::endl;
         // TODO: this is a possible place to cause a significant slowdown.
         // We need to check the performance and fix it if necessary
         std::vector<std::shared_ptr<Array>> avail_arrs;
@@ -774,6 +775,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                 std::static_pointer_cast<ArrayType>(array_type);
             size_t array_dims = true_array_type->getDimensions().size();
             auto dims_kind = rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
+            // TODO: do we need it?
             bool suit_array = (dims_kind == ArrayDimsUseKind::FEWER &&
                                array_dims < new_ctx->getDimensions().size()) ||
                               (dims_kind == ArrayDimsUseKind::SAME &&
@@ -784,17 +786,26 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                 avail_arrs.push_back(array);
         }
 
+        std::cout << "Avail arrays pool: " << avail_arrs.size() << std::endl;
+
         // TODO: make sure that we don't duplicate fallback strategies
         // This is a fall-back strategy. If we've decided to have a stencil, it
         // is more important than subscription settings
-        if (avail_arrs.empty())
+        if (avail_arrs.empty()) {
+            std::cout << "Same offset each fallback" << std::endl;
             avail_arrs = SubscriptExpr::getSuitableArrays(new_ctx);
+        }
 
         size_t num_of_active_arrs =
             std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
                      avail_arrs.size());
 
         active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
+
+        std::cout << "Active arr: ";
+        for (auto &arr : active_arrs)
+            std::cout << arr->getName(std::make_shared<EmitCtx>()) << " : " << std::static_pointer_cast<ArrayType>(arr->getType())->getDimensions().size() << " | ";
+        std::cout << std::endl;
     }
 
     if (active_arrs.empty()) {
@@ -823,7 +834,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     bool same_offset_all =
         same_dims_all &&
         rand_val_gen->getRandId(gen_pol->stencil_same_offset_all_distr);
-    std::vector<int64_t> chosen_offsets;
+    std::unordered_map<size_t, int64_t> chosen_offsets;
     for (auto &stencil : stencils) {
         if (!same_dims_each && !same_dims_all)
             break;
@@ -856,6 +867,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         }
 
         if (same_offset_all) {
+            std::cout << "Same offset all: ";
             for (auto &dim : chosen_dims) {
                 size_t max_left_offset = dim.second->getMaxLeftOffset();
                 size_t max_right_offset = dim.second->getMaxRightOffset();
@@ -867,8 +879,11 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                         -static_cast<int64_t>(max_left_offset),
                         static_cast<int64_t>(max_right_offset));
                 }
-                chosen_offsets.push_back(new_offset);
+                chosen_offsets[dim.first] = new_offset;
             }
+            for (auto &offset : chosen_offsets)
+                std::cout << offset.first << " : " << offset.second << " | ";
+            std::cout << std::endl;
         }
 
         // We use binary vector to indicate if dimension can be used for
@@ -943,8 +958,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
 
         std::cout << "\titers: ";
         for (auto &iter : stencil.getIters())
-            if (iter)
-                std::cout << iter->getName(std::make_shared<EmitCtx>()) << " | ";
+            std::cout << (iter ? (iter->getName(std::make_shared<EmitCtx>())) : "nul") << " | ";
         std::cout << std::endl;
 
         std::cout << "\toffsets: ";
