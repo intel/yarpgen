@@ -75,35 +75,38 @@ class GenCtx {
 class ArrayStencilParams {
   public:
     explicit ArrayStencilParams(std::shared_ptr<Array> _arr)
-        : arr(std::move(_arr)) {}
+        : arr(std::move(_arr)), dims_defined(false), offsets_defined(false) {}
+
+    // We use an array of structures instead of a structure of arrays to keep
+    // parameters of each dimension together
+    // If parameter is not defined, it is set to false/nullptr/zero accordingly
+    struct ArrayStencilDimParams {
+        bool dim_active;
+        std::shared_ptr<Iterator> iter;
+        int64_t offset;
+
+        ArrayStencilDimParams() : dim_active(false), iter(nullptr), offset(0) {}
+    };
 
     std::shared_ptr<Array> getArray() { return arr; }
 
-    void setActiveDims(std::vector<size_t> _dims) {
-        active_dims = std::move(_dims);
+    void setParams(std::vector<ArrayStencilDimParams> _params, bool _dims_defined,
+                   bool _offsets_defined) {
+        params = std::move(_params);
+        dims_defined = _dims_defined;
+        offsets_defined = _offsets_defined;
     }
-    std::vector<size_t> &getActiveDims() { return active_dims; }
 
-    void setIters(std::vector<std::shared_ptr<Iterator>> _iters) {
-        iters = std::move(_iters);
-    }
-    std::vector<std::shared_ptr<Iterator>> getIters() { return iters; }
+    std::vector<ArrayStencilDimParams> &getParams() { return params; }
 
-    void setOffsets(std::vector<int64_t> _offsets) {
-        offsets = std::move(_offsets);
-    }
-    std::vector<int64_t> getOffsets() { return offsets; }
+    bool areDimsDefined() const { return dims_defined; }
+    bool areOffsetsDefined() const { return offsets_defined; }
 
   private:
     std::shared_ptr<Array> arr;
-    // The total number of active_dims should be equal to the total number of
-    // active_dims in array. We set it to 1 if we want to have offset in that
-    // dimension and to 0 otherwise. This should have a bool type, but
-    // vector<bool> is a bad thing, so we use size_t instead
-    std::vector<size_t> active_dims;
-    // Same idea applies to iterators. They are set to nullptr for inactive dims
-    std::vector<std::shared_ptr<Iterator>> iters;
-    std::vector<int64_t> offsets;
+    bool dims_defined;
+    bool offsets_defined;
+    std::vector<ArrayStencilDimParams> params;
 };
 
 class SymbolTable {
