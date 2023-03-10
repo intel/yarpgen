@@ -75,37 +75,44 @@ class GenCtx {
 class ArrayStencilParams {
   public:
     explicit ArrayStencilParams(std::shared_ptr<Array> _arr)
-        : arr(std::move(_arr)), dims_defined(false), offsets_defined(false) {}
+        : arr(std::move(_arr)), dims_defined(false), offsets_defined(false), dims_order(SubscriptOrderKind::RANDOM) {}
 
     // We use an array of structures instead of a structure of arrays to keep
     // parameters of each dimension together
     // If parameter is not defined, it is set to false/nullptr/zero accordingly
     struct ArrayStencilDimParams {
         bool dim_active;
+        // This is an absolute index of the iterator in context
+        // We need to save this info to create special subscript expressions
+        size_t abs_idx;
         std::shared_ptr<Iterator> iter;
         int64_t offset;
 
-        ArrayStencilDimParams() : dim_active(false), iter(nullptr), offset(0) {}
+        ArrayStencilDimParams() : dim_active(false), abs_idx(0), iter(nullptr), offset(0) {}
     };
 
     std::shared_ptr<Array> getArray() { return arr; }
 
     void setParams(std::vector<ArrayStencilDimParams> _params, bool _dims_defined,
-                   bool _offsets_defined) {
+                   bool _offsets_defined,
+                   SubscriptOrderKind _dims_order) {
         params = std::move(_params);
         dims_defined = _dims_defined;
         offsets_defined = _offsets_defined;
+        dims_order = _dims_order;
     }
 
     std::vector<ArrayStencilDimParams> &getParams() { return params; }
 
     bool areDimsDefined() const { return dims_defined; }
     bool areOffsetsDefined() const { return offsets_defined; }
+    SubscriptOrderKind getDimsOrderKind() const { return dims_order; }
 
   private:
     std::shared_ptr<Array> arr;
     bool dims_defined;
     bool offsets_defined;
+    SubscriptOrderKind dims_order;
     std::vector<ArrayStencilDimParams> params;
 };
 

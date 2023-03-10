@@ -258,6 +258,7 @@ std::shared_ptr<ArrayType> ArrayType::create(std::shared_ptr<PopulateCtx> ctx) {
     // ctx loop depth
     auto dims_use_kind = rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
     size_t dims_num = ctx->generateNumberOfDims(dims_use_kind);
+    assert(dims_num <= gen_pol->array_dims_num_limit && "Arrays can't have more dimensions than the limit");
     std::vector<size_t> dims (dims_num, ctx->getDimensions().front());
 
     return init(base_type, dims);

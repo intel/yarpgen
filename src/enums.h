@@ -226,5 +226,12 @@ enum class ArrayDimsReuseKind { SAME, OFFSET, SCALE, COMBINE };
 // The goal here is to alternate the order so we can generate somthing like
 // matrix multiplication
 enum class SubscriptKind { CONST, ITER, OFFSET, REPEAT };
-
+// We need to make sure that we create special cases of array access patterns
+// These have a small probability of being generated, so we create special cases
+// to handle them.
+// RANDOM is used as a pseudo-poison value which indicates the general case
+// The generation for reverse is handled as in-order with reverse at the end of
+// the generation process
+//TODO: add swap to support almost in-order case?
+enum class SubscriptOrderKind { IN_ORDER, REVERSE, DIAGONAL, RANDOM };
 } // namespace yarpgen
