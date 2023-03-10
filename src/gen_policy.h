@@ -138,7 +138,6 @@ class GenPolicy {
     std::vector<Probability<bool>> allow_stencil_prob;
     size_t max_stencil_span = 4;
     std::vector<Probability<size_t>> stencil_span_distr;
-    size_t max_arrs_in_stencil = 4;
     std::vector<Probability<size_t>> arrs_in_stencil_distr;
     // If we want to use same dimensions for all arrays
     std::vector<Probability<bool>> stencil_same_dims_all_distr;
@@ -146,6 +145,9 @@ class GenPolicy {
     std::vector<Probability<bool>> stencil_same_dims_one_arr_distr;
     // If we want to use same offsets in the same dimensions for all arrays
     std::vector<Probability<bool>> stencil_same_offset_all_distr;
+    // The number of dimensions used in stencil. Zero is used to indicate
+    // a special case when we use all available dimensions
+    std::vector<Probability<size_t>> stencil_dim_num_distr;
     std::map<size_t, std::vector<Probability<bool>>> stencil_in_dim_prob;
     double stencil_in_dim_prob_offset = 0.1;
 
@@ -155,7 +157,7 @@ class GenPolicy {
 
     // Probability to generate array with dims that are in natural order of
     // context
-    std::vector<Probability<bool>> subs_dims_in_order_prob;
+    std::vector<Probability<SubscriptOrderKind>> subs_order_kind_distr;
     std::vector<Probability<SubscriptKind>> subs_kind_prob;
     std::vector<Probability<bool>> subs_diagonal_prob;
 
@@ -165,10 +167,9 @@ class GenPolicy {
 
     // The factor that determines maximal array dimension for each context
     double arrays_dims_ext_factor = 1.3;
+    size_t array_dims_num_limit = 7;
 
-
-
-  //private:
+  private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,
                             size_t min_num = 0);
