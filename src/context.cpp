@@ -66,8 +66,9 @@ size_t PopulateCtx::generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const {
     else if (dims_use_kind == ArrayDimsUseKind::MORE) {
         return rand_val_gen->getRandValue(
             dims.size() + 1,
-            static_cast<size_t>(
-                std::ceil(dims.size() * gen_policy->arrays_dims_ext_factor)));
+            std::min(static_cast<size_t>(std::ceil(
+                         dims.size() * gen_policy->arrays_dims_ext_factor)),
+                     gen_policy->array_dims_num_limit));
     }
     else
         ERROR("Unsupported case!");
