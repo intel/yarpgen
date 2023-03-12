@@ -360,6 +360,11 @@ GenPolicy::GenPolicy() {
         Probability<ArrayDimsUseKind>(ArrayDimsUseKind::SAME, 33));
     array_dims_use_kind.emplace_back(
         Probability<ArrayDimsUseKind>(ArrayDimsUseKind::MORE, 33));
+
+    use_iters_cache_prob.emplace_back(true, 70);
+    use_iters_cache_prob.emplace_back(false, 30);
+    shuffleProbProxy(use_iters_cache_prob);
+
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
