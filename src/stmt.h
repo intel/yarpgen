@@ -114,6 +114,8 @@ class Pragma {
 
 class LoopHead {
   public:
+    LoopHead(): prefix(nullptr), suffix(nullptr), is_foreach(false), same_iter_space(false) {}
+
     std::shared_ptr<StmtBlock> getPrefix() { return prefix; }
     void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
         prefix = std::move(_prefix);
@@ -142,7 +144,8 @@ class LoopHead {
     bool hasSIMDPragma();
 
     static void populateArrays(std::shared_ptr<PopulateCtx> ctx);
-    void populateIters(std::shared_ptr<PopulateCtx> ctx);
+
+    void setSameIterSpace() { same_iter_space = true; }
 
   private:
     std::shared_ptr<StmtBlock> prefix;
@@ -154,6 +157,10 @@ class LoopHead {
 
     // ISPC
     bool is_foreach;
+
+    // We need to save info about of the loop belongs to the loop sequence with
+    // the same iteration space (mostly for debug purposes)
+    bool same_iter_space;
 };
 
 // According to the agreement, a single standalone loop should be represented as

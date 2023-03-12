@@ -365,6 +365,11 @@ GenPolicy::GenPolicy() {
     use_iters_cache_prob.emplace_back(false, 30);
     shuffleProbProxy(use_iters_cache_prob);
 
+    same_iter_space.emplace_back(true, 20);
+    same_iter_space.emplace_back(false, 80);
+    shuffleProbProxy(same_iter_space);
+
+    uniformProbFromMax(same_iter_space_span, loop_seq_num_lim, 2);
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
