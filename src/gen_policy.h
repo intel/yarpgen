@@ -167,7 +167,10 @@ class GenPolicy {
 
     // The factor that determines maximal array dimension for each context
     double arrays_dims_ext_factor = 1.3;
+    // TODO: this seems like it doesn't work, so we will have to fix it
     size_t array_dims_num_limit = 7;
+
+    std::vector<Probability<bool>> use_iters_cache_prob;
 
   private:
     template <typename T>

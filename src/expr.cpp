@@ -245,13 +245,13 @@ ConstantExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     bool replace_in_buf =
         rand_val_gen->getRandId(gen_pol->replace_in_buf_distr);
     // If we are inside mutation, we can't change the buffer. Otherwise,
-    // this will affect the state of the random generator outside of the mutated
+    // this will affect the state of the random generator outside the mutated
     // region
     if (!ctx->isInsideMutation() && can_add_to_buf && replace_in_buf) {
         if (used_consts.size() < gen_pol->const_buf_size)
             used_consts.push_back(ret);
         else {
-            auto replaced_const = rand_val_gen->getRandElem(used_consts);
+            auto &replaced_const = rand_val_gen->getRandElem(used_consts);
             replaced_const = ret;
         }
     }
@@ -842,6 +842,10 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                 chosen_dims.resize(chosen_dims_num_limit);
             chosen_dims_idx_remap = remap_chosen_dims(chosen_dims, chosen_dims_num_limit);
         }
+        else {
+            same_dims_all = false;
+            chosen_dims.clear();
+        }
 
         std::cout << "Chosen dims: ";
         for (auto &dim : chosen_dims)
@@ -855,7 +859,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
 
     // After that, we can process other special cases that doesn't involve
     // synchronized decisions
-    bool same_dims_each = (!same_dims_all || (same_dims_all && active_arrs.empty())) &&
+    bool same_dims_each = !same_dims_all &&
         rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
     if (same_dims_each && !avail_dims.empty()) {
         std::cout << "Same dims each start" << std::endl;
@@ -903,6 +907,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         std::cout << std::endl;
     }
 
+    // TODO: not sure if we need this fallback
     if (active_arrs.empty()) {
         same_dims_all = same_dims_each = false;
         std::cout << "Active arrs empty fallback" << std::endl;
@@ -2169,6 +2174,20 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         assert(diag_iter && "We should have an active iterator in DIAGONAL pattern");
     }
 
+    auto get_random_iter = [&gen_pol, &ctx] (size_t dim_id) {
+        std::shared_ptr<Iterator> ret = nullptr;
+        // This is a pseudo-cache, the proper approach require further research
+        // The naive implementation suffers from unfair distribution of
+        // iterators and messed up order
+        // TODO: we should use a proper cache
+        auto use_cached = rand_val_gen->getRandId(gen_pol->use_iters_cache_prob);
+        if (use_cached && dim_id < ctx->getDimensions().size())
+            ret = ctx->getLocalSymTable()->getIters().at(dim_id);
+        if (!use_cached || !ret)
+            ret = rand_val_gen->getRandElem(ctx->getLocalSymTable()->getIters());
+        return ret;
+    };
+
     // We want to save subscript expressions so that we can reorder them later
     // We also save offset
     std::vector<std::pair<std::shared_ptr<Expr>, int64_t>> subs_exprs;
@@ -2262,8 +2281,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                              SubscriptOrderKind::DIAGONAL)
                         iter = diag_iter;
                     else if (array_params.getDimsOrderKind() == SubscriptOrderKind::RANDOM)
-                        iter = rand_val_gen->getRandElem(
-                            ctx->getLocalSymTable()->getIters());
+                        iter = get_random_iter(i);
                     else
                         ERROR("Unknown dims order kind");
                 }
@@ -2273,8 +2291,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                     iter = diag_iter;
                 else if (dims_order_kind == SubscriptOrderKind::RANDOM ||
                         (dims_order_kind == SubscriptOrderKind::DIAGONAL && !diag_iter)) {
-                    iter = rand_val_gen->getRandElem(
-                        ctx->getLocalSymTable()->getIters());
+                    iter = get_random_iter(i);
                     if (dims_order_kind == SubscriptOrderKind::DIAGONAL && !diag_iter)
                         diag_iter = iter;
                 }

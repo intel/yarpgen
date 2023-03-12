@@ -25,6 +25,7 @@ limitations under the License.
 #include <utility>
 
 #include "data.h"
+#include "gen_policy.h"
 #include "ir_node.h"
 #include "ir_value.h"
 
