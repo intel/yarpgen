@@ -172,6 +172,9 @@ class GenPolicy {
 
     std::vector<Probability<bool>> use_iters_cache_prob;
 
+    std::vector<Probability<bool>> same_iter_space;
+    std::vector<Probability<size_t>> same_iter_space_span;
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,

@@ -241,6 +241,9 @@ void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
         stream << ") ";
     }
+
+    if (same_iter_space)
+        stream << "/* same iter space */";
 }
 
 void LoopHead::emitSuffix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -360,6 +363,10 @@ static auto makeMutableRoll(std::shared_ptr<GenPolicy> gen_pol,
 void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
 
+    size_t same_iter_space_counter = 0;
+    size_t same_iter_space_dim = 0;
+    size_t cur_idx = 0;
+
     for (auto &loop : loops) {
         auto loop_head = loop.first;
         if (loop_head->getPrefix().use_count() != 0)
@@ -372,18 +379,41 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
 
         size_t new_dim = 0;
-        if (new_ctx->getDimensions().empty())
-            new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
-                return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                                  gen_pol->iter_end_limit_max);});
-        else
-            new_dim = new_ctx->getDimensions().front();
 
-        auto new_iters = loop_head->populateIterators(new_ctx, new_dim);
+        std::shared_ptr<Iterator> new_iters = nullptr;
+        if (same_iter_space_counter == 0) {
+            if (new_ctx->getDimensions().empty())
+                new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
+                    return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
+                                                      gen_pol->iter_end_limit_max);});
+            else
+                new_dim = new_ctx->getDimensions().front();
+
+            new_iters = loop_head->populateIterators(new_ctx, new_dim);
+        }
+        else {
+            new_dim = same_iter_space_dim;
+            auto prev_loop = loops.at(cur_idx - 1);
+            auto prev_iter = prev_loop.first->getIterators().front();
+            NameHandler& nh = NameHandler::getInstance();
+            new_iters = std::make_shared<Iterator>(nh.getIterName(), prev_iter->getType(), prev_iter->getStart(), prev_iter->getMaxLeftOffset(), prev_iter->getEnd(), prev_iter->getMaxRightOffset(), prev_iter->getStep(), prev_iter->isDegenerate());
+            new_iters->setIsDead(false);
+            loop_head->addIterator(new_iters);
+            loop_head->setSameIterSpace();
+            same_iter_space_counter--;
+        }
+
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
+
+        if (same_iter_space_counter == 0 && rand_val_gen->getRandId(gen_pol->same_iter_space)) {
+            same_iter_space_counter = std::min(loops.size() - cur_idx, rand_val_gen->getRandId(gen_pol->same_iter_space_span)) - 1;
+            same_iter_space_dim = new_dim;
+            if (same_iter_space_counter > 0)
+                loop_head->setSameIterSpace();
+        }
 
         new_ctx->incLoopDepth(1);
         bool old_ctx_state = new_ctx->isTaken();
@@ -402,6 +432,8 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->setInsideOMPSimd(old_simd_state);
         if (loop_head->getSuffix().use_count() != 0)
             loop_head->getSuffix()->populate(new_ctx);
+
+        ++cur_idx;
     }
 }
 
