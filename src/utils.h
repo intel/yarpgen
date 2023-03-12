@@ -90,6 +90,7 @@ class RandValGen {
     explicit RandValGen(uint64_t _seed);
 
     template <typename T> T getRandValue(T from, T to) {
+        assert(from <= to && "Invalid range for random value generation");
         // Using long long instead of T is a hack.
         // getRandValue is used with all kind of integer types, including chars.
         // While standard is not allowing it to be used with
