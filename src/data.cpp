@@ -189,10 +189,12 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     auto step =
         std::make_shared<ConstantExpr>(IRValue{type_id, {false, step_val}});
 
+    size_t total_iters_num = (end_val - left_span + step_val - 1) / step_val;
+
     NameHandler &nh = NameHandler::getInstance();
     auto iter =
         std::make_shared<Iterator>(nh.getIterName(), type, start, left_span,
-                                   end, right_span, step, end_val == left_span);
+                                   end, right_span, step, end_val == left_span, total_iters_num);
 
     return iter;
 }
