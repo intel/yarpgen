@@ -211,8 +211,8 @@ class ArithmeticExpr : public Expr {
     static std::shared_ptr<Expr> create(std::shared_ptr<PopulateCtx> ctx);
 
   protected:
-    std::shared_ptr<Expr> integralProm(std::shared_ptr<Expr> arg);
-    std::shared_ptr<Expr> convToBool(std::shared_ptr<Expr> arg);
+    static std::shared_ptr<Expr> integralProm(std::shared_ptr<Expr> arg);
+    static std::shared_ptr<Expr> convToBool(std::shared_ptr<Expr> arg);
     static void arithConv(std::shared_ptr<Expr> &lhs,
                           std::shared_ptr<Expr> &rhs);
     static void varyingPromotion(std::shared_ptr<Expr> &lhs,
@@ -326,8 +326,32 @@ class AssignmentExpr : public Expr {
   public:
     AssignmentExpr(std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from,
                    bool _taken = true)
-        : to(std::move(_to)), from(std::move(_from)), taken(_taken) {}
-    IRNodeKind getKind() final { return IRNodeKind::ASSIGN; }
+        : from(std::move(_from)), taken(_taken), to(std::move(_to)) {}
+    IRNodeKind getKind() override { return IRNodeKind::ASSIGN; }
+
+    bool propagateType() override;
+    EvalResType evaluate(EvalCtx &ctx) override;
+    EvalResType rebuild(EvalCtx &ctx) override;
+
+    void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+              std::string offset = "") override;
+    static std::shared_ptr<AssignmentExpr>
+    create(std::shared_ptr<PopulateCtx> ctx);
+
+  protected:
+    std::shared_ptr<Expr> from;
+    bool taken;
+    std::shared_ptr<Expr> to;
+};
+
+class ReductionExpr : public AssignmentExpr {
+  public:
+    ReductionExpr(std::shared_ptr<AssignmentExpr> _expr,
+                  BinaryOp _bin_op, LibCallKind _lib_call, bool _is_degenerate,
+                  bool _taken = true)
+        : AssignmentExpr(*_expr),
+          bin_op(_bin_op), lib_call_kind(_lib_call), is_degenerate(_is_degenerate) {}
+    IRNodeKind getKind() final { return IRNodeKind::REDUCTION; }
 
     bool propagateType() final;
     EvalResType evaluate(EvalCtx &ctx) final;
@@ -335,13 +359,16 @@ class AssignmentExpr : public Expr {
 
     void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
               std::string offset = "") final;
-    static std::shared_ptr<AssignmentExpr>
+    static std::shared_ptr<ReductionExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
   private:
-    std::shared_ptr<Expr> to;
-    std::shared_ptr<Expr> from;
-    bool taken;
+    BinaryOp bin_op;
+    LibCallKind lib_call_kind;
+    std::shared_ptr<Expr> result_expr;
+    // This member indicates if we want to use a simpel AssignmentExpr as a
+    // fallback option for reduction
+    bool is_degenerate;
 };
 
 class CallExpr : public Expr {

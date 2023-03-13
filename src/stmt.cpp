@@ -34,9 +34,29 @@ void ExprStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 }
 
 std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
-    auto expr = AssignmentExpr::create(ctx);
+    auto gen_pol = ctx->getGenPolicy();
+    auto expr_kind = rand_val_gen->getRandId(gen_pol->expr_stmt_kind_pop_distr);
+    std::shared_ptr<Expr> expr;
+    int64_t total_iters_num = -1;
+    if (expr_kind == IRNodeKind::ASSIGN)
+        expr = AssignmentExpr::create(ctx);
+    else if (expr_kind == IRNodeKind::REDUCTION) {
+        expr = ReductionExpr::create(ctx);
+        total_iters_num =
+            std::accumulate(ctx->getLocalSymTable()->getIters().begin(),
+                            ctx->getLocalSymTable()->getIters().end(), 1,
+                            [](size_t a, const std::shared_ptr<Iterator> &b) {
+                                return a * b->getTotalItersNum();
+                            });
+    }
     EvalCtx eval_ctx;
-    expr->evaluate(eval_ctx);
+    eval_ctx.total_iter_num = total_iters_num;
+    auto eval_res = expr->evaluate(eval_ctx);
+    if (eval_res->hasUB()) {
+
+        eval_ctx.total_iter_num = total_iters_num;
+        expr->rebuild(eval_ctx);
+    }
     return std::make_shared<ExprStmt>(expr);
 }
 
@@ -119,17 +139,8 @@ void StmtBlock::populate(std::shared_ptr<PopulateCtx> ctx) {
     for (auto &stmt : stmts) {
         if (stmt->getKind() != IRNodeKind::STUB)
             stmt->populate(ctx);
-        else {
-            std::shared_ptr<Stmt> new_stmt;
-            IRNodeKind new_stmt_kind =
-                rand_val_gen->getRandId(gen_pol->stmt_kind_pop_distr);
-            if (new_stmt_kind == IRNodeKind::ASSIGN) {
-                new_stmt = ExprStmt::create(ctx);
-            }
-            else
-                ERROR("Bad IRNode kind drawing");
-            stmt = new_stmt;
-        }
+        else
+            stmt = ExprStmt::create(ctx);
     }
 }
 
@@ -396,7 +407,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             auto prev_loop = loops.at(cur_idx - 1);
             auto prev_iter = prev_loop.first->getIterators().front();
             NameHandler& nh = NameHandler::getInstance();
-            new_iters = std::make_shared<Iterator>(nh.getIterName(), prev_iter->getType(), prev_iter->getStart(), prev_iter->getMaxLeftOffset(), prev_iter->getEnd(), prev_iter->getMaxRightOffset(), prev_iter->getStep(), prev_iter->isDegenerate());
+            new_iters = std::make_shared<Iterator>(nh.getIterName(), prev_iter->getType(), prev_iter->getStart(), prev_iter->getMaxLeftOffset(), prev_iter->getEnd(), prev_iter->getMaxRightOffset(), prev_iter->getStep(), prev_iter->isDegenerate(), prev_iter->getTotalItersNum());
             new_iters->setIsDead(false);
             loop_head->addIterator(new_iters);
             loop_head->setSameIterSpace();

@@ -187,11 +187,11 @@ class Iterator : public Data {
     Iterator(std::string _name, std::shared_ptr<Type> _type,
              std::shared_ptr<Expr> _start, size_t _max_left_offset,
              std::shared_ptr<Expr> _end, size_t _max_right_offset,
-             std::shared_ptr<Expr> _step, bool _degenerate)
+             std::shared_ptr<Expr> _step, bool _degenerate, size_t _total_iters_num)
         : Data(std::move(_name), std::move(_type)), start(std::move(_start)),
           max_left_offset(_max_left_offset), end(std::move(_end)),
           max_right_offset(_max_right_offset), step(std::move(_step)),
-          degenerate(_degenerate) {}
+          degenerate(_degenerate), total_iters_num(_total_iters_num) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
@@ -204,6 +204,7 @@ class Iterator : public Data {
     void setParameters(std::shared_ptr<Expr> _start, std::shared_ptr<Expr> _end,
                        std::shared_ptr<Expr> _step);
     bool isDegenerate() { return degenerate; }
+    size_t getTotalItersNum() { return total_iters_num; }
 
     void dbgDump() final;
 
@@ -226,6 +227,8 @@ class Iterator : public Data {
     size_t max_right_offset;
     std::shared_ptr<Expr> step;
     bool degenerate;
+    // Total number of iterations
+    size_t total_iters_num;
 };
 
 } // namespace yarpgen

@@ -2428,6 +2428,191 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     return std::make_shared<AssignmentExpr>(to, from, ctx->isTaken());
 }
 
+bool ReductionExpr::propagateType() {
+    if (is_degenerate)
+        return AssignmentExpr::propagateType();
+    to->propagateType();
+    from->propagateType();
+    return true;
+}
+
+template <class BinOp>
+static IRValue reductionHelper(IRValue base, IRValue inc, size_t total_iters_num, BinOp foo) {
+    auto tmp_op = std::make_shared<BinaryExpr>(BinaryOp::ADD,
+                                               std::make_shared<ConstantExpr>(base),
+                                               std::make_shared<ConstantExpr>(inc));
+    tmp_op->propagateType();
+    auto max_int_type = std::static_pointer_cast<IntegralType>(tmp_op->getValue()->getType());
+    IntTypeID max_type_id = max_int_type->getIntTypeId();
+
+
+    // IRValue approach is about as fast as approach with C++ types, but it
+    // detects UB automatically
+    // Ideally, we want to come up with a precise formula for result
+    IRValue conv_inc = inc.getIntTypeID() == max_type_id ? inc : inc.castToType(max_type_id);
+    bool need_to_cast_ret = base.getIntTypeID() != max_type_id;
+
+    IRValue ret = base;
+    for (size_t i = 0; i < total_iters_num; i++)
+        ret = foo((need_to_cast_ret ? ret.castToType(max_type_id) : ret), conv_inc).castToType(base.getIntTypeID());
+    return ret;
+}
+
+Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
+    if (is_degenerate)
+        return AssignmentExpr::evaluate(ctx);
+
+    propagateType();
+    if (!to->getValue()->getType()->isIntType() ||
+        !from->getValue()->getType()->isIntType())
+        ERROR("We support only Integral Type for now");
+
+    EvalResType to_eval_res = to->evaluate(ctx);
+    EvalResType from_eval_res = from->evaluate(ctx);
+    if (to_eval_res->getKind() != from_eval_res->getKind())
+        ERROR("We can't assign incompatible data types");
+    auto to_int_type =
+        std::static_pointer_cast<IntegralType>(to->getValue()->getType());
+
+    assert(to_eval_res->getKind() == DataKind::VAR &&
+           from_eval_res->getKind() == DataKind::VAR &&
+           "We support only scalar vars for now");
+    IRValue to_eval_val = std::static_pointer_cast<ScalarVar>(to_eval_res)->getCurrentValue();
+    IRValue from_eval_val = std::static_pointer_cast<ScalarVar>(from_eval_res)->getCurrentValue();
+
+    assert(ctx.total_iter_num >= 0 && "We can't evaluate reduction operation if we don't know the number of iterations");
+
+    if (bin_op != BinaryOp::MAX_BIN_OP) {
+        switch (bin_op) {
+            case BinaryOp::BIT_AND:
+                result_expr =
+                    std::make_shared<BinaryExpr>(BinaryOp::BIT_AND, to, from);
+                break;
+            case BinaryOp::BIT_OR:
+                result_expr =
+                    std::make_shared<BinaryExpr>(BinaryOp::BIT_OR, to, from);
+                break;
+            case BinaryOp::BIT_XOR:
+                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::bit_xor()));
+                break;
+            default:
+                ERROR("Unsupported Binary Operation");
+        }
+    }
+
+    if (!taken)
+        return from_eval_res;
+
+    result_expr =
+        std::make_shared<TypeCastExpr>(result_expr, to_int_type, true);
+    result_expr->propagateType();
+    auto result_expr_eval_res = result_expr->evaluate(ctx);
+    if (result_expr_eval_res->hasUB())
+        return result_expr_eval_res;
+
+    if (to->getKind() == IRNodeKind::SCALAR_VAR_USE) {
+        auto to_scalar = std::static_pointer_cast<ScalarVarUseExpr>(to);
+        to_scalar->setValue(result_expr);
+    }
+    else if (to->getKind() == IRNodeKind::ITER_USE) {
+        auto to_iter = std::static_pointer_cast<IterUseExpr>(to);
+        to_iter->setValue(result_expr);
+    }
+    else if (to->getKind() == IRNodeKind::SUBSCRIPT) {
+        auto to_array = std::static_pointer_cast<SubscriptExpr>(to);
+        std::deque<size_t> span, steps;
+        to_array->setValue(result_expr, span, steps);
+    }
+    else
+        ERROR("Bad IRNodeKind");
+
+    return from_eval_res;
+}
+
+Expr::EvalResType ReductionExpr::rebuild(EvalCtx &ctx) {
+    if (is_degenerate)
+        return AssignmentExpr::rebuild(ctx);
+    propagateType();
+    to->rebuild(ctx);
+    from->rebuild(ctx);
+    return evaluate(ctx);
+}
+
+void ReductionExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                         std::string offset) {
+    if (is_degenerate) {
+        AssignmentExpr::emit(ctx, stream, offset);
+        return;
+    }
+
+    stream << offset;
+    to->emit(ctx, stream);
+    if (bin_op != BinaryOp::MAX_BIN_OP) {
+        stream << " ";
+        switch (bin_op) {
+            case BinaryOp::ADD:
+                stream << "+";
+                break;
+            case BinaryOp::BIT_AND:
+                stream << "&";
+                break;
+            case BinaryOp::BIT_OR:
+                stream << "|";
+                break;
+            case BinaryOp::BIT_XOR:
+                stream << "^";
+                break;
+            default:
+                ERROR("Unsupported Binary Operation");
+        }
+        stream << "= ";
+        from->emit(ctx, stream);
+    }
+    else if (lib_call_kind != LibCallKind::MAX_LIB_CALL_KIND) {
+        stream << " = ";
+        result_expr->emit(ctx, stream);
+    }
+}
+
+std::shared_ptr<ReductionExpr>
+ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
+    auto gen_pol = ctx->getGenPolicy();
+
+    auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+    bool other_option_exists = false;
+    for (auto &kind_prob : new_gen_pol->out_kind_distr) {
+        if (kind_prob.getId() == DataKind::ARR)
+            kind_prob.setProb(0);
+        else
+            other_option_exists = true;
+    }
+    if (!other_option_exists) {
+        auto base_assign_expr = AssignmentExpr::create(ctx);
+        return std::make_shared<ReductionExpr>(
+            base_assign_expr, BinaryOp::MAX_BIN_OP,
+            LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
+    }
+
+    auto active_ctx = std::make_shared<PopulateCtx>(*ctx);
+    active_ctx->setGenPolicy(new_gen_pol);
+
+    auto base_assign_expr = AssignmentExpr::create(active_ctx);
+
+    bool use_bin_op =
+        rand_val_gen->getRandId(gen_pol->reduction_as_bin_op_prob);
+    BinaryOp bin_op = BinaryOp::MAX_BIN_OP;
+    LibCallKind lib_call = LibCallKind::MAX_LIB_CALL_KIND;
+    if (use_bin_op)
+        bin_op = rand_val_gen->getRandId(gen_pol->reduction_bin_op_distr);
+    else
+        lib_call =
+            rand_val_gen->getRandId(gen_pol->reduction_as_lib_call_distr);
+
+    return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
+                                           false, ctx->isTaken());
+}
+
+
 std::shared_ptr<LibCallExpr>
 LibCallExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();

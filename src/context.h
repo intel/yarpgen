@@ -35,9 +35,13 @@ namespace yarpgen {
 // values.
 class EvalCtx {
   public:
+    EvalCtx() : total_iter_num(-1) {}
     // TODO: we use string as a unique identifier and it is not a right way to
     // do it
     std::map<std::string, DataType> input;
+    // The total number of iterations that we have to do
+    // -1 is used as a poison value that indicates that the information is unknown
+    int64_t total_iter_num;
 };
 
 class GenCtx {
