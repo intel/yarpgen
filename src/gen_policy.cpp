@@ -88,8 +88,9 @@ GenPolicy::GenPolicy() {
     min_inp_vars_num = 10;
     max_inp_vars_num = 20;
 
-    stmt_kind_pop_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::ASSIGN, 20));
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 20);
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 80);
+    shuffleProbProxy(expr_stmt_kind_pop_distr);
 
     min_new_arr_num = 2;
     max_new_arr_num = 4;
@@ -184,6 +185,26 @@ GenPolicy::GenPolicy() {
     ispc_lib_call_distr.emplace_back(
         Probability<LibCallKind>(LibCallKind::EXTRACT, 20));
     shuffleProbProxy(ispc_lib_call_distr);
+
+    reduction_as_bin_op_prob.emplace_back(true, 70);
+//    reduction_as_bin_op_prob.emplace_back(false, 30);
+    shuffleProbProxy(reduction_as_bin_op_prob);
+
+//    reduction_bin_op_distr.emplace_back(BinaryOp::ADD, 10);
+//    reduction_bin_op_distr.emplace_back(BinaryOp::SUB, 10);
+//    reduction_bin_op_distr.emplace_back(BinaryOp::MUL, 10);
+//    reduction_bin_op_distr.emplace_back(BinaryOp::DIV, 10);
+//    reduction_bin_op_distr.emplace_back(BinaryOp::MOD, 10);
+    reduction_bin_op_distr.emplace_back(BinaryOp::BIT_AND, 10);
+    reduction_bin_op_distr.emplace_back(BinaryOp::BIT_OR, 10);
+    reduction_bin_op_distr.emplace_back(BinaryOp::BIT_XOR, 10);
+//    reduction_bin_op_distr.emplace_back(BinaryOp::SHL, 10);
+//    reduction_bin_op_distr.emplace_back(BinaryOp::SHR, 10);
+    shuffleProbProxy(reduction_bin_op_distr);
+
+//    reduction_as_lib_call_distr.emplace_back(LibCallKind::MAX, 20);
+//    reduction_as_lib_call_distr.emplace_back(LibCallKind::MIN, 20);
+//    shuffleProbProxy(reduction_as_lib_call_distr);
 
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::CONST, 30));
@@ -370,6 +391,7 @@ GenPolicy::GenPolicy() {
     shuffleProbProxy(same_iter_space);
 
     uniformProbFromMax(same_iter_space_span, loop_seq_num_lim, 2);
+
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;

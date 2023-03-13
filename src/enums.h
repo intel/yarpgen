@@ -86,6 +86,7 @@ enum class IRNodeKind {
     SUBSCRIPT,
     TYPE_CAST,
     ASSIGN,
+    REDUCTION,
     UNARY,
     BINARY,
     TERNARY,

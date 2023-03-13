@@ -68,7 +68,7 @@ class GenPolicy {
     std::vector<Probability<bool>> else_br_distr;
 
     // Distribution of statements type for population generation
-    std::vector<Probability<IRNodeKind>> stmt_kind_pop_distr;
+    std::vector<Probability<IRNodeKind>> expr_stmt_kind_pop_distr;
 
     // Distribution of available integral types
     std::vector<Probability<IntTypeID>> int_type_distr;
@@ -97,6 +97,10 @@ class GenPolicy {
     std::vector<Probability<LibCallKind>> c_lib_call_distr;
     std::vector<Probability<LibCallKind>> cxx_lib_call_distr;
     std::vector<Probability<LibCallKind>> ispc_lib_call_distr;
+
+    std::vector<Probability<bool>> reduction_as_bin_op_prob;
+    std::vector<Probability<BinaryOp>> reduction_bin_op_distr;
+    std::vector<Probability<LibCallKind>> reduction_as_lib_call_distr;
 
     static size_t leaves_prob_bump;
 
