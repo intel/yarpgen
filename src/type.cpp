@@ -101,6 +101,7 @@ bool IntegralType::isSame(std::shared_ptr<IntegralType> &lhs,
            (lhs->getCVQualifier() == rhs->getCVQualifier());
 }
 
+// Check if type "b" can represent all the values of type "a"
 bool IntegralType::canRepresentType(IntTypeID a, IntTypeID b) {
     // This functions should be called only after integral promotions, so we
     // don't care about "small" types. Unfortunately, there is no way to enforce
