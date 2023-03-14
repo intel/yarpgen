@@ -569,8 +569,8 @@ void ArithmeticExpr::arithConv(std::shared_ptr<Expr> &lhs,
                                       std::shared_ptr<IntegralType> &b_type,
                                       std::shared_ptr<Expr> &b_expr) -> bool {
         if (a_type->getIsSigned() &&
-            IntegralType::canRepresentType(a_type->getIntTypeId(),
-                                           b_type->getIntTypeId())) {
+            IntegralType::canRepresentType(b_type->getIntTypeId(),
+                                           a_type->getIntTypeId())) {
             b_expr = std::make_shared<TypeCastExpr>(b_expr, a_type,
                                                     /*is_implicit*/ true);
             return true;
@@ -2445,7 +2445,6 @@ static IRValue reductionHelper(IRValue base, IRValue inc, size_t total_iters_num
     auto max_int_type = std::static_pointer_cast<IntegralType>(tmp_op->getValue()->getType());
     IntTypeID max_type_id = max_int_type->getIntTypeId();
 
-
     // IRValue approach is about as fast as approach with C++ types, but it
     // detects UB automatically
     // Ideally, we want to come up with a precise formula for result
@@ -2453,8 +2452,11 @@ static IRValue reductionHelper(IRValue base, IRValue inc, size_t total_iters_num
     bool need_to_cast_ret = base.getIntTypeID() != max_type_id;
 
     IRValue ret = base;
-    for (size_t i = 0; i < total_iters_num; i++)
-        ret = foo((need_to_cast_ret ? ret.castToType(max_type_id) : ret), conv_inc).castToType(base.getIntTypeID());
+    for (size_t i = 0; i < total_iters_num; i++) {
+        ret = foo((need_to_cast_ret ? ret.castToType(max_type_id) : ret),
+                  conv_inc)
+                  .castToType(base.getIntTypeID());
+    }
     return ret;
 }
 
@@ -2482,8 +2484,33 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
 
     assert(ctx.total_iter_num >= 0 && "We can't evaluate reduction operation if we don't know the number of iterations");
 
+    /*
+    auto get_total_inc_expr = [&from_eval_val, &ctx](std::shared_ptr<Expr> from) {
+        IRValue iter_num (from_eval_val.getIntTypeID(), IRValue::AbsValue{false, static_cast<uint64_t>(ctx.total_iter_num)});
+        return std::make_shared<BinaryExpr>(BinaryOp::MUL, from, std::make_shared<ConstantExpr>(iter_num));
+    };
+    */
+
+    // TODO: we use a very conservative approach here, we should be able to
+    // come up with a more precise formula
+    std::shared_ptr<Expr> value_result_expr = nullptr;
     if (bin_op != BinaryOp::MAX_BIN_OP) {
         switch (bin_op) {
+            case BinaryOp::ADD:
+                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::plus()));
+                break;
+            case BinaryOp::SUB:
+                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::minus()));
+                break;
+            case BinaryOp::MUL:
+                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::multiplies()));
+                break;
+            case BinaryOp::DIV:
+                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::divides()));
+                break;
+            case BinaryOp::MOD:
+                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::modulus()));
+                break;
             case BinaryOp::BIT_AND:
                 result_expr =
                     std::make_shared<BinaryExpr>(BinaryOp::BIT_AND, to, from);
@@ -2493,15 +2520,26 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
                     std::make_shared<BinaryExpr>(BinaryOp::BIT_OR, to, from);
                 break;
             case BinaryOp::BIT_XOR:
-                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::bit_xor()));
+                result_expr = std::make_shared<ConstantExpr>(
+                    reductionHelper(to_eval_val, from_eval_val,
+                                    ctx.total_iter_num, std::bit_xor()));
                 break;
             default:
                 ERROR("Unsupported Binary Operation");
         }
     }
-
-    if (!taken)
-        return from_eval_res;
+    else if (lib_call_kind != LibCallKind::MAX_LIB_CALL_KIND) {
+        switch (lib_call_kind) {
+            case LibCallKind::MAX:
+                result_expr = std::make_shared<MaxCall>(to, from);
+                break;
+            case LibCallKind::MIN:
+                result_expr = std::make_shared<MinCall>(to, from);
+                break;
+            default:
+                ERROR("Unsupported Lib Call");
+        }
+    }
 
     result_expr =
         std::make_shared<TypeCastExpr>(result_expr, to_int_type, true);
@@ -2509,6 +2547,9 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     auto result_expr_eval_res = result_expr->evaluate(ctx);
     if (result_expr_eval_res->hasUB())
         return result_expr_eval_res;
+
+    if (!taken)
+        return from_eval_res;
 
     if (to->getKind() == IRNodeKind::SCALAR_VAR_USE) {
         auto to_scalar = std::static_pointer_cast<ScalarVarUseExpr>(to);
@@ -2535,7 +2576,13 @@ Expr::EvalResType ReductionExpr::rebuild(EvalCtx &ctx) {
     propagateType();
     to->rebuild(ctx);
     from->rebuild(ctx);
-    return evaluate(ctx);
+    auto ret = evaluate(ctx);
+    if (ret->hasUB()) {
+        is_degenerate = true;
+        ret = rebuild(ctx);
+    }
+    assert(!ret->hasUB() && "We can't have UB here");
+    return ret;
 }
 
 void ReductionExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -2552,6 +2599,18 @@ void ReductionExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         switch (bin_op) {
             case BinaryOp::ADD:
                 stream << "+";
+                break;
+            case BinaryOp::SUB:
+                stream << "-";
+                break;
+            case BinaryOp::MUL:
+                stream << "*";
+                break;
+            case BinaryOp::DIV:
+                stream << "/";
+                break;
+            case BinaryOp::MOD:
+                stream << "%";
                 break;
             case BinaryOp::BIT_AND:
                 stream << "&";
