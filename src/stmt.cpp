@@ -36,10 +36,11 @@ void ExprStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     auto expr_kind = rand_val_gen->getRandId(gen_pol->expr_stmt_kind_pop_distr);
-    std::shared_ptr<Expr> expr;
+    std::shared_ptr<AssignmentExpr> expr;
     int64_t total_iters_num = -1;
     if (expr_kind == IRNodeKind::ASSIGN)
         expr = AssignmentExpr::create(ctx);
+    /*
     else if (expr_kind == IRNodeKind::REDUCTION) {
         expr = ReductionExpr::create(ctx);
         total_iters_num =
@@ -49,14 +50,38 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
                                 return a * b->getTotalItersNum();
                             });
     }
+    */
     EvalCtx eval_ctx;
     eval_ctx.total_iter_num = total_iters_num;
     auto eval_res = expr->evaluate(eval_ctx);
-    if (eval_res->hasUB()) {
+    if (eval_res->hasUB())
+        eval_res = expr->rebuild(eval_ctx);
+    expr->propagateValue(eval_ctx);
 
-        eval_ctx.total_iter_num = total_iters_num;
-        expr->rebuild(eval_ctx);
+    if (ctx->getMulValsIter() != nullptr) {
+        eval_ctx.mul_vals_iter = ctx->getMulValsIter();
+        eval_ctx.use_main_vals = false;
+        eval_res = expr->evaluate(eval_ctx);
     }
+
+    std::cout << "ExprStmt::create: ";
+    expr->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << std::endl;
+
+    if (eval_res->hasUB()) {
+        std::cout << "Has UB\nBefore: ";
+        expr->emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+        eval_ctx.use_main_vals = true;
+        expr->rebuild(eval_ctx);
+        std::cout << "After: ";
+        expr->emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+        eval_ctx.use_main_vals = false;
+    }
+
+    expr->propagateValue(eval_ctx);
+
     return std::make_shared<ExprStmt>(expr);
 }
 
@@ -414,6 +439,13 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             same_iter_space_counter--;
         }
 
+        bool body_with_mul_vals = new_ctx->getMulValsIter() == nullptr && new_iters->getSupportsMulValues() && rand_val_gen->getRandId(gen_pol->loop_body_with_mul_vals_prob);
+        if (body_with_mul_vals) {
+            std::cout << "Loop body with mul vals: " << new_iters->getName(std::make_shared<EmitCtx>()) << std::endl;
+            new_ctx->setMulValsIter(new_iters);
+            new_ctx->setAllowMulVals(true);
+        }
+
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
 
@@ -435,6 +467,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         loop.second->populate(new_ctx);
 
+        //TODO: we create new context for each loop, so some of the cleanup is not needed
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
         new_ctx->deleteLastDim();
@@ -514,6 +547,7 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     bool old_ctx_state = new_ctx->isTaken();
     std::vector<std::shared_ptr<LoopHead>>::iterator taken_switch_id;
     auto simd_switch_id = loops.end();
+    auto mul_val_loop_idx = loops.end();
     for (auto i = loops.begin(); i != loops.end(); ++i) {
         if ((*i)->getPrefix().use_count() != 0) {
             (*i)->getPrefix()->populate(new_ctx);
@@ -535,6 +569,15 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             new_dim = new_ctx->getDimensions().front();
 
         auto new_iters = (*i)->populateIterators(new_ctx, new_dim);
+
+        bool body_with_mul_vals = new_ctx->getMulValsIter() == nullptr && new_iters->getSupportsMulValues() && rand_val_gen->getRandId(gen_pol->loop_body_with_mul_vals_prob);
+        if (body_with_mul_vals) {
+            std::cout << "Loop body with mul vals: " << new_iters->getName(std::make_shared<EmitCtx>()) << std::endl;
+            new_ctx->setMulValsIter(new_iters);
+            new_ctx->setAllowMulVals(true);
+            mul_val_loop_idx = i;
+        }
+
         new_ctx->addDimension(new_dim);
         LoopHead::populateArrays(new_ctx);
 
@@ -553,6 +596,10 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
         new_ctx->deleteLastDim();
+        if (i == mul_val_loop_idx) {
+            new_ctx->setMulValsIter(nullptr);
+            new_ctx->setAllowMulVals(false);
+        }
         if (i == taken_switch_id)
             new_ctx->setTaken(old_ctx_state);
         if (i == simd_switch_id)

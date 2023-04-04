@@ -28,7 +28,8 @@ std::shared_ptr<EmitCtx> EmitCtx::default_emit_ctx =
 PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
     : par_ctx(std::move(_par_ctx)), ext_inp_sym_tbl(par_ctx->ext_inp_sym_tbl),
       ext_out_sym_tbl(par_ctx->ext_out_sym_tbl), arith_depth(0), taken(true),
-      inside_mutation(false), inside_omp_simd(false), in_stencil(false) {
+      inside_mutation(false), inside_omp_simd(false), in_stencil(false),
+      mul_vals_iter(nullptr), allow_mul_vals(false) {
     local_sym_tbl = std::make_shared<SymbolTable>();
     if (par_ctx.use_count() != 0) {
         gen_policy = par_ctx->gen_policy;
@@ -41,6 +42,8 @@ PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
         inside_omp_simd = par_ctx->inside_omp_simd;
         dims = par_ctx->dims;
         in_stencil = par_ctx->in_stencil;
+        mul_vals_iter = par_ctx->mul_vals_iter;
+        allow_mul_vals = par_ctx->allow_mul_vals;
     }
 }
 
@@ -54,6 +57,8 @@ PopulateCtx::PopulateCtx() {
     inside_mutation = false;
     inside_omp_simd = false;
     in_stencil = false;
+    mul_vals_iter = nullptr;
+    allow_mul_vals = false;
 }
 
 size_t PopulateCtx::generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const {

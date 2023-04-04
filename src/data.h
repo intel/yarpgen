@@ -141,16 +141,13 @@ class ScalarVar : public Data {
 
 class Array : public Data {
   public:
-    // Value, end, step
-    using array_val_t =
-        std::tuple<IRValue, std::vector<size_t>, std::vector<size_t>>;
-
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
           IRValue _val);
-    IRValue getInitValues() { return init_vals; }
-    array_val_t getCurrentValues() { return cur_vals; }
-    void setValue(IRValue _val, std::deque<size_t> &span,
-                  std::deque<size_t> &steps);
+    IRValue getInitValues(size_t idx) { return init_vals.at(idx); }
+    IRValue getCurrentValues(size_t idx) { return (mul_vals_axis_idx != -1) ? cur_vals.at(idx) : cur_vals.at(Options::main_val_idx); }
+    void setInitValue(IRValue _val, size_t mul_val_idx, int64_t mul_val_axis_idx);
+    void setCurrentValue(IRValue _val, size_t mul_val_idx);
+    int64_t getMulValsAxisIdx() { return mul_vals_axis_idx; }
 
     bool isArray() final { return true; }
     DataKind getKind() final { return DataKind::ARR; }
@@ -176,8 +173,11 @@ class Array : public Data {
 
     // Span of initialization value can always be determined from array
     // dimensions and current value span
-    IRValue init_vals;
-    array_val_t cur_vals;
+    std::array<IRValue, Options::vals_number> init_vals;
+    std::array<IRValue, Options::vals_number> cur_vals;
+    // We use int64_t to use negative values as poison values that
+    // indicate that the values are uniform
+    int64_t mul_vals_axis_idx;
 };
 
 class Expr;
@@ -191,7 +191,7 @@ class Iterator : public Data {
         : Data(std::move(_name), std::move(_type)), start(std::move(_start)),
           max_left_offset(_max_left_offset), end(std::move(_end)),
           max_right_offset(_max_right_offset), step(std::move(_step)),
-          degenerate(_degenerate), total_iters_num(_total_iters_num) {}
+          degenerate(_degenerate), total_iters_num(_total_iters_num), supports_mul_values(false), main_vals_on_last_iter(true) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
@@ -205,6 +205,15 @@ class Iterator : public Data {
                        std::shared_ptr<Expr> _step);
     bool isDegenerate() { return degenerate; }
     size_t getTotalItersNum() { return total_iters_num; }
+
+    void setSupportsMulValues(bool _supports_mul_values) {
+        supports_mul_values = _supports_mul_values;
+    }
+    bool getSupportsMulValues() { return supports_mul_values; }
+    void setMainValsOnLastIter(bool _main_vals_on_last_iter) {
+        main_vals_on_last_iter = _main_vals_on_last_iter;
+    }
+    bool getMainValsOnLastIter() { return main_vals_on_last_iter; }
 
     void dbgDump() final;
 
@@ -229,6 +238,8 @@ class Iterator : public Data {
     bool degenerate;
     // Total number of iterations
     size_t total_iters_num;
+    bool supports_mul_values;
+    bool main_vals_on_last_iter;
 };
 
 } // namespace yarpgen
