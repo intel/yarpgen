@@ -39,6 +39,18 @@ int main(int argc, char *argv[]) {
         rand_val_gen->setMutationSeed(options.getMutationSeed());
     }
 
+    /*
+    auto lhs = std::make_shared<ConstantExpr>(IRValue(IntTypeID::INT, IRValue::AbsValue{false, 1757564140}));
+    auto rhs = std::make_shared<ConstantExpr>(IRValue(IntTypeID::INT, IRValue::AbsValue{true, 887964283}));
+    auto expr = std::make_shared<BinaryExpr>(BinaryOp::ADD, lhs, rhs);
+    EvalCtx ctx;
+    expr->evaluate(ctx);
+    auto tmp = std::static_pointer_cast<ScalarVar>(expr->getValue())->getCurrentValue();
+    std::cout << static_cast<int>(tmp.getUBCode()) << std::endl;
+
+    return 0;
+    */
+
     ProgramGenerator new_program;
     new_program.emit();
 

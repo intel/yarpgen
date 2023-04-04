@@ -124,7 +124,7 @@ template <> uint64_t &IRValue::getValueRef();
 
 #define OperatorWrapper(__foo__, __type_id__)                                  \
     do {                                                                       \
-        switch (__type_id__) {                                                     \
+        switch (__type_id__) {                                                 \
             OperatorWrapperCase(IntTypeID::INT,  __foo__<TypeSInt::value_type>)\
             OperatorWrapperCase(IntTypeID::UINT,                               \
                                 __foo__<TypeUInt::value_type>)                 \

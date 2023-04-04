@@ -64,8 +64,8 @@ GenPolicy::GenPolicy() {
         stmt_kind_struct_distr.emplace_back(
             Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
     }
-    stmt_kind_struct_distr.emplace_back(
-        Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
+//    stmt_kind_struct_distr.emplace_back(
+//        Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
     stmt_kind_struct_distr.emplace_back(
         Probability<IRNodeKind>{IRNodeKind::STUB, 70});
     shuffleProbProxy(stmt_kind_struct_distr);
@@ -89,7 +89,7 @@ GenPolicy::GenPolicy() {
     max_inp_vars_num = 20;
 
     expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 90);
-    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 10);
+    //expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 10);
     shuffleProbProxy(expr_stmt_kind_pop_distr);
 
     min_new_arr_num = 2;
@@ -117,8 +117,8 @@ GenPolicy::GenPolicy() {
     if (!options.isSYCL())
         arith_node_distr.emplace_back(
             Probability<IRNodeKind>(IRNodeKind::CALL, 20));
-    arith_node_distr.emplace_back(
-        Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
+    //arith_node_distr.emplace_back(
+    //    Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
     arith_node_distr.emplace_back(IRNodeKind::STENCIL, 20);
     shuffleProbProxy(arith_node_distr);
 
@@ -208,6 +208,7 @@ GenPolicy::GenPolicy() {
 
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::CONST, 30));
+    /*
     if (!options.getExplLoopParams()) {
         loop_end_kind_distr.emplace_back(
             Probability<LoopEndKind>(LoopEndKind::VAR, 30));
@@ -215,6 +216,7 @@ GenPolicy::GenPolicy() {
             Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
         shuffleProbProxy(loop_end_kind_distr);
     }
+    */
 
     uniformProbFromMax(pragma_num_distr,
                        static_cast<int>(PragmaKind::MAX_PRAGMA_KIND) - 1,
@@ -391,6 +393,14 @@ GenPolicy::GenPolicy() {
     shuffleProbProxy(same_iter_space);
 
     uniformProbFromMax(same_iter_space_span, loop_seq_num_lim, 2);
+
+    array_with_mul_vals_prob.emplace_back(true, 40);
+    array_with_mul_vals_prob.emplace_back(false, 60);
+    shuffleProbProxy(array_with_mul_vals_prob);
+
+    loop_body_with_mul_vals_prob.emplace_back(true, 40);
+    loop_body_with_mul_vals_prob.emplace_back(false, 60);
+    shuffleProbProxy(loop_body_with_mul_vals_prob);
 
 }
 

@@ -120,22 +120,14 @@ void arrayTest() {
                 CHECK(array->isArray(), "Array identity");
                 CHECK(array->getKind() == DataKind::ARR, "Array kind");
 
-                std::deque<size_t> span(dims.begin(), dims.end()),
-                    steps(dims.size(), 2);
-                std::vector<size_t> span_vec(span.begin(), span.end());
-                std::vector<size_t> steps_vec(steps.begin(), steps.end());
-                array->setValue(ptr_to_type->getMax(), span, steps);
+                array->setCurrentValue(ptr_to_type->getMax(), Options::main_val_idx);
 
-                CHECK((array->getInitValues().getAbsValue() ==
+                CHECK((array->getInitValues(Options::main_val_idx).getAbsValue() ==
                        ptr_to_type->getMin().getAbsValue()),
                       "Init Value");
-                CHECK((std::get<0>(array->getCurrentValues()).getAbsValue() ==
+                CHECK((array->getCurrentValues(Options::main_val_idx).getAbsValue() ==
                        ptr_to_type->getMax().getAbsValue()),
                       "CurrentValue");
-                CHECK(std::get<1>(array->getCurrentValues()) == span_vec,
-                      "CurrentValueSpan");
-                CHECK(std::get<2>(array->getCurrentValues()) == steps_vec,
-                      "CurrentValueSteps");
                 CHECK(array->getIsDead(), "Is dead");
             }
 }
