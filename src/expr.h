@@ -52,7 +52,7 @@ class Expr : public IRNode {
     virtual bool propagateType() = 0;
 
     // This function calculates value of current node, based on its child nodes.
-    // Also it detects UB (for more information, see rebuild() method
+    // Also, it detects UB (for more information, see rebuild() method
     // in inherited classes). It requires propagate_type() to be called first.
     virtual EvalResType evaluate(EvalCtx &ctx) = 0;
 
@@ -61,6 +61,8 @@ class Expr : public IRNode {
 
     virtual IRNodeKind getKind() { return IRNodeKind::MAX_EXPR_KIND; }
     virtual std::shared_ptr<Data> getValue();
+
+    virtual std::shared_ptr<Expr> copy() = 0;
 
   protected:
     std::shared_ptr<Data> value;
@@ -91,6 +93,8 @@ class ConstantExpr : public Expr {
               std::string offset = "") final;
     static std::shared_ptr<ConstantExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy () final;
 
   private:
     static std::vector<std::shared_ptr<ConstantExpr>> used_consts;
@@ -125,6 +129,8 @@ class ScalarVarUseExpr : public VarUseExpr {
     static std::shared_ptr<ScalarVarUseExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
+    std::shared_ptr<Expr> copy () final;
+
   private:
     static std::unordered_map<std::shared_ptr<Data>,
                               std::shared_ptr<ScalarVarUseExpr>>
@@ -138,8 +144,7 @@ class ArrayUseExpr : public VarUseExpr {
     static std::shared_ptr<ArrayUseExpr> init(std::shared_ptr<Data> _val);
     IRNodeKind getKind() final { return IRNodeKind::ARRAY_USE; }
 
-    void setValue(std::shared_ptr<Expr> _expr, std::deque<size_t> &span,
-                  std::deque<size_t> &steps);
+    void setValue(std::shared_ptr<Expr> _expr, bool main_val);
 
     bool propagateType() final { return true; }
     EvalResType evaluate(EvalCtx &ctx) final;
@@ -149,6 +154,8 @@ class ArrayUseExpr : public VarUseExpr {
               std::string offset = "") final {
         stream << offset << value->getName(ctx);
     };
+
+    std::shared_ptr<Expr> copy () final;
 
   private:
     static std::unordered_map<std::shared_ptr<Data>,
@@ -174,6 +181,8 @@ class IterUseExpr : public VarUseExpr {
         stream << offset << value->getName(ctx);
     };
 
+    std::shared_ptr<Expr> copy () final;
+
   private:
     static std::unordered_map<std::shared_ptr<Data>,
                               std::shared_ptr<IterUseExpr>>
@@ -195,6 +204,8 @@ class TypeCastExpr : public Expr {
               std::string offset = "") final;
     static std::shared_ptr<TypeCastExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy() final;
 
   private:
     std::shared_ptr<Expr> expr;
@@ -232,6 +243,8 @@ class UnaryExpr : public ArithmeticExpr {
               std::string offset = "") final;
     static std::shared_ptr<UnaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
 
+    std::shared_ptr<Expr> copy() final;
+
   private:
     UnaryOp op;
     std::shared_ptr<Expr> arg;
@@ -250,6 +263,8 @@ class BinaryExpr : public ArithmeticExpr {
     void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
               std::string offset = "") final;
     static std::shared_ptr<BinaryExpr> create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy() final;
 
   private:
     BinaryOp op;
@@ -271,6 +286,8 @@ class TernaryExpr : public ArithmeticExpr {
               std::string offset = "") final;
     static std::shared_ptr<TernaryExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy() final;
 
   private:
     std::shared_ptr<Expr> cond;
@@ -299,10 +316,11 @@ class SubscriptExpr : public Expr {
     getSuitableArrays(std::shared_ptr<PopulateCtx> ctx);
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
-    void setValue(std::shared_ptr<Expr> _expr, std::deque<size_t> &span,
-                  std::deque<size_t> &steps);
+    void setValue(std::shared_ptr<Expr> _expr, bool main_val);
 
     void setIsDead(bool val);
+
+    std::shared_ptr<Expr> copy() final;
 
   private:
     static std::shared_ptr<SubscriptExpr>
@@ -320,28 +338,37 @@ class SubscriptExpr : public Expr {
     IntTypeID idx_int_type_id;
     // It is a hack for stencil
     int64_t stencil_offset;
+
+    bool at_mul_val_axis;
 };
 
 class AssignmentExpr : public Expr {
   public:
     AssignmentExpr(std::shared_ptr<Expr> _to, std::shared_ptr<Expr> _from,
-                   bool _taken = true)
-        : from(std::move(_from)), taken(_taken), to(std::move(_to)) {}
+                   bool _taken = true);
     IRNodeKind getKind() override { return IRNodeKind::ASSIGN; }
 
     bool propagateType() override;
     EvalResType evaluate(EvalCtx &ctx) override;
     EvalResType rebuild(EvalCtx &ctx) override;
+    // This function sets the value of the expression. It has to be called
+    // after the expression is evaluated and rebuilt.
+    void propagateValue(EvalCtx &ctx);
 
     void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
               std::string offset = "") override;
     static std::shared_ptr<AssignmentExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
+    std::shared_ptr<Expr> copy() override;
+
   protected:
     std::shared_ptr<Expr> from;
+    //TODO: fold into a single array
+    std::shared_ptr<Expr> second_from;
     bool taken;
     std::shared_ptr<Expr> to;
+    std::shared_ptr<Iterator> versioning_iter;
 };
 
 class ReductionExpr : public AssignmentExpr {
@@ -361,6 +388,8 @@ class ReductionExpr : public AssignmentExpr {
               std::string offset = "") final;
     static std::shared_ptr<ReductionExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy() final;
 
   private:
     BinaryOp bin_op;
@@ -434,6 +463,11 @@ class MinCall : public MinMaxCallBase {
                                 std::ostream &stream, std::string offset = "") {
         emitCDefinitionImpl(ctx, stream, offset, LibCallKind::MAX);
     }
+    std::shared_ptr<Expr> copy() final {
+        auto new_a = a->copy();
+        auto new_b = b->copy();
+        return std::make_shared<MinCall>(new_a, new_b);
+    }
 };
 
 class MaxCall : public MinMaxCallBase {
@@ -448,6 +482,11 @@ class MaxCall : public MinMaxCallBase {
                                 std::ostream &stream, std::string offset = "") {
         emitCDefinitionImpl(ctx, stream, offset, LibCallKind::MIN);
     }
+    std::shared_ptr<Expr> copy() final {
+        auto new_a = a->copy();
+        auto new_b = b->copy();
+        return std::make_shared<MaxCall>(new_a, new_b);
+    }
 };
 
 class SelectCall : public LibCallExpr {
@@ -461,6 +500,13 @@ class SelectCall : public LibCallExpr {
               std::string offset = "") final;
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy() final {
+        auto new_cond = cond->copy();
+        auto new_true_arg = true_arg->copy();
+        auto new_false_arg = false_arg->copy();
+        return std::make_shared<SelectCall>(new_cond, new_true_arg, new_false_arg);
+    }
 
   private:
     std::shared_ptr<Expr> cond;
@@ -496,6 +542,12 @@ class AnyCall : public LogicalReductionBase {
         return LogicalReductionBase::createHelper(std::move(ctx),
                                                   LibCallKind::ANY);
     }
+
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<AnyCall>(new_arg);
+    }
+
 };
 
 class AllCall : public LogicalReductionBase {
@@ -507,6 +559,10 @@ class AllCall : public LogicalReductionBase {
         return LogicalReductionBase::createHelper(std::move(ctx),
                                                   LibCallKind::ALL);
     }
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<AllCall>(new_arg);
+    }
 };
 
 class NoneCall : public LogicalReductionBase {
@@ -517,6 +573,10 @@ class NoneCall : public LogicalReductionBase {
     create(std::shared_ptr<PopulateCtx> ctx) {
         return LogicalReductionBase::createHelper(std::move(ctx),
                                                   LibCallKind::NONE);
+    }
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<NoneCall>(new_arg);
     }
 };
 
@@ -548,6 +608,10 @@ class ReduceMinCall : public MinMaxEqReductionBase {
         return MinMaxEqReductionBase::createHelper(std::move(ctx),
                                                    LibCallKind::RED_MIN);
     }
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<ReduceMinCall>(new_arg);
+    }
 };
 
 class ReduceMaxCall : public MinMaxEqReductionBase {
@@ -559,6 +623,10 @@ class ReduceMaxCall : public MinMaxEqReductionBase {
         return MinMaxEqReductionBase::createHelper(std::move(ctx),
                                                    LibCallKind::RED_MAX);
     }
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<ReduceMaxCall>(new_arg);
+    }
 };
 
 class ReduceEqCall : public MinMaxEqReductionBase {
@@ -569,6 +637,10 @@ class ReduceEqCall : public MinMaxEqReductionBase {
     create(std::shared_ptr<PopulateCtx> ctx) {
         return MinMaxEqReductionBase::createHelper(std::move(ctx),
                                                    LibCallKind::RED_EQ);
+    }
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<ReduceEqCall>(new_arg);
     }
 };
 
@@ -586,6 +658,11 @@ class ExtractCall : public LibCallExpr {
               std::string offset = "") final;
     static std::shared_ptr<LibCallExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
+
+    std::shared_ptr<Expr> copy() final {
+        auto new_arg = arg->copy();
+        return std::make_shared<ExtractCall>(new_arg);
+    }
 
   protected:
     std::shared_ptr<Expr> arg;

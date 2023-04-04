@@ -102,6 +102,13 @@ class OptionParser {
 
 class Options {
   public:
+
+    // The number of divergent values that we support in loops
+    // In theory, it can be made higher, but we assume that 2 is enough
+    // for now. The agreement that main values are tied to the 0th index
+    static size_t constexpr vals_number = 2;
+    static size_t constexpr main_val_idx = 0;
+
     static Options &getInstance() {
         static Options instance;
         return instance;

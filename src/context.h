@@ -35,13 +35,16 @@ namespace yarpgen {
 // values.
 class EvalCtx {
   public:
-    EvalCtx() : total_iter_num(-1) {}
+    EvalCtx() : total_iter_num(-1), mul_vals_iter(nullptr), use_main_vals(true) {}
     // TODO: we use string as a unique identifier and it is not a right way to
     // do it
     std::map<std::string, DataType> input;
     // The total number of iterations that we have to do
     // -1 is used as a poison value that indicates that the information is unknown
     int64_t total_iter_num;
+
+    std::shared_ptr<Iterator> mul_vals_iter;
+    bool use_main_vals;
 };
 
 class GenCtx {
@@ -194,6 +197,12 @@ class PopulateCtx : public GenCtx {
     void setInStencil(bool _val) { in_stencil = _val; }
     bool getInStencil() { return in_stencil; }
 
+    void setMulValsIter(std::shared_ptr<Iterator> _iter) { mul_vals_iter = _iter; }
+    std::shared_ptr<Iterator> getMulValsIter() { return mul_vals_iter; }
+
+    void setAllowMulVals(bool _val) { allow_mul_vals = _val; }
+    bool getAllowMulVals() { return allow_mul_vals; }
+
   private:
     std::shared_ptr<PopulateCtx> par_ctx;
     std::shared_ptr<SymbolTable> ext_inp_sym_tbl;
@@ -223,6 +232,9 @@ class PopulateCtx : public GenCtx {
     // This flag indicates if we are inside arithmetic tree generation for
     // stencil pattern
     bool in_stencil;
+
+    std::shared_ptr<Iterator> mul_vals_iter;
+    bool allow_mul_vals;
 };
 
 // TODO: maybe we need to inherit from some class

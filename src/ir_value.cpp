@@ -130,8 +130,10 @@ addOperator(IRValue &lhs, IRValue &rhs) {
     auto ub = static_cast<unsigned_T>(rhs.getValueRef<T>());
     unsigned_T u_tmp = ua + ub;
     ua = (ua >> std::numeric_limits<T>::digits) + std::numeric_limits<T>::max();
-    if (static_cast<T>((ua ^ ub) | ~(ub ^ u_tmp)) >= 0)
+    if (static_cast<T>((ua ^ ub) | ~(ub ^ u_tmp)) >= 0) {
+        std::cout << "Add impl overflow: " << lhs << " | " << rhs << std::endl;
         ret.setUBCode(UBKind::SignOvf);
+    }
     else {
         ret.getValueRef<T>() = lhs.getValueRef<T>() + rhs.getValueRef<T>();
         ret.setUBCode(UBKind::NoUB);

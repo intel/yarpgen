@@ -60,53 +60,56 @@ void Array::dbgDump() {
     std::cout << "Array: " << name << std::endl;
     std::cout << "Type info:" << std::endl;
     type->dbgDump();
-    std::cout << "Init val: " << init_vals << std::endl;
-    std::cout << "Cur val: [";
-    for (const auto &i : std::get<1>(cur_vals))
-        std::cout << i << ", ";
-    std::cout << "] : " << std::get<0>(cur_vals) << std::endl;
-    std::cout << "Steps: ";
-    for (const auto &i : std::get<2>(cur_vals))
-        std::cout << i << " ";
-    std::cout << std::endl;
+    std::cout << "Init val: " << init_vals[Options::main_val_idx] << std::endl;
+    std::cout << "Cur val: " << cur_vals[Options::main_val_idx] << std::endl;
     std::cout << "Is dead: " << is_dead << std::endl;
+    if (mul_vals_axis_idx != -1) {
+        std::cout << "Multiple vals axis idx: " << mul_vals_axis_idx
+                  << std::endl;
+        std::cout << "Second init: " << init_vals.back()
+                  << std::endl;
+        std::cout << "Second cur: " << cur_vals.back()
+                  << std::endl;
+    }
 }
 
 Array::Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
              IRValue _val)
-    : Data(std::move(_name), _type), init_vals(_val) {
+    : Data(std::move(_name), _type), mul_vals_axis_idx(-1) {
     if (!type->isArrayType())
         ERROR("Array variable should have an ArrayType");
 
     auto array_type = std::static_pointer_cast<ArrayType>(type);
-    cur_vals = std::make_tuple(
-        _val, array_type->getDimensions(),
-        std::vector<size_t>(array_type->getDimensions().size(), 1));
+    init_vals[Options::main_val_idx] = _val;
+    cur_vals[Options::main_val_idx] = _val;
     if (!array_type->getBaseType()->isIntType())
         ERROR("Only integer types are supported by now");
     if (std::static_pointer_cast<IntegralType>(array_type->getBaseType())
             ->getIntTypeId() != _val.getIntTypeID())
         ERROR("Array initialization value should have the same type as array");
 
-    ub_code = init_vals.getUBCode();
+    ub_code = init_vals[Options::main_val_idx].getUBCode();
 }
 
-void Array::setValue(IRValue _val, std::deque<size_t> &span,
-                     std::deque<size_t> &steps) {
-    /*
-    auto array_type = std::static_pointer_cast<ArrayType>(type);
-    if (array_type->getBaseType() != _val->getType())
-        ERROR("Can't initialize array with variable of wrong type");
-    */
+void Array::setInitValue(IRValue _val, size_t mul_val_idx, int64_t _mul_vals_axis_idx) {
     assert(type->isArrayType() && "Array should have array type");
     auto arr_type = std::static_pointer_cast<ArrayType>(type);
-    if (span.size() != arr_type->getDimensions().size() ||
-        steps.size() != arr_type->getDimensions().size())
-        ERROR("Span and steps should have same size as array type");
-    std::vector<size_t> span_vec(span.begin(), span.end());
-    std::vector<size_t> steps_vec(steps.begin(), steps.end());
-    cur_vals = std::make_tuple(_val, span_vec, steps_vec);
-    ub_code = std::get<0>(cur_vals).getUBCode();
+    mul_vals_axis_idx = _mul_vals_axis_idx;
+    init_vals[mul_val_idx] = _val;
+    ub_code = init_vals[mul_val_idx].getUBCode();
+}
+
+void Array::setCurrentValue(IRValue _val, size_t mul_val_idx) {
+    assert(type->isArrayType() && "Array should have array type");
+    auto arr_type = std::static_pointer_cast<ArrayType>(type);
+    if (mul_vals_axis_idx != -1) {
+        cur_vals[mul_val_idx] = _val;
+        ub_code = cur_vals[mul_val_idx].getUBCode();
+    }
+    else {
+        cur_vals[Options::main_val_idx] = _val;
+        ub_code = cur_vals[Options::main_val_idx].getUBCode();
+    }
 }
 
 std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
@@ -120,6 +123,20 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
     NameHandler &nh = NameHandler::getInstance();
     auto new_array =
         std::make_shared<Array>(nh.getArrayName(), array_type, init_val);
+
+    auto mul_vals = ctx->getMulValsIter() != nullptr && rand_val_gen->getRandId(ctx->getGenPolicy()->array_with_mul_vals_prob);
+    // We need to have multiple values in the output array, so we don't need to
+    // worry about assigning multiple values to the array that does not support
+    // it
+    mul_vals |= !inp && ctx->getMulValsIter() != nullptr;
+
+    if (mul_vals) {
+        init_val = rand_val_gen->getRandValue(int_type->getIntTypeId());
+        auto mul_val_idx = static_cast<int64_t>(rand_val_gen->getRandValue(static_cast<size_t>(0), array_type->getDimensions().size() - 1));
+        new_array->setInitValue(init_val, 1, mul_val_idx);
+        new_array->setCurrentValue(init_val, 1);
+        //std::cout << new_array->name << " " << new_array->mul_vals_axis_idx << std::endl;
+    }
     return new_array;
 }
 
@@ -195,6 +212,15 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     auto iter =
         std::make_shared<Iterator>(nh.getIterName(), type, start, left_span,
                                    end, right_span, step, end_val == left_span, total_iters_num);
+
+    bool supports_mul_vals = step_val % 2 != 0 || left_span % 2 != 0;
+    if (supports_mul_vals) {
+        iter->setSupportsMulValues(supports_mul_vals);
+        size_t last_val = (total_iters_num - 1) * step_val + left_span;
+        std::cout << "Iter: " << iter->name << " last_val: " << last_val << std::endl;
+        iter->setMainValsOnLastIter(last_val % 2 == 0);
+        // std::cout << iter->name << std::endl
+    }
 
     return iter;
 }

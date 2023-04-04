@@ -55,7 +55,7 @@ ProgramGenerator::ProgramGenerator() : hash_seed(0) {
 
 void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
     std::ostream &out_file = stream;
-    out_file << "#include <stdio.h>\n\n";
+    out_file << "#include <stdio.h>\n#include<assert.h>\n\n";
 
     Options &options = Options::getInstance();
     if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
@@ -140,9 +140,19 @@ static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (size_t i = 0; i < idx; ++i)
             stream << "[i_" << i << "] ";
         stream << "= ";
-        auto init_val = array->getInitValues();
-        auto init_const = std::make_shared<ConstantExpr>(init_val);
-        init_const->emit(ctx, stream);
+        auto emit_const_expr = [&array, &ctx, &stream] (size_t val_idx) {
+            auto init_val = array->getInitValues(val_idx);
+            auto init_const = std::make_shared<ConstantExpr>(init_val);
+            init_const->emit(ctx, stream);
+        };
+        if (array->getMulValsAxisIdx() != -1) {
+            stream << "(i_" << array->getMulValsAxisIdx() << " % " << Options::vals_number << " == 0) ? ";
+        }
+        emit_const_expr(Options::main_val_idx);
+        if (array->getMulValsAxisIdx() != -1) {
+            stream << " : ";
+            emit_const_expr(1);
+        }
         stream << ";\n";
     }
 }
@@ -178,9 +188,10 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         else if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val =
                 std::make_shared<ConstantExpr>(var->getCurrentValue());
-            stream << "    value_mismatch |= " << var_name << " != ";
+            stream << "    assert(" << var_name << " == ";
             const_val->emit(ctx, stream);
-            stream << ";\n";
+            stream << ");\n";
+            stream << "    //" << static_cast<int>(var->getCurrentValue().getUBCode()) << "\n";
         }
         else {
             ERROR("Unsupported");
@@ -212,7 +223,7 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
                 hashArray(array);
         }
         else if (options.getCheckAlgo() == CheckAlgo::ASSERTS)
-            stream << offset << "value_mismatch |= ";
+            stream << offset << "assert(";
         else
             ERROR("Unsupported");
 
@@ -221,12 +232,20 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
 
         if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val = std::make_shared<ConstantExpr>(
-                std::get<0>(array->getCurrentValues()));
-            stream << "!= ";
+                (array->getCurrentValues(Options::main_val_idx)));
+            stream << "== ";
             const_val->emit(ctx, stream);
-            stream << " && " << arr_name << " != ";
-            const_val = std::make_shared<ConstantExpr>(array->getInitValues());
-            const_val->emit(ctx, stream);
+            auto emit_cmp = [&arr_name, &ctx, &stream] (IRValue val) {
+                stream << " || " << arr_name << " == ";
+                auto const_val = std::make_shared<ConstantExpr>(val);
+                const_val->emit(ctx, stream);
+            };
+            emit_cmp(array->getInitValues(Options::main_val_idx));
+            if (array->getMulValsAxisIdx() != -1) {
+                emit_cmp(array->getCurrentValues(1));
+                emit_cmp(array->getInitValues(1));
+            }
+            stream << ")";
         }
         else
             stream << ")";
@@ -614,9 +633,10 @@ void ProgramGenerator::hashArray(std::shared_ptr<Array> const &arr) {
     auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
     std::vector<size_t> idx_vec(arr_type->getDimensions().size(), 0);
     auto &dims = arr_type->getDimensions();
-    uint64_t init_val = arr->getInitValues().getAbsValue().value;
-    uint64_t cur_val = std::get<0>(arr->getCurrentValues()).getAbsValue().value;
-    std::vector<size_t> steps = std::get<2>(arr->getCurrentValues());
+    //TODO: this is broken now
+    uint64_t init_val = arr->getInitValues(Options::main_val_idx).getAbsValue().value;
+    uint64_t cur_val = arr->getCurrentValues(Options::main_val_idx).getAbsValue().value;
+    std::vector<size_t> steps = {};
     hashArrayStep(arr, dims, idx_vec, 0, false, init_val, cur_val, steps);
 }
 
@@ -627,7 +647,8 @@ void ProgramGenerator::hashArrayStep(std::shared_ptr<Array> const &arr,
                                      uint64_t &init_val, uint64_t &cur_val,
                                      std::vector<size_t> &steps) {
     size_t vec_last_idx = idx_vec.size() - 1;
-    size_t cur_val_size = std::get<1>(arr->getCurrentValues())[cur_idx];
+    //TODO: this is also broken
+    size_t cur_val_size = 0;
     size_t cur_dim = dims[cur_idx];
     size_t cur_step = steps[cur_idx];
 
