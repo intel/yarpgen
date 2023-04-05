@@ -55,7 +55,7 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
     eval_ctx.total_iter_num = total_iters_num;
     auto eval_res = expr->evaluate(eval_ctx);
     if (eval_res->hasUB())
-        eval_res = expr->rebuild(eval_ctx);
+        expr->rebuild(eval_ctx);
     expr->propagateValue(eval_ctx);
 
     if (ctx->getMulValsIter() != nullptr) {
@@ -72,15 +72,15 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
         std::cout << "Has UB\nBefore: ";
         expr->emit(std::make_shared<EmitCtx>(), std::cout);
         std::cout << std::endl;
-        eval_ctx.use_main_vals = true;
         expr->rebuild(eval_ctx);
         std::cout << "After: ";
         expr->emit(std::make_shared<EmitCtx>(), std::cout);
         std::cout << std::endl;
-        eval_ctx.use_main_vals = false;
+        //eval_ctx.use_main_vals = false;
     }
 
-    expr->propagateValue(eval_ctx);
+    if (ctx->getMulValsIter() != nullptr)
+        expr->propagateValue(eval_ctx);
 
     return std::make_shared<ExprStmt>(expr);
 }

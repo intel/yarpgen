@@ -91,20 +91,20 @@ Array::Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
     ub_code = init_vals[Options::main_val_idx].getUBCode();
 }
 
-void Array::setInitValue(IRValue _val, size_t mul_val_idx, int64_t _mul_vals_axis_idx) {
+void Array::setInitValue(IRValue _val, bool use_main_vals, int64_t _mul_vals_axis_idx) {
     assert(type->isArrayType() && "Array should have array type");
     auto arr_type = std::static_pointer_cast<ArrayType>(type);
     mul_vals_axis_idx = _mul_vals_axis_idx;
-    init_vals[mul_val_idx] = _val;
-    ub_code = init_vals[mul_val_idx].getUBCode();
+    init_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx] = _val;
+    ub_code = init_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx].getUBCode();
 }
 
-void Array::setCurrentValue(IRValue _val, size_t mul_val_idx) {
+void Array::setCurrentValue(IRValue _val, bool use_main_vals) {
     assert(type->isArrayType() && "Array should have array type");
     auto arr_type = std::static_pointer_cast<ArrayType>(type);
     if (mul_vals_axis_idx != -1) {
-        cur_vals[mul_val_idx] = _val;
-        ub_code = cur_vals[mul_val_idx].getUBCode();
+        cur_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx] = _val;
+        ub_code = cur_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx].getUBCode();
     }
     else {
         cur_vals[Options::main_val_idx] = _val;
@@ -133,8 +133,8 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
     if (mul_vals) {
         init_val = rand_val_gen->getRandValue(int_type->getIntTypeId());
         auto mul_val_idx = static_cast<int64_t>(rand_val_gen->getRandValue(static_cast<size_t>(0), array_type->getDimensions().size() - 1));
-        new_array->setInitValue(init_val, 1, mul_val_idx);
-        new_array->setCurrentValue(init_val, 1);
+        new_array->setInitValue(init_val, false, mul_val_idx);
+        new_array->setCurrentValue(init_val, false);
         //std::cout << new_array->name << " " << new_array->mul_vals_axis_idx << std::endl;
     }
     return new_array;
@@ -213,12 +213,12 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
         std::make_shared<Iterator>(nh.getIterName(), type, start, left_span,
                                    end, right_span, step, end_val == left_span, total_iters_num);
 
-    bool supports_mul_vals = step_val % 2 != 0 || left_span % 2 != 0;
+    bool supports_mul_vals = step_val % 2 != Options::main_val_idx || left_span % 2 != Options::main_val_idx;
     if (supports_mul_vals) {
         iter->setSupportsMulValues(supports_mul_vals);
         size_t last_val = (total_iters_num - 1) * step_val + left_span;
         std::cout << "Iter: " << iter->name << " last_val: " << last_val << std::endl;
-        iter->setMainValsOnLastIter(last_val % 2 == 0);
+        iter->setMainValsOnLastIter(last_val % 2 == Options::main_val_idx);
         // std::cout << iter->name << std::endl
     }
 
