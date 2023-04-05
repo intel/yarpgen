@@ -117,6 +117,9 @@ void ProgramGenerator::emitDecl(std::shared_ptr<EmitCtx> ctx,
 
     emitArrayDecl(ctx, stream, ext_inp_sym_tbl->getArrays());
     emitArrayDecl(ctx, stream, ext_out_sym_tbl->getArrays());
+
+    stream << "\n";
+    stream << "int zero = 0;\n\n";
 }
 
 static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -148,10 +151,10 @@ static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         if (array->getMulValsAxisIdx() != -1) {
             stream << "(i_" << array->getMulValsAxisIdx() << " % " << Options::vals_number << " == " << Options::main_val_idx << ") ? ";
         }
-        emit_const_expr(Options::main_val_idx);
+        emit_const_expr(true);
         if (array->getMulValsAxisIdx() != -1) {
             stream << " : ";
-            emit_const_expr(Options::alt_val_idx);
+            emit_const_expr(false);
         }
         stream << ";\n";
     }
@@ -232,7 +235,7 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
 
         if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val = std::make_shared<ConstantExpr>(
-                (array->getCurrentValues(Options::main_val_idx)));
+                (array->getCurrentValues(true)));
             stream << "== ";
             const_val->emit(ctx, stream);
             auto emit_cmp = [&arr_name, &ctx, &stream] (IRValue val) {
@@ -240,10 +243,10 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
                 auto const_val = std::make_shared<ConstantExpr>(val);
                 const_val->emit(ctx, stream);
             };
-            emit_cmp(array->getInitValues(Options::main_val_idx));
+            emit_cmp(array->getInitValues(true));
             if (array->getMulValsAxisIdx() != -1) {
-                emit_cmp(array->getCurrentValues(Options::alt_val_idx));
-                emit_cmp(array->getInitValues(Options::alt_val_idx));
+                emit_cmp(array->getCurrentValues(false));
+                emit_cmp(array->getInitValues(false));
             }
             stream << ")";
         }
@@ -369,6 +372,9 @@ void ProgramGenerator::emitExtDecl(std::shared_ptr<EmitCtx> ctx,
     emitArrayExtDecl(ctx, stream, ext_inp_sym_tbl->getArrays(), true);
     emitArrayExtDecl(ctx, stream, ext_out_sym_tbl->getArrays(), false);
     ctx->setIspcTypes(false);
+
+    stream << "\n";
+    stream << "extern int zero;\n";
 }
 
 static std::string placeSep(bool cond) { return cond ? ", " : ""; }

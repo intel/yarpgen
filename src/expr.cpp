@@ -1354,6 +1354,16 @@ bool BinaryExpr::propagateType() {
     lhs->propagateType();
     rhs->propagateType();
 
+    /*
+    std::cout << "Binary type prop: ";
+    lhs->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << " # ";
+    rhs->emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << " # ";
+    emit(std::make_shared<EmitCtx>(), std::cout);
+    std::cout << std::endl;
+    */
+
     Options &options = Options::getInstance();
     if (options.isISPC())
         varyingPromotion(lhs, rhs);
@@ -1481,6 +1491,7 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
             break;
     }
 
+    /*
     std::cout << "Bin eval: ";
     emit(std::make_shared<EmitCtx>(), std::cout);
     std::cout << " | ";
@@ -1491,6 +1502,7 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
     std::cout << " | ";
     std::cout << rhs_val << " | ";
     std::cout << static_cast<int>(new_val.getUBCode()) << std::endl;
+    */
 
     value = replaceValueWith(value, std::make_shared<ScalarVar>(
         "",
@@ -1779,10 +1791,19 @@ Expr::EvalResType TernaryExpr::evaluate(EvalCtx &ctx) {
 
     IRValue cond_val =
         std::static_pointer_cast<ScalarVar>(cond_eval)->getCurrentValue();
+
     if (cond_val.getValueRef<bool>())
         value = replaceValueWith(value, true_br->evaluate(ctx));
     else
         value = replaceValueWith(value, false_br->evaluate(ctx));
+
+    if (cond_eval->hasUB()) {
+        auto scalar_var = std::static_pointer_cast<ScalarVar>(value);
+        auto scalar_val = scalar_var->getCurrentValue();
+        scalar_val.setUBCode(cond_eval->getUBCode());
+        value = std::make_shared<ScalarVar>("", std::static_pointer_cast<IntegralType>(scalar_var->getType()), scalar_val);
+    }
+
     return value;
 }
 
@@ -1861,10 +1882,30 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
         int64_t full_idx_val = idx_int_val + stencil_offset;
         bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
+
+        std::cout << "Bounds base: " << idx_int_val << " | " << stencil_offset << " | " << full_idx_val << " | " << dim << " | " << in_bounds << std::endl;
+
         return in_bounds;
     }
     else if (idx_val->isIterator()) {
         auto iter_var = std::static_pointer_cast<Iterator>(idx_val);
+
+        std::cout << "Bounds start: ";
+        auto tmp_start = std::static_pointer_cast<ScalarVar>(iter_var->getStart()->evaluate(ctx))->getCurrentValue();
+        auto tmp_end = std::static_pointer_cast<ScalarVar>(iter_var->getEnd()->evaluate(ctx))->getCurrentValue();
+
+        std::cout << "Bounds: ";
+        std::cout << idx_val->getName(std::make_shared<EmitCtx>()) << " | ";
+        iter_var->getStart()->emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << " | ";
+        std::cout << tmp_start << " | ";
+        std::cout << tmp_end << " | ";
+        iter_var->getEnd()->emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << " | ";
+        emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+        std::fflush(stdout);
+
         return inBounds(dim, iter_var->getStart()->evaluate(ctx), ctx) &&
                inBounds(dim, iter_var->getEnd()->evaluate(ctx), ctx);
     }
@@ -1907,8 +1948,14 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     active_size = array_type->getDimensions().at(active_dim);
     UBKind ub_code = UBKind::NoUB;
 
-    if (!inBounds(active_size, idx_eval_res, ctx))
+    // TODO: this is a hack. We do not allow multiple values in the
+    // expressions that are used to define iteration space.
+    auto new_ctx = ctx;
+    new_ctx.use_main_vals = true;
+    if (!inBounds(active_size, idx_eval_res, new_ctx))
         ub_code = UBKind::OutOfBounds;
+
+    std::cout << "Last check: " << ctx.use_main_vals <<  " | " << active_dim << std::endl;
 
     if (active_dim < array_type->getDimensions().size() - 1)
         value = replaceValueWith(value, array_eval_res);
@@ -1916,10 +1963,12 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         auto array_val = std::static_pointer_cast<Array>(array_eval_res);
         if (!array_type->getBaseType()->isIntType())
             ERROR("Only integral types are supported for now");
-        value = replaceValueWith(value, std::make_shared<ScalarVar>(
-            "",
-            std::static_pointer_cast<IntegralType>(array_type->getBaseType()),
-            array_val->getCurrentValues(ctx.use_main_vals)));
+        value = replaceValueWith(
+            value, std::make_shared<ScalarVar>(
+                       "",
+                       std::static_pointer_cast<IntegralType>(
+                           array_type->getBaseType()),
+                       array_val->getCurrentValues(ctx.use_main_vals)));
         std::cout << "Array vals:";
         auto tmp_main = array_val->getCurrentValues(true);
         std::cout << tmp_main << " | ";
@@ -1928,10 +1977,11 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         auto tmp_val = array_val->getCurrentValues(ctx.use_main_vals);
         std::cout << "Main vals: " << ctx.use_main_vals << std::endl;
         std::cout << tmp_val << std::endl;
-    }
+        std::cout << "Active_dim: " << active_dim << std::endl;
 
-    // Restore saved value
-    ctx.use_main_vals = old_use_main_vals;
+        // Restore saved value
+        ctx.use_main_vals = old_use_main_vals;
+    }
 
     Options &options = Options::getInstance();
     if (options.isISPC()) {
@@ -1989,8 +2039,8 @@ SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
         assert(arr->getType()->isArrayType() &&
                "Array should have an array type");
         auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
-        if (arr_type->getDimensions().front() < ctx->getDimensions().front() ||
-            (arr->getMulValsAxisIdx() != -1 && !ctx->getAllowMulVals()))
+        if (arr_type->getDimensions().front() < ctx->getDimensions().front()) //||
+            //(arr->getMulValsAxisIdx() != -1 && !ctx->getAllowMulVals()))
             continue;
         avail_arrs.push_back(arr);
     }
@@ -2124,6 +2174,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     std::vector<std::shared_ptr<Iterator>> single_val_iters;
     if (single_val_override) {
         for (auto &iter : ctx->getLocalSymTable()->getIters()) {
+            std::cout << "Iter " << iter->getName(std::make_shared<EmitCtx>()) << " supports mul values: " << iter->getSupportsMulValues() << std::endl;
             if (!iter->getSupportsMulValues())
                 single_val_iters.push_back(iter);
         }
@@ -2183,6 +2234,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         }
 
         if (static_cast<int64_t>(i) == array->getMulValsAxisIdx()) {
+            mul_val_axis_idx = static_cast<int64_t>(i);
             //TODO: add offsets here
             if (single_val_override)
                 subs_kind = single_val_iters.empty() ? SubscriptKind::CONST : SubscriptKind::ITER;
@@ -2211,11 +2263,11 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                  (subs_kind == SubscriptKind::REPEAT && subs_exprs.empty())) {
             if (static_cast<int64_t>(i) == array->getMulValsAxisIdx()) {
                 std::cout << "Override: ";
-                if (single_val_override)
+                if (single_val_override) {
                     iter = rand_val_gen->getRandElem(single_val_iters);
+                }
                 else if (mul_vals_override) {
                     iter = ctx->getMulValsIter();
-                    mul_val_axis_idx = static_cast<int64_t>(i);
                     std::cout << iter->getName(std::make_shared<EmitCtx>());
                 }
                 std::cout << std::endl;
@@ -2406,7 +2458,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         // We want to guarantee that the subscript with multiple values remains
         // in place to preserve the desired property
         // TODO: this should be done in a better way
-        if (mul_vals_override) {
+        if (mul_vals_override || single_val_override) {
             auto saved_subs_expr = subs_exprs.at(mul_val_axis_idx);
             std::reverse(subs_exprs.begin(), subs_exprs.end());
             subs_exprs.at(mul_val_axis_idx) = saved_subs_expr;
@@ -2565,7 +2617,10 @@ Expr::EvalResType AssignmentExpr::rebuild(EvalCtx &ctx) {
     from->rebuild(new_ctx);
     if (second_from != nullptr) {
         new_ctx.use_main_vals = false;
-        std::cout << "Rebuilding second_from" << std::endl;
+        std::cout << "Rebuilding second_from: ";
+        second_from->emit(std::make_shared<EmitCtx>(), std::cout);
+        std::cout << std::endl;
+        std::fflush(stdout);
         second_from->rebuild(new_ctx);
         versioning_iter = ctx.mul_vals_iter;
         evaluate(new_ctx);
@@ -2578,8 +2633,17 @@ void AssignmentExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     stream << offset;
     to->emit(ctx, stream);
     stream << " = ";
-    if (versioning_iter != nullptr)
-        stream << "(" << versioning_iter->getName(ctx) << " % " << Options::vals_number << " == " << Options::main_val_idx << ") ? (";
+    if (versioning_iter != nullptr) {
+        GenPolicy gen_pol;
+        bool use_zero_as_var =
+            rand_val_gen->getRandId(gen_pol.hide_zero_in_versioning_prob);
+        stream << "(" << versioning_iter->getName(ctx) << " % "
+               << Options::vals_number << " == ";
+        stream << (use_zero_as_var ? "zero"
+                                   : std::to_string(Options::main_val_idx))
+               << ") ? (";
+    }
+
     from->emit(ctx, stream);
     if (versioning_iter != nullptr) {
         stream << ") : (";
@@ -2659,11 +2723,7 @@ AssignmentExpr::AssignmentExpr(std::shared_ptr<Expr> _to,
 }
 
 bool ReductionExpr::propagateType() {
-    if (is_degenerate)
-        return AssignmentExpr::propagateType();
-    to->propagateType();
-    from->propagateType();
-    return true;
+    return AssignmentExpr::propagateType();
 }
 
 template <class BinOp>
@@ -2778,8 +2838,19 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     if (result_expr_eval_res->hasUB())
         return result_expr_eval_res;
 
+    return from_eval_res;
+}
+
+void ReductionExpr::propagateValue(EvalCtx &ctx) {
+    if (is_degenerate) {
+        AssignmentExpr::propagateValue(ctx);
+        return;
+    }
+    EvalResType result_expr_eval_res = result_expr->evaluate(ctx);
+    assert(!result_expr_eval_res->hasUB() && "We can't have UB here");
+
     if (!taken)
-        return from_eval_res;
+        return;
 
     if (to->getKind() == IRNodeKind::SCALAR_VAR_USE) {
         auto to_scalar = std::static_pointer_cast<ScalarVarUseExpr>(to);
@@ -2796,8 +2867,6 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     }
     else
         ERROR("Bad IRNodeKind");
-
-    return from_eval_res;
 }
 
 Expr::EvalResType ReductionExpr::rebuild(EvalCtx &ctx) {

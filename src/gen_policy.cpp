@@ -64,8 +64,8 @@ GenPolicy::GenPolicy() {
         stmt_kind_struct_distr.emplace_back(
             Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
     }
-//    stmt_kind_struct_distr.emplace_back(
-//        Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
+    stmt_kind_struct_distr.emplace_back(
+        Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
     stmt_kind_struct_distr.emplace_back(
         Probability<IRNodeKind>{IRNodeKind::STUB, 70});
     shuffleProbProxy(stmt_kind_struct_distr);
@@ -88,8 +88,8 @@ GenPolicy::GenPolicy() {
     min_inp_vars_num = 10;
     max_inp_vars_num = 20;
 
-    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 90);
-    //expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 10);
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 70);
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 30);
     shuffleProbProxy(expr_stmt_kind_pop_distr);
 
     min_new_arr_num = 2;
@@ -117,8 +117,8 @@ GenPolicy::GenPolicy() {
     if (!options.isSYCL())
         arith_node_distr.emplace_back(
             Probability<IRNodeKind>(IRNodeKind::CALL, 20));
-    //arith_node_distr.emplace_back(
-    //    Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
+    arith_node_distr.emplace_back(
+        Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
     arith_node_distr.emplace_back(IRNodeKind::STENCIL, 20);
     shuffleProbProxy(arith_node_distr);
 
@@ -186,20 +186,21 @@ GenPolicy::GenPolicy() {
         Probability<LibCallKind>(LibCallKind::EXTRACT, 20));
     shuffleProbProxy(ispc_lib_call_distr);
 
-    reduction_as_bin_op_prob.emplace_back(true, 70);
-    reduction_as_bin_op_prob.emplace_back(false, 30);
+    reduction_as_bin_op_prob.emplace_back(true, 65);
+    reduction_as_bin_op_prob.emplace_back(false, 35);
     shuffleProbProxy(reduction_as_bin_op_prob);
 
     reduction_bin_op_distr.emplace_back(BinaryOp::ADD, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::SUB, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::MUL, 10);
-    reduction_bin_op_distr.emplace_back(BinaryOp::DIV, 10);
-    reduction_bin_op_distr.emplace_back(BinaryOp::MOD, 10);
+    // Division and modulo do not make sense for reductions
+    //reduction_bin_op_distr.emplace_back(BinaryOp::DIV, 10);
+    //reduction_bin_op_distr.emplace_back(BinaryOp::MOD, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::BIT_AND, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::BIT_OR, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::BIT_XOR, 10);
-//    reduction_bin_op_distr.emplace_back(BinaryOp::SHL, 10);
-//    reduction_bin_op_distr.emplace_back(BinaryOp::SHR, 10);
+    //reduction_bin_op_distr.emplace_back(BinaryOp::SHL, 10);
+    //reduction_bin_op_distr.emplace_back(BinaryOp::SHR, 10);
     shuffleProbProxy(reduction_bin_op_distr);
 
     reduction_as_lib_call_distr.emplace_back(LibCallKind::MAX, 50);
@@ -208,7 +209,6 @@ GenPolicy::GenPolicy() {
 
     loop_end_kind_distr.emplace_back(
         Probability<LoopEndKind>(LoopEndKind::CONST, 30));
-    /*
     if (!options.getExplLoopParams()) {
         loop_end_kind_distr.emplace_back(
             Probability<LoopEndKind>(LoopEndKind::VAR, 30));
@@ -216,7 +216,6 @@ GenPolicy::GenPolicy() {
             Probability<LoopEndKind>(LoopEndKind::EXPR, 30));
         shuffleProbProxy(loop_end_kind_distr);
     }
-    */
 
     uniformProbFromMax(pragma_num_distr,
                        static_cast<int>(PragmaKind::MAX_PRAGMA_KIND) - 1,
@@ -322,7 +321,7 @@ GenPolicy::GenPolicy() {
     shuffleProbProxy(ub_in_dc_prob);
 
     allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
-    //allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
+    allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
     shuffleProbProxy(allow_stencil_prob);
 
     uniformProbFromMax(stencil_span_distr, max_stencil_span, 1);
@@ -402,6 +401,8 @@ GenPolicy::GenPolicy() {
     loop_body_with_mul_vals_prob.emplace_back(false, 60);
     shuffleProbProxy(loop_body_with_mul_vals_prob);
 
+    hide_zero_in_versioning_prob.emplace_back(true, 50);
+    hide_zero_in_versioning_prob.emplace_back(false, 50);
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
