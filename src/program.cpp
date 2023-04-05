@@ -140,18 +140,18 @@ static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (size_t i = 0; i < idx; ++i)
             stream << "[i_" << i << "] ";
         stream << "= ";
-        auto emit_const_expr = [&array, &ctx, &stream] (size_t val_idx) {
-            auto init_val = array->getInitValues(val_idx);
+        auto emit_const_expr = [&array, &ctx, &stream] (bool use_main_vals) {
+            auto init_val = array->getInitValues(use_main_vals);
             auto init_const = std::make_shared<ConstantExpr>(init_val);
             init_const->emit(ctx, stream);
         };
         if (array->getMulValsAxisIdx() != -1) {
-            stream << "(i_" << array->getMulValsAxisIdx() << " % " << Options::vals_number << " == 0) ? ";
+            stream << "(i_" << array->getMulValsAxisIdx() << " % " << Options::vals_number << " == " << Options::main_val_idx << ") ? ";
         }
         emit_const_expr(Options::main_val_idx);
         if (array->getMulValsAxisIdx() != -1) {
             stream << " : ";
-            emit_const_expr(1);
+            emit_const_expr(Options::alt_val_idx);
         }
         stream << ";\n";
     }
@@ -242,8 +242,8 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
             };
             emit_cmp(array->getInitValues(Options::main_val_idx));
             if (array->getMulValsAxisIdx() != -1) {
-                emit_cmp(array->getCurrentValues(1));
-                emit_cmp(array->getInitValues(1));
+                emit_cmp(array->getCurrentValues(Options::alt_val_idx));
+                emit_cmp(array->getInitValues(Options::alt_val_idx));
             }
             stream << ")";
         }
