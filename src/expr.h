@@ -62,6 +62,8 @@ class Expr : public IRNode {
     virtual IRNodeKind getKind() { return IRNodeKind::MAX_EXPR_KIND; }
     virtual std::shared_ptr<Data> getValue();
 
+    // Deep copy of the expression. We use it to duplicate expressions in
+    // case of UB for multiple values
     virtual std::shared_ptr<Expr> copy() = 0;
 
   protected:
@@ -316,7 +318,7 @@ class SubscriptExpr : public Expr {
     getSuitableArrays(std::shared_ptr<PopulateCtx> ctx);
     static std::shared_ptr<SubscriptExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
-    void setValue(std::shared_ptr<Expr> _expr, bool main_val);
+    void setValue(std::shared_ptr<Expr> _expr, bool use_main_vals);
 
     void setIsDead(bool val);
 
@@ -339,6 +341,7 @@ class SubscriptExpr : public Expr {
     // It is a hack for stencil
     int64_t stencil_offset;
 
+    // Flag that indicates if this subscript is used to access multiple values
     bool at_mul_val_axis;
 };
 
@@ -368,6 +371,7 @@ class AssignmentExpr : public Expr {
     std::shared_ptr<Expr> second_from;
     bool taken;
     std::shared_ptr<Expr> to;
+    // Iterator that we use to fix UB in case of multiple values
     std::shared_ptr<Iterator> versioning_iter;
 };
 

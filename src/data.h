@@ -143,10 +143,15 @@ class Array : public Data {
   public:
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
           IRValue _val);
-    IRValue getInitValues(size_t idx) { return init_vals.at(idx); }
-    IRValue getCurrentValues(size_t idx) { return (mul_vals_axis_idx != -1) ? cur_vals.at(idx) : cur_vals.at(Options::main_val_idx); }
-    void setInitValue(IRValue _val, size_t mul_val_idx, int64_t mul_val_axis_idx);
-    void setCurrentValue(IRValue _val, size_t mul_val_idx);
+    IRValue getInitValues(bool use_main_vals) {
+        return mul_vals_axis_idx == -1 || use_main_vals ? init_vals[Options::main_val_idx] : init_vals[Options::alt_val_idx];
+    }
+    IRValue getCurrentValues(bool use_main_vals) {
+        return mul_vals_axis_idx == -1 || use_main_vals ? cur_vals[Options::main_val_idx] : cur_vals[Options::alt_val_idx];
+    }
+    void setInitValue(IRValue _val, bool use_main_vals,
+                      int64_t mul_val_axis_idx);
+    void setCurrentValue(IRValue _val, bool use_main_vals);
     int64_t getMulValsAxisIdx() { return mul_vals_axis_idx; }
 
     bool isArray() final { return true; }
@@ -238,7 +243,9 @@ class Iterator : public Data {
     bool degenerate;
     // Total number of iterations
     size_t total_iters_num;
+    // A flag that indicates whether the iterator supports multiple values
     bool supports_mul_values;
+    // A flag that indicates whether the iterator has main values on the last iteration
     bool main_vals_on_last_iter;
 };
 

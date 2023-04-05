@@ -43,7 +43,9 @@ class EvalCtx {
     // -1 is used as a poison value that indicates that the information is unknown
     int64_t total_iter_num;
 
+    // Iterator that is used to iterate over multiple values
     std::shared_ptr<Iterator> mul_vals_iter;
+    // If true, we use main values for evaluation
     bool use_main_vals;
 };
 
@@ -233,7 +235,9 @@ class PopulateCtx : public GenCtx {
     // stencil pattern
     bool in_stencil;
 
+    // This iterator is used to operate with multiple values
     std::shared_ptr<Iterator> mul_vals_iter;
+    // If we want to allow multiple values in this context
     bool allow_mul_vals;
 };
 
