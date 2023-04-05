@@ -36,30 +36,33 @@ void ExprStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     auto expr_kind = rand_val_gen->getRandId(gen_pol->expr_stmt_kind_pop_distr);
+
+    auto new_active_ctx = std::make_shared<PopulateCtx>(*ctx);
+
     std::shared_ptr<AssignmentExpr> expr;
     int64_t total_iters_num = -1;
     if (expr_kind == IRNodeKind::ASSIGN)
-        expr = AssignmentExpr::create(ctx);
-    /*
+        expr = AssignmentExpr::create(new_active_ctx);
     else if (expr_kind == IRNodeKind::REDUCTION) {
-        expr = ReductionExpr::create(ctx);
-        total_iters_num =
-            std::accumulate(ctx->getLocalSymTable()->getIters().begin(),
-                            ctx->getLocalSymTable()->getIters().end(), 1,
-                            [](size_t a, const std::shared_ptr<Iterator> &b) {
-                                return a * b->getTotalItersNum();
-                            });
+        new_active_ctx->setAllowMulVals(false);
+        expr = ReductionExpr::create(new_active_ctx);
+        total_iters_num = std::accumulate(
+            new_active_ctx->getLocalSymTable()->getIters().begin(),
+            new_active_ctx->getLocalSymTable()->getIters().end(), 1,
+            [](size_t a, const std::shared_ptr<Iterator> &b) {
+                return a * b->getTotalItersNum();
+            });
     }
-    */
+
+
     EvalCtx eval_ctx;
     eval_ctx.total_iter_num = total_iters_num;
     auto eval_res = expr->evaluate(eval_ctx);
     if (eval_res->hasUB())
         expr->rebuild(eval_ctx);
     expr->propagateValue(eval_ctx);
-
-    if (ctx->getMulValsIter() != nullptr) {
-        eval_ctx.mul_vals_iter = ctx->getMulValsIter();
+    if (new_active_ctx->getAllowMulVals()) {
+        eval_ctx.mul_vals_iter = new_active_ctx->getMulValsIter();
         eval_ctx.use_main_vals = false;
         eval_res = expr->evaluate(eval_ctx);
     }
@@ -79,7 +82,7 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
         //eval_ctx.use_main_vals = false;
     }
 
-    if (ctx->getMulValsIter() != nullptr)
+    if (new_active_ctx->getAllowMulVals())
         expr->propagateValue(eval_ctx);
 
     return std::make_shared<ExprStmt>(expr);
@@ -434,6 +437,8 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             NameHandler& nh = NameHandler::getInstance();
             new_iters = std::make_shared<Iterator>(nh.getIterName(), prev_iter->getType(), prev_iter->getStart(), prev_iter->getMaxLeftOffset(), prev_iter->getEnd(), prev_iter->getMaxRightOffset(), prev_iter->getStep(), prev_iter->isDegenerate(), prev_iter->getTotalItersNum());
             new_iters->setIsDead(false);
+            new_iters->setSupportsMulValues(prev_iter->getSupportsMulValues());
+            new_iters->setMainValsOnLastIter(prev_iter->getMainValsOnLastIter());
             loop_head->addIterator(new_iters);
             loop_head->setSameIterSpace();
             same_iter_space_counter--;
@@ -643,7 +648,12 @@ IfElseStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
 }
 
 void IfElseStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
-    cond = ArithmeticExpr::create(ctx);
+    auto new_ctx = std::make_shared<PopulateCtx>(ctx);
+    new_ctx->setAllowMulVals(false);
+    // TODO: for now, we do not allow multiple if-else statements' conditions
+    // this leads to divergent taken branches and is incompatible with
+    // the current implementation of value tracking
+    cond = ArithmeticExpr::create(new_ctx);
 
     if (!cond->getValue()->isScalarVar()) {
         ERROR("Can perform conversion to bool only on scalar variables");
@@ -664,7 +674,7 @@ void IfElseStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     IRValue cond_val =
         std::static_pointer_cast<ScalarVar>(cond_eval_res)->getCurrentValue();
 
-    auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
+    new_ctx = std::make_shared<PopulateCtx>(*ctx);
     new_ctx->incIfElseDepth();
     bool cond_taken = cond_val.getValueRef<bool>();
     new_ctx->setTaken(ctx->isTaken() && cond_taken);

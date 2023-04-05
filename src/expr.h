@@ -356,7 +356,7 @@ class AssignmentExpr : public Expr {
     EvalResType rebuild(EvalCtx &ctx) override;
     // This function sets the value of the expression. It has to be called
     // after the expression is evaluated and rebuilt.
-    void propagateValue(EvalCtx &ctx);
+    virtual void propagateValue(EvalCtx &ctx);
 
     void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
               std::string offset = "") override;
@@ -387,6 +387,7 @@ class ReductionExpr : public AssignmentExpr {
     bool propagateType() final;
     EvalResType evaluate(EvalCtx &ctx) final;
     EvalResType rebuild(EvalCtx &ctx) final;
+    virtual void propagateValue(EvalCtx &ctx) final;
 
     void emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
               std::string offset = "") final;
