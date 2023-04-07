@@ -2936,26 +2936,6 @@ std::shared_ptr<ReductionExpr>
 ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
 
-    auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
-    bool other_option_exists = false;
-    for (auto &kind_prob : new_gen_pol->out_kind_distr) {
-        if (kind_prob.getId() == DataKind::ARR)
-            kind_prob.setProb(0);
-        else
-            other_option_exists = true;
-    }
-    if (!other_option_exists) {
-        auto base_assign_expr = AssignmentExpr::create(ctx);
-        return std::make_shared<ReductionExpr>(
-            base_assign_expr, BinaryOp::MAX_BIN_OP,
-            LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
-    }
-
-    auto active_ctx = std::make_shared<PopulateCtx>(*ctx);
-    active_ctx->setGenPolicy(new_gen_pol);
-
-    auto base_assign_expr = AssignmentExpr::create(active_ctx);
-
     bool use_bin_op =
         rand_val_gen->getRandId(gen_pol->reduction_as_bin_op_prob);
     BinaryOp bin_op = BinaryOp::MAX_BIN_OP;
@@ -2965,6 +2945,30 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     else
         lib_call =
             rand_val_gen->getRandId(gen_pol->reduction_as_lib_call_distr);
+
+
+    auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+    // For "|" and "&" we allow to use arrays as a reduction variable
+    if (bin_op != BinaryOp::BIT_AND && bin_op != BinaryOp::BIT_OR) {
+        bool other_option_exists = false;
+        for (auto &kind_prob : new_gen_pol->out_kind_distr) {
+            if (kind_prob.getId() == DataKind::ARR)
+                kind_prob.setProb(0);
+            else
+                other_option_exists = true;
+        }
+        if (!other_option_exists) {
+            auto base_assign_expr = AssignmentExpr::create(ctx);
+            return std::make_shared<ReductionExpr>(
+                base_assign_expr, BinaryOp::MAX_BIN_OP,
+                LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
+        }
+    }
+
+    auto active_ctx = std::make_shared<PopulateCtx>(*ctx);
+    active_ctx->setGenPolicy(new_gen_pol);
+
+    auto base_assign_expr = AssignmentExpr::create(active_ctx);
 
     return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
                                            false, ctx->isTaken());
