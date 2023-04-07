@@ -218,9 +218,7 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     if (supports_mul_vals) {
         iter->setSupportsMulValues(supports_mul_vals);
         size_t last_val = (total_iters_num - 1) * step_val + left_span;
-        std::cout << "Iter: " << iter->name << " last_val: " << last_val << std::endl;
         iter->setMainValsOnLastIter(last_val % 2 == Options::main_val_idx);
-        // std::cout << iter->name << std::endl
     }
 
     return iter;

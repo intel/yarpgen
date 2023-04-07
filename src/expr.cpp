@@ -1354,16 +1354,6 @@ bool BinaryExpr::propagateType() {
     lhs->propagateType();
     rhs->propagateType();
 
-    /*
-    std::cout << "Binary type prop: ";
-    lhs->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " # ";
-    rhs->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " # ";
-    emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-    */
-
     Options &options = Options::getInstance();
     if (options.isISPC())
         varyingPromotion(lhs, rhs);
@@ -1491,19 +1481,6 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
             break;
     }
 
-    /*
-    std::cout << "Bin eval: ";
-    emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " | ";
-    lhs->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " | ";
-    std::cout << lhs_val << " | ";
-    rhs->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " | ";
-    std::cout << rhs_val << " | ";
-    std::cout << static_cast<int>(new_val.getUBCode()) << std::endl;
-    */
-
     value = replaceValueWith(value, std::make_shared<ScalarVar>(
         "",
         IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
@@ -1521,12 +1498,6 @@ Expr::EvalResType BinaryExpr::rebuild(EvalCtx &ctx) {
            "Binary operations are supported only for Scalar Variables");
 
     auto eval_scalar_res = std::static_pointer_cast<ScalarVar>(eval_res);
-
-    std::cout << "Bin rebuild: ";
-    lhs->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " | ";
-    rhs->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << " | " << static_cast<int>(eval_res->getUBCode()) << std::endl;
 
     if (!eval_scalar_res->getCurrentValue().hasUB()) {
         value = eval_res;
@@ -1882,30 +1853,10 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
         int64_t full_idx_val = idx_int_val + stencil_offset;
         bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
-
-        std::cout << "Bounds base: " << idx_int_val << " | " << stencil_offset << " | " << full_idx_val << " | " << dim << " | " << in_bounds << std::endl;
-
         return in_bounds;
     }
     else if (idx_val->isIterator()) {
         auto iter_var = std::static_pointer_cast<Iterator>(idx_val);
-
-        std::cout << "Bounds start: ";
-        auto tmp_start = std::static_pointer_cast<ScalarVar>(iter_var->getStart()->evaluate(ctx))->getCurrentValue();
-        auto tmp_end = std::static_pointer_cast<ScalarVar>(iter_var->getEnd()->evaluate(ctx))->getCurrentValue();
-
-        std::cout << "Bounds: ";
-        std::cout << idx_val->getName(std::make_shared<EmitCtx>()) << " | ";
-        iter_var->getStart()->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << " | ";
-        std::cout << tmp_start << " | ";
-        std::cout << tmp_end << " | ";
-        iter_var->getEnd()->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << " | ";
-        emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
-        std::fflush(stdout);
-
         return inBounds(dim, iter_var->getStart()->evaluate(ctx), ctx) &&
                inBounds(dim, iter_var->getEnd()->evaluate(ctx), ctx);
     }
@@ -1918,24 +1869,16 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
 Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     propagateType();
 
-    std::cout << "Subs: ";
-    emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-
     bool old_use_main_vals = ctx.use_main_vals;
     bool flip_main_vals = at_mul_val_axis && std::abs(stencil_offset) % Options::vals_number == Options::alt_val_idx;
     //TODO: check if this escapes the scope
     ctx.use_main_vals = flip_main_vals ? !ctx.use_main_vals : ctx.use_main_vals;
 
-    std::cout << "old | flip | mul_axis: " << old_use_main_vals << " | " << flip_main_vals << " | " << at_mul_val_axis << std::endl;
-
     EvalResType idx_eval_res = idx->evaluate(ctx);
 
     if (at_mul_val_axis && idx->getKind() == IRNodeKind::CONST) {
-        std::cout << "Const subs override: ";
         bool use_main_vals = std::static_pointer_cast<ScalarVar>(idx_eval_res)->getCurrentValue().getAbsValue().value % Options::vals_number == Options::main_val_idx;
         ctx.use_main_vals = use_main_vals;
-        std::cout << use_main_vals << std::endl;
     }
 
     EvalResType array_eval_res = array->evaluate(ctx);
@@ -1955,8 +1898,6 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     if (!inBounds(active_size, idx_eval_res, new_ctx))
         ub_code = UBKind::OutOfBounds;
 
-    std::cout << "Last check: " << ctx.use_main_vals <<  " | " << active_dim << std::endl;
-
     if (active_dim < array_type->getDimensions().size() - 1)
         value = replaceValueWith(value, array_eval_res);
     else {
@@ -1969,16 +1910,6 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
                        std::static_pointer_cast<IntegralType>(
                            array_type->getBaseType()),
                        array_val->getCurrentValues(ctx.use_main_vals)));
-        std::cout << "Array vals:";
-        auto tmp_main = array_val->getCurrentValues(true);
-        std::cout << tmp_main << " | ";
-        auto tmp_second = array_val->getCurrentValues(false);
-        std::cout << tmp_second << std::endl;
-        auto tmp_val = array_val->getCurrentValues(ctx.use_main_vals);
-        std::cout << "Main vals: " << ctx.use_main_vals << std::endl;
-        std::cout << tmp_val << std::endl;
-        std::cout << "Active_dim: " << active_dim << std::endl;
-
         // Restore saved value
         ctx.use_main_vals = old_use_main_vals;
     }
@@ -2174,7 +2105,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     std::vector<std::shared_ptr<Iterator>> single_val_iters;
     if (single_val_override) {
         for (auto &iter : ctx->getLocalSymTable()->getIters()) {
-            std::cout << "Iter " << iter->getName(std::make_shared<EmitCtx>()) << " supports mul values: " << iter->getSupportsMulValues() << std::endl;
             if (!iter->getSupportsMulValues())
                 single_val_iters.push_back(iter);
         }
@@ -2262,15 +2192,12 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                  subs_kind == SubscriptKind::OFFSET ||
                  (subs_kind == SubscriptKind::REPEAT && subs_exprs.empty())) {
             if (static_cast<int64_t>(i) == array->getMulValsAxisIdx()) {
-                std::cout << "Override: ";
                 if (single_val_override) {
                     iter = rand_val_gen->getRandElem(single_val_iters);
                 }
                 else if (mul_vals_override) {
                     iter = ctx->getMulValsIter();
-                    std::cout << iter->getName(std::make_shared<EmitCtx>());
                 }
-                std::cout << std::endl;
             }
             else if (active_dim) {
                 // If we are in a stencil and the dimension is active, we need to
@@ -2337,8 +2264,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         else {
             ERROR("Unknown subscript kind");
         }
-
-        std::cout << "Mid: " << (iter ? iter->getName(std::make_shared<EmitCtx>()) : "") << std::endl;
 
         // Create offsets
         if (subs_kind == SubscriptKind::OFFSET) {
@@ -2479,11 +2404,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
 
     res_expr = std::static_pointer_cast<SubscriptExpr>(res_expr);
 
-    std::cout << "Created subscript expr:\n";
-    res_expr->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-    std::cout << "Allow | mul_over | single_over | mul_idx | iter: " << ctx->getAllowMulVals() << " | " << mul_vals_override << " | " << single_val_override << " | " << mul_val_axis_idx << " | " << (ctx->getMulValsIter() == nullptr ? "null" : ctx->getMulValsIter()->getName(std::make_shared<EmitCtx>())) << std::endl;
-
     return std::static_pointer_cast<SubscriptExpr>(res_expr);
 }
 
@@ -2528,15 +2448,8 @@ bool AssignmentExpr::propagateType() {
 }
 
 Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
-    std::cout << "From: ";
-    from->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-
     if (!ctx.use_main_vals && second_from == nullptr) {
         second_from = from->copy();
-        std::cout << "second_from: ";
-        second_from->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
     }
 
     propagateType();
@@ -2549,11 +2462,6 @@ Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
 
     bool old_use_main_vals = ctx.use_main_vals;
     ctx.use_main_vals = use_main_vals;
-
-    std::cout << "Old: " << old_use_main_vals << " | Iter " << (ctx.mul_vals_iter == nullptr ? "null" : ctx.mul_vals_iter->getName(std::make_shared<EmitCtx>())) <<
-    " | use_main " << ctx.use_main_vals << " | main_on_last " << (ctx.mul_vals_iter != nullptr &&
-                  ctx.mul_vals_iter->getMainValsOnLastIter())
-              << std::endl;
 
     EvalResType to_eval_res = to->evaluate(ctx);
     EvalResType from_eval_res = use_main_vals ? from->evaluate(ctx) : second_from->evaluate(ctx);
@@ -2573,11 +2481,6 @@ void AssignmentExpr::propagateValue(EvalCtx &ctx) {
     bool old_use_main_vals = ctx.use_main_vals;
     ctx.use_main_vals = use_main_vals;
 
-    std::cout << "Old: " << old_use_main_vals << " | Iter " << (ctx.mul_vals_iter == nullptr ? "null" : ctx.mul_vals_iter->getName(std::make_shared<EmitCtx>())) <<
-        " | use_main " << ctx.use_main_vals << " | main_on_last " << (ctx.mul_vals_iter != nullptr &&
-                                                                      ctx.mul_vals_iter->getMainValsOnLastIter())
-              << std::endl;
-
     EvalResType to_eval_res = to->evaluate(ctx);
     EvalResType from_eval_res = use_main_vals ? from->evaluate(ctx) : second_from->evaluate(ctx);
     if (to_eval_res->getKind() != from_eval_res->getKind())
@@ -2591,12 +2494,6 @@ void AssignmentExpr::propagateValue(EvalCtx &ctx) {
     if (to->getKind() == IRNodeKind::SCALAR_VAR_USE) {
         auto to_scalar = std::static_pointer_cast<ScalarVarUseExpr>(to);
         to_scalar->setValue(use_main_vals ? from : second_from);
-        std::cout << "Scalar: main vals: " << use_main_vals << " | ";
-        to->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
-        auto tmp = std::static_pointer_cast<ScalarVar>((use_main_vals ? from : second_from)->getValue())->getCurrentValue();
-        std::cout << tmp << std::endl;
-        std::cout << static_cast<int>(tmp.getUBCode()) << std::endl;
     }
     else if (to->getKind() == IRNodeKind::SUBSCRIPT) {
         auto to_array = std::static_pointer_cast<SubscriptExpr>(to);
@@ -2617,10 +2514,6 @@ Expr::EvalResType AssignmentExpr::rebuild(EvalCtx &ctx) {
     from->rebuild(new_ctx);
     if (second_from != nullptr) {
         new_ctx.use_main_vals = false;
-        std::cout << "Rebuilding second_from: ";
-        second_from->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
-        std::fflush(stdout);
         second_from->rebuild(new_ctx);
         versioning_iter = ctx.mul_vals_iter;
         evaluate(new_ctx);
