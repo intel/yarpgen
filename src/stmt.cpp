@@ -67,19 +67,8 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
         eval_res = expr->evaluate(eval_ctx);
     }
 
-    std::cout << "ExprStmt::create: ";
-    expr->emit(std::make_shared<EmitCtx>(), std::cout);
-    std::cout << std::endl;
-
     if (eval_res->hasUB()) {
-        std::cout << "Has UB\nBefore: ";
-        expr->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
         expr->rebuild(eval_ctx);
-        std::cout << "After: ";
-        expr->emit(std::make_shared<EmitCtx>(), std::cout);
-        std::cout << std::endl;
-        //eval_ctx.use_main_vals = false;
     }
 
     if (new_active_ctx->getAllowMulVals())
@@ -446,7 +435,6 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         bool body_with_mul_vals = new_ctx->getMulValsIter() == nullptr && new_iters->getSupportsMulValues() && rand_val_gen->getRandId(gen_pol->loop_body_with_mul_vals_prob);
         if (body_with_mul_vals) {
-            std::cout << "Loop body with mul vals: " << new_iters->getName(std::make_shared<EmitCtx>()) << std::endl;
             new_ctx->setMulValsIter(new_iters);
             new_ctx->setAllowMulVals(true);
         }
@@ -577,7 +565,6 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         bool body_with_mul_vals = new_ctx->getMulValsIter() == nullptr && new_iters->getSupportsMulValues() && rand_val_gen->getRandId(gen_pol->loop_body_with_mul_vals_prob);
         if (body_with_mul_vals) {
-            std::cout << "Loop body with mul vals: " << new_iters->getName(std::make_shared<EmitCtx>()) << std::endl;
             new_ctx->setMulValsIter(new_iters);
             new_ctx->setAllowMulVals(true);
             mul_val_loop_idx = i;
