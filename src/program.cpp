@@ -117,6 +117,9 @@ void ProgramGenerator::emitDecl(std::shared_ptr<EmitCtx> ctx,
 
     emitArrayDecl(ctx, stream, ext_inp_sym_tbl->getArrays());
     emitArrayDecl(ctx, stream, ext_out_sym_tbl->getArrays());
+
+    stream << "\n";
+    stream << "int zero = 0;\n\n";
 }
 
 static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -369,6 +372,9 @@ void ProgramGenerator::emitExtDecl(std::shared_ptr<EmitCtx> ctx,
     emitArrayExtDecl(ctx, stream, ext_inp_sym_tbl->getArrays(), true);
     emitArrayExtDecl(ctx, stream, ext_out_sym_tbl->getArrays(), false);
     ctx->setIspcTypes(false);
+
+    stream << "\n";
+    stream << "extern int zero;\n";
 }
 
 static std::string placeSep(bool cond) { return cond ? ", " : ""; }

@@ -125,6 +125,7 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
         std::make_shared<Array>(nh.getArrayName(), array_type, init_val);
 
     auto mul_vals = ctx->getMulValsIter() != nullptr && rand_val_gen->getRandId(ctx->getGenPolicy()->array_with_mul_vals_prob);
+    mul_vals = ctx->getAllowMulVals() && mul_vals;
     // We need to have multiple values in the output array, so we don't need to
     // worry about assigning multiple values to the array that does not support
     // it
@@ -304,8 +305,12 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
 
     Options &options = Options::getInstance();
 
+    auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
+    new_ctx->setAllowMulVals(false);
+
+
     auto populate_impl =
-        [&ctx, &gen_pol,
+        [&new_ctx, &gen_pol,
          &options](std::shared_ptr<Type> type,
                    std::shared_ptr<Expr> expr) -> std::shared_ptr<Expr> {
         LoopEndKind loop_end_kind =
@@ -321,14 +326,14 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
                 rand_val_gen->getRandId(gen_pol->out_kind_distr);
             if (data_kind == DataKind::VAR || type->isUniform() ||
                 (data_kind == DataKind::ARR &&
-                 (ctx->getExtInpSymTable()->getArrays().empty() ||
-                  ctx->getLocalSymTable()->getIters().empty()))) {
-                auto new_scalar_var_expr = ScalarVarUseExpr::create(ctx);
+                 (new_ctx->getExtInpSymTable()->getArrays().empty() ||
+                  new_ctx->getLocalSymTable()->getIters().empty()))) {
+                auto new_scalar_var_expr = ScalarVarUseExpr::create(new_ctx);
                 new_scalar_var_expr->setIsDead(false);
                 ret = new_scalar_var_expr;
             }
             else if (data_kind == DataKind::ARR) {
-                auto new_subs_expr = SubscriptExpr::create(ctx);
+                auto new_subs_expr = SubscriptExpr::create(new_ctx);
                 new_subs_expr->setIsDead(false);
                 ret = new_subs_expr;
             }
@@ -336,7 +341,7 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
                 ERROR("Bad data kind");
         }
         else if (loop_end_kind == LoopEndKind::EXPR) {
-            ret = ArithmeticExpr::create(ctx);
+            ret = ArithmeticExpr::create(new_ctx);
         }
         else
             ERROR("Bad Loop End Kind");
