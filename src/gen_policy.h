@@ -184,10 +184,17 @@ class GenPolicy {
 
     std::vector<Probability<bool>> hide_zero_in_versioning_prob;
 
+    std::vector<Probability<size_t>> same_iter_space_span_distr;
+
+    std::vector<Probability<bool>> vectorizable_loop_distr;
+    void makeVectorizable();
+
   private:
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,
                             size_t min_num = 0);
+    template <class T, class U>
+    void removeProbability(std::vector<Probability<T>> &orig, U id);
 
     SimilarOperators active_similar_op;
     ConstUse active_const_use;
