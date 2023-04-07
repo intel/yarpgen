@@ -959,7 +959,9 @@ class TestRun(object):
 
         if self.status == self.STATUS_compfail_timeout:
             return
-        
+
+        return
+
         save_test(lock,
                    file_list,
                    compiler_name=self.target.specs.name,
