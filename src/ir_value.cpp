@@ -131,7 +131,6 @@ addOperator(IRValue &lhs, IRValue &rhs) {
     unsigned_T u_tmp = ua + ub;
     ua = (ua >> std::numeric_limits<T>::digits) + std::numeric_limits<T>::max();
     if (static_cast<T>((ua ^ ub) | ~(ub ^ u_tmp)) >= 0) {
-        std::cout << "Add impl overflow: " << lhs << " | " << rhs << std::endl;
         ret.setUBCode(UBKind::SignOvf);
     }
     else {
