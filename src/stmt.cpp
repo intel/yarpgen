@@ -185,6 +185,8 @@ void LoopHead::emitPrefix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
 void LoopHead::emitHeader(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                           std::string offset) {
+    if (vectorizable)
+        stream << offset << "/* vectorizable */\n";
     if (!pragmas.empty()) {
         for (auto &pragma : pragmas) {
             pragma->emit(ctx, stream, offset);
@@ -396,11 +398,21 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     size_t cur_idx = 0;
 
     for (auto &loop : loops) {
+        auto active_gen_pol = gen_pol;
+
         auto loop_head = loop.first;
         if (loop_head->getPrefix().use_count() != 0)
             loop_head->getPrefix()->populate(ctx);
 
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
+
+        bool vectorizable_loop = rand_val_gen->getRandId(gen_pol->vectorizable_loop_distr);
+        if (vectorizable_loop) {
+            active_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+            active_gen_pol->makeVectorizable();
+            loop_head->setVectorizable();
+            new_ctx->setGenPolicy(active_gen_pol);
+        }
 
         loop_head->createPragmas(new_ctx);
         bool old_simd_state = new_ctx->isInsideOMPSimd();
@@ -411,9 +423,9 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         std::shared_ptr<Iterator> new_iters = nullptr;
         if (same_iter_space_counter == 0) {
             if (new_ctx->getDimensions().empty())
-                new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
-                    return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                                      gen_pol->iter_end_limit_max);});
+                new_dim = makeMutableRoll(active_gen_pol, [&active_gen_pol]() {
+                    return rand_val_gen->getRandValue(active_gen_pol->iters_end_limit_min,
+                                                      active_gen_pol->iter_end_limit_max);});
             else
                 new_dim = new_ctx->getDimensions().front();
 
@@ -444,8 +456,8 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
 
-        if (same_iter_space_counter == 0 && rand_val_gen->getRandId(gen_pol->same_iter_space)) {
-            same_iter_space_counter = std::min(loops.size() - cur_idx, rand_val_gen->getRandId(gen_pol->same_iter_space_span)) - 1;
+        if (same_iter_space_counter == 0 && rand_val_gen->getRandId(active_gen_pol->same_iter_space)) {
+            same_iter_space_counter = std::min(loops.size() - cur_idx, rand_val_gen->getRandId(active_gen_pol->same_iter_space_span)) - 1;
             same_iter_space_dim = new_dim;
             if (same_iter_space_counter > 0)
                 loop_head->setSameIterSpace();

@@ -114,7 +114,7 @@ class Pragma {
 
 class LoopHead {
   public:
-    LoopHead(): prefix(nullptr), suffix(nullptr), is_foreach(false), same_iter_space(false) {}
+    LoopHead(): prefix(nullptr), suffix(nullptr), is_foreach(false), same_iter_space(false), vectorizable(false) {}
 
     std::shared_ptr<StmtBlock> getPrefix() { return prefix; }
     void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
@@ -147,6 +147,8 @@ class LoopHead {
 
     void setSameIterSpace() { same_iter_space = true; }
 
+    void setVectorizable() { vectorizable = true; }
+
   private:
     std::shared_ptr<StmtBlock> prefix;
     // Loop iterations space is defined by the iterators that we can use
@@ -161,6 +163,8 @@ class LoopHead {
     // We need to save info about of the loop belongs to the loop sequence with
     // the same iteration space (mostly for debug purposes)
     bool same_iter_space;
+
+    bool vectorizable;
 };
 
 // According to the agreement, a single standalone loop should be represented as

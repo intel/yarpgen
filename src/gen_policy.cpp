@@ -194,13 +194,13 @@ GenPolicy::GenPolicy() {
     reduction_bin_op_distr.emplace_back(BinaryOp::SUB, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::MUL, 10);
     // Division and modulo do not make sense for reductions
-    //reduction_bin_op_distr.emplace_back(BinaryOp::DIV, 10);
-    //reduction_bin_op_distr.emplace_back(BinaryOp::MOD, 10);
+    // reduction_bin_op_distr.emplace_back(BinaryOp::DIV, 10);
+    // reduction_bin_op_distr.emplace_back(BinaryOp::MOD, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::BIT_AND, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::BIT_OR, 10);
     reduction_bin_op_distr.emplace_back(BinaryOp::BIT_XOR, 10);
-    //reduction_bin_op_distr.emplace_back(BinaryOp::SHL, 10);
-    //reduction_bin_op_distr.emplace_back(BinaryOp::SHR, 10);
+    // reduction_bin_op_distr.emplace_back(BinaryOp::SHL, 10);
+    // reduction_bin_op_distr.emplace_back(BinaryOp::SHR, 10);
     shuffleProbProxy(reduction_bin_op_distr);
 
     reduction_as_lib_call_distr.emplace_back(LibCallKind::MAX, 50);
@@ -352,11 +352,14 @@ GenPolicy::GenPolicy() {
 
     // Arrays with single dimension require a separate treatment. Otherwise, we
     // do not get the desired distribution.
-    stencil_in_dim_prob.emplace(1, std::initializer_list<Probability<bool>>{{true, 80}, {false, 20}});
+    stencil_in_dim_prob.emplace(
+        1, std::initializer_list<Probability<bool>>{{true, 80}, {false, 20}});
     shuffleProbProxy(stencil_in_dim_prob[1]);
     for (size_t i = 2; i <= array_dims_num_limit; i++) {
         size_t gen_prob = (1.0 / i + stencil_in_dim_prob_offset) * 100;
-        stencil_in_dim_prob.emplace(i, std::initializer_list<Probability<bool>>{{true, gen_prob}, {false, 100 - gen_prob}});
+        stencil_in_dim_prob.emplace(
+            i, std::initializer_list<Probability<bool>>{
+                   {true, gen_prob}, {false, 100 - gen_prob}});
         shuffleProbProxy(stencil_in_dim_prob[i]);
     }
 
@@ -403,6 +406,37 @@ GenPolicy::GenPolicy() {
 
     hide_zero_in_versioning_prob.emplace_back(true, 50);
     hide_zero_in_versioning_prob.emplace_back(false, 50);
+
+    vectorizable_loop_distr.emplace_back(true, 20);
+    vectorizable_loop_distr.emplace_back(false, 70);
+    shuffleProbProxy(vectorizable_loop_distr);
+}
+
+void GenPolicy::makeVectorizable() {
+    Options &options = Options::getInstance();
+
+    removeProbability(stmt_kind_struct_distr, IRNodeKind::LOOP_NEST);
+
+    max_arith_depth = 3;
+    removeProbability(arith_node_distr, IRNodeKind::CALL);
+
+    loop_end_kind_distr.clear();
+    loop_end_kind_distr.emplace_back(LoopEndKind::CONST, 70);
+    if (!options.getExplLoopParams()) {
+        loop_end_kind_distr.emplace_back(LoopEndKind::VAR, 15);
+        loop_end_kind_distr.emplace_back(LoopEndKind::EXPR, 15);
+        shuffleProbProxy(loop_end_kind_distr);
+    }
+
+    uniformProbFromMax(pragma_num_distr, 2);
+
+    pragma_kind_distr.clear();
+    pragma_kind_distr.emplace_back(PragmaKind::CLANG_VECTORIZE, 20);
+    pragma_kind_distr.emplace_back(PragmaKind::CLANG_VEC_PREDICATE, 20);
+    shuffleProbProxy(pragma_kind_distr);
+
+    vectorizable_loop_distr.clear();
+    vectorizable_loop_distr.emplace_back(false, 90);
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;
@@ -490,4 +524,9 @@ void GenPolicy::uniformProbFromMax(std::vector<Probability<T>> &distr,
     distr.reserve(max_num - min_num);
     for (size_t i = min_num; i <= max_num; ++i)
         distr.emplace_back(i, (max_num - i + 1) * 10);
+}
+
+template <class T, class U>
+void GenPolicy::removeProbability(std::vector<Probability<T>> &orig, U id) {
+    std::remove_if(orig.begin(), orig.end(), [&id] (Probability<T>& elem) -> bool { return elem.getId() == id; });
 }
