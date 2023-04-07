@@ -1,0 +1,250 @@
+diff --git a/src/gen_policy.cpp b/src/gen_policy.cpp
+index 515187e..3857a8d 100644
+--- a/src/gen_policy.cpp
++++ b/src/gen_policy.cpp
+@@ -24,6 +24,7 @@ size_t GenPolicy::leaves_prob_bump = 30;
+ 
+ template <typename T>
+ static void shuffleProbProxy(std::vector<Probability<T>> &vec) {
++    return ;
+     Options &options = Options::getInstance();
+     if (!options.getUseParamShuffle())
+         return;
+@@ -35,7 +36,7 @@ GenPolicy::GenPolicy() {
+ 
+     stmt_num_lim = 1000;
+ 
+-    loop_seq_num_lim = 4;
++    loop_seq_num_lim = 1;
+     uniformProbFromMax(loop_seq_num_distr, loop_seq_num_lim, 1);
+ 
+     loop_nest_depth_lim = 3;
+@@ -61,8 +62,8 @@ GenPolicy::GenPolicy() {
+     if (!options.isSYCL()) {
+         stmt_kind_struct_distr.emplace_back(
+             Probability<IRNodeKind>{IRNodeKind::LOOP_SEQ, 10});
+-        stmt_kind_struct_distr.emplace_back(
+-            Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
++//        stmt_kind_struct_distr.emplace_back(
++//            Probability<IRNodeKind>{IRNodeKind::LOOP_NEST, 10});
+     }
+     stmt_kind_struct_distr.emplace_back(
+         Probability<IRNodeKind>{IRNodeKind::IF_ELSE, 10});
+@@ -89,7 +90,7 @@ GenPolicy::GenPolicy() {
+     max_inp_vars_num = 20;
+ 
+     expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 70);
+-    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 30);
++//    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 30);
+     shuffleProbProxy(expr_stmt_kind_pop_distr);
+ 
+     min_new_arr_num = 2;
+@@ -119,7 +120,7 @@ GenPolicy::GenPolicy() {
+             Probability<IRNodeKind>(IRNodeKind::CALL, 20));
+     arith_node_distr.emplace_back(
+         Probability<IRNodeKind>(IRNodeKind::TERNARY, 20));
+-    arith_node_distr.emplace_back(IRNodeKind::STENCIL, 20);
++//    arith_node_distr.emplace_back(IRNodeKind::STENCIL, 20);
+     shuffleProbProxy(arith_node_distr);
+ 
+     unary_op_distr.emplace_back(Probability<UnaryOp>(UnaryOp::PLUS, 25));
+@@ -217,10 +218,12 @@ GenPolicy::GenPolicy() {
+         shuffleProbProxy(loop_end_kind_distr);
+     }
+ 
+-    uniformProbFromMax(pragma_num_distr,
+-                       static_cast<int>(PragmaKind::MAX_PRAGMA_KIND) - 1,
+-                       static_cast<size_t>(PragmaKind::CLANG_VECTORIZE));
++    pragma_num_distr.emplace_back(0, 100);
++//    uniformProbFromMax(pragma_num_distr,
++//                       static_cast<int>(PragmaKind::MAX_PRAGMA_KIND) - 1,
++//                       static_cast<size_t>(PragmaKind::CLANG_VECTORIZE));
+ 
++/*
+     pragma_kind_distr.emplace_back(
+         Probability<PragmaKind>(PragmaKind::CLANG_VECTORIZE, 20));
+     pragma_kind_distr.emplace_back(
+@@ -232,13 +235,15 @@ GenPolicy::GenPolicy() {
+     pragma_kind_distr.emplace_back(
+         Probability<PragmaKind>(PragmaKind::OMP_SIMD, 20));
+     shuffleProbProxy(pragma_kind_distr);
++*/
+ 
+     active_similar_op = SimilarOperators::MAX_SIMILAR_OP;
+ 
+-    apply_similar_op_distr.emplace_back(Probability<bool>(true, 10));
++//    apply_similar_op_distr.emplace_back(Probability<bool>(true, 10));
+     apply_similar_op_distr.emplace_back(Probability<bool>(false, 90));
+     shuffleProbProxy(apply_similar_op_distr);
+ 
++/*
+     similar_op_distr.emplace_back(
+         Probability<SimilarOperators>(SimilarOperators::ADDITIVE, 10));
+     similar_op_distr.emplace_back(
+@@ -252,21 +257,24 @@ GenPolicy::GenPolicy() {
+     similar_op_distr.emplace_back(
+         Probability<SimilarOperators>(SimilarOperators::ADD_MUL, 10));
+     shuffleProbProxy(similar_op_distr);
+-
++*/
+     active_const_use = ConstUse::MAX_CONST_USE;
+ 
+-    apply_const_use_distr.emplace_back(Probability<bool>(true, 10));
++//    apply_const_use_distr.emplace_back(Probability<bool>(true, 10));
+     apply_const_use_distr.emplace_back(Probability<bool>(false, 90));
+     shuffleProbProxy(apply_const_use_distr);
+ 
++/*
+     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::HALF, 50));
+     const_use_distr.emplace_back(Probability<ConstUse>(ConstUse::ALL, 50));
+     shuffleProbProxy(const_use_distr);
++*/
+ 
+-    use_special_const_distr.emplace_back(Probability<bool>(true, 30));
++//    use_special_const_distr.emplace_back(Probability<bool>(true, 30));
+     use_special_const_distr.emplace_back(Probability<bool>(false, 70));
+     shuffleProbProxy(use_special_const_distr);
+ 
++/*
+     special_const_distr.emplace_back(
+         Probability<SpecialConst>(SpecialConst::ZERO, 10));
+     special_const_distr.emplace_back(
+@@ -278,59 +286,69 @@ GenPolicy::GenPolicy() {
+     special_const_distr.emplace_back(
+         Probability<SpecialConst>(SpecialConst::END_BITS, 10));
+     shuffleProbProxy(special_const_distr);
++*/
+ 
+-    use_lsb_bit_end_distr.emplace_back(Probability<bool>(true, 50));
++//    use_lsb_bit_end_distr.emplace_back(Probability<bool>(true, 50));
+     use_lsb_bit_end_distr.emplace_back(Probability<bool>(false, 50));
+     shuffleProbProxy(use_lsb_bit_end_distr);
+ 
+-    use_const_offset_distr.emplace_back(Probability<bool>(true, 50));
++//    use_const_offset_distr.emplace_back(Probability<bool>(true, 50));
+     use_const_offset_distr.emplace_back(Probability<bool>(false, 50));
+     shuffleProbProxy(use_const_offset_distr);
+ 
++/*
+     min_offset = 1;
+     max_offset = 32;
+     uniformProbFromMax(const_offset_distr, max_offset, min_offset);
++*/
+ 
++/*
+     pos_const_offset_distr.emplace_back(Probability<bool>(true, 50));
+     pos_const_offset_distr.emplace_back(Probability<bool>(false, 50));
+     shuffleProbProxy(pos_const_offset_distr);
++*/
+ 
+-    replace_in_buf_distr.emplace_back(Probability<bool>(true, 50));
++//    replace_in_buf_distr.emplace_back(Probability<bool>(true, 50));
+     replace_in_buf_distr.emplace_back(Probability<bool>(false, 50));
+     shuffleProbProxy(replace_in_buf_distr);
+ 
+-    reuse_const_prob.emplace_back(Probability<bool>(true, 30));
++//    reuse_const_prob.emplace_back(Probability<bool>(true, 30));
+     reuse_const_prob.emplace_back(Probability<bool>(false, 70));
+     shuffleProbProxy(reuse_const_prob);
+ 
+-    use_const_transform_distr.emplace_back(Probability<bool>(true, 50));
++//    use_const_transform_distr.emplace_back(Probability<bool>(true, 50));
+     use_const_transform_distr.emplace_back(Probability<bool>(false, 50));
+     shuffleProbProxy(use_const_offset_distr);
+ 
++/*
+     const_transform_distr.emplace_back(
+         Probability<UnaryOp>(UnaryOp::NEGATE, 30));
+     const_transform_distr.emplace_back(
+         Probability<UnaryOp>(UnaryOp::BIT_NOT, 30));
+     shuffleProbProxy(const_transform_distr);
++*/
+ 
+     mutation_probability.emplace_back(Probability<bool>(true, 10));
+     mutation_probability.emplace_back(Probability<bool>(false, 90));
+ 
+-    ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
++//    ub_in_dc_prob.emplace_back(Probability<bool>(true, 30));
+     ub_in_dc_prob.emplace_back(Probability<bool>(false, 70));
+     shuffleProbProxy(ub_in_dc_prob);
+ 
+-    allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
++//    allow_stencil_prob.emplace_back(Probability<bool>(true, 40));
+     allow_stencil_prob.emplace_back(Probability<bool>(false, 60));
+     shuffleProbProxy(allow_stencil_prob);
+ 
+     uniformProbFromMax(stencil_span_distr, max_stencil_span, 1);
+ 
++/*
+     arrs_in_stencil_distr.emplace_back(Probability<size_t>(1, 50));
+     arrs_in_stencil_distr.emplace_back(Probability<size_t>(2, 25));
+     arrs_in_stencil_distr.emplace_back(Probability<size_t>(3, 15));
+     arrs_in_stencil_distr.emplace_back(Probability<size_t>(4, 10));
++*/
+ 
++/*
+     stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(true, 70));
+     stencil_same_dims_one_arr_distr.emplace_back(Probability<bool>(false, 30));
+     shuffleProbProxy(stencil_same_dims_one_arr_distr);
+@@ -349,6 +367,7 @@ GenPolicy::GenPolicy() {
+     stencil_dim_num_distr.emplace_back(3, 20);
+     stencil_dim_num_distr.emplace_back(4, 10);
+     shuffleProbProxy(stencil_dim_num_distr);
++*/
+ 
+     // Arrays with single dimension require a separate treatment. Otherwise, we
+     // do not get the desired distribution.
+@@ -363,19 +382,20 @@ GenPolicy::GenPolicy() {
+         shuffleProbProxy(stencil_in_dim_prob[i]);
+     }
+ 
+-    subs_order_kind_distr.emplace_back(SubscriptOrderKind::IN_ORDER, 40);
+-    subs_order_kind_distr.emplace_back(SubscriptOrderKind::REVERSE, 20);
+-    subs_order_kind_distr.emplace_back(SubscriptOrderKind::DIAGONAL, 20);
++
++//    subs_order_kind_distr.emplace_back(SubscriptOrderKind::IN_ORDER, 40);
++//    subs_order_kind_distr.emplace_back(SubscriptOrderKind::REVERSE, 20);
++//    subs_order_kind_distr.emplace_back(SubscriptOrderKind::DIAGONAL, 20);
+     subs_order_kind_distr.emplace_back(SubscriptOrderKind::RANDOM, 30);
+     shuffleProbProxy(subs_order_kind_distr);
+ 
+     subs_kind_prob.emplace_back(SubscriptKind::CONST, 10);
+     subs_kind_prob.emplace_back(SubscriptKind::ITER, 35);
+     subs_kind_prob.emplace_back(SubscriptKind::OFFSET, 15);
+-    subs_kind_prob.emplace_back(SubscriptKind::REPEAT, 15);
++//    subs_kind_prob.emplace_back(SubscriptKind::REPEAT, 15);
+     shuffleProbProxy(subs_kind_prob);
+ 
+-    subs_diagonal_prob.emplace_back(true, 5);
++//    subs_diagonal_prob.emplace_back(true, 5);
+     subs_diagonal_prob.emplace_back(false, 95);
+     shuffleProbProxy(subs_diagonal_prob);
+ 
+@@ -386,15 +406,15 @@ GenPolicy::GenPolicy() {
+     array_dims_use_kind.emplace_back(
+         Probability<ArrayDimsUseKind>(ArrayDimsUseKind::MORE, 33));
+ 
+-    use_iters_cache_prob.emplace_back(true, 70);
++//    use_iters_cache_prob.emplace_back(true, 70);
+     use_iters_cache_prob.emplace_back(false, 30);
+     shuffleProbProxy(use_iters_cache_prob);
+ 
+-    same_iter_space.emplace_back(true, 20);
++//    same_iter_space.emplace_back(true, 20);
+     same_iter_space.emplace_back(false, 80);
+     shuffleProbProxy(same_iter_space);
+ 
+-    uniformProbFromMax(same_iter_space_span, loop_seq_num_lim, 2);
++//    uniformProbFromMax(same_iter_space_span, loop_seq_num_lim, 2);
+ 
+     array_with_mul_vals_prob.emplace_back(true, 40);
+     array_with_mul_vals_prob.emplace_back(false, 60);
+@@ -407,7 +427,7 @@ GenPolicy::GenPolicy() {
+     hide_zero_in_versioning_prob.emplace_back(true, 50);
+     hide_zero_in_versioning_prob.emplace_back(false, 50);
+ 
+-    vectorizable_loop_distr.emplace_back(true, 20);
++//    vectorizable_loop_distr.emplace_back(true, 20);
+     vectorizable_loop_distr.emplace_back(false, 70);
+     shuffleProbProxy(vectorizable_loop_distr);
+ }
