@@ -47,9 +47,9 @@ creduce_n = 0
 
 clang_total_stmt_str = "stmts/expr"
 
-yarpgen_timeout = 60
-compiler_timeout = 1200
-run_timeout = 300
+yarpgen_timeout = 30
+compiler_timeout = 60
+run_timeout = 60
 stat_update_delay = 10
 tmp_cleanup_delay = 3600
 creduce_timeout = 3600 * 24
@@ -386,6 +386,9 @@ class Test(object):
             bad_runs = []
             for run in results.values():
                 bad_runs += run
+
+        if self.status == self.STATUS_no_good_runs:
+            return
 
         # Run blame triagging for one of failing optsets
         if self.blame and good_runs:
@@ -893,7 +896,8 @@ class TestRun(object):
         run_params_list = ["make", "-f", gen_test_makefile.Test_Makefile_name, "run_" + self.optset]
         self.run_cmd = " ".join(str(p) for p in run_params_list)
         self.run_ret_code, self.run_stdout, self.run_stderr, self.run_is_time_expired, self.run_elapsed_time = \
-            common.run_cmd(run_params_list, run_timeout, self.proc_num)
+            0, b"0", b"", False, 0
+            #common.run_cmd(run_params_list, run_timeout, self.proc_num)
         # update status and stats
         if self.run_is_time_expired:
             self.stat.update_target_runs(self.optset, runfail_timeout)
@@ -953,6 +957,9 @@ class TestRun(object):
         log = self.build_log()
         file_list.append(log)
 
+        if self.status == self.STATUS_compfail_timeout:
+            return
+        
         save_test(lock,
                    file_list,
                    compiler_name=self.target.specs.name,

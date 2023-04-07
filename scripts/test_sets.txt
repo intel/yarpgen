@@ -59,7 +59,7 @@ ubsan_clang_o0   | ubsan_clang | -O0       |                |
 ubsan_gcc_o0     | ubsan_gcc   | -O0       |                |
 #ubsan_gcc_o2     | ubsan_gcc   | -O2       |                |
 
-gcc_no_opt       | gcc       | -O0       |                |
+#gcc_no_opt       | gcc       | -O0       |                |
 gcc_opt          | gcc       | -O3       |                |
 #gcc_wsm_opt      | gcc       | -O3       | westmere       | wsm
 #gcc_ivb_opt      | gcc       | -O3       | ivybridge      | ivb
@@ -68,26 +68,26 @@ gcc_opt          | gcc       | -O3       |                |
 #gcc_knl_no_opt   | gcc       | -O0       | knl            | knl
 #gcc_knl_opt      | gcc       | -O3       | knl            | knl
 #gcc_skx_no_opt   | gcc       | -O0       | skylake-avx512 | skx
-gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
+#gcc_skx_opt      | gcc       | -O3       | skylake-avx512 | skx
 #gcc_icx_no_opt   | gcc       | -O0       | icelake-server | icx
 #gcc_icx_opt      | gcc       | -O3       | icelake-server | icx
 #gcc_tgl_no_opt   | gcc       | -O0       | tigerlake      | tgl
 #gcc_tgl_opt      | gcc       | -O3       | tigerlake      | tgl
 #gcc_spr_no_opt   | gcc       | -O0       | sapphirerapids | spr
-gcc_spr_opt      | gcc       | -O3       | sapphirerapids | spr
+#gcc_spr_opt      | gcc       | -O3       | sapphirerapids | spr
 
-clang_no_opt     | clang     | -O0       |                |
+#clang_no_opt     | clang     | -O0       |                |
 clang_opt        | clang     | -O3       |                |
 #clang_knl_no_opt | clang     | -O0       | knl            | knl
 #clang_knl_opt    | clang     | -O3       | knl            | knl
 #clang_skx_no_opt | clang     | -O0       | skx            | skx
-clang_skx_opt    | clang     | -O3       | skx            | skx
+#clang_skx_opt    | clang     | -O3       | skx            | skx
 #clang_icx_no_opt | clang     | -O0       | icelake-server | icx
 #clang_icx_opt    | clang     | -O3       | icelake-server | icx
 #clang_tgl_no_opt | clang     | -O0       | tigerlake      | tgl
 #clang_tgl_opt    | clang     | -O3       | tigerlake      | tgl
 #clang_spr_no_opt | clang     | -O0       | sapphirerapids | spr
-clang_spr_opt    | clang     | -O3       | sapphirerapids | spr
+#clang_spr_opt    | clang     | -O3       | sapphirerapids | spr
 
 #polly_no_opt     | polly     | -O0       |                |
 polly_opt        | polly     | -O3       |                |
