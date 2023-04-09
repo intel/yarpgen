@@ -3,6 +3,8 @@ LLVM:
 ====================================
 Version #2
 ---------------
+| `58616 <https://github.com/llvm/llvm-project/issues/58616>`_ - SLPVectorizer: Assertion \`isVectorLikeInstWithConstOps(FirstInst) && isVectorLikeInstWithConstOps(I) && "Expected vector-like insts only."' failed with -O3 -march=skx
+| `53807 <https://github.com/llvm/llvm-project/issues/53807>`_ - [NewGVN] Assertion \`BeforeCC->isEquivalentTo(AfterCC) && "Value number changed after main loop completed!"' failed
 | `52561 <https://bugs.llvm.org/show_bug.cgi?id=52561>`_ - Assertion failed for sapphirerapids: \`VT.getSizeInBits() == Operand.getValueSizeInBits() && "Cannot BITCAST between types of different sizes!"'
 | `52560 <https://bugs.llvm.org/show_bug.cgi?id=52560>`_ - ICE in backend for sapphirerapids: Cannot select: t60: v8i16 = X86ISD::VZEXT_MOVL t55
 | `52504 <https://bugs.llvm.org/show_bug.cgi?id=52504>`_ - Assertion \`(!From->hasAnyUseOfValue(i) || From->getValueType(i) == To->getValueType(i)) && "Cannot use this version of ReplaceAllUsesWith!"
@@ -108,6 +110,16 @@ Special thanks to Martin Liška for submitting some of them.
 
 Version #2
 ---------------
+| `109342 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=109342>`_ -  [13 Regression] Wrong code with -O2 since r13-5348-gc29d85359add80
+| `109341 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=109341>`_ -  [12/13 Regression] ICE in merge, at ipa-modref-tree.cc:176 since r12-3142-g5c85f29537662f
+| `108647 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108647>`_ -  [13 Regression] ICE in upper_bound, at value-range.h:950 with -O3 since r13-2974-g67166c9ec35d58ef
+| `108365 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108365>`_ -  [9/10/11/12/13 Regression] Wrong code with -O0
+| `108166 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108166>`_ -  [12/13 Regression] Wrong code with -O2 since r12-8078-ga42aa68bf1ad745a
+| `107404 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107404>`_ -  [12/13 Regression] Wrong code with -O3 since r12-6416-g037cc0b4a6646cc8
+| `106687 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106687>`_ -  [13 Regression] Wrong code with -O2 since r13-438-gcf2141a0c640fc9b
+| `106630 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106630>`_ -  [13 Regression] ICE: Segmentation fault signal terminated program cc1plus with -O2 since r13-1268-g8c99e307b20c50
+| `106292 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106292>`_ -  Wrong code with -O3
+| `106070 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106070>`_ -  [13 Regression] Wrong code with -O1 since r13-469-g9a53101caadae1b5
 | `105587 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105587>`_ -  [13 Regression] ICE in extract_insn, at recog.cc:2791 (error: unrecognizable insn) since r13-210-gfcda0efccad41eba
 | `105189 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105189>`_ -  [9/10/11/12 Regression] Wrong code with -O1
 | `105142 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105142>`_ -  [12 Regression] Wrong code with -O2 since r12-2591
