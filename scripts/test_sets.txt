@@ -44,7 +44,7 @@ ubsan_gcc   | g++                 | gcc               | -fPIC -mcmodel=large -fs
 icc         | icpc                | icc               | -fPIC -mcmodel=large -w                                                          | -x
 icx         | icpx                | icx               | -fPIC -mcmodel=large -w -fopenmp-simd -mllvm -vec-threshold=0                    | -march=
 dpcpp       | clang++             | clang             | -fsycl -w                                                   | -march=
-ispc        | ispc-proxy          | ispc-proxy        | -woff                                                       | --target=
+ispc        | ispc-proxy          | ispc-proxy        | -woff -fPIC -mcmodel=large                                  | --target=
 
 Testing sets:
 # Set name - codename for testing set
