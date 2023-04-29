@@ -58,6 +58,12 @@ void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
     out_file << "#include <stdio.h>\n\n";
 
     Options &options = Options::getInstance();
+
+    if (options.isISPC()) {
+        stream << "#include \"init.h\"\n";
+        stream << "#include \"ispcrt.hpp\"\n\n";
+    }
+
     if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
         stream << "static ";
         stream << (options.isC() ? "_Bool" : "bool") << " value_mismatch = ";
@@ -110,6 +116,49 @@ static void emitArrayDecl(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     }
 }
 
+static void emitISPCParamsVars(std::shared_ptr<EmitCtx> ctx,
+                               std::ostream &stream,
+                               std::vector<std::shared_ptr<ScalarVar>> vars) {
+    Options &options = Options::getInstance();
+    for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
+        stream << "    " << var->getType()->getName(ctx) << " "
+               << var->getName(ctx) << ";";
+        stream << "\n";
+    }
+}
+
+static void emitISPCParamsArray(std::shared_ptr<EmitCtx> ctx,
+                                std::ostream &stream,
+                                std::vector<std::shared_ptr<Array>> arrays) {
+    Options &options = Options::getInstance();
+    for (auto &array : arrays) {
+        if (!options.getAllowDeadData() && array->getIsDead())
+            continue;
+        auto type = array->getType();
+        assert(type->isArrayType() && "Array should have an Array type");
+        auto array_type = std::static_pointer_cast<ArrayType>(type);
+        stream << "    " << array_type->getBaseType()->getName(ctx) << " ";
+        stream << array->getName(ctx) << " ";
+        for (const auto &dimension : array_type->getDimensions()) {
+            stream << "[" << dimension << "] ";
+        }
+        stream << ";\n";
+    }
+}
+
+void ProgramGenerator::emitISPCParams(std::shared_ptr<EmitCtx> ctx,
+                                      std::ostream &stream) {
+    stream << "struct Parameters {\n";
+    emitISPCParamsVars(ctx, stream, ext_inp_sym_tbl->getVars());
+    emitISPCParamsVars(ctx, stream, ext_out_sym_tbl->getVars());
+
+    emitISPCParamsArray(ctx, stream, ext_inp_sym_tbl->getArrays());
+    emitISPCParamsArray(ctx, stream, ext_out_sym_tbl->getArrays());
+    stream << "};\n\n";
+}
+
 void ProgramGenerator::emitDecl(std::shared_ptr<EmitCtx> ctx,
                                 std::ostream &stream) {
     emitVarsDecl(ctx, stream, ext_inp_sym_tbl->getVars());
@@ -117,6 +166,12 @@ void ProgramGenerator::emitDecl(std::shared_ptr<EmitCtx> ctx,
 
     emitArrayDecl(ctx, stream, ext_inp_sym_tbl->getArrays());
     emitArrayDecl(ctx, stream, ext_out_sym_tbl->getArrays());
+
+    Options &options = Options::getInstance();
+    if (options.isISPC())
+        emitISPCParams(ctx, stream);
+
+    stream << "\n";
 }
 
 static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
@@ -136,20 +191,55 @@ static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
             offset += "    ";
             idx++;
         }
-        stream << offset << array->getName(ctx) << " ";
+
+        std::stringstream ss;
+        ss << array->getName(ctx) << " ";
         for (size_t i = 0; i < idx; ++i)
-            stream << "[i_" << i << "] ";
-        stream << "= ";
-        auto init_val = array->getInitValues();
-        auto init_const = std::make_shared<ConstantExpr>(init_val);
-        init_const->emit(ctx, stream);
+            ss << "[i_" << i << "] ";
+
+        std::string arr_name = ss.str();
+        stream << offset;
+        if (options.isISPC())
+            stream << "p->";
+        stream << arr_name << "= ";
+
+        if (options.isISPC())
+            stream << arr_name;
+        else {
+            auto init_val = array->getInitValues();
+            auto init_const = std::make_shared<ConstantExpr>(init_val);
+            init_const->emit(ctx, stream);
+        }
         stream << ";\n";
+    }
+}
+
+static void emitISPCInitVars(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
+                             std::vector<std::shared_ptr<ScalarVar>> vars) {
+    Options &options = Options::getInstance();
+    for (auto &var : vars) {
+        if (!options.getAllowDeadData() && var->getIsDead())
+            continue;
+        std::string var_name = var->getName(ctx);
+        stream << "    p->" << var_name << " = " << var_name << ";";
+        stream << "\n";
     }
 }
 
 void ProgramGenerator::emitInit(std::shared_ptr<EmitCtx> ctx,
                                 std::ostream &stream) {
-    stream << "void init() {\n";
+    Options &options = Options::getInstance();
+
+    stream << "void init(";
+    if (options.isISPC())
+        stream << "Parameters * p";
+    stream << ") {\n";
+
+    if (options.isISPC()) {
+        emitISPCInitVars(ctx, stream, ext_inp_sym_tbl->getVars());
+        emitISPCInitVars(ctx, stream, ext_out_sym_tbl->getVars());
+    }
+
     emitArrayInit(ctx, stream, ext_inp_sym_tbl->getArrays());
     emitArrayInit(ctx, stream, ext_out_sym_tbl->getArrays());
     stream << "}\n\n";
@@ -157,9 +247,12 @@ void ProgramGenerator::emitInit(std::shared_ptr<EmitCtx> ctx,
 
 void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
                                  std::ostream &stream) {
-    stream << "void checksum() {\n";
-
     Options &options = Options::getInstance();
+
+    stream << "void checksum(";
+    if (options.isISPC())
+        stream << "Parameters * p";
+    stream << ") {\n";
 
     auto emit_pol = ctx->getEmitPolicy();
 
@@ -171,7 +264,10 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
 
         if (options.getCheckAlgo() == CheckAlgo::HASH ||
             options.getCheckAlgo() == CheckAlgo::PRECOMPUTE) {
-            stream << "    hash(&seed, " << var_name << ");\n";
+            stream << "    hash(&seed, ";
+            if (options.isISPC())
+                stream << "p->";
+            stream << var_name << ");\n";
             if (options.getCheckAlgo() == CheckAlgo::PRECOMPUTE)
                 hash(var->getCurrentValue().getAbsValue().value);
         }
@@ -196,6 +292,8 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         auto array_type = std::static_pointer_cast<ArrayType>(type);
         size_t idx = 0;
         std::stringstream ss;
+        if (options.isISPC())
+            ss << "p->";
         ss << array->getName(ctx) << " ";
         for (const auto &dimension : array_type->getDimensions()) {
             stream << offset << "for (size_t i_" << idx << " = 0; i_" << idx
@@ -232,7 +330,7 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
             stream << ")";
         stream << ";\n";
     }
-    stream << "}\n";
+    stream << "}\n\n";
 }
 
 // This buffer tracks what input data we pass as a parameters to test functions
@@ -343,13 +441,12 @@ static void emitArrayExtDecl(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 void ProgramGenerator::emitExtDecl(std::shared_ptr<EmitCtx> ctx,
                                    std::ostream &stream) {
     Options &options = Options::getInstance();
-    if (options.isISPC())
-        ctx->setIspcTypes(true);
-    emitVarExtDecl(ctx, stream, ext_inp_sym_tbl->getVars(), true);
-    emitVarExtDecl(ctx, stream, ext_out_sym_tbl->getVars(), false);
-    emitArrayExtDecl(ctx, stream, ext_inp_sym_tbl->getArrays(), true);
-    emitArrayExtDecl(ctx, stream, ext_out_sym_tbl->getArrays(), false);
-    ctx->setIspcTypes(false);
+    if (!options.isISPC()) {
+        emitVarExtDecl(ctx, stream, ext_inp_sym_tbl->getVars(), true);
+        emitVarExtDecl(ctx, stream, ext_out_sym_tbl->getVars(), false);
+        emitArrayExtDecl(ctx, stream, ext_inp_sym_tbl->getArrays(), true);
+        emitArrayExtDecl(ctx, stream, ext_out_sym_tbl->getArrays(), false);
+    }
 }
 
 static std::string placeSep(bool cond) { return cond ? ", " : ""; }
@@ -438,6 +535,7 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
                                 std::ostream &stream) {
     Options &options = Options::getInstance();
     stream << "#include \"init.h\"\n";
+
     if (options.isC()) {
         MinCall::emitCDefinition(ctx, stream);
         MaxCall::emitCDefinition(ctx, stream);
@@ -453,15 +551,22 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
 
     if (options.isISPC()) {
         ctx->setIspcTypes(true);
-        stream << "export ";
+        emitISPCParams(ctx, stream);
+        stream << "task ";
     }
+
     stream << "void test(";
 
-    bool emit_any = emitVarFuncParam(ctx, stream, ext_inp_sym_tbl->getVars(),
-                                     true, options.isISPC());
+    if (!options.isISPC()) {
+        bool emit_any = emitVarFuncParam(
+            ctx, stream, ext_inp_sym_tbl->getVars(), true, options.isISPC());
 
-    emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
-                       true, options.isISPC(), true);
+        emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
+                           true, options.isISPC(), true);
+    }
+    else {
+        stream << "void *uniform _p";
+    }
 
     stream << ") ";
 
@@ -495,7 +600,20 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
 
     if (options.isSYCL())
         ctx->setSYCLAccess(true);
-    new_test->emit(ctx, stream, !options.isSYCL() ? "" : "            ");
+
+    if (options.isISPC()) {
+        stream << "{\n\n";
+        stream << "    Parameters *uniform p = (Parameters * uniform) _p;\n";
+        ctx->setISPCPrefix("p->");
+    }
+
+    std::string offset;
+    if (options.isSYCL())
+        offset = "            ";
+    else if (options.isISPC())
+        offset = "    ";
+
+    new_test->emit(ctx, stream, offset);
 
     if (options.isSYCL()) {
         stream << "            );\n";
@@ -505,37 +623,77 @@ void ProgramGenerator::emitTest(std::shared_ptr<EmitCtx> ctx,
     }
     ctx->setSYCLAccess(false);
     ctx->setIspcTypes(false);
+
+    if (options.isISPC()) {
+        stream << "}\n\n";
+        stream << "#include \"ispcrt.isph\"\n";
+        stream << "DEFINE_CPU_ENTRY_POINT(test)\n";
+        ctx->setISPCPrefix("");
+    }
 }
 
 void ProgramGenerator::emitMain(std::shared_ptr<EmitCtx> ctx,
                                 std::ostream &stream) {
     Options &options = Options::getInstance();
-    if (options.isISPC())
-        stream << "extern \"C\" { ";
+    if (!options.isISPC()) {
+        stream << "void test(";
+        bool emit_any = emitVarFuncParam(
+            ctx, stream, ext_inp_sym_tbl->getVars(), true, false);
+        emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
+                           true, false, true);
+        stream << ");";
+    }
 
-    stream << "void test(";
-
-    bool emit_any =
-        emitVarFuncParam(ctx, stream, ext_inp_sym_tbl->getVars(), true, false);
-    emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
-                       true, false, true);
-
-    stream << ");";
-    if (options.isISPC())
-        stream << " }\n";
     stream << "\n\n";
     stream << "int main() {\n";
-    stream << "    init();\n";
-    stream << "    test(";
 
-    emit_any =
-        emitVarFuncParam(ctx, stream, ext_inp_sym_tbl->getVars(), false, false);
+    if (options.isISPC()) {
+        stream << "#ifdef ISPC_GPU\n";
+        stream << "    ispcrt::Device device(ISPCRT_DEVICE_TYPE_GPU);\n";
+        stream << "#else\n";
+        stream << "    ispcrt::Device device(ISPCRT_DEVICE_TYPE_CPU);\n";
+        stream << "#endif\n";
+        stream << "    // Setup parameters structure - in shared memory\n";
+        stream << "    ispcrt::Array<Parameters, ispcrt::AllocType::Shared> "
+                  "p_arr(device);\n";
+        stream << "    auto p = p_arr.sharedPtr();\n";
+    }
 
-    emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
-                       false, false, false);
-
+    stream << "    init(";
+    if (options.isISPC())
+        stream << "p";
     stream << ");\n";
-    stream << "    checksum();\n";
+
+    if (!options.isISPC()) {
+        stream << "    test(";
+        bool emit_any = emitVarFuncParam(
+            ctx, stream, ext_inp_sym_tbl->getVars(), false, false);
+
+        emitArrayFuncParam(ctx, stream, emit_any, ext_inp_sym_tbl->getArrays(),
+                           false, false, false);
+        stream << ");\n";
+    }
+    else {
+        stream << "    // Create module and kernel to execute\n";
+        stream << "    ispcrt::Module module(device, \"genx_func\");\n";
+        stream << "    ispcrt::Kernel kernel(device, module, \"test\");\n";
+        stream << "\n";
+        stream << "    // Create task queue and execute kernel\n";
+        stream << "    ispcrt::TaskQueue queue(device);\n";
+        stream << "    // Launch the kernel on the device using 1 thread\n";
+        stream << "    queue.launch(kernel, p_arr, 1);\n";
+        stream << "\n";
+        stream << "    // Make sure that execution completed\n";
+        stream << "    queue.barrier();\n";
+        stream << "\n";
+        stream << "    // Execute queue and sync\n";
+        stream << "    queue.sync();\n";
+    }
+
+    stream << "    checksum(";
+    if (options.isISPC())
+        stream << "p";
+    stream << ");\n";
     stream << "    printf(\"%llu\\n\", seed);\n";
     if (options.getCheckAlgo() == CheckAlgo::PRECOMPUTE) {
         stream << "    if (seed != " << hash_seed << "ULL) \n";
