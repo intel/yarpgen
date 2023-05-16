@@ -25,19 +25,19 @@ using namespace yarpgen;
 std::shared_ptr<EmitCtx> EmitCtx::default_emit_ctx =
     std::make_shared<EmitCtx>();
 
-PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
-    : par_ctx(std::move(_par_ctx)), ext_inp_sym_tbl(par_ctx->ext_inp_sym_tbl),
-      ext_out_sym_tbl(par_ctx->ext_out_sym_tbl), arith_depth(0), taken(true),
-      inside_mutation(false), inside_omp_simd(false), in_stencil(false),
-      mul_vals_iter(nullptr), allow_mul_vals(false) {
+PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx) : PopulateCtx() {
     local_sym_tbl = std::make_shared<SymbolTable>();
-    if (par_ctx.use_count() != 0) {
+    if (_par_ctx.use_count() != 0) {
+        par_ctx = _par_ctx;
         gen_policy = par_ctx->gen_policy;
         local_sym_tbl =
             std::make_shared<SymbolTable>(*(par_ctx->getLocalSymTable()));
-        loop_depth = par_ctx->getLoopDepth();
+        ext_inp_sym_tbl = par_ctx->ext_inp_sym_tbl;
+        ext_out_sym_tbl = par_ctx->ext_out_sym_tbl;
         arith_depth = par_ctx->getArithDepth();
+        loop_depth = par_ctx->getLoopDepth();
         taken = par_ctx->isTaken();
+        inside_foreach = par_ctx->isInsideForeach();
         inside_mutation = par_ctx->isInsideMutation();
         inside_omp_simd = par_ctx->inside_omp_simd;
         dims = par_ctx->dims;
@@ -62,21 +62,22 @@ PopulateCtx::PopulateCtx() {
 }
 
 size_t PopulateCtx::generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const {
+    size_t ret = 0;
     if (dims_use_kind == ArrayDimsUseKind::SAME ||
         (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() == 1))
-        return dims.size();
+        ret = dims.size();
     else if (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() > 1)
-        return rand_val_gen->getRandValue(static_cast<size_t>(1),
+        ret = rand_val_gen->getRandValue(static_cast<size_t>(1),
                                           dims.size() - 1);
     else if (dims_use_kind == ArrayDimsUseKind::MORE) {
-        return rand_val_gen->getRandValue(
+        ret =  rand_val_gen->getRandValue(
             dims.size() + 1,
-            std::min(static_cast<size_t>(std::ceil(
-                         dims.size() * gen_policy->arrays_dims_ext_factor)),
-                     gen_policy->array_dims_num_limit));
+            static_cast<size_t>(std::ceil(
+                         dims.size() * gen_policy->arrays_dims_ext_factor)));
     }
     else
         ERROR("Unsupported case!");
+    return std::min(ret, gen_policy->array_dims_num_limit);
 }
 
 void SymbolTable::addArray(std::shared_ptr<Array> array) {

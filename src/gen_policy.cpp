@@ -325,6 +325,7 @@ GenPolicy::GenPolicy() {
     shuffleProbProxy(allow_stencil_prob);
 
     uniformProbFromMax(stencil_span_distr, max_stencil_span, 1);
+    ispc_iter_end_limit_max = ISPC_MAX_VECTOR_SIZE + max_stencil_span;
 
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(1, 50));
     arrs_in_stencil_distr.emplace_back(Probability<size_t>(2, 25));
@@ -349,6 +350,13 @@ GenPolicy::GenPolicy() {
     stencil_dim_num_distr.emplace_back(3, 20);
     stencil_dim_num_distr.emplace_back(4, 10);
     shuffleProbProxy(stencil_dim_num_distr);
+
+    array_dims_num_limit = 7;
+    // It looks like ISPC has trouble allocating arrays that require a lot of
+    // memory. We limit the number of dimensions to 5.
+    // The issue is that we have to have
+    if (options.isISPC())
+        array_dims_num_limit = 5;
 
     // Arrays with single dimension require a separate treatment. Otherwise, we
     // do not get the desired distribution.

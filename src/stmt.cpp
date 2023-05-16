@@ -35,23 +35,29 @@ void ExprStmt::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
 std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
-    auto expr_kind = rand_val_gen->getRandId(gen_pol->expr_stmt_kind_pop_distr);
 
     auto new_active_ctx = std::make_shared<PopulateCtx>(*ctx);
 
     std::shared_ptr<AssignmentExpr> expr;
-    int64_t total_iters_num = -1;
-    if (expr_kind == IRNodeKind::ASSIGN)
+    int64_t total_iters_num = std::accumulate(
+        new_active_ctx->getLocalSymTable()->getIters().begin(),
+        new_active_ctx->getLocalSymTable()->getIters().end(), 1,
+        [](size_t a, const std::shared_ptr<Iterator> &b) {
+            return a * b->getTotalItersNum();
+        });
+
+    // TODO: relax constraints on reduction expressions
+    auto expr_kind = (total_iters_num > static_cast<int64_t>(ITERATIONS_THRESHOLD_FOR_REDUCTION) || ctx->isInsideForeach()) ? IRNodeKind::ASSIGN : rand_val_gen->getRandId(gen_pol->expr_stmt_kind_pop_distr);
+
+    if (expr_kind == IRNodeKind::ASSIGN) {
         expr = AssignmentExpr::create(new_active_ctx);
+        total_iters_num = -1;
+    }
     else if (expr_kind == IRNodeKind::REDUCTION) {
+        // TODO: add support for multiple values in reduction expressions
         new_active_ctx->setAllowMulVals(false);
         expr = ReductionExpr::create(new_active_ctx);
-        total_iters_num = std::accumulate(
-            new_active_ctx->getLocalSymTable()->getIters().begin(),
-            new_active_ctx->getLocalSymTable()->getIters().end(), 1,
-            [](size_t a, const std::shared_ptr<Iterator> &b) {
-                return a * b->getTotalItersNum();
-            });
+
     }
 
 
@@ -356,7 +362,7 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
                           rand_val_gen->getRandId(gen_pol->foreach_distr);
         if (gen_foreach) {
             new_ctx->setInsideForeach(true);
-            new_loop_head->setIsForeach();
+            new_loop_head->setIsForeach(true);
         }
 
         auto new_loop_body = ScopeStmt::generateStructure(new_ctx);
@@ -400,7 +406,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     for (auto &loop : loops) {
         auto active_gen_pol = gen_pol;
 
-        auto loop_head = loop.first;
+        auto &loop_head = loop.first;
         if (loop_head->getPrefix().use_count() != 0)
             loop_head->getPrefix()->populate(ctx);
 
@@ -422,10 +428,16 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         std::shared_ptr<Iterator> new_iters = nullptr;
         if (same_iter_space_counter == 0) {
-            if (new_ctx->getDimensions().empty())
+            if (new_ctx->getDimensions().empty()) {
                 new_dim = makeMutableRoll(active_gen_pol, [&active_gen_pol]() {
-                    return rand_val_gen->getRandValue(active_gen_pol->iters_end_limit_min,
-                                                      active_gen_pol->iter_end_limit_max);});
+                    return rand_val_gen->getRandValue(
+                        active_gen_pol->iters_end_limit_min,
+                        active_gen_pol->iter_end_limit_max);
+                });
+                Options &options = Options::getInstance();
+                if (options.isISPC() && detectNestedForeach())
+                    new_dim = std::max(gen_pol->ispc_iter_end_limit_max, (new_dim / ISPC_MAX_VECTOR_SIZE) * ISPC_MAX_VECTOR_SIZE + gen_pol->max_stencil_span);
+            }
             else
                 new_dim = new_ctx->getDimensions().front();
 
@@ -440,6 +452,13 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             new_iters->setIsDead(false);
             new_iters->setSupportsMulValues(prev_iter->getSupportsMulValues());
             new_iters->setMainValsOnLastIter(prev_iter->getMainValsOnLastIter());
+
+            // Foreach loop requires the iterator to have a step of 1 and
+            // ISPC does not support nested foreach loops. Therefore,
+            // this is a hack that allows us to generate foreach loop
+            // that satisfy these requirements.
+            loop_head->setIsForeach(prev_loop.first->isForeach() && loop_head->isForeach());
+
             loop_head->addIterator(new_iters);
             loop_head->setSameIterSpace();
             same_iter_space_counter--;
@@ -468,7 +487,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         // TODO: what if we have multiple iterators
         if (loop_head->getIterators().front()->isDegenerate())
             new_ctx->setTaken(false);
-        new_ctx->setInsideForeach(loop.first->isForeach());
+        new_ctx->setInsideForeach(loop_head->isForeach() || ctx->isInsideForeach());
 
         loop.second->populate(new_ctx);
 
@@ -476,7 +495,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->decLoopDepth(1);
         new_ctx->getLocalSymTable()->deleteLastIters();
         new_ctx->deleteLastDim();
-        new_ctx->setInsideForeach(false);
+        new_ctx->setInsideForeach(ctx->isInsideForeach());
         new_ctx->setTaken(old_ctx_state);
         new_ctx->setInsideOMPSimd(old_simd_state);
         if (loop_head->getSuffix().use_count() != 0)
@@ -521,16 +540,17 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     Options &options = Options::getInstance();
 
     auto new_loop_nest = std::make_shared<LoopNestStmt>();
+    auto new_ctx = std::make_shared<GenCtx>(*ctx);
     for (size_t i = 0; i < nest_depth; ++i) {
         auto new_loop = std::make_shared<LoopHead>();
 
         bool gen_foreach = false;
         if (options.isISPC())
-            gen_foreach = !ctx->isInsideForeach() &&
+            gen_foreach = !new_ctx->isInsideForeach() &&
                           rand_val_gen->getRandId(gen_pol->foreach_distr);
         if (gen_foreach) {
-            new_loop->setIsForeach();
-            ctx->setInsideForeach(true);
+            new_loop->setIsForeach(true);
+            new_ctx->setInsideForeach(true);
         }
 
         new_loop_nest->addLoop(new_loop);
@@ -539,7 +559,6 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     Statistics &stats = Statistics::getInstance();
     stats.addStmt(nest_depth);
 
-    auto new_ctx = std::make_shared<GenCtx>(*ctx);
     new_ctx->incLoopDepth(nest_depth);
     new_loop_nest->addBody(ScopeStmt::generateStructure(new_ctx));
 
@@ -566,10 +585,15 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         }
 
         size_t new_dim = 0;
-        if (new_ctx->getDimensions().empty())
+        if (new_ctx->getDimensions().empty()) {
             new_dim = makeMutableRoll(gen_pol, [&gen_pol]() {
                 return rand_val_gen->getRandValue(gen_pol->iters_end_limit_min,
-                                                  gen_pol->iter_end_limit_max);});
+                                                  gen_pol->iter_end_limit_max);
+            });
+            Options &options = Options::getInstance();
+            if (options.isISPC() && detectNestedForeach())
+                new_dim = std::max(gen_pol->ispc_iter_end_limit_max, (new_dim / ISPC_MAX_VECTOR_SIZE) * ISPC_MAX_VECTOR_SIZE + gen_pol->max_stencil_span);
+        }
         else
             new_dim = new_ctx->getDimensions().front();
 
@@ -588,8 +612,7 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         new_ctx->getLocalSymTable()->addIters(new_iters);
 
         new_ctx->incLoopDepth(1);
-        if ((*i)->isForeach())
-            new_ctx->setInsideForeach(true);
+        new_ctx->setInsideForeach((*i)->isForeach() || new_ctx->isInsideForeach());
         if ((*i)->getIterators().front()->isDegenerate())
             new_ctx->setTaken(false);
     }
@@ -607,9 +630,9 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         if (i == taken_switch_id)
             new_ctx->setTaken(old_ctx_state);
         if (i == simd_switch_id)
-            new_ctx->setInsideOMPSimd(false);
+            new_ctx->setInsideOMPSimd(ctx->isInsideOMPSimd());
         if ((*i)->isForeach())
-            new_ctx->setInsideForeach(false);
+            new_ctx->setInsideForeach(ctx->isInsideForeach());
         if ((*i)->getSuffix().use_count() != 0)
             (*i)->getSuffix()->populate(new_ctx);
     }

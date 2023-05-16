@@ -394,6 +394,8 @@ TypeCastExpr::TypeCastExpr(std::shared_ptr<Expr> _expr,
       is_implicit(_is_implicit) {
     assert(to_type->isIntType() && "We can cast only integral types for now");
     auto to_int_type = std::static_pointer_cast<IntegralType>(to_type);
+    if (!to_type->isUniform())
+        to_int_type->makeVarying();
     value = std::make_shared<TypedData>(to_int_type);
 }
 
@@ -452,10 +454,8 @@ Expr::EvalResType TypeCastExpr::evaluate(EvalCtx &ctx) {
                 to_int_type->getIntTypeId()));
 
         Options &options = Options::getInstance();
-        if (options.isISPC()) {
-            if (to_int_type->isUniform() && !base_type->isUniform())
-                ERROR("Can't cast varying to uniform");
-        }
+        if (options.isISPC() && to_int_type->isUniform() && !base_type->isUniform())
+            ERROR("Can't cast varying to uniform");
 
         value = replaceValueWith(value, scalar_val);
     }
@@ -510,7 +510,7 @@ std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
         IntTypeID::INT) // can't perform integral promotion
         return arg;
     // TODO: we need to check if type fits in int or unsigned int
-    return std::make_shared<TypeCastExpr>(
+    return  std::make_shared<TypeCastExpr>(
         arg,
         IntegralType::init(IntTypeID::INT, false, CVQualifier::NONE,
                            arg->getValue()->getType()->isUniform()),
@@ -644,7 +644,7 @@ void ArithmeticExpr::varyingPromotion(std::shared_ptr<Expr> &lhs,
 
     if (varying_conversion(lhs_type, rhs_type, rhs) ||
         varying_conversion(rhs_type, lhs_type, lhs))
-        return;
+        return ;
 }
 
 // This is an auxiliary function that creates a special cases of subscriptions
@@ -1392,13 +1392,17 @@ bool BinaryExpr::propagateType() {
             ERROR("Bad operation code");
             break;
     }
+
     bool result_is_bool = op == BinaryOp::LT ||
                           op == BinaryOp::GT ||
                           op == BinaryOp::LE ||
                           op == BinaryOp::GE ||
                           op == BinaryOp::EQ ||
                           op == BinaryOp::NE;
-    value = std::make_shared<TypedData>(result_is_bool ? IntegralType::init(IntTypeID::BOOL) : lhs->getValue()->getType());
+    auto bool_type = IntegralType::init(IntTypeID::BOOL);
+    if (options.isISPC() && !lhs->getValue()->getType()->isUniform())
+        bool_type = std::static_pointer_cast<IntegralType>(bool_type->makeVarying());
+    value = std::make_shared<TypedData>(result_is_bool ? bool_type : lhs->getValue()->getType());
 
     return true;
 }
@@ -1750,7 +1754,9 @@ bool TernaryExpr::propagateType() {
     true_br = integralProm(true_br);
     false_br = integralProm(false_br);
     arithConv(true_br, false_br);
+
     value = std::make_shared<TypedData>(true_br->getValue()->getType());
+
     return true;
 }
 
@@ -1816,16 +1822,6 @@ bool SubscriptExpr::propagateType() {
     array->propagateType();
     idx->propagateType();
 
-    IRNodeKind base_expr_kind = array->getKind();
-    if (base_expr_kind == IRNodeKind::ARRAY_USE)
-        active_dim = 0;
-    else if (base_expr_kind == IRNodeKind::SUBSCRIPT) {
-        auto base_expr = std::static_pointer_cast<SubscriptExpr>(array);
-        active_dim = base_expr->getActiveDim() + 1;
-    }
-    else
-        ERROR("Bad base expression for Subscription operation");
-
     auto array_type =
         std::static_pointer_cast<ArrayType>(array->getValue()->getType());
     if (active_dim < array_type->getDimensions().size() - 1)
@@ -1835,6 +1831,13 @@ bool SubscriptExpr::propagateType() {
             ERROR("Only integral types are supported for now");
         value = std::make_shared<TypedData>(array_type->getBaseType());
     }
+
+    Options &options = Options::getInstance();
+    if (options.isISPC() &&
+        (!idx->getValue()->getType()->isUniform() ||
+         !array->getValue()->getType()->isUniform()) &&
+        value->getType()->isUniform())
+        value = value->makeVarying();
 
     return true;
 }
@@ -1870,18 +1873,33 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
     propagateType();
 
     bool old_use_main_vals = ctx.use_main_vals;
-    bool flip_main_vals = at_mul_val_axis && std::abs(stencil_offset) % Options::vals_number == Options::alt_val_idx;
-    //TODO: check if this escapes the scope
+    bool flip_main_vals =
+        at_mul_val_axis &&
+        std::abs(stencil_offset) % Options::vals_number == Options::alt_val_idx;
+    // TODO: check if this escapes the scope
     ctx.use_main_vals = flip_main_vals ? !ctx.use_main_vals : ctx.use_main_vals;
 
     EvalResType idx_eval_res = idx->evaluate(ctx);
 
     if (at_mul_val_axis && idx->getKind() == IRNodeKind::CONST) {
-        bool use_main_vals = std::static_pointer_cast<ScalarVar>(idx_eval_res)->getCurrentValue().getAbsValue().value % Options::vals_number == Options::main_val_idx;
+        bool use_main_vals = std::static_pointer_cast<ScalarVar>(idx_eval_res)
+                                     ->getCurrentValue()
+                                     .getAbsValue()
+                                     .value %
+                                 Options::vals_number ==
+                             Options::main_val_idx;
         ctx.use_main_vals = use_main_vals;
     }
 
     EvalResType array_eval_res = array->evaluate(ctx);
+
+    Options &options = Options::getInstance();
+    if (options.isISPC() &&
+        (!idx->getValue()->getType()->isUniform() ||
+         !array->getValue()->getType()->isUniform()) &&
+        array_eval_res->getType()->isUniform())
+        array_eval_res = array_eval_res->makeVarying();
+
     if (!array_eval_res->getType()->isArrayType()) {
         ERROR("Subscription operation is supported only for Array");
     }
@@ -1904,22 +1922,18 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         auto array_val = std::static_pointer_cast<Array>(array_eval_res);
         if (!array_type->getBaseType()->isIntType())
             ERROR("Only integral types are supported for now");
+        auto value_type = std::static_pointer_cast<IntegralType>(array_type->getBaseType());
+        if (!array_type->isUniform())
+            value_type->makeVarying();
         value = replaceValueWith(
             value, std::make_shared<ScalarVar>(
                        "",
                        std::static_pointer_cast<IntegralType>(
                            array_type->getBaseType()),
                        array_val->getCurrentValues(ctx.use_main_vals)));
+
         // Restore saved value
         ctx.use_main_vals = old_use_main_vals;
-    }
-
-    Options &options = Options::getInstance();
-    if (options.isISPC()) {
-        if ((!idx->getValue()->getType()->isUniform() ||
-             !array->getValue()->getType()->isUniform()) &&
-            value->getType()->isUniform())
-            value = replaceValueWith(value, value->makeVarying());
     }
 
     value->setUBCode(ub_code);
@@ -1984,8 +1998,7 @@ SubscriptExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     if (ctx->getInStencil()) {
         auto array_params = rand_val_gen->getRandElem(
             ctx->getLocalSymTable()->getStencilsParams());
-        auto new_expr = initImpl(array_params, ctx);
-        return new_expr;
+        return initImpl(array_params, ctx);
     }
     else {
         auto avail_arrs = getSuitableArrays(ctx);
@@ -2000,6 +2013,8 @@ SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
     : array(std::move(_arr)), idx(std::move(_idx)), active_dim(0),
       active_size(-1), idx_int_type_id(IntTypeID::MAX_INT_TYPE_ID),
       stencil_offset(0), at_mul_val_axis(false) {
+    // We need this for ISPC, so we can match varying and uniform types
+    propagateType();
 }
 
 void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr, bool use_main_vals) {
@@ -2397,6 +2412,7 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
     for (size_t i = 0; i < subs_exprs.size(); ++i) {
         auto new_expr =
             std::make_shared<SubscriptExpr>(res_expr, subs_exprs.at(i).first);
+        new_expr->active_dim = i;
         new_expr->setOffset(subs_exprs.at(i).second);
         new_expr->at_mul_val_axis = mul_val_axis_idx == static_cast<int64_t>(i);
         res_expr = new_expr;
@@ -2420,15 +2436,17 @@ std::shared_ptr<Expr> SubscriptExpr::copy() {
 
 bool AssignmentExpr::propagateType() {
     to->propagateType();
+    from->propagateType();
 
     auto to_int_type =
         std::static_pointer_cast<IntegralType>(to->getValue()->getType());
     auto from_int_type =
         std::static_pointer_cast<IntegralType>(from->getValue()->getType());
-    if (to_int_type != from_int_type)
+    if (to_int_type != from_int_type) {
         from = std::make_shared<TypeCastExpr>(from, to_int_type,
                                               /*is_implicit*/ true);
-    from->propagateType();
+        from->propagateType();
+    }
 
     if (second_from != nullptr) {
         second_from->propagateType();
@@ -2526,11 +2544,23 @@ void AssignmentExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     stream << offset;
     to->emit(ctx, stream);
     stream << " = ";
+
+    // In case of ISPC foreach loop the iterator is varying, but the value
+    // we assign to can be uniform. In this case we need to cast the
+    // assigned value to uniform.
+    bool cast_to_uniform = false;
     if (versioning_iter != nullptr) {
+        Options &options = Options::getInstance();
+        cast_to_uniform = options.isISPC() &&
+                          to->getValue()->getType()->isUniform() &&
+                          !versioning_iter->getType()->isUniform();
+
         GenPolicy gen_pol;
         bool use_zero_as_var =
             rand_val_gen->getRandId(gen_pol.hide_zero_in_versioning_prob);
-        stream << "(" << versioning_iter->getName(ctx) << " % "
+        if (cast_to_uniform)
+            stream << "extract(";
+        stream << "(" << (cast_to_uniform ? "programIndex" : versioning_iter->getName(ctx)) << " % "
                << Options::vals_number << " == ";
         stream << (use_zero_as_var ? "zero"
                                    : std::to_string(Options::main_val_idx))
@@ -2538,10 +2568,14 @@ void AssignmentExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     }
 
     from->emit(ctx, stream);
+
     if (versioning_iter != nullptr) {
         stream << ") : (";
         second_from->emit(ctx, stream);
         stream << ")";
+        // TODO: we need to check that this is emitted only for scalar variables
+        if (cast_to_uniform)
+            stream << ", " << (ISPC_MAX_VECTOR_SIZE % Options::vals_number) << ")";
     }
 }
 
@@ -2570,8 +2604,14 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     DataKind out_kind = rand_val_gen->getRandId(gen_pol->out_kind_distr);
     std::shared_ptr<Expr> to;
 
-    if (!from_val->getType()->isUniform())
-        out_kind = DataKind::ARR;
+    if (!from_val->getType()->isUniform()) {
+        auto find_res = std::find_if(gen_pol->out_kind_distr.begin(), gen_pol->out_kind_distr.end(),
+                                     [](Probability<DataKind> &p) {
+                                         return p.getId() == DataKind::ARR && p.getProb() > 0.0;
+                                     });
+        if (find_res != gen_pol->out_kind_distr.end())
+            out_kind = DataKind::ARR;
+    }
 
     if ((out_kind == DataKind::VAR || ctx->getLoopDepth() == 0)) {
         auto new_var = ScalarVar::create(ctx);
@@ -2755,7 +2795,6 @@ void ReductionExpr::propagateValue(EvalCtx &ctx) {
     }
     else if (to->getKind() == IRNodeKind::SUBSCRIPT) {
         auto to_array = std::static_pointer_cast<SubscriptExpr>(to);
-        std::deque<size_t> span, steps;
         to_array->setValue(result_expr, true);
     }
     else
@@ -2786,6 +2825,7 @@ void ReductionExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
     stream << offset;
     to->emit(ctx, stream);
+
     if (bin_op != BinaryOp::MAX_BIN_OP) {
         stream << " ";
         switch (bin_op) {
@@ -2839,7 +2879,6 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         lib_call =
             rand_val_gen->getRandId(gen_pol->reduction_as_lib_call_distr);
 
-
     auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
     // For "|" and "&" we allow to use arrays as a reduction variable
     if (bin_op != BinaryOp::BIT_AND && bin_op != BinaryOp::BIT_OR) {
@@ -2847,7 +2886,7 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         for (auto &kind_prob : new_gen_pol->out_kind_distr) {
             if (kind_prob.getId() == DataKind::ARR)
                 kind_prob.setProb(0);
-            else
+            else if (kind_prob.getProb() > 0)
                 other_option_exists = true;
         }
         if (!other_option_exists) {
@@ -2863,8 +2902,36 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     auto base_assign_expr = AssignmentExpr::create(active_ctx);
 
+    // ISPC has some problems with bool type in compound assignments, so we
+    // will disable them for now
+    // TODO: fix me later!
+    Options &options = Options::getInstance();
+    if (options.isISPC()) {
+        base_assign_expr->propagateType();
+        assert(base_assign_expr->getValue()->getType()->isIntType() && "We support only int type for now");
+        auto base_int_type = std::static_pointer_cast<IntegralType>(base_assign_expr->getTo()->getValue()->getType());
+        if (base_int_type->getIntTypeId() == IntTypeID::BOOL) {
+            new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+            bool bin_op_red_is_supported = false;
+            for (auto &kind_prob : new_gen_pol->reduction_bin_op_distr) {
+                if (kind_prob.getId() != BinaryOp::BIT_AND && kind_prob.getId() != BinaryOp::BIT_OR && kind_prob.getId() != BinaryOp::BIT_XOR)
+                    kind_prob.setProb(0);
+                else if (kind_prob.getProb() > 0)
+                    bin_op_red_is_supported = true;
+            }
+
+            if (!bin_op_red_is_supported)
+                return std::make_shared<ReductionExpr>(
+                    base_assign_expr, BinaryOp::MAX_BIN_OP,
+                    LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
+
+
+            bin_op = rand_val_gen->getRandId(new_gen_pol->reduction_bin_op_distr);
+        }
+    }
+
     return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
-                                           false, ctx->isTaken());
+                                            false, ctx->isTaken());
 }
 
 std::shared_ptr<Expr> ReductionExpr::copy() {
@@ -2915,12 +2982,25 @@ LibCallExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 bool LibCallExpr::isAnyArgVarying(std::vector<std::shared_ptr<Expr>> args) {
-    for (const auto &arg : args) {
-        auto arg_type = arg->getValue()->getType();
-        if (!arg_type->isUniform())
-            return true;
-    }
+    return std::any_of(args.begin(), args.end(), [](std::shared_ptr<Expr> arg) {
+        return !arg->getValue()->getType()->isUniform();
+    });
     return false;
+}
+
+void static ispcBoolPromotion(std::shared_ptr<Expr> &expr) {
+    auto expr_type = expr->getValue()->getType();
+    if (!expr_type->isIntType())
+        ERROR("We support only Integral Types for now");
+    auto expr_int_type = std::static_pointer_cast<IntegralType>(expr_type);
+    if (expr_int_type->getIntTypeId() != IntTypeID::BOOL)
+        return;
+    // TODO: it looks like promotion rules for bool in ISPC is broken, so we
+    // have to do it manually
+    auto int_type = IntegralType::init(IntTypeID::SCHAR);
+    if (!expr_int_type->isUniform())
+        int_type = std::static_pointer_cast<IntegralType>(int_type->makeVarying());
+    expr = std::make_shared<TypeCastExpr>(expr, int_type,false);
 }
 
 void LibCallExpr::ispcArgPromotion(std::shared_ptr<Expr> &arg) {
@@ -2970,10 +3050,6 @@ bool MinMaxCallBase::propagateType() {
     a->propagateType();
     b->propagateType();
 
-    IntTypeID top_type_id = getTopIntID({a, b});
-    cxxArgPromotion(a, top_type_id);
-    cxxArgPromotion(b, top_type_id);
-
     Options &options = Options::getInstance();
     if (options.isISPC()) {
         bool any_varying = isAnyArgVarying({a, b});
@@ -2981,7 +3057,14 @@ bool MinMaxCallBase::propagateType() {
             ispcArgPromotion(a);
             ispcArgPromotion(b);
         }
+        ispcBoolPromotion(a);
+        ispcBoolPromotion(b);
     }
+
+    IntTypeID top_type_id = getTopIntID({a, b});
+    cxxArgPromotion(a, top_type_id);
+    cxxArgPromotion(b, top_type_id);
+
     value = std::make_shared<TypedData>(a->getValue()->getType());
     return true;
 }
@@ -3218,7 +3301,7 @@ bool LogicalReductionBase::propagateType() {
         cxxArgPromotion(arg, IntTypeID::BOOL);
     if (!isAnyArgVarying({arg}))
         ispcArgPromotion(arg);
-    value = std::make_shared<TypedData>(arg->getValue()->getType());
+    value = std::make_shared<TypedData>(IntegralType::init(IntTypeID::BOOL));
     return true;
 }
 
@@ -3242,6 +3325,7 @@ Expr::EvalResType LogicalReductionBase::evaluate(EvalCtx &ctx) {
     if (arg_val.hasUB())
         init_val.setUBCode(arg_val.getUBCode());
     value = replaceValueWith(value, std::make_shared<ScalarVar>("", type, init_val));
+
     return value;
 }
 
@@ -3288,7 +3372,11 @@ bool MinMaxEqReductionBase::propagateType() {
         cxxArgPromotion(arg, IntTypeID::INT);
     if (!isAnyArgVarying({arg}))
         ispcArgPromotion(arg);
-    value = std::make_shared<TypedData>(kind != LibCallKind::RED_EQ ? arg->getValue()->getType() : IntegralType::init(IntTypeID::BOOL));
+    assert(arg->getValue()->getType()->isIntType() &&
+           "We support only integer types at this time");
+    auto arg_int_type_id = std::static_pointer_cast<IntegralType>(arg->getValue()->getType())->getIntTypeId();
+    arg_int_type_id = kind != LibCallKind::RED_EQ ? arg_int_type_id : IntTypeID::BOOL;
+    value = std::make_shared<TypedData>(IntegralType::init(arg_int_type_id));
     return true;
 }
 
@@ -3301,10 +3389,16 @@ Expr::EvalResType MinMaxEqReductionBase::evaluate(EvalCtx &ctx) {
         std::static_pointer_cast<ScalarVar>(arg_eval_res)->getCurrentValue();
     if (!arg_eval_res->getType()->isIntType())
         ERROR("Reduce_min/max accept only integral types");
-    if (kind == LibCallKind::RED_MIN || kind == LibCallKind::RED_MAX)
-        value = replaceValueWith(value, std::make_shared<ScalarVar>(
-            "", std::static_pointer_cast<IntegralType>(arg_eval_res->getType()),
-            arg_val));
+    if (kind == LibCallKind::RED_MIN || kind == LibCallKind::RED_MAX) {
+        assert(arg_eval_res->getType()->isIntType() &&
+               "We support only integer types at this time");
+        auto ret_int_type_id =
+            std::static_pointer_cast<IntegralType>(arg_eval_res->getType())
+                ->getIntTypeId();
+        value = replaceValueWith(
+            value, std::make_shared<ScalarVar>(
+                       "", IntegralType::init(ret_int_type_id), arg_val));
+    }
     else if (kind == LibCallKind::RED_EQ) {
         IRValue init_val(IntTypeID::BOOL);
         init_val.setValue(IRValue::AbsValue{false, true});
@@ -3314,6 +3408,7 @@ Expr::EvalResType MinMaxEqReductionBase::evaluate(EvalCtx &ctx) {
     }
     else
         ERROR("Unsupported LibCallKind");
+
     return value;
 }
 
@@ -3347,7 +3442,7 @@ MinMaxEqReductionBase::createHelper(std::shared_ptr<PopulateCtx> ctx,
         ERROR("Unsupported LibCallKind");
 }
 
-ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg) {
+ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg), is_implicit(false) {
     IRValue idx_val(IntTypeID::UINT);
     idx_val.setValue(IRValue::AbsValue{false, 0});
     idx = std::make_shared<ConstantExpr>(idx_val);
@@ -3355,7 +3450,8 @@ ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg) {
 
 bool ExtractCall::propagateType() {
     arg->propagateType();
-    value = std::make_shared<TypedData>(arg->getValue()->getType());
+    auto arg_int_type_id = std::static_pointer_cast<IntegralType>(arg->getValue()->getType())->getIntTypeId();
+    value = std::make_shared<TypedData>(IntegralType::init(arg_int_type_id));
     return true;
 }
 
@@ -3377,7 +3473,10 @@ Expr::EvalResType ExtractCall::evaluate(EvalCtx &ctx) {
 
 void ExtractCall::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                        std::string offset) {
-    stream << offset << "extract";
+    stream << offset;
+    if (is_implicit)
+        stream << "/* implicit */ ";
+    stream << "extract";
     stream << "((";
     arg->emit(ctx, stream);
     stream << "), (";

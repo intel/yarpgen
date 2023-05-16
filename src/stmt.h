@@ -33,6 +33,10 @@ namespace yarpgen {
 class Stmt : public IRNode {
   public:
     virtual IRNodeKind getKind() { return IRNodeKind::MAX_STMT_KIND; }
+    // We need to know if we have any nested foreach to make a correct decision
+    // about the number of iterations. Those two decisions are made in
+    // different places, so we need to have a way to communicate this
+    virtual bool detectNestedForeach() { return false; }
 };
 
 class ExprStmt : public Stmt {
@@ -82,6 +86,9 @@ class StmtBlock : public Stmt {
     static std::shared_ptr<StmtBlock>
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
+
+    bool detectNestedForeach() override { return std::accumulate(stmts.begin(), stmts.end(), false,
+        [](bool acc, const std::shared_ptr<Stmt>& stmt) { return acc || stmt->detectNestedForeach(); }); }
 
   protected:
     std::vector<std::shared_ptr<Stmt>> stmts;
@@ -135,7 +142,7 @@ class LoopHead {
     void emitSuffix(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
                     std::string offset = "");
 
-    void setIsForeach() { is_foreach = true; }
+    void setIsForeach(bool _val) { is_foreach = _val; }
     bool isForeach() { return is_foreach; }
 
     std::shared_ptr<Iterator>
@@ -183,6 +190,9 @@ class LoopSeqStmt : public LoopStmt {
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
+    bool detectNestedForeach() override { return std::accumulate(loops.begin(), loops.end(), false,
+        [](bool acc, const std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>& loop) { return acc || loop.first->isForeach() || loop.second->detectNestedForeach(); }); }
+
   private:
     std::vector<
         std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>>
@@ -202,6 +212,9 @@ class LoopNestStmt : public LoopStmt {
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
+    bool detectNestedForeach() override { return std::accumulate(loops.begin(), loops.end(), false,
+        [](bool acc, const std::shared_ptr<LoopHead>& loop) { return acc || loop->isForeach(); }) || body->detectNestedForeach(); }
+
   private:
     std::vector<std::shared_ptr<LoopHead>> loops;
     std::shared_ptr<StmtBlock> body;
@@ -219,6 +232,8 @@ class IfElseStmt : public Stmt {
     static std::shared_ptr<IfElseStmt>
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) final;
+
+    bool detectNestedForeach() override { return then_br->detectNestedForeach() || (else_br.use_count() != 0 && else_br->detectNestedForeach()); }
 
   private:
     std::shared_ptr<Expr> cond;
