@@ -365,7 +365,10 @@ class AssignmentExpr : public Expr {
 
     std::shared_ptr<Expr> copy() override;
 
+    std::shared_ptr<Expr> getTo() { return to; }
+
   protected:
+
     std::shared_ptr<Expr> from;
     //TODO: fold into a single array
     std::shared_ptr<Expr> second_from;
@@ -669,8 +672,12 @@ class ExtractCall : public LibCallExpr {
         return std::make_shared<ExtractCall>(new_arg);
     }
 
+    void setIsImplicit(bool _val) { is_implicit = _val; }
+
   protected:
     std::shared_ptr<Expr> arg;
     std::shared_ptr<Expr> idx;
+    // We use extract call ISPC to convert varying to uniform
+    bool is_implicit;
 };
 } // namespace yarpgen

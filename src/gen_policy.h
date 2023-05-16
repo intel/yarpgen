@@ -24,6 +24,15 @@ limitations under the License.
 
 namespace yarpgen {
 
+// ISPC had problems with vector divisions in foreach loops if the iteration
+// space is not aligned with the vector size. This is a workaround for that
+// problem. YARPGen uses this parameter to determine the maximal vector size.
+constexpr size_t ISPC_MAX_VECTOR_SIZE = 64;
+// Some reduction operations are implemented via a straightforward loop.
+// In case of large iteration space, this loop can take a lot of time.
+// Therefore, we limit the maximal number of iterations for reduction
+constexpr size_t ITERATIONS_THRESHOLD_FOR_REDUCTION = 10000000;
+
 class GenPolicy {
   public:
     GenPolicy();
@@ -58,6 +67,10 @@ class GenPolicy {
     // End limits for iterators
     size_t iters_end_limit_min;
     size_t iter_end_limit_max;
+    // ISPC has problems with division when foreach loop is not aligned with
+    // vector size. Therefore, we limit the maximal vector size
+    size_t ispc_iter_end_limit_max;
+
     // Step distribution for iterators
     std::vector<Probability<size_t>> iters_step_distr;
 
@@ -172,7 +185,7 @@ class GenPolicy {
     // The factor that determines maximal array dimension for each context
     double arrays_dims_ext_factor = 1.3;
     // TODO: this seems like it doesn't work, so we will have to fix it
-    size_t array_dims_num_limit = 7;
+    size_t array_dims_num_limit;
 
     std::vector<Probability<bool>> use_iters_cache_prob;
 

@@ -157,6 +157,13 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     auto gen_pol = ctx->getGenPolicy();
 
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
+
+    // TODO: It looks like integral promotion rules for bool in ISPC are
+    // broken, so we have to do them manually
+    Options &options = Options::getInstance();
+    if (options.isISPC() && type_id == IntTypeID::BOOL)
+        type_id = IntTypeID::INT;
+
     std::shared_ptr<Type> type = IntegralType::init(type_id);
     if (!is_uniform)
         type = type->makeVarying();
@@ -176,6 +183,12 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     left_span = left_span > _end_val ? 0 : left_span;
     left_span = left_span > type_max_val ? 0 : left_span;
 
+    // ISPC has problems with division in foreach loops that are not aligned
+    // to the vector size, so we have to make sure that the start value is
+    // zero
+    if (options.isISPC() && !is_uniform)
+        left_span = 0;
+
     auto start =
         std::make_shared<ConstantExpr>(IRValue{type_id, {false, left_span}});
 
@@ -188,11 +201,16 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     // from, so it has to be larger than the start value
     right_span = end_val - right_span < left_span ? 0 : right_span;
     end_val = end_val - right_span;
-    // TODO: ISPC doesn't execute division under mask, so the easiest way to
-    // eliminate UB problems is to make sure that iterator doesn't go outside
-    // array boundaries
-    if (!is_uniform)
-        end_val = (end_val / 64) * 64;
+
+    // Again, ISPC has problems with division in foreach loops that are not
+    // aligned to the vector size, so we have to make sure that the end value
+    // is aligned
+    if (options.isISPC() && !is_uniform) {
+        right_span = gen_pol->max_stencil_span;
+        // _end_val was set with the appropriate right span outside
+        end_val = _end_val - right_span;
+    }
+
     auto end =
         std::make_shared<ConstantExpr>(IRValue(type_id, {false, end_val}));
 
@@ -254,8 +272,11 @@ static std::shared_ptr<Expr> adjustIterExprValue(std::shared_ptr<Expr> expr,
     // type, its initialization expression should always have uniform type
     Options &options = Options::getInstance();
     if (options.isISPC())
-        if (!eval_res->getType()->isUniform())
-            expr = std::make_shared<ExtractCall>(expr);
+        if (!eval_res->getType()->isUniform()) {
+            auto tmp = std::make_shared<ExtractCall>(expr);
+            tmp->setIsImplicit(true);
+            expr = tmp;
+        }
 
     // Every binary operation applies integral promotion first, so we need to
     // guarantee that expression can be processed

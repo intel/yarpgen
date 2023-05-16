@@ -98,7 +98,8 @@ bool IntegralType::isSame(std::shared_ptr<IntegralType> &lhs,
                           std::shared_ptr<IntegralType> &rhs) {
     return (lhs->getIntTypeId() == rhs->getIntTypeId()) &&
            (lhs->getIsStatic() == rhs->getIsStatic()) &&
-           (lhs->getCVQualifier() == rhs->getCVQualifier());
+           (lhs->getCVQualifier() == rhs->getCVQualifier() &&
+            lhs->isUniform() == rhs->isUniform());
 }
 
 // Check if type "b" can represent all the values of type "a"
@@ -165,7 +166,7 @@ template <typename T>
 static void dbgDumpHelper(IntTypeID id, const std::string &name,
                           const std::string &suffix, size_t bit_size,
                           bool is_signed, T &min, T &max, bool is_static,
-                          CVQualifier cv_qual) {
+                          CVQualifier cv_qual, bool is_uniform) {
     std::cout << "int type id:  "
               << static_cast<std::underlying_type<IntTypeID>::type>(id)
               << std::endl;
@@ -178,6 +179,7 @@ static void dbgDumpHelper(IntTypeID id, const std::string &name,
     std::cout << "cv_qualifier: "
               << static_cast<std::underlying_type<CVQualifier>::type>(cv_qual)
               << std::endl;
+    std::cout << "is_uniform:   " << is_uniform << std::endl;
 }
 
 #define DBG_DUMP_MACROS(type_name)                                             \
@@ -186,7 +188,8 @@ static void dbgDumpHelper(IntTypeID id, const std::string &name,
         dbgDumpHelper(                                                         \
             getIntTypeId(), getName(ctx), getLiteralSuffix(), getBitSize(),    \
             getIsSigned(), min.getValueRef<value_type>(),                      \
-            max.getValueRef<value_type>(), getIsStatic(), getCVQualifier());   \
+            max.getValueRef<value_type>(), getIsStatic(), getCVQualifier(),    \
+            isUniform());                                                      \
     }
 
 DBG_DUMP_MACROS(TypeBool)
