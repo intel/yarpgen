@@ -26,6 +26,7 @@ limitations under the License.
 
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <utility>
 
 namespace yarpgen {

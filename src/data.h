@@ -20,7 +20,10 @@ limitations under the License.
 #pragma once
 
 #include "enums.h"
+#include "ir_value.h"
+#include "options.h"
 #include "type.h"
+#include <array>
 #include <deque>
 #include <string>
 #include <utility>
