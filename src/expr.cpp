@@ -22,7 +22,7 @@ limitations under the License.
 #include "options.h"
 #include <algorithm>
 #include <deque>
-#include <stack>
+#include <numeric>
 #include <utility>
 
 using namespace yarpgen;
