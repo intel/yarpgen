@@ -357,7 +357,7 @@ GenPolicy::GenPolicy() {
     // The issue is that we have to always allocate arrays that contain at
     // least max_ispc_vector size elements. Otherwise, we get a runtime error.
     if (options.isISPC())
-        array_dims_num_limit = 5;
+        array_dims_num_limit = 4;
 
     // Arrays with single dimension require a separate treatment. Otherwise, we
     // do not get the desired distribution.
