@@ -66,10 +66,8 @@ void Array::dbgDump() {
     if (mul_vals_axis_idx != -1) {
         std::cout << "Multiple vals axis idx: " << mul_vals_axis_idx
                   << std::endl;
-        std::cout << "Second init: " << init_vals.back()
-                  << std::endl;
-        std::cout << "Second cur: " << cur_vals.back()
-                  << std::endl;
+        std::cout << "Second init: " << init_vals.back() << std::endl;
+        std::cout << "Second cur: " << cur_vals.back() << std::endl;
     }
 }
 
@@ -91,20 +89,27 @@ Array::Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
     ub_code = init_vals[Options::main_val_idx].getUBCode();
 }
 
-void Array::setInitValue(IRValue _val, bool use_main_vals, int64_t _mul_vals_axis_idx) {
+void Array::setInitValue(IRValue _val, bool use_main_vals,
+                         int64_t _mul_vals_axis_idx) {
     assert(type->isArrayType() && "Array should have array type");
     auto arr_type = std::static_pointer_cast<ArrayType>(type);
     mul_vals_axis_idx = _mul_vals_axis_idx;
-    init_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx] = _val;
-    ub_code = init_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx].getUBCode();
+    init_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx] =
+        _val;
+    ub_code =
+        init_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx]
+            .getUBCode();
 }
 
 void Array::setCurrentValue(IRValue _val, bool use_main_vals) {
     assert(type->isArrayType() && "Array should have array type");
     auto arr_type = std::static_pointer_cast<ArrayType>(type);
     if (mul_vals_axis_idx != -1) {
-        cur_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx] = _val;
-        ub_code = cur_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx].getUBCode();
+        cur_vals[use_main_vals ? Options::main_val_idx : Options::alt_val_idx] =
+            _val;
+        ub_code = cur_vals[use_main_vals ? Options::main_val_idx
+                                         : Options::alt_val_idx]
+                      .getUBCode();
     }
     else {
         cur_vals[Options::main_val_idx] = _val;
@@ -124,7 +129,9 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
     auto new_array =
         std::make_shared<Array>(nh.getArrayName(), array_type, init_val);
 
-    auto mul_vals = ctx->getMulValsIter() != nullptr && rand_val_gen->getRandId(ctx->getGenPolicy()->array_with_mul_vals_prob);
+    auto mul_vals =
+        ctx->getMulValsIter() != nullptr &&
+        rand_val_gen->getRandId(ctx->getGenPolicy()->array_with_mul_vals_prob);
     mul_vals = ctx->getAllowMulVals() && mul_vals;
     // We need to have multiple values in the output array, so we don't need to
     // worry about assigning multiple values to the array that does not support
@@ -133,10 +140,10 @@ std::shared_ptr<Array> Array::create(std::shared_ptr<PopulateCtx> ctx,
 
     if (mul_vals) {
         init_val = rand_val_gen->getRandValue(int_type->getIntTypeId());
-        auto mul_val_idx = static_cast<int64_t>(rand_val_gen->getRandValue(static_cast<size_t>(0), array_type->getDimensions().size() - 1));
+        auto mul_val_idx = static_cast<int64_t>(rand_val_gen->getRandValue(
+            static_cast<size_t>(0), array_type->getDimensions().size() - 1));
         new_array->setInitValue(init_val, false, mul_val_idx);
         new_array->setCurrentValue(init_val, false);
-        //std::cout << new_array->name << " " << new_array->mul_vals_axis_idx << std::endl;
     }
     return new_array;
 }
@@ -228,11 +235,12 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     size_t total_iters_num = (end_val - left_span + step_val - 1) / step_val;
 
     NameHandler &nh = NameHandler::getInstance();
-    auto iter =
-        std::make_shared<Iterator>(nh.getIterName(), type, start, left_span,
-                                   end, right_span, step, end_val == left_span, total_iters_num);
+    auto iter = std::make_shared<Iterator>(
+        nh.getIterName(), type, start, left_span, end, right_span, step,
+        end_val == left_span, total_iters_num);
 
-    bool supports_mul_vals = step_val % 2 != Options::main_val_idx || left_span % 2 != Options::main_val_idx;
+    bool supports_mul_vals = step_val % 2 != Options::main_val_idx ||
+                             left_span % 2 != Options::main_val_idx;
     if (supports_mul_vals) {
         iter->setSupportsMulValues(supports_mul_vals);
         size_t last_val = (total_iters_num - 1) * step_val + left_span;
@@ -326,7 +334,6 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
 
     auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
     new_ctx->setAllowMulVals(false);
-
 
     auto populate_impl =
         [&new_ctx, &gen_pol,
@@ -424,7 +431,8 @@ DataType TypedData::replaceWith(DataType _new_data) {
     else if (types_match)
         ERROR("Unsupported type");
     if (!types_match)
-        ERROR("We can't replace typed data with a one that doesn't have the same type!");
+        ERROR("We can't replace typed data with a one that doesn't have the "
+              "same type!");
     return _new_data;
 }
 

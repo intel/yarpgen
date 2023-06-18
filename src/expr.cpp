@@ -34,9 +34,12 @@ std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<ArrayUseExpr>>
 std::unordered_map<std::shared_ptr<Data>, std::shared_ptr<IterUseExpr>>
     yarpgen::IterUseExpr::iter_use_set;
 
-static std::shared_ptr<Data> replaceValueWith(std::shared_ptr<Data> &_value, std::shared_ptr<Data> _new_value) {
+static std::shared_ptr<Data>
+replaceValueWith(std::shared_ptr<Data> &_value,
+                 std::shared_ptr<Data> _new_value) {
     if (_value->isTypedData())
-        return std::static_pointer_cast<TypedData>(_value)->replaceWith(std::move(_new_value));
+        return std::static_pointer_cast<TypedData>(_value)->replaceWith(
+            std::move(_new_value));
     return _new_value;
 }
 
@@ -260,7 +263,8 @@ ConstantExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 std::shared_ptr<Expr> ConstantExpr::copy() {
-    return std::make_shared<ConstantExpr>(std::static_pointer_cast<ScalarVar>(value)->getCurrentValue());
+    return std::make_shared<ConstantExpr>(
+        std::static_pointer_cast<ScalarVar>(value)->getCurrentValue());
 }
 
 std::shared_ptr<ScalarVarUseExpr>
@@ -454,7 +458,8 @@ Expr::EvalResType TypeCastExpr::evaluate(EvalCtx &ctx) {
                 to_int_type->getIntTypeId()));
 
         Options &options = Options::getInstance();
-        if (options.isISPC() && to_int_type->isUniform() && !base_type->isUniform())
+        if (options.isISPC() && to_int_type->isUniform() &&
+            !base_type->isUniform())
             ERROR("Can't cast varying to uniform");
 
         value = replaceValueWith(value, scalar_val);
@@ -510,7 +515,7 @@ std::shared_ptr<Expr> ArithmeticExpr::integralProm(std::shared_ptr<Expr> arg) {
         IntTypeID::INT) // can't perform integral promotion
         return arg;
     // TODO: we need to check if type fits in int or unsigned int
-    return  std::make_shared<TypeCastExpr>(
+    return std::make_shared<TypeCastExpr>(
         arg,
         IntegralType::init(IntTypeID::INT, false, CVQualifier::NONE,
                            arg->getValue()->getType()->isUniform()),
@@ -644,15 +649,18 @@ void ArithmeticExpr::varyingPromotion(std::shared_ptr<Expr> &lhs,
 
     if (varying_conversion(lhs_type, rhs_type, rhs) ||
         varying_conversion(rhs_type, lhs_type, lhs))
-        return ;
+        return;
 }
 
 // This is an auxiliary function that creates a special cases of subscriptions
 // We need it here, because it is used during stencil and
 // subscript expression generation
-// The result should map selected iterator to the actual index in context dimensions
-// The same applies to the input
-static std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> createSpecialKindSubsDims (size_t dims_num, SubscriptOrderKind subs_order_kind, std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> &avail_iters) {
+// The result should map selected iterator to the actual index in context
+// dimensions The same applies to the input
+static std::vector<std::pair<size_t, std::shared_ptr<Iterator>>>
+createSpecialKindSubsDims(
+    size_t dims_num, SubscriptOrderKind subs_order_kind,
+    std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> &avail_iters) {
     std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> result;
     result.reserve(dims_num);
 
@@ -695,7 +703,8 @@ static std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> createSpecialKi
     }
     else if (subs_order_kind == SubscriptOrderKind::DIAGONAL) {
         auto selected_iter = rand_val_gen->getRandElem(avail_iters);
-        result = std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> (dims_num, selected_iter);
+        result = std::vector<std::pair<size_t, std::shared_ptr<Iterator>>>(
+            dims_num, selected_iter);
     }
     else if (subs_order_kind == SubscriptOrderKind::RANDOM) {
         result = rand_val_gen->getRandElems(avail_iters, dims_num);
@@ -703,12 +712,12 @@ static std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> createSpecialKi
     return result;
 }
 
-
 static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     std::shared_ptr<Expr> new_node;
     // Change distribution of leaf exprs
-    //TODO: maybe we need to bump up the probability of binary operators to get a proper stencil pattern
+    // TODO: maybe we need to bump up the probability of binary operators to get
+    // a proper stencil pattern
     uint64_t scalar_var_prob = 0, const_prob = 0;
     for (auto &node_distr : gen_pol->arith_node_distr) {
         switch (node_distr.getId()) {
@@ -723,7 +732,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         }
     }
 
-    scalar_var_prob = scalar_var_prob * gen_pol->stencil_prob_weight_alternation;
+    scalar_var_prob =
+        scalar_var_prob * gen_pol->stencil_prob_weight_alternation;
     const_prob = const_prob * gen_pol->stencil_prob_weight_alternation;
 
     std::vector<Probability<IRNodeKind>> new_node_distr;
@@ -743,7 +753,6 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     auto new_ctx = std::make_shared<PopulateCtx>(*ctx);
     new_ctx->setGenPolicy(new_gen_pol);
 
-
     // Start of the stencil generation
     std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> avail_dims;
     // We check if iterator can be used to create a
@@ -759,31 +768,37 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
             avail_dims.emplace_back(i, used_iter);
     }
 
-
-    auto subs_order_kind = rand_val_gen->getRandId(gen_pol->subs_order_kind_distr);
+    auto subs_order_kind =
+        rand_val_gen->getRandId(gen_pol->subs_order_kind_distr);
     // The purpose of this function is to choose stencil dimensions and map them
     // to the dimensions in ctx.
-    auto choose_active_dims = [&gen_pol, &avail_dims] (SubscriptOrderKind subs_order_kind, size_t dims_num_limit) {
+    auto choose_active_dims = [&gen_pol,
+                               &avail_dims](SubscriptOrderKind subs_order_kind,
+                                            size_t dims_num_limit) {
         // Pick number of dimensions and choose them
         size_t num_of_active_dims =
             rand_val_gen->getRandId(gen_pol->stencil_dim_num_distr);
         if (num_of_active_dims == 0)
             num_of_active_dims = dims_num_limit;
-        return createSpecialKindSubsDims(num_of_active_dims, subs_order_kind, avail_dims);
+        return createSpecialKindSubsDims(num_of_active_dims, subs_order_kind,
+                                         avail_dims);
     };
 
-    auto remap_chosen_dims = [] (std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> &chosen_dims,
-                          size_t dims_num_limit) {
-        // Create vector of indexes to map them to dimensions in ctx
-        std::vector<size_t> all_indexes (dims_num_limit);
-        std::iota(all_indexes.begin(), all_indexes.end(), 0);
-        //assert(chosen_dims.size() <= all_indexes.size() && "We can't have stencil in more dimensions than we have in the array");
-        // This has to be ordered, so we can rely on the sorting of chosen_dims
-        // to achieve selected order
-        auto ret = rand_val_gen->getRandElemsInOrder(all_indexes, chosen_dims.size());
-        return ret;
-    };
-
+    auto remap_chosen_dims =
+        [](std::vector<std::pair<size_t, std::shared_ptr<Iterator>>>
+               &chosen_dims,
+           size_t dims_num_limit) {
+            // Create vector of indexes to map them to dimensions in ctx
+            std::vector<size_t> all_indexes(dims_num_limit);
+            std::iota(all_indexes.begin(), all_indexes.end(), 0);
+            // assert(chosen_dims.size() <= all_indexes.size() && "We can't have
+            // stencil in more dimensions than we have in the array");
+            //  This has to be ordered, so we can rely on the sorting of
+            //  chosen_dims to achieve selected order
+            auto ret = rand_val_gen->getRandElemsInOrder(all_indexes,
+                                                         chosen_dims.size());
+            return ret;
+        };
 
     std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> chosen_dims;
     size_t chosen_dims_num_limit = 0;
@@ -800,7 +815,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                "Can't create stencil in scalar context!");
 
         chosen_dims_num_limit = gen_pol->array_dims_num_limit;
-        chosen_dims = choose_active_dims(subs_order_kind, chosen_dims_num_limit);
+        chosen_dims =
+            choose_active_dims(subs_order_kind, chosen_dims_num_limit);
 
         size_t min_dim_idx =
             std::min_element(
@@ -828,18 +844,20 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
             active_arrs =
                 rand_val_gen->getRandElems(avail_arrays, num_of_active_arrs);
 
-            // This can be rewritten with std::max_element, but it looks horrible
+            // This can be rewritten with std::max_element, but it looks
+            // horrible
             chosen_dims_num_limit = 0;
             for (auto &arr : active_arrs)
-                chosen_dims_num_limit = std::max(
-                    chosen_dims_num_limit,
-                    std::static_pointer_cast<ArrayType>(arr->getType())
-                        ->getDimensions()
-                        .size());
+                chosen_dims_num_limit =
+                    std::max(chosen_dims_num_limit,
+                             std::static_pointer_cast<ArrayType>(arr->getType())
+                                 ->getDimensions()
+                                 .size());
 
             if (chosen_dims.size() > chosen_dims_num_limit)
                 chosen_dims.resize(chosen_dims_num_limit);
-            chosen_dims_idx_remap = remap_chosen_dims(chosen_dims, chosen_dims_num_limit);
+            chosen_dims_idx_remap =
+                remap_chosen_dims(chosen_dims, chosen_dims_num_limit);
         }
         else {
             same_dims_all = false;
@@ -849,7 +867,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
 
     // After that, we can process other special cases that doesn't involve
     // synchronized decisions
-    bool same_dims_each = !same_dims_all &&
+    bool same_dims_each =
+        !same_dims_all &&
         rand_val_gen->getRandId(gen_pol->stencil_same_dims_one_arr_distr);
     if (same_dims_each && !avail_dims.empty()) {
         // TODO: this is a possible place to cause a significant slowdown.
@@ -862,7 +881,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
             auto true_array_type =
                 std::static_pointer_cast<ArrayType>(array_type);
             size_t array_dims = true_array_type->getDimensions().size();
-            auto dims_kind = rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
+            auto dims_kind =
+                rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
             // TODO: do we need it?
             bool suit_array = (dims_kind == ArrayDimsUseKind::FEWER &&
                                array_dims < new_ctx->getDimensions().size()) ||
@@ -884,7 +904,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
             std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
                      avail_arrs.size());
 
-        active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
+        active_arrs =
+            rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
     }
 
     // TODO: not sure if we need this fallback
@@ -894,7 +915,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         size_t num_of_active_arrs =
             std::min(rand_val_gen->getRandId(gen_pol->arrs_in_stencil_distr),
                      avail_arrs.size());
-        active_arrs = rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
+        active_arrs =
+            rand_val_gen->getRandElems(avail_arrs, num_of_active_arrs);
     }
 
     std::vector<ArrayStencilParams> stencils;
@@ -902,7 +924,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
     stencils.reserve(active_arrs.size());
     for (auto &i : active_arrs) {
         auto arr_type = std::static_pointer_cast<ArrayType>(i->getType());
-        assert(new_ctx->getDimensions().front() <= arr_type->getDimensions().front() &&
+        assert(new_ctx->getDimensions().front() <=
+                   arr_type->getDimensions().front() &&
                "Array dimensions can't be larger than context dimensions");
         stencils.emplace_back(i);
     }
@@ -913,16 +936,21 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
             assert(chosen_dims.empty() &&
                    "chosen_dims should not be selected before");
             assert(!avail_dims.empty() &&
-                   "We can't create a subscript access with offset if none of the iterators support it");
+                   "We can't create a subscript access with offset if none of "
+                   "the iterators support it");
 
-            auto array_type =
-                std::static_pointer_cast<ArrayType>(stencil.getArray()->getType());
+            auto array_type = std::static_pointer_cast<ArrayType>(
+                stencil.getArray()->getType());
             chosen_dims_num_limit = array_type->getDimensions().size();
 
-            subs_order_kind = rand_val_gen->getRandId(gen_pol->subs_order_kind_distr);
-            chosen_dims = choose_active_dims(subs_order_kind, chosen_dims_num_limit);
-            chosen_dims_idx_remap = remap_chosen_dims(chosen_dims, chosen_dims_num_limit);
-            std::vector<ArrayStencilParams::ArrayStencilDimParams> new_params(chosen_dims_num_limit);
+            subs_order_kind =
+                rand_val_gen->getRandId(gen_pol->subs_order_kind_distr);
+            chosen_dims =
+                choose_active_dims(subs_order_kind, chosen_dims_num_limit);
+            chosen_dims_idx_remap =
+                remap_chosen_dims(chosen_dims, chosen_dims_num_limit);
+            std::vector<ArrayStencilParams::ArrayStencilDimParams> new_params(
+                chosen_dims_num_limit);
 
             for (size_t i = 0; i < chosen_dims_idx_remap.size(); ++i) {
                 size_t idx = chosen_dims_idx_remap.at(i);
@@ -931,7 +959,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
                 new_params.at(idx).iter = chosen_dims.at(i).second;
             }
 
-            stencil.setParams(new_params, true, false,subs_order_kind);
+            stencil.setParams(new_params, true, false, subs_order_kind);
             chosen_dims.clear();
         }
     }
@@ -940,7 +968,8 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
         same_dims_all &&
         rand_val_gen->getRandId(gen_pol->stencil_same_offset_all_distr);
     if (same_dims_all || same_offset_all) {
-        std::vector<ArrayStencilParams::ArrayStencilDimParams> new_params(chosen_dims_num_limit);
+        std::vector<ArrayStencilParams::ArrayStencilDimParams> new_params(
+            chosen_dims_num_limit);
         for (size_t i = 0; i < chosen_dims_idx_remap.size(); ++i) {
             size_t idx = chosen_dims_idx_remap.at(i);
             new_params.at(idx).dim_active = true;
@@ -963,7 +992,7 @@ static std::shared_ptr<Expr> createStencil(std::shared_ptr<PopulateCtx> ctx) {
             }
         }
         for (auto &item : stencils)
-            item.setParams(new_params, true, same_offset_all,subs_order_kind);
+            item.setParams(new_params, true, same_offset_all, subs_order_kind);
     }
 
     new_ctx->getLocalSymTable()->setStencilsParams(stencils);
@@ -1107,7 +1136,8 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     std::shared_ptr<Expr> new_node;
     ctx->incArithDepth();
     auto active_ctx = std::make_shared<PopulateCtx>(ctx);
-    // If we are getting close to the maximum depth, we need to make sure that we generate leaves
+    // If we are getting close to the maximum depth, we need to make sure that
+    // we generate leaves
     if (active_ctx->getArithDepth() == gen_pol->max_arith_depth) {
         // We can have only constants, variables and arrays as leaves
         std::vector<Probability<IRNodeKind>> new_node_distr;
@@ -1147,18 +1177,25 @@ std::shared_ptr<Expr> ArithmeticExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     IRNodeKind node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
 
-    bool guaranteed_non_leaf = active_ctx->getInStencil() && (!active_ctx || !active_ctx->getParentCtx()->getInStencil()) && active_ctx->getArithDepth() < gen_pol->max_arith_depth;
-    assert((!guaranteed_non_leaf || (guaranteed_non_leaf && active_ctx->getArithDepth() < gen_pol->max_arith_depth)) &&
-           "We can't reach a threshold and guarantee a non-leaf expression at the same time");
+    bool guaranteed_non_leaf =
+        active_ctx->getInStencil() &&
+        (!active_ctx || !active_ctx->getParentCtx()->getInStencil()) &&
+        active_ctx->getArithDepth() < gen_pol->max_arith_depth;
+    assert((!guaranteed_non_leaf ||
+            (guaranteed_non_leaf &&
+             active_ctx->getArithDepth() < gen_pol->max_arith_depth)) &&
+           "We can't reach a threshold and guarantee a non-leaf expression at "
+           "the same time");
 
     while (guaranteed_non_leaf && (node_kind == IRNodeKind::CONST ||
-                                node_kind == IRNodeKind::SCALAR_VAR_USE ||
-                                node_kind == IRNodeKind::SUBSCRIPT)) {
+                                   node_kind == IRNodeKind::SCALAR_VAR_USE ||
+                                   node_kind == IRNodeKind::SUBSCRIPT)) {
         node_kind = rand_val_gen->getRandId(gen_pol->arith_node_distr);
     }
 
     bool apply_const_use =
-        rand_val_gen->getRandId(gen_pol->apply_const_use_distr) && node_kind != IRNodeKind::STENCIL;
+        rand_val_gen->getRandId(gen_pol->apply_const_use_distr) &&
+        node_kind != IRNodeKind::STENCIL;
     if (apply_const_use) {
         auto new_gen_policy = std::make_shared<GenPolicy>(*gen_pol);
         gen_pol = new_gen_policy;
@@ -1270,11 +1307,13 @@ Expr::EvalResType UnaryExpr::evaluate(EvalCtx &ctx) {
     assert(scalar_arg->getType()->isIntType() &&
            "Unary operations are supported for Scalar Variables of Integral "
            "Types only");
-    value = replaceValueWith(value, std::make_shared<ScalarVar>(
-        "",
-        IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
-                           arg->getValue()->getType()->isUniform()),
-        new_val));
+    value = replaceValueWith(
+        value,
+        std::make_shared<ScalarVar>(
+            "",
+            IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
+                               arg->getValue()->getType()->isUniform()),
+            new_val));
     return value;
 }
 
@@ -1342,8 +1381,7 @@ std::shared_ptr<UnaryExpr> UnaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 UnaryExpr::UnaryExpr(UnaryOp _op, std::shared_ptr<Expr> _expr)
-    : op(_op), arg(std::move(_expr)) {
-}
+    : op(_op), arg(std::move(_expr)) {}
 
 std::shared_ptr<Expr> UnaryExpr::copy() {
     auto new_arg = arg->copy();
@@ -1393,16 +1431,15 @@ bool BinaryExpr::propagateType() {
             break;
     }
 
-    bool result_is_bool = op == BinaryOp::LT ||
-                          op == BinaryOp::GT ||
-                          op == BinaryOp::LE ||
-                          op == BinaryOp::GE ||
-                          op == BinaryOp::EQ ||
-                          op == BinaryOp::NE;
+    bool result_is_bool = op == BinaryOp::LT || op == BinaryOp::GT ||
+                          op == BinaryOp::LE || op == BinaryOp::GE ||
+                          op == BinaryOp::EQ || op == BinaryOp::NE;
     auto bool_type = IntegralType::init(IntTypeID::BOOL);
     if (options.isISPC() && !lhs->getValue()->getType()->isUniform())
-        bool_type = std::static_pointer_cast<IntegralType>(bool_type->makeVarying());
-    value = std::make_shared<TypedData>(result_is_bool ? bool_type : lhs->getValue()->getType());
+        bool_type =
+            std::static_pointer_cast<IntegralType>(bool_type->makeVarying());
+    value = std::make_shared<TypedData>(
+        result_is_bool ? bool_type : lhs->getValue()->getType());
 
     return true;
 }
@@ -1485,11 +1522,13 @@ Expr::EvalResType BinaryExpr::evaluate(EvalCtx &ctx) {
             break;
     }
 
-    value = replaceValueWith(value, std::make_shared<ScalarVar>(
-        "",
-        IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
-                           lhs->getValue()->getType()->isUniform()),
-        new_val));
+    value = replaceValueWith(
+        value,
+        std::make_shared<ScalarVar>(
+            "",
+            IntegralType::init(new_val.getIntTypeID(), false, CVQualifier::NONE,
+                               lhs->getValue()->getType()->isUniform()),
+            new_val));
     return value;
 }
 
@@ -1709,8 +1748,7 @@ void BinaryExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 
 BinaryExpr::BinaryExpr(BinaryOp _op, std::shared_ptr<Expr> _lhs,
                        std::shared_ptr<Expr> _rhs)
-    : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {
-}
+    : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {}
 
 std::shared_ptr<BinaryExpr>
 BinaryExpr::create(std::shared_ptr<PopulateCtx> ctx) {
@@ -1731,8 +1769,7 @@ TernaryExpr::TernaryExpr(std::shared_ptr<Expr> _cond,
                          std::shared_ptr<Expr> _true_br,
                          std::shared_ptr<Expr> _false_br)
     : cond(std::move(_cond)), true_br(std::move(_true_br)),
-      false_br(std::move(_false_br)) {
-}
+      false_br(std::move(_false_br)) {}
 
 bool TernaryExpr::propagateType() {
     cond->propagateType();
@@ -1778,7 +1815,9 @@ Expr::EvalResType TernaryExpr::evaluate(EvalCtx &ctx) {
         auto scalar_var = std::static_pointer_cast<ScalarVar>(value);
         auto scalar_val = scalar_var->getCurrentValue();
         scalar_val.setUBCode(cond_eval->getUBCode());
-        value = std::make_shared<ScalarVar>("", std::static_pointer_cast<IntegralType>(scalar_var->getType()), scalar_val);
+        value = std::make_shared<ScalarVar>(
+            "", std::static_pointer_cast<IntegralType>(scalar_var->getType()),
+            scalar_val);
     }
 
     return value;
@@ -1844,7 +1883,8 @@ bool SubscriptExpr::propagateType() {
 
 bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
                              EvalCtx &ctx) {
-    //TODO: this function is known to cause slowdowns. We need to check it later
+    // TODO: this function is known to cause slowdowns. We need to check it
+    // later
 
     if (idx_val->isScalarVar()) {
         auto scalar_var = std::static_pointer_cast<ScalarVar>(idx_val);
@@ -1853,9 +1893,11 @@ bool SubscriptExpr::inBounds(size_t dim, std::shared_ptr<Data> idx_val,
         // The boundary check has to be done in C++. If we try to use the
         // fuzzer IR, this will cause a huge performance penalty (~10x slowdown)
         auto idx_abs_val = idx_scalar_val.getAbsValue();
-        int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) * (idx_abs_val.isNegative ? -1 : 1);
+        int64_t idx_int_val = static_cast<int64_t>(idx_abs_val.value) *
+                              (idx_abs_val.isNegative ? -1 : 1);
         int64_t full_idx_val = idx_int_val + stencil_offset;
-        bool in_bounds = 0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
+        bool in_bounds =
+            0 <= full_idx_val && full_idx_val <= static_cast<int64_t>(dim);
         return in_bounds;
     }
     else if (idx_val->isIterator()) {
@@ -1922,7 +1964,8 @@ Expr::EvalResType SubscriptExpr::evaluate(EvalCtx &ctx) {
         auto array_val = std::static_pointer_cast<Array>(array_eval_res);
         if (!array_type->getBaseType()->isIntType())
             ERROR("Only integral types are supported for now");
-        auto value_type = std::static_pointer_cast<IntegralType>(array_type->getBaseType());
+        auto value_type =
+            std::static_pointer_cast<IntegralType>(array_type->getBaseType());
         if (!array_type->isUniform())
             value_type->makeVarying();
         value = replaceValueWith(
@@ -1984,8 +2027,7 @@ SubscriptExpr::getSuitableArrays(std::shared_ptr<PopulateCtx> ctx) {
         assert(arr->getType()->isArrayType() &&
                "Array should have an array type");
         auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
-        if (arr_type->getDimensions().front() < ctx->getDimensions().front()) //||
-            //(arr->getMulValsAxisIdx() != -1 && !ctx->getAllowMulVals()))
+        if (arr_type->getDimensions().front() < ctx->getDimensions().front())
             continue;
         avail_arrs.push_back(arr);
     }
@@ -2018,8 +2060,10 @@ SubscriptExpr::SubscriptExpr(std::shared_ptr<Expr> _arr,
 }
 
 void SubscriptExpr::setValue(std::shared_ptr<Expr> _expr, bool use_main_vals) {
-    bool flip_main_vals = at_mul_val_axis && std::abs(stencil_offset) % Options::vals_number == Options::alt_val_idx;
-    //TODO: check if this escapes the scope
+    bool flip_main_vals =
+        at_mul_val_axis &&
+        std::abs(stencil_offset) % Options::vals_number == Options::alt_val_idx;
+    // TODO: check if this escapes the scope
     use_main_vals = flip_main_vals ? !use_main_vals : use_main_vals;
 
     if (array->getKind() == IRNodeKind::SUBSCRIPT) {
@@ -2065,45 +2109,45 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
            "We can create a SubscriptExpr only for arrays");
     auto array_type = std::static_pointer_cast<ArrayType>(array->getType());
 
-    // Generation Rules
-    // Stencil | Dims defined | Active dim | Offset set || Iter  | Offset
-    //    0    |      X       |     X      |      X     ||  Gen  | 0
-    //    1    |      0     --|-->  0    --|-->   0     ||  Gen  | Gen w/ prob
-    //    1    |      1       |     0    --|-->   0     ||  Gen  | 0
-    //    1    |      1       |     1      |      0     ||  Load | Gen
-    //    1    |      1       |     1      |      1     ||  Load | Load
+    // clang-format off
 
-    // New set
-    // In stencil	Dims defined	Active dim	Offset set	Subs kind	Iter	Offset
-    // General	0	x	x	x	CIO	Gen for IO	Gen for O
-    // Stencil	1	0	x	x	CIO	Gen for IO	Gen for I, using stencil in dim distr
-    // Same dims each	1	1	0	x	CIO	Gen for IO	Gen for O
-    // Same dims each	1	1	1	x	I	Load	Gen using stencil in dim distr
-    // Same dims all	1	1	0	x	CIO	Gen for IO	Gen for O
-    // Same dims all	1	1	1	x	I	Load	Gen using stencil in dim distr
-    // Same offsets all	1	1	0	x	CIO	Gen for IO	Gen for O
-    // Same offsets all	1	1	1	1	I	Load	Load
+    // Generation Rules
+    //                  In stencil  Dims defined  Active dim  Offset set  Subs kind  Iter        Offset
+    // General               0           x            x           x          CIO     Gen for IO  Gen for O
+    // Stencil               1           0            x           x          CIO     Gen for IO  Gen for I, using stencil in dim distr
+    // Same dims each        1           1            0           x          CIO     Gen for IO  Gen for O
+    // Same dims each        1           1            1           x           I      Load        Gen using stencil in dim distr
+    // Same dims all         1           1            0           x          CIO     Gen for IO  Gen for O
+    // Same dims all         1           1            1           x           I      Load        Gen using stencil in dim distr
+    // Same offsets all      1           1            0           x          CIO     Gen for IO  Gen for O
+    // Same offsets all      1           1            1           1           I      Load        Load
+
+    // clang-format on
 
     // Extract offsets distribution, so we don't have to do it every iteration
-    auto find_res = gen_pol->stencil_in_dim_prob.find(array_type->getDimensions().size());
+    auto find_res =
+        gen_pol->stencil_in_dim_prob.find(array_type->getDimensions().size());
     if (find_res == gen_pol->stencil_in_dim_prob.end())
-        ERROR("We can't have arrays that have more dimensions than the total limit");
+        ERROR("We can't have arrays that have more dimensions than the total "
+              "limit");
     auto stencil_in_dim_prob = find_res->second;
 
-    auto dims_order_kind = rand_val_gen->getRandId(gen_pol->subs_order_kind_distr);
+    auto dims_order_kind =
+        rand_val_gen->getRandId(gen_pol->subs_order_kind_distr);
 
     std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> sorted_iters;
-    if (dims_order_kind == SubscriptOrderKind::IN_ORDER || dims_order_kind == SubscriptOrderKind::REVERSE) {
+    if (dims_order_kind == SubscriptOrderKind::IN_ORDER ||
+        dims_order_kind == SubscriptOrderKind::REVERSE) {
         std::vector<std::pair<size_t, std::shared_ptr<Iterator>>> all_iters;
         for (size_t i = 0; i < ctx->getLocalSymTable()->getIters().size(); ++i)
-            all_iters.emplace_back(i, ctx->getLocalSymTable()->getIters().at(i));
-        sorted_iters =
-            createSpecialKindSubsDims(array_type->getDimensions().size(), dims_order_kind, all_iters);
+            all_iters.emplace_back(i,
+                                   ctx->getLocalSymTable()->getIters().at(i));
+        sorted_iters = createSpecialKindSubsDims(
+            array_type->getDimensions().size(), dims_order_kind, all_iters);
     }
 
     auto stencil_params = array_params.getParams();
     bool dims_defined = array_params.areDimsDefined();
-
 
     // Check if we are required to have multiple values in this dimension,
     // and override the default behavior if necessary
@@ -2115,7 +2159,8 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
 
     // Check if we are required to have a single value in this dimension,
     // and override the default behavior if necessary
-    bool single_val_override = !ctx->getAllowMulVals() && array->getMulValsAxisIdx() != -1;
+    bool single_val_override =
+        !ctx->getAllowMulVals() && array->getMulValsAxisIdx() != -1;
     // Iterators that can be used to generate a single value
     std::vector<std::shared_ptr<Iterator>> single_val_iters;
     if (single_val_override) {
@@ -2132,24 +2177,28 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
 
     // In case of a DIAGONAL pattern we need to save the iterator
     std::shared_ptr<Iterator> diag_iter = nullptr;
-    if (dims_defined && array_params.getDimsOrderKind() == SubscriptOrderKind::DIAGONAL) {
-        for (auto & stencil_param : stencil_params)
+    if (dims_defined &&
+        array_params.getDimsOrderKind() == SubscriptOrderKind::DIAGONAL) {
+        for (auto &stencil_param : stencil_params)
             if (stencil_param.dim_active)
                 diag_iter = stencil_param.iter;
-        assert(diag_iter && "We should have an active iterator in DIAGONAL pattern");
+        assert(diag_iter &&
+               "We should have an active iterator in DIAGONAL pattern");
     }
 
-    auto get_random_iter = [&gen_pol, &ctx] (size_t dim_id) {
+    auto get_random_iter = [&gen_pol, &ctx](size_t dim_id) {
         std::shared_ptr<Iterator> ret = nullptr;
         // This is a pseudo-cache, the proper approach require further research
         // The naive implementation suffers from unfair distribution of
         // iterators and messed up order
         // TODO: we should use a proper cache
-        auto use_cached = rand_val_gen->getRandId(gen_pol->use_iters_cache_prob);
+        auto use_cached =
+            rand_val_gen->getRandId(gen_pol->use_iters_cache_prob);
         if (use_cached && dim_id < ctx->getDimensions().size())
             ret = ctx->getLocalSymTable()->getIters().at(dim_id);
         if (!use_cached || !ret)
-            ret = rand_val_gen->getRandElem(ctx->getLocalSymTable()->getIters());
+            ret =
+                rand_val_gen->getRandElem(ctx->getLocalSymTable()->getIters());
         return ret;
     };
 
@@ -2163,8 +2212,10 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         std::shared_ptr<Iterator> iter = nullptr;
         std::shared_ptr<Expr> iter_use_expr = nullptr;
 
-        bool active_dim = dims_defined && (i <= stencil_params.size() - 1) && stencil_params.at(i).dim_active;
-        bool offset_defined = active_dim && array_params.areOffsetsDefined() && stencil_params.at(i).offset != 0;
+        bool active_dim = dims_defined && (i <= stencil_params.size() - 1) &&
+                          stencil_params.at(i).dim_active;
+        bool offset_defined = active_dim && array_params.areOffsetsDefined() &&
+                              stencil_params.at(i).offset != 0;
         int64_t offset = 0;
 
         if (ctx->getInStencil()) {
@@ -2173,33 +2224,36 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
             bool offset_prob = false;
             if (!dims_defined)
                 offset_prob = rand_val_gen->getRandId(stencil_in_dim_prob);
-            // We should have an offset if we rolled to do so, or if the dimension is active
+            // We should have an offset if we rolled to do so, or if the
+            // dimension is active
             if (offset_prob || active_dim)
                 subs_kind = SubscriptKind::OFFSET;
         }
 
         if (static_cast<int64_t>(i) == array->getMulValsAxisIdx()) {
             mul_val_axis_idx = static_cast<int64_t>(i);
-            //TODO: add offsets here
+            // TODO: add offsets here
             if (single_val_override)
-                subs_kind = single_val_iters.empty() ? SubscriptKind::CONST : SubscriptKind::ITER;
+                subs_kind = single_val_iters.empty() ? SubscriptKind::CONST
+                                                     : SubscriptKind::ITER;
             else if (mul_vals_override)
                 subs_kind = SubscriptKind::ITER;
         }
 
         // Create iterator
         if (subs_kind == SubscriptKind::CONST) {
-            auto roll_const = [&array_type, &i] () {
+            auto roll_const = [&array_type, &i]() {
                 return rand_val_gen->getRandValue(
                     static_cast<int64_t>(0),
-                    static_cast<int64_t>(array_type->getDimensions().at(i) - 1));
+                    static_cast<int64_t>(array_type->getDimensions().at(i) -
+                                         1));
             };
             uint64_t init_val = roll_const();
             if (single_val_override) {
                 while (init_val % Options::vals_number != Options::main_val_idx)
                     init_val = roll_const();
             }
-            IRValue new_val (rand_val_gen->getRandId(gen_pol->int_type_distr));
+            IRValue new_val(rand_val_gen->getRandId(gen_pol->int_type_distr));
             new_val.setValue(IRValue::AbsValue{false, init_val});
             iter_use_expr = std::make_shared<ConstantExpr>(new_val);
         }
@@ -2215,16 +2269,18 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                 }
             }
             else if (active_dim) {
-                // If we are in a stencil and the dimension is active, we need to
-                // load the iterator
+                // If we are in a stencil and the dimension is active, we need
+                // to load the iterator
                 iter = stencil_params.at(i).iter;
                 prev_used_iter_idx = stencil_params.at(i).abs_idx;
             }
             else {
                 // Generate iter
                 if (dims_defined) {
-                    if (array_params.getDimsOrderKind() == SubscriptOrderKind::IN_ORDER ||
-                         array_params.getDimsOrderKind() == SubscriptOrderKind::REVERSE) {
+                    if (array_params.getDimsOrderKind() ==
+                            SubscriptOrderKind::IN_ORDER ||
+                        array_params.getDimsOrderKind() ==
+                            SubscriptOrderKind::REVERSE) {
                         size_t next_iter_idx =
                             ctx->getLocalSymTable()->getIters().size() - 1;
                         if (i <= stencil_params.size() - 1) {
@@ -2250,19 +2306,24 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
                     else if (array_params.getDimsOrderKind() ==
                              SubscriptOrderKind::DIAGONAL)
                         iter = diag_iter;
-                    else if (array_params.getDimsOrderKind() == SubscriptOrderKind::RANDOM)
+                    else if (array_params.getDimsOrderKind() ==
+                             SubscriptOrderKind::RANDOM)
                         iter = get_random_iter(i);
                     else
                         ERROR("Unknown dims order kind");
                 }
-                else if (dims_order_kind == SubscriptOrderKind::IN_ORDER || dims_order_kind == SubscriptOrderKind::REVERSE)
+                else if (dims_order_kind == SubscriptOrderKind::IN_ORDER ||
+                         dims_order_kind == SubscriptOrderKind::REVERSE)
                     iter = sorted_iters.at(i).second;
-                else if (dims_order_kind == SubscriptOrderKind::DIAGONAL && diag_iter)
+                else if (dims_order_kind == SubscriptOrderKind::DIAGONAL &&
+                         diag_iter)
                     iter = diag_iter;
                 else if (dims_order_kind == SubscriptOrderKind::RANDOM ||
-                        (dims_order_kind == SubscriptOrderKind::DIAGONAL && !diag_iter)) {
+                         (dims_order_kind == SubscriptOrderKind::DIAGONAL &&
+                          !diag_iter)) {
                     iter = get_random_iter(i);
-                    if (dims_order_kind == SubscriptOrderKind::DIAGONAL && !diag_iter)
+                    if (dims_order_kind == SubscriptOrderKind::DIAGONAL &&
+                        !diag_iter)
                         diag_iter = iter;
                 }
                 else
@@ -2301,100 +2362,10 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         }
 
         subs_exprs.emplace_back(iter_use_expr, offset);
-
-        /*
-        auto new_expr =
-            std::make_shared<SubscriptExpr>(res_expr, iter_use_expr);
-        new_expr->setOffset(offset);
-        res_expr = new_expr;
-        */
-
-    /*
-        // Check if we need to have an offset and set the subscript kind accordingly
-        bool offset_prob = false;
-        bool offset_in_dim = false;
-        if (ctx->getInStencil()) {
-            // In case where stencil offset dimensions are not defined,
-            // we pick them at random
-            if (stencil_dims.empty())
-                offset_prob = rand_val_gen->getRandId(stencil_in_dim_prob);
-            // Otherwise, we check if it is a dimension that should have offset
-            offset_in_dim = !stencil_dims.empty() && stencil_dims.at(i);
-            if (offset_prob || offset_in_dim)
-                subs_kind = SubscriptKind::OFFSET;
-        }
-
-        // Create iterator
-        // There is only one case when we need to load it
-        std::shared_ptr<Iterator> iter = nullptr;
-        std::shared_ptr<Expr> iter_use_expr = nullptr;
-        bool offsets_defined = ctx->getInStencil() &&
-                               !array_params.getOffsets().empty() &&
-                               array_params.getOffsets().at(i) != 0;
-        if (offsets_defined) {
-            // Load iter
-            iter_use_expr =
-                std::make_shared<IterUseExpr>(array_params.getIters().at(i));
-        }
-        else {
-            if (subs_kind == SubscriptKind::ITER ||
-                subs_kind == SubscriptKind::OFFSET ||
-                (subs_kind == SubscriptKind::REPEAT && iter_use_exprs_cache.empty())) {
-                // Generate iter
-                if (dims_in_order)
-                    iter = sorted_iters.at(i);
-                else
-                    iter = rand_val_gen->getRandElem(
-                        ctx->getLocalSymTable()->getIters());
-                iter_use_expr = std::make_shared<IterUseExpr>(iter);
-            }
-            else if (subs_kind == SubscriptKind::CONST) {
-                uint64_t init_val = rand_val_gen->getRandValue(
-                    static_cast<int64_t>(0),
-                    static_cast<int64_t>(array_type->getDimensions().at(i) - 1));
-                IRValue new_val (rand_val_gen->getRandId(gen_pol->int_type_distr));
-                new_val.setValue(IRValue::AbsValue{false, init_val});
-                iter_use_expr = std::make_shared<ConstantExpr>(new_val);
-            }
-            else if (subs_kind == SubscriptKind::REPEAT) {
-                iter_use_expr = rand_val_gen->getRandElem(iter_use_exprs_cache);
-            }
-            else {
-                ERROR("Unknown SubscriptKind");
-            }
-
-            if (subs_kind != SubscriptKind::REPEAT)
-                iter_use_exprs_cache.push_back(iter_use_expr);
-        }
-
-        // Create offsets
-        int64_t offset = 0;
-        if (offsets_defined) {
-            // Load offset
-            offset = array_params.getOffsets().at(i);
-        }
-        else if (subs_kind == SubscriptKind::OFFSET) {
-            // Generate offset
-            size_t max_left_offset = iter->getMaxLeftOffset();
-            size_t max_right_offset = iter->getMaxRightOffset();
-            bool non_zero_offset_exists =
-                max_left_offset > 0 || max_right_offset > 0;
-            if (non_zero_offset_exists) {
-                while (offset == 0)
-                    offset = rand_val_gen->getRandValue(
-                        -static_cast<int64_t>(max_left_offset),
-                        static_cast<int64_t>(max_right_offset));
-            }
-        }
-        auto new_expr =
-            std::make_shared<SubscriptExpr>(res_expr, iter_use_expr);
-        new_expr->setOffset(offset);
-        res_expr = new_expr;
-    */
     }
 
     if (array_params.getDimsOrderKind() == SubscriptOrderKind::REVERSE ||
-       (!dims_defined && dims_order_kind == SubscriptOrderKind::REVERSE)) {
+        (!dims_defined && dims_order_kind == SubscriptOrderKind::REVERSE)) {
         // We want to guarantee that the subscript with multiple values remains
         // in place to preserve the desired property
         // TODO: this should be done in a better way
@@ -2406,7 +2377,6 @@ SubscriptExpr::initImpl(ArrayStencilParams array_params,
         else
             std::reverse(subs_exprs.begin(), subs_exprs.end());
     }
-
 
     std::shared_ptr<Expr> res_expr = std::make_shared<ArrayUseExpr>(array);
     for (size_t i = 0; i < subs_exprs.size(); ++i) {
@@ -2482,7 +2452,8 @@ Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
     ctx.use_main_vals = use_main_vals;
 
     EvalResType to_eval_res = to->evaluate(ctx);
-    EvalResType from_eval_res = use_main_vals ? from->evaluate(ctx) : second_from->evaluate(ctx);
+    EvalResType from_eval_res =
+        use_main_vals ? from->evaluate(ctx) : second_from->evaluate(ctx);
     if (to_eval_res->getKind() != from_eval_res->getKind())
         ERROR("We can't assign incompatible data types");
 
@@ -2493,14 +2464,16 @@ Expr::EvalResType AssignmentExpr::evaluate(EvalCtx &ctx) {
 void AssignmentExpr::propagateValue(EvalCtx &ctx) {
     bool use_main_vals = ctx.mul_vals_iter == nullptr;
     use_main_vals |= ctx.mul_vals_iter != nullptr && ctx.use_main_vals;
-    if (ctx.mul_vals_iter != nullptr && to->getKind() == IRNodeKind::SCALAR_VAR_USE)
+    if (ctx.mul_vals_iter != nullptr &&
+        to->getKind() == IRNodeKind::SCALAR_VAR_USE)
         use_main_vals = ctx.mul_vals_iter->getMainValsOnLastIter();
 
     bool old_use_main_vals = ctx.use_main_vals;
     ctx.use_main_vals = use_main_vals;
 
     EvalResType to_eval_res = to->evaluate(ctx);
-    EvalResType from_eval_res = use_main_vals ? from->evaluate(ctx) : second_from->evaluate(ctx);
+    EvalResType from_eval_res =
+        use_main_vals ? from->evaluate(ctx) : second_from->evaluate(ctx);
     if (to_eval_res->getKind() != from_eval_res->getKind())
         ERROR("We can't assign incompatible data types");
 
@@ -2515,8 +2488,9 @@ void AssignmentExpr::propagateValue(EvalCtx &ctx) {
     }
     else if (to->getKind() == IRNodeKind::SUBSCRIPT) {
         auto to_array = std::static_pointer_cast<SubscriptExpr>(to);
-        //TODO: adjust for multiple values
-        to_array->setValue(use_main_vals ? from : second_from, ctx.use_main_vals);
+        // TODO: adjust for multiple values
+        to_array->setValue(use_main_vals ? from : second_from,
+                           ctx.use_main_vals);
     }
     else
         ERROR("Bad IRNodeKind");
@@ -2560,8 +2534,10 @@ void AssignmentExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
             rand_val_gen->getRandId(gen_pol.hide_zero_in_versioning_prob);
         if (cast_to_uniform)
             stream << "extract(";
-        stream << "(" << (cast_to_uniform ? "programIndex" : versioning_iter->getName(ctx)) << " % "
-               << Options::vals_number << " == ";
+        stream << "("
+               << (cast_to_uniform ? "programIndex"
+                                   : versioning_iter->getName(ctx))
+               << " % " << Options::vals_number << " == ";
         stream << (use_zero_as_var ? "zero"
                                    : std::to_string(Options::main_val_idx))
                << ") ? (";
@@ -2575,7 +2551,8 @@ void AssignmentExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         stream << ")";
         // TODO: we need to check that this is emitted only for scalar variables
         if (cast_to_uniform)
-            stream << ", " << (ISPC_MAX_VECTOR_SIZE % Options::vals_number) << ")";
+            stream << ", " << (ISPC_MAX_VECTOR_SIZE % Options::vals_number)
+                   << ")";
     }
 }
 
@@ -2605,10 +2582,11 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     std::shared_ptr<Expr> to;
 
     if (!from_val->getType()->isUniform()) {
-        auto find_res = std::find_if(gen_pol->out_kind_distr.begin(), gen_pol->out_kind_distr.end(),
-                                     [](Probability<DataKind> &p) {
-                                         return p.getId() == DataKind::ARR && p.getProb() > 0.0;
-                                     });
+        auto find_res = std::find_if(
+            gen_pol->out_kind_distr.begin(), gen_pol->out_kind_distr.end(),
+            [](Probability<DataKind> &p) {
+                return p.getId() == DataKind::ARR && p.getProb() > 0.0;
+            });
         if (find_res != gen_pol->out_kind_distr.end())
             out_kind = DataKind::ARR;
     }
@@ -2655,23 +2633,24 @@ AssignmentExpr::AssignmentExpr(std::shared_ptr<Expr> _to,
     versioning_iter = nullptr;
 }
 
-bool ReductionExpr::propagateType() {
-    return AssignmentExpr::propagateType();
-}
+bool ReductionExpr::propagateType() { return AssignmentExpr::propagateType(); }
 
 template <class BinOp>
-static IRValue reductionHelper(IRValue base, IRValue inc, size_t total_iters_num, BinOp foo) {
-    auto tmp_op = std::make_shared<BinaryExpr>(BinaryOp::ADD,
-                                               std::make_shared<ConstantExpr>(base),
-                                               std::make_shared<ConstantExpr>(inc));
+static IRValue reductionHelper(IRValue base, IRValue inc,
+                               size_t total_iters_num, BinOp foo) {
+    auto tmp_op = std::make_shared<BinaryExpr>(
+        BinaryOp::ADD, std::make_shared<ConstantExpr>(base),
+        std::make_shared<ConstantExpr>(inc));
     tmp_op->propagateType();
-    auto max_int_type = std::static_pointer_cast<IntegralType>(tmp_op->getValue()->getType());
+    auto max_int_type =
+        std::static_pointer_cast<IntegralType>(tmp_op->getValue()->getType());
     IntTypeID max_type_id = max_int_type->getIntTypeId();
 
     // IRValue approach is about as fast as approach with C++ types, but it
     // detects UB automatically
     // Ideally, we want to come up with a precise formula for result
-    IRValue conv_inc = inc.getIntTypeID() == max_type_id ? inc : inc.castToType(max_type_id);
+    IRValue conv_inc =
+        inc.getIntTypeID() == max_type_id ? inc : inc.castToType(max_type_id);
     bool need_to_cast_ret = base.getIntTypeID() != max_type_id;
 
     IRValue ret = base;
@@ -2702,17 +2681,14 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     assert(to_eval_res->getKind() == DataKind::VAR &&
            from_eval_res->getKind() == DataKind::VAR &&
            "We support only scalar vars for now");
-    IRValue to_eval_val = std::static_pointer_cast<ScalarVar>(to_eval_res)->getCurrentValue();
-    IRValue from_eval_val = std::static_pointer_cast<ScalarVar>(from_eval_res)->getCurrentValue();
+    IRValue to_eval_val =
+        std::static_pointer_cast<ScalarVar>(to_eval_res)->getCurrentValue();
+    IRValue from_eval_val =
+        std::static_pointer_cast<ScalarVar>(from_eval_res)->getCurrentValue();
 
-    assert(ctx.total_iter_num >= 0 && "We can't evaluate reduction operation if we don't know the number of iterations");
-
-    /*
-    auto get_total_inc_expr = [&from_eval_val, &ctx](std::shared_ptr<Expr> from) {
-        IRValue iter_num (from_eval_val.getIntTypeID(), IRValue::AbsValue{false, static_cast<uint64_t>(ctx.total_iter_num)});
-        return std::make_shared<BinaryExpr>(BinaryOp::MUL, from, std::make_shared<ConstantExpr>(iter_num));
-    };
-    */
+    assert(ctx.total_iter_num >= 0 &&
+           "We can't evaluate reduction operation if we don't know the number "
+           "of iterations");
 
     // TODO: we use a very conservative approach here, we should be able to
     // come up with a more precise formula
@@ -2720,19 +2696,29 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     if (bin_op != BinaryOp::MAX_BIN_OP) {
         switch (bin_op) {
             case BinaryOp::ADD:
-                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::plus()));
+                result_expr = std::make_shared<ConstantExpr>(
+                    reductionHelper(to_eval_val, from_eval_val,
+                                    ctx.total_iter_num, std::plus()));
                 break;
             case BinaryOp::SUB:
-                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::minus()));
+                result_expr = std::make_shared<ConstantExpr>(
+                    reductionHelper(to_eval_val, from_eval_val,
+                                    ctx.total_iter_num, std::minus()));
                 break;
             case BinaryOp::MUL:
-                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::multiplies()));
+                result_expr = std::make_shared<ConstantExpr>(
+                    reductionHelper(to_eval_val, from_eval_val,
+                                    ctx.total_iter_num, std::multiplies()));
                 break;
             case BinaryOp::DIV:
-                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::divides()));
+                result_expr = std::make_shared<ConstantExpr>(
+                    reductionHelper(to_eval_val, from_eval_val,
+                                    ctx.total_iter_num, std::divides()));
                 break;
             case BinaryOp::MOD:
-                result_expr = std::make_shared<ConstantExpr>(reductionHelper(to_eval_val, from_eval_val, ctx.total_iter_num, std::modulus()));
+                result_expr = std::make_shared<ConstantExpr>(
+                    reductionHelper(to_eval_val, from_eval_val,
+                                    ctx.total_iter_num, std::modulus()));
                 break;
             case BinaryOp::BIT_AND:
                 result_expr =
@@ -2908,13 +2894,17 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     Options &options = Options::getInstance();
     if (options.isISPC()) {
         base_assign_expr->propagateType();
-        assert(base_assign_expr->getValue()->getType()->isIntType() && "We support only int type for now");
-        auto base_int_type = std::static_pointer_cast<IntegralType>(base_assign_expr->getTo()->getValue()->getType());
+        assert(base_assign_expr->getValue()->getType()->isIntType() &&
+               "We support only int type for now");
+        auto base_int_type = std::static_pointer_cast<IntegralType>(
+            base_assign_expr->getTo()->getValue()->getType());
         if (base_int_type->getIntTypeId() == IntTypeID::BOOL) {
             new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
             bool bin_op_red_is_supported = false;
             for (auto &kind_prob : new_gen_pol->reduction_bin_op_distr) {
-                if (kind_prob.getId() != BinaryOp::BIT_AND && kind_prob.getId() != BinaryOp::BIT_OR && kind_prob.getId() != BinaryOp::BIT_XOR)
+                if (kind_prob.getId() != BinaryOp::BIT_AND &&
+                    kind_prob.getId() != BinaryOp::BIT_OR &&
+                    kind_prob.getId() != BinaryOp::BIT_XOR)
                     kind_prob.setProb(0);
                 else if (kind_prob.getProb() > 0)
                     bin_op_red_is_supported = true;
@@ -2925,20 +2915,21 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
                     base_assign_expr, BinaryOp::MAX_BIN_OP,
                     LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
 
-
-            bin_op = rand_val_gen->getRandId(new_gen_pol->reduction_bin_op_distr);
+            bin_op =
+                rand_val_gen->getRandId(new_gen_pol->reduction_bin_op_distr);
         }
     }
 
     return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
-                                            false, ctx->isTaken());
+                                           false, ctx->isTaken());
 }
 
 std::shared_ptr<Expr> ReductionExpr::copy() {
     auto new_result_expr = result_expr->copy();
     auto new_assign = AssignmentExpr::copy();
     auto new_reduction = std::make_shared<ReductionExpr>(
-        std::static_pointer_cast<AssignmentExpr>(new_assign), bin_op, lib_call_kind, is_degenerate, taken);
+        std::static_pointer_cast<AssignmentExpr>(new_assign), bin_op,
+        lib_call_kind, is_degenerate, taken);
     new_reduction->result_expr = new_result_expr;
     return new_reduction;
 }
@@ -2999,8 +2990,9 @@ void static ispcBoolPromotion(std::shared_ptr<Expr> &expr) {
     // have to do it manually
     auto int_type = IntegralType::init(IntTypeID::SCHAR);
     if (!expr_int_type->isUniform())
-        int_type = std::static_pointer_cast<IntegralType>(int_type->makeVarying());
-    expr = std::make_shared<TypeCastExpr>(expr, int_type,false);
+        int_type =
+            std::static_pointer_cast<IntegralType>(int_type->makeVarying());
+    expr = std::make_shared<TypeCastExpr>(expr, int_type, false);
 }
 
 void LibCallExpr::ispcArgPromotion(std::shared_ptr<Expr> &arg) {
@@ -3043,8 +3035,7 @@ void LibCallExpr::cxxArgPromotion(std::shared_ptr<Expr> &arg,
 
 MinMaxCallBase::MinMaxCallBase(std::shared_ptr<Expr> _a,
                                std::shared_ptr<Expr> _b, LibCallKind _kind)
-    : a(std::move(_a)), b(std::move(_b)), kind(_kind) {
-}
+    : a(std::move(_a)), b(std::move(_b)), kind(_kind) {}
 
 bool MinMaxCallBase::propagateType() {
     a->propagateType();
@@ -3103,7 +3094,8 @@ Expr::EvalResType MinMaxCallBase::evaluate(yarpgen::EvalCtx &ctx) {
         res_val = (a_max_val < b_max_val).getValueRef<bool>() ? a_val : b_val;
     else
         ERROR("Unsupported LibCallKind");
-    value = replaceValueWith(value, std::make_shared<ScalarVar>("", a_int_type, res_val));
+    value = replaceValueWith(
+        value, std::make_shared<ScalarVar>("", a_int_type, res_val));
 
     return value;
 }
@@ -3195,8 +3187,7 @@ SelectCall::SelectCall(std::shared_ptr<Expr> _cond,
                        std::shared_ptr<Expr> _true_arg,
                        std::shared_ptr<Expr> _false_arg)
     : cond(std::move(_cond)), true_arg(std::move(_true_arg)),
-      false_arg(std::move(_false_arg)) {
-}
+      false_arg(std::move(_false_arg)) {}
 
 bool SelectCall::propagateType() {
     cond->propagateType();
@@ -3250,8 +3241,10 @@ Expr::EvalResType SelectCall::evaluate(EvalCtx &ctx) {
     assert(true_eval_res->getKind() == DataKind::VAR &&
            false_eval_res->getKind() == DataKind::VAR &&
            "We support only scalar variables for now");
-    IRValue true_eval_val = std::static_pointer_cast<ScalarVar>(true_eval_res)->getCurrentValue();
-    IRValue false_eval_val = std::static_pointer_cast<ScalarVar>(false_eval_res)->getCurrentValue();
+    IRValue true_eval_val =
+        std::static_pointer_cast<ScalarVar>(true_eval_res)->getCurrentValue();
+    IRValue false_eval_val =
+        std::static_pointer_cast<ScalarVar>(false_eval_res)->getCurrentValue();
     if (true_eval_val.hasUB())
         value = replaceValueWith(value, true_eval_res);
     else if (false_eval_val.hasUB())
@@ -3291,8 +3284,7 @@ SelectCall::create(std::shared_ptr<PopulateCtx> ctx) {
 
 LogicalReductionBase::LogicalReductionBase(std::shared_ptr<Expr> _arg,
                                            LibCallKind _kind)
-    : arg(std::move(_arg)), kind(_kind) {
-}
+    : arg(std::move(_arg)), kind(_kind) {}
 
 bool LogicalReductionBase::propagateType() {
     arg->propagateType();
@@ -3324,7 +3316,8 @@ Expr::EvalResType LogicalReductionBase::evaluate(EvalCtx &ctx) {
         ERROR("Unsupported LibCallKind");
     if (arg_val.hasUB())
         init_val.setUBCode(arg_val.getUBCode());
-    value = replaceValueWith(value, std::make_shared<ScalarVar>("", type, init_val));
+    value = replaceValueWith(value,
+                             std::make_shared<ScalarVar>("", type, init_val));
 
     return value;
 }
@@ -3361,8 +3354,7 @@ LogicalReductionBase::createHelper(std::shared_ptr<PopulateCtx> ctx,
 
 MinMaxEqReductionBase::MinMaxEqReductionBase(std::shared_ptr<Expr> _arg,
                                              LibCallKind _kind)
-    : arg(std::move(_arg)), kind(_kind) {
-}
+    : arg(std::move(_arg)), kind(_kind) {}
 
 bool MinMaxEqReductionBase::propagateType() {
     arg->propagateType();
@@ -3374,8 +3366,11 @@ bool MinMaxEqReductionBase::propagateType() {
         ispcArgPromotion(arg);
     assert(arg->getValue()->getType()->isIntType() &&
            "We support only integer types at this time");
-    auto arg_int_type_id = std::static_pointer_cast<IntegralType>(arg->getValue()->getType())->getIntTypeId();
-    arg_int_type_id = kind != LibCallKind::RED_EQ ? arg_int_type_id : IntTypeID::BOOL;
+    auto arg_int_type_id =
+        std::static_pointer_cast<IntegralType>(arg->getValue()->getType())
+            ->getIntTypeId();
+    arg_int_type_id =
+        kind != LibCallKind::RED_EQ ? arg_int_type_id : IntTypeID::BOOL;
     value = std::make_shared<TypedData>(IntegralType::init(arg_int_type_id));
     return true;
 }
@@ -3403,8 +3398,9 @@ Expr::EvalResType MinMaxEqReductionBase::evaluate(EvalCtx &ctx) {
         IRValue init_val(IntTypeID::BOOL);
         init_val.setValue(IRValue::AbsValue{false, true});
         init_val.setUBCode(arg_val.getUBCode());
-        value = replaceValueWith(value, std::make_shared<ScalarVar>(
-            "", IntegralType::init(IntTypeID::BOOL), init_val));
+        value = replaceValueWith(
+            value, std::make_shared<ScalarVar>(
+                       "", IntegralType::init(IntTypeID::BOOL), init_val));
     }
     else
         ERROR("Unsupported LibCallKind");
@@ -3442,7 +3438,8 @@ MinMaxEqReductionBase::createHelper(std::shared_ptr<PopulateCtx> ctx,
         ERROR("Unsupported LibCallKind");
 }
 
-ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg), is_implicit(false) {
+ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg)
+    : arg(_arg), is_implicit(false) {
     IRValue idx_val(IntTypeID::UINT);
     idx_val.setValue(IRValue::AbsValue{false, 0});
     idx = std::make_shared<ConstantExpr>(idx_val);
@@ -3450,7 +3447,9 @@ ExtractCall::ExtractCall(std::shared_ptr<Expr> _arg) : arg(_arg), is_implicit(fa
 
 bool ExtractCall::propagateType() {
     arg->propagateType();
-    auto arg_int_type_id = std::static_pointer_cast<IntegralType>(arg->getValue()->getType())->getIntTypeId();
+    auto arg_int_type_id =
+        std::static_pointer_cast<IntegralType>(arg->getValue()->getType())
+            ->getIntTypeId();
     value = std::make_shared<TypedData>(IntegralType::init(arg_int_type_id));
     return true;
 }
@@ -3467,7 +3466,8 @@ Expr::EvalResType ExtractCall::evaluate(EvalCtx &ctx) {
     auto arg_type =
         std::static_pointer_cast<IntegralType>(arg_eval_res->getType());
     auto ret_type = IntegralType::init(arg_type->getIntTypeId());
-    value = replaceValueWith(value, std::make_shared<ScalarVar>("", ret_type, arg_val));
+    value = replaceValueWith(
+        value, std::make_shared<ScalarVar>("", ret_type, arg_val));
     return value;
 }
 

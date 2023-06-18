@@ -88,8 +88,12 @@ class StmtBlock : public Stmt {
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
-    bool detectNestedForeach() override { return std::accumulate(stmts.begin(), stmts.end(), false,
-        [](bool acc, const std::shared_ptr<Stmt>& stmt) { return acc || stmt->detectNestedForeach(); }); }
+    bool detectNestedForeach() override {
+        return std::accumulate(stmts.begin(), stmts.end(), false,
+                               [](bool acc, const std::shared_ptr<Stmt> &stmt) {
+                                   return acc || stmt->detectNestedForeach();
+                               });
+    }
 
   protected:
     std::vector<std::shared_ptr<Stmt>> stmts;
@@ -122,7 +126,9 @@ class Pragma {
 
 class LoopHead {
   public:
-    LoopHead(): prefix(nullptr), suffix(nullptr), is_foreach(false), same_iter_space(false), vectorizable(false) {}
+    LoopHead()
+        : prefix(nullptr), suffix(nullptr), is_foreach(false),
+          same_iter_space(false), vectorizable(false) {}
 
     std::shared_ptr<StmtBlock> getPrefix() { return prefix; }
     void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
@@ -191,8 +197,15 @@ class LoopSeqStmt : public LoopStmt {
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
-    bool detectNestedForeach() override { return std::accumulate(loops.begin(), loops.end(), false,
-        [](bool acc, const std::pair<std::shared_ptr<LoopHead>, std::shared_ptr<ScopeStmt>>& loop) { return acc || loop.first->isForeach() || loop.second->detectNestedForeach(); }); }
+    bool detectNestedForeach() override {
+        return std::accumulate(
+            loops.begin(), loops.end(), false,
+            [](bool acc, const std::pair<std::shared_ptr<LoopHead>,
+                                         std::shared_ptr<ScopeStmt>> &loop) {
+                return acc || loop.first->isForeach() ||
+                       loop.second->detectNestedForeach();
+            });
+    }
 
   private:
     std::vector<
@@ -213,8 +226,14 @@ class LoopNestStmt : public LoopStmt {
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) override;
 
-    bool detectNestedForeach() override { return std::accumulate(loops.begin(), loops.end(), false,
-        [](bool acc, const std::shared_ptr<LoopHead>& loop) { return acc || loop->isForeach(); }) || body->detectNestedForeach(); }
+    bool detectNestedForeach() override {
+        return std::accumulate(
+                   loops.begin(), loops.end(), false,
+                   [](bool acc, const std::shared_ptr<LoopHead> &loop) {
+                       return acc || loop->isForeach();
+                   }) ||
+               body->detectNestedForeach();
+    }
 
   private:
     std::vector<std::shared_ptr<LoopHead>> loops;
@@ -234,7 +253,10 @@ class IfElseStmt : public Stmt {
     generateStructure(std::shared_ptr<GenCtx> ctx);
     void populate(std::shared_ptr<PopulateCtx> ctx) final;
 
-    bool detectNestedForeach() override { return then_br->detectNestedForeach() || (else_br.use_count() != 0 && else_br->detectNestedForeach()); }
+    bool detectNestedForeach() override {
+        return then_br->detectNestedForeach() ||
+               (else_br.use_count() != 0 && else_br->detectNestedForeach());
+    }
 
   private:
     std::shared_ptr<Expr> cond;

@@ -35,12 +35,14 @@ namespace yarpgen {
 // values.
 class EvalCtx {
   public:
-    EvalCtx() : total_iter_num(-1), mul_vals_iter(nullptr), use_main_vals(true) {}
+    EvalCtx()
+        : total_iter_num(-1), mul_vals_iter(nullptr), use_main_vals(true) {}
     // TODO: we use string as a unique identifier and it is not a right way to
     // do it
     std::map<std::string, DataType> input;
     // The total number of iterations that we have to do
-    // -1 is used as a poison value that indicates that the information is unknown
+    // -1 is used as a poison value that indicates that the information is
+    // unknown
     int64_t total_iter_num;
 
     // Iterator that is used to iterate over multiple values
@@ -84,7 +86,8 @@ class GenCtx {
 class ArrayStencilParams {
   public:
     explicit ArrayStencilParams(std::shared_ptr<Array> _arr)
-        : arr(std::move(_arr)), dims_defined(false), offsets_defined(false), dims_order(SubscriptOrderKind::RANDOM) {}
+        : arr(std::move(_arr)), dims_defined(false), offsets_defined(false),
+          dims_order(SubscriptOrderKind::RANDOM) {}
 
     // We use an array of structures instead of a structure of arrays to keep
     // parameters of each dimension together
@@ -97,13 +100,14 @@ class ArrayStencilParams {
         std::shared_ptr<Iterator> iter;
         int64_t offset;
 
-        ArrayStencilDimParams() : dim_active(false), abs_idx(0), iter(nullptr), offset(0) {}
+        ArrayStencilDimParams()
+            : dim_active(false), abs_idx(0), iter(nullptr), offset(0) {}
     };
 
     std::shared_ptr<Array> getArray() { return arr; }
 
-    void setParams(std::vector<ArrayStencilDimParams> _params, bool _dims_defined,
-                   bool _offsets_defined,
+    void setParams(std::vector<ArrayStencilDimParams> _params,
+                   bool _dims_defined, bool _offsets_defined,
                    SubscriptOrderKind _dims_order) {
         params = std::move(_params);
         dims_defined = _dims_defined;
@@ -199,7 +203,9 @@ class PopulateCtx : public GenCtx {
     void setInStencil(bool _val) { in_stencil = _val; }
     bool getInStencil() { return in_stencil; }
 
-    void setMulValsIter(std::shared_ptr<Iterator> _iter) { mul_vals_iter = _iter; }
+    void setMulValsIter(std::shared_ptr<Iterator> _iter) {
+        mul_vals_iter = _iter;
+    }
     std::shared_ptr<Iterator> getMulValsIter() { return mul_vals_iter; }
 
     void setAllowMulVals(bool _val) { allow_mul_vals = _val; }

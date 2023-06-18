@@ -54,7 +54,9 @@ ProgramGenerator::ProgramGenerator() : hash_seed(0) {
 
     // Create a special variable that we use to hide the information from
     // compiler
-    auto zero_var = std::make_shared<ScalarVar>("zero", IntegralType::init(IntTypeID::INT), IRValue(IntTypeID::INT, IRValue::AbsValue{false, 0}));
+    auto zero_var = std::make_shared<ScalarVar>(
+        "zero", IntegralType::init(IntTypeID::INT),
+        IRValue(IntTypeID::INT, IRValue::AbsValue{false, 0}));
     zero_var->setIsDead(false);
     ext_inp_sym_tbl->addVar(zero_var);
 }
@@ -146,13 +148,15 @@ static void emitArrayInit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         for (size_t i = 0; i < idx; ++i)
             stream << "[i_" << i << "] ";
         stream << "= ";
-        auto emit_const_expr = [&array, &ctx, &stream] (bool use_main_vals) {
+        auto emit_const_expr = [&array, &ctx, &stream](bool use_main_vals) {
             auto init_val = array->getInitValues(use_main_vals);
             auto init_const = std::make_shared<ConstantExpr>(init_val);
             init_const->emit(ctx, stream);
         };
         if (array->getMulValsAxisIdx() != -1) {
-            stream << "(i_" << array->getMulValsAxisIdx() << " % " << Options::vals_number << " == " << Options::main_val_idx << ") ? ";
+            stream << "(i_" << array->getMulValsAxisIdx() << " % "
+                   << Options::vals_number << " == " << Options::main_val_idx
+                   << ") ? ";
         }
         emit_const_expr(true);
         if (array->getMulValsAxisIdx() != -1) {
@@ -197,7 +201,9 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
             stream << "    assert(" << var_name << " == ";
             const_val->emit(ctx, stream);
             stream << ");\n";
-            stream << "    //" << static_cast<int>(var->getCurrentValue().getUBCode()) << "\n";
+            stream << "    //"
+                   << static_cast<int>(var->getCurrentValue().getUBCode())
+                   << "\n";
         }
         else {
             ERROR("Unsupported");
@@ -237,11 +243,11 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         stream << arr_name;
 
         if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
-            auto const_val = std::make_shared<ConstantExpr>(
-                (array->getCurrentValues(true)));
+            auto const_val =
+                std::make_shared<ConstantExpr>((array->getCurrentValues(true)));
             stream << "== ";
             const_val->emit(ctx, stream);
-            auto emit_cmp = [&arr_name, &ctx, &stream] (IRValue val) {
+            auto emit_cmp = [&arr_name, &ctx, &stream](IRValue val) {
                 stream << " || " << arr_name << " == ";
                 auto const_val = std::make_shared<ConstantExpr>(val);
                 const_val->emit(ctx, stream);
@@ -639,9 +645,11 @@ void ProgramGenerator::hashArray(std::shared_ptr<Array> const &arr) {
     auto arr_type = std::static_pointer_cast<ArrayType>(arr->getType());
     std::vector<size_t> idx_vec(arr_type->getDimensions().size(), 0);
     auto &dims = arr_type->getDimensions();
-    //TODO: this is broken now
-    uint64_t init_val = arr->getInitValues(Options::main_val_idx).getAbsValue().value;
-    uint64_t cur_val = arr->getCurrentValues(Options::main_val_idx).getAbsValue().value;
+    // TODO: this is broken now
+    uint64_t init_val =
+        arr->getInitValues(Options::main_val_idx).getAbsValue().value;
+    uint64_t cur_val =
+        arr->getCurrentValues(Options::main_val_idx).getAbsValue().value;
     std::vector<size_t> steps = {};
     hashArrayStep(arr, dims, idx_vec, 0, false, init_val, cur_val, steps);
 }
@@ -653,7 +661,7 @@ void ProgramGenerator::hashArrayStep(std::shared_ptr<Array> const &arr,
                                      uint64_t &init_val, uint64_t &cur_val,
                                      std::vector<size_t> &steps) {
     size_t vec_last_idx = idx_vec.size() - 1;
-    //TODO: this is also broken
+    // TODO: this is also broken
     size_t cur_val_size = 0;
     size_t cur_dim = dims[cur_idx];
     size_t cur_step = steps[cur_idx];

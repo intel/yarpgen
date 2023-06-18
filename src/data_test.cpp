@@ -120,14 +120,17 @@ void arrayTest() {
                 CHECK(array->isArray(), "Array identity");
                 CHECK(array->getKind() == DataKind::ARR, "Array kind");
 
-                array->setCurrentValue(ptr_to_type->getMax(), Options::main_val_idx);
+                array->setCurrentValue(ptr_to_type->getMax(),
+                                       Options::main_val_idx);
 
-                CHECK((array->getInitValues(Options::main_val_idx).getAbsValue() ==
-                       ptr_to_type->getMin().getAbsValue()),
-                      "Init Value");
-                CHECK((array->getCurrentValues(Options::main_val_idx).getAbsValue() ==
-                       ptr_to_type->getMax().getAbsValue()),
-                      "CurrentValue");
+                CHECK(
+                    (array->getInitValues(Options::main_val_idx)
+                         .getAbsValue() == ptr_to_type->getMin().getAbsValue()),
+                    "Init Value");
+                CHECK(
+                    (array->getCurrentValues(Options::main_val_idx)
+                         .getAbsValue() == ptr_to_type->getMax().getAbsValue()),
+                    "CurrentValue");
                 CHECK(array->getIsDead(), "Is dead");
             }
 }

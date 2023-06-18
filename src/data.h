@@ -100,9 +100,10 @@ using DataType = std::shared_ptr<Data>;
 // It should be replaced with real data class after we start to propagate values
 class TypedData : public Data {
   public:
-    explicit TypedData(std::shared_ptr<Type> _type) : Data("", std::move(_type)) {}
+    explicit TypedData(std::shared_ptr<Type> _type)
+        : Data("", std::move(_type)) {}
     bool isTypedData() final { return true; }
-    DataType replaceWith (DataType _new_data);
+    DataType replaceWith(DataType _new_data);
     void dbgDump() final;
     std::shared_ptr<Data> makeVarying() override {
         return makeVaryingImpl(*this);
@@ -147,10 +148,14 @@ class Array : public Data {
     Array(std::string _name, const std::shared_ptr<ArrayType> &_type,
           IRValue _val);
     IRValue getInitValues(bool use_main_vals) {
-        return mul_vals_axis_idx == -1 || use_main_vals ? init_vals[Options::main_val_idx] : init_vals[Options::alt_val_idx];
+        return mul_vals_axis_idx == -1 || use_main_vals
+                   ? init_vals[Options::main_val_idx]
+                   : init_vals[Options::alt_val_idx];
     }
     IRValue getCurrentValues(bool use_main_vals) {
-        return mul_vals_axis_idx == -1 || use_main_vals ? cur_vals[Options::main_val_idx] : cur_vals[Options::alt_val_idx];
+        return mul_vals_axis_idx == -1 || use_main_vals
+                   ? cur_vals[Options::main_val_idx]
+                   : cur_vals[Options::alt_val_idx];
     }
     void setInitValue(IRValue _val, bool use_main_vals,
                       int64_t mul_val_axis_idx);
@@ -195,11 +200,13 @@ class Iterator : public Data {
     Iterator(std::string _name, std::shared_ptr<Type> _type,
              std::shared_ptr<Expr> _start, size_t _max_left_offset,
              std::shared_ptr<Expr> _end, size_t _max_right_offset,
-             std::shared_ptr<Expr> _step, bool _degenerate, size_t _total_iters_num)
+             std::shared_ptr<Expr> _step, bool _degenerate,
+             size_t _total_iters_num)
         : Data(std::move(_name), std::move(_type)), start(std::move(_start)),
           max_left_offset(_max_left_offset), end(std::move(_end)),
           max_right_offset(_max_right_offset), step(std::move(_step)),
-          degenerate(_degenerate), total_iters_num(_total_iters_num), supports_mul_values(false), main_vals_on_last_iter(true) {}
+          degenerate(_degenerate), total_iters_num(_total_iters_num),
+          supports_mul_values(false), main_vals_on_last_iter(true) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
@@ -248,7 +255,8 @@ class Iterator : public Data {
     size_t total_iters_num;
     // A flag that indicates whether the iterator supports multiple values
     bool supports_mul_values;
-    // A flag that indicates whether the iterator has main values on the last iteration
+    // A flag that indicates whether the iterator has main values on the last
+    // iteration
     bool main_vals_on_last_iter;
 };
 

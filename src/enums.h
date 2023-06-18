@@ -216,7 +216,7 @@ enum class CheckAlgo { HASH, ASSERTS, PRECOMPUTE, MAX_CHECK_ALGO };
 
 enum class MutationKind { NONE, EXPRS, ALL, MAX_MUTATION_FIND };
 
-//TODO: not all of the cases are supported yet
+// TODO: not all of the cases are supported yet
 enum class ArrayDimsUseKind { FEWER, SAME, MORE };
 enum class ArrayDimsReuseKind { SAME, OFFSET, SCALE, COMBINE };
 // TODO: add scale, combine, and swap (?) cases
@@ -233,6 +233,6 @@ enum class SubscriptKind { CONST, ITER, OFFSET, REPEAT };
 // RANDOM is used as a pseudo-poison value which indicates the general case
 // The generation for reverse is handled as in-order with reverse at the end of
 // the generation process
-//TODO: add swap to support almost in-order case?
+// TODO: add swap to support almost in-order case?
 enum class SubscriptOrderKind { IN_ORDER, REVERSE, DIAGONAL, RANDOM };
 } // namespace yarpgen

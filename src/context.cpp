@@ -25,7 +25,8 @@ using namespace yarpgen;
 std::shared_ptr<EmitCtx> EmitCtx::default_emit_ctx =
     std::make_shared<EmitCtx>();
 
-PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx) : PopulateCtx() {
+PopulateCtx::PopulateCtx(std::shared_ptr<PopulateCtx> _par_ctx)
+    : PopulateCtx() {
     local_sym_tbl = std::make_shared<SymbolTable>();
     if (_par_ctx.use_count() != 0) {
         par_ctx = _par_ctx;
@@ -67,13 +68,13 @@ size_t PopulateCtx::generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const {
         (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() == 1))
         ret = dims.size();
     else if (dims_use_kind == ArrayDimsUseKind::FEWER && dims.size() > 1)
-        ret = rand_val_gen->getRandValue(static_cast<size_t>(1),
-                                          dims.size() - 1);
+        ret =
+            rand_val_gen->getRandValue(static_cast<size_t>(1), dims.size() - 1);
     else if (dims_use_kind == ArrayDimsUseKind::MORE) {
-        ret =  rand_val_gen->getRandValue(
+        ret = rand_val_gen->getRandValue(
             dims.size() + 1,
-            static_cast<size_t>(std::ceil(
-                         dims.size() * gen_policy->arrays_dims_ext_factor)));
+            static_cast<size_t>(
+                std::ceil(dims.size() * gen_policy->arrays_dims_ext_factor)));
     }
     else
         ERROR("Unsupported case!");
