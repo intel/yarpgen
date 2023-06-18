@@ -185,11 +185,11 @@ static void dbgDumpHelper(IntTypeID id, const std::string &name,
 #define DBG_DUMP_MACROS(type_name)                                             \
     void type_name::dbgDump() {                                                \
         auto ctx = std::make_shared<EmitCtx>();                                \
-        dbgDumpHelper(                                                         \
-            getIntTypeId(), getName(ctx), getLiteralSuffix(), getBitSize(),    \
-            getIsSigned(), min.getValueRef<value_type>(),                      \
-            max.getValueRef<value_type>(), getIsStatic(), getCVQualifier(),    \
-            isUniform());                                                      \
+        dbgDumpHelper(getIntTypeId(), getName(ctx), getLiteralSuffix(),        \
+                      getBitSize(), getIsSigned(),                             \
+                      min.getValueRef<value_type>(),                           \
+                      max.getValueRef<value_type>(), getIsStatic(),            \
+                      getCVQualifier(), isUniform());                          \
     }
 
 DBG_DUMP_MACROS(TypeBool)
@@ -262,8 +262,9 @@ std::shared_ptr<ArrayType> ArrayType::create(std::shared_ptr<PopulateCtx> ctx) {
     // ctx loop depth
     auto dims_use_kind = rand_val_gen->getRandId(gen_pol->array_dims_use_kind);
     size_t dims_num = ctx->generateNumberOfDims(dims_use_kind);
-    assert(dims_num <= gen_pol->array_dims_num_limit && "Arrays can't have more dimensions than the limit");
-    std::vector<size_t> dims (dims_num, ctx->getDimensions().front());
+    assert(dims_num <= gen_pol->array_dims_num_limit &&
+           "Arrays can't have more dimensions than the limit");
+    std::vector<size_t> dims(dims_num, ctx->getDimensions().front());
 
     return init(base_type, dims);
 }

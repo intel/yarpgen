@@ -353,8 +353,9 @@ GenPolicy::GenPolicy() {
 
     array_dims_num_limit = 7;
     // It looks like ISPC has trouble allocating arrays that require a lot of
-    // memory. We limit the number of dimensions to 5.
-    // The issue is that we have to have
+    // memory. We limit the number of dimensions to 4.
+    // The issue is that we have to always allocate arrays that contain at
+    // least max_ispc_vector size elements. Otherwise, we get a runtime error.
     if (options.isISPC())
         array_dims_num_limit = 5;
 
@@ -536,5 +537,7 @@ void GenPolicy::uniformProbFromMax(std::vector<Probability<T>> &distr,
 
 template <class T, class U>
 void GenPolicy::removeProbability(std::vector<Probability<T>> &orig, U id) {
-    std::remove_if(orig.begin(), orig.end(), [&id] (Probability<T>& elem) -> bool { return elem.getId() == id; });
+    std::remove_if(
+        orig.begin(), orig.end(),
+        [&id](Probability<T> &elem) -> bool { return elem.getId() == id; });
 }

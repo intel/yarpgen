@@ -96,7 +96,7 @@ class ConstantExpr : public Expr {
     static std::shared_ptr<ConstantExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
-    std::shared_ptr<Expr> copy () final;
+    std::shared_ptr<Expr> copy() final;
 
   private:
     static std::vector<std::shared_ptr<ConstantExpr>> used_consts;
@@ -131,7 +131,7 @@ class ScalarVarUseExpr : public VarUseExpr {
     static std::shared_ptr<ScalarVarUseExpr>
     create(std::shared_ptr<PopulateCtx> ctx);
 
-    std::shared_ptr<Expr> copy () final;
+    std::shared_ptr<Expr> copy() final;
 
   private:
     static std::unordered_map<std::shared_ptr<Data>,
@@ -157,7 +157,7 @@ class ArrayUseExpr : public VarUseExpr {
         stream << offset << value->getName(ctx);
     };
 
-    std::shared_ptr<Expr> copy () final;
+    std::shared_ptr<Expr> copy() final;
 
   private:
     static std::unordered_map<std::shared_ptr<Data>,
@@ -183,7 +183,7 @@ class IterUseExpr : public VarUseExpr {
         stream << offset << value->getName(ctx);
     };
 
-    std::shared_ptr<Expr> copy () final;
+    std::shared_ptr<Expr> copy() final;
 
   private:
     static std::unordered_map<std::shared_ptr<Data>,
@@ -368,9 +368,8 @@ class AssignmentExpr : public Expr {
     std::shared_ptr<Expr> getTo() { return to; }
 
   protected:
-
     std::shared_ptr<Expr> from;
-    //TODO: fold into a single array
+    // TODO: fold into a single array
     std::shared_ptr<Expr> second_from;
     bool taken;
     std::shared_ptr<Expr> to;
@@ -380,11 +379,11 @@ class AssignmentExpr : public Expr {
 
 class ReductionExpr : public AssignmentExpr {
   public:
-    ReductionExpr(std::shared_ptr<AssignmentExpr> _expr,
-                  BinaryOp _bin_op, LibCallKind _lib_call, bool _is_degenerate,
+    ReductionExpr(std::shared_ptr<AssignmentExpr> _expr, BinaryOp _bin_op,
+                  LibCallKind _lib_call, bool _is_degenerate,
                   bool _taken = true)
-        : AssignmentExpr(*_expr),
-          bin_op(_bin_op), lib_call_kind(_lib_call), is_degenerate(_is_degenerate) {}
+        : AssignmentExpr(*_expr), bin_op(_bin_op), lib_call_kind(_lib_call),
+          is_degenerate(_is_degenerate) {}
     IRNodeKind getKind() final { return IRNodeKind::REDUCTION; }
 
     bool propagateType() final;
@@ -513,7 +512,8 @@ class SelectCall : public LibCallExpr {
         auto new_cond = cond->copy();
         auto new_true_arg = true_arg->copy();
         auto new_false_arg = false_arg->copy();
-        return std::make_shared<SelectCall>(new_cond, new_true_arg, new_false_arg);
+        return std::make_shared<SelectCall>(new_cond, new_true_arg,
+                                            new_false_arg);
     }
 
   private:
@@ -555,7 +555,6 @@ class AnyCall : public LogicalReductionBase {
         auto new_arg = arg->copy();
         return std::make_shared<AnyCall>(new_arg);
     }
-
 };
 
 class AllCall : public LogicalReductionBase {

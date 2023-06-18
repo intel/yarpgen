@@ -156,8 +156,7 @@ class RandValGen {
         return ret;
     }
 
-    template <class T>
-    void shuffleVector(std::vector<T> vec) {
+    template <class T> void shuffleVector(std::vector<T> vec) {
         std::shuffle(vec.begin(), vec.end(), rand_gen);
     }
 
