@@ -9,7 +9,9 @@ Yet Another Random Program Generator
 
 A generated random program is guaranteed to be statically and dynamically correct program. This implies no undefined behavior, but allows for implementation defined behavior.
 
-Currently, there exist two versions of YARPGen: one is designed to test loops (it is under development and lives in the main branch), and the other one is designed to test scalar optimizations (it lives in [v1 branch](https://github.com/intel/yarpgen/tree/v1)). More information about YARPGen and scalar version can be found in [this talk](https://www.youtube.com/watch?v=mb9aRoXnicE) and [this paper](papers/yarpgen-ooplsa-2020.pdf), published at the OOPSLA 2020 and received an ACM SIGPLAN distinguished paper award.
+Currently, there exist two versions of YARPGen: one is designed to test loops (it is under development and lives in the main branch), and the other one is designed to test scalar optimizations (it lives in [v1 branch](https://github.com/intel/yarpgen/tree/v1)).
+The information about YARPGen and loop version can be found in [this talk](https://youtu.be/Yyj2Fex9yEo) and [this paper](papers/yarpgen-pldi-2023.pdf), published at PLDI23.
+More information about scalar version can be found in [this talk](https://www.youtube.com/watch?v=mb9aRoXnicE) and [this paper](papers/yarpgen-ooplsa-2020.pdf), published at the OOPSLA 2020 and received an ACM SIGPLAN distinguished paper award.
 
 Each generated program consists of several files and after being compiled and run produces a decimal number, which is hash of all program global variable values. This number is supposed to be the same for all compilers and optimization levels. If the output differs for different compilers and/or optimization levels, you should have encountered a compiler bug.
 
@@ -51,7 +53,7 @@ ISPC testing
 
 If you want to test [ISPC](https://ispc.github.io/), make sure that it is present in your path, as well as
 [``ispc-proxy``](scripts/ispc-proxy) and [``ispc-disp``](scripts/ispc-disp). After that you can use
-[``run_gen.py``](scripts/run_gen.py) as usual.
+[``run_gen.py``](scripts/run_gen.py)  with ``--std=ispc`` as usual.
 
 Contacts
 --------
@@ -61,6 +63,8 @@ To contact authors, ask questions, or leave your feedback please use Github [iss
 People
 ------
 
+* Vsevolod Livinskii
 * Dmitry Babokin
 * John Regehr
-* Vsevolod Livinskiy
+
+Special thanks to Martin Liška and Detlef Riekenberg who used YARPGen to find bugs in various compilers.
