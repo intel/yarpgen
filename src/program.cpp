@@ -63,7 +63,7 @@ ProgramGenerator::ProgramGenerator() : hash_seed(0) {
 
 void ProgramGenerator::emitCheckFunc(std::ostream &stream) {
     std::ostream &out_file = stream;
-    out_file << "#include <stdio.h>\n#include<assert.h>\n\n";
+    out_file << "#include <stdio.h>\n\n";
 
     Options &options = Options::getInstance();
     if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
@@ -198,12 +198,9 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         else if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val =
                 std::make_shared<ConstantExpr>(var->getCurrentValue());
-            stream << "    assert(" << var_name << " == ";
+            stream << "    value_mismatch |= " << var_name << " != ";
             const_val->emit(ctx, stream);
-            stream << ");\n";
-            stream << "    //"
-                   << static_cast<int>(var->getCurrentValue().getUBCode())
-                   << "\n";
+            stream << ";\n";
         }
         else {
             ERROR("Unsupported");
@@ -235,7 +232,7 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
                 hashArray(array);
         }
         else if (options.getCheckAlgo() == CheckAlgo::ASSERTS)
-            stream << offset << "assert(";
+            stream << offset << "value_mismatch |= ";
         else
             ERROR("Unsupported");
 
@@ -245,10 +242,10 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
         if (options.getCheckAlgo() == CheckAlgo::ASSERTS) {
             auto const_val =
                 std::make_shared<ConstantExpr>((array->getCurrentValues(true)));
-            stream << "== ";
+            stream << "!= ";
             const_val->emit(ctx, stream);
             auto emit_cmp = [&arr_name, &ctx, &stream](IRValue val) {
-                stream << " || " << arr_name << " == ";
+                stream << " && " << arr_name << "!= ";
                 auto const_val = std::make_shared<ConstantExpr>(val);
                 const_val->emit(ctx, stream);
             };
@@ -257,7 +254,6 @@ void ProgramGenerator::emitCheck(std::shared_ptr<EmitCtx> ctx,
                 emit_cmp(array->getCurrentValues(false));
                 emit_cmp(array->getInitValues(false));
             }
-            stream << ")";
         }
         else
             stream << ")";
