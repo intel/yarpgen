@@ -94,7 +94,7 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "Can't parse check algo",
      OptionParser::parseCheckAlgo,
      "hash",
-     {"hash", "asserts", "precompute"}},
+     {"hash", "asserts"}},
     {OptionKind::INP_AS_ARGS,
      "",
      "--inp-as-args",
@@ -381,8 +381,6 @@ void OptionParser::parseCheckAlgo(std::string val) {
         options.setCheckAlgo(CheckAlgo::HASH);
     else if (val == "asserts")
         options.setCheckAlgo(CheckAlgo::ASSERTS);
-    else if (val == "precompute")
-        options.setCheckAlgo(CheckAlgo::PRECOMPUTE);
     else
         printHelpAndExit("Can't recognize checking algorithm");
 }
