@@ -49,9 +49,10 @@ GenPolicy::GenPolicy() {
     scope_stmt_max_num = 5;
     uniformProbFromMax(scope_stmt_num_distr, scope_stmt_max_num,
                        scope_stmt_min_num);
-
-    iters_end_limit_min = 10;
-    iter_end_limit_max = 25;
+    // 배열의 크기 가장 작은 수
+    iters_end_limit_min = 2;
+    // 배열의 크기 가장 큰수
+    iter_end_limit_max = 20;
     iters_step_distr.emplace_back(Probability<size_t>{1, 10});
     iters_step_distr.emplace_back(Probability<size_t>{2, 10});
     iters_step_distr.emplace_back(Probability<size_t>{3, 10});
@@ -351,13 +352,13 @@ GenPolicy::GenPolicy() {
     stencil_dim_num_distr.emplace_back(4, 10);
     shuffleProbProxy(stencil_dim_num_distr);
 
-    array_dims_num_limit = 7;
+    //array_dims_num_limit = 7;
     // It looks like ISPC has trouble allocating arrays that require a lot of
     // memory. We limit the number of dimensions to 4.
     // The issue is that we have to always allocate arrays that contain at
     // least max_ispc_vector size elements. Otherwise, we get a runtime error.
-    if (options.isISPC())
-        array_dims_num_limit = 4;
+    //if (options.isISPC())
+    array_dims_num_limit = 4;
 
     // Arrays with single dimension require a separate treatment. Otherwise, we
     // do not get the desired distribution.
