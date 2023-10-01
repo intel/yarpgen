@@ -16,17 +16,13 @@ limitations under the License.
 */
 
 //////////////////////////////////////////////////////////////////////////////
-#include "options.h"
-#include "program.h"
-#include "utils.h"
 
-#include <iostream>
-#include <string>
-#include <vector>
+#include "yarpgen.h"
 
 using namespace yarpgen;
 
-int main(int argc, char *argv[]) {
+int gen_yargen(int argc, char *argv[]) {
+    
     OptionParser::initOptions();
     OptionParser::parse(argc, argv);
 

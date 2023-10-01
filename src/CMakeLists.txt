@@ -50,7 +50,7 @@ set(LIB_SRCS
 # Common std and build flags for all executables
 set(STD cxx_std_17)
 set(FLAGS #  $<$<CXX_COMPILER_ID:MSVC>:/WX>
-  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror>
+  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall -Wpedantic -Werror -fPIC>
   -DBUILD_VERSION="${GIT_HASH}" -DBUILD_DATE="${BUILD_DATE}"
   -DYARPGEN_VERSION_MAJOR="${PROJECT_VERSION_MAJOR}" -DYARPGEN_VERSION_MINOR="${PROJECT_VERSION_MINOR}")
 
@@ -60,32 +60,36 @@ target_compile_features(yarpgen_lib PRIVATE ${STD})
 target_compile_options(yarpgen_lib PRIVATE ${FLAGS})
 
 # Main executable
-add_executable(yarpgen main.cpp)
+add_library(yarpgen SHARED yarpgen.cpp)
 target_compile_features(yarpgen PRIVATE ${STD})
 target_compile_options(yarpgen PRIVATE ${FLAGS})
 target_link_libraries(yarpgen yarpgen_lib)
+set_target_properties(yarpgen PROPERTIES PUBLIC_HEADER yarpgen.h)
 # Copy main executable next to scripts for convenience
 add_custom_command(TARGET yarpgen
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:yarpgen> ${CMAKE_SOURCE_DIR}/scripts)
 
-# Test executables
-add_executable(type_test type_test.cpp)
-target_compile_features(type_test PRIVATE ${STD})
-target_compile_options(type_test PRIVATE ${FLAGS})
-target_link_libraries(type_test yarpgen_lib)
-
-add_executable(data_test data_test.cpp)
-target_compile_features(data_test PRIVATE ${STD})
-target_compile_options(data_test PRIVATE ${FLAGS})
-target_link_libraries(data_test yarpgen_lib)
-
-add_executable(expr_test expr_test.cpp)
-target_compile_features(expr_test PRIVATE ${STD})
-target_compile_options(expr_test PRIVATE ${FLAGS})
-target_link_libraries(expr_test yarpgen_lib)
-
-add_executable(gen_test gen_test.cpp)
-target_compile_features(gen_test PRIVATE ${STD})
-target_compile_options(gen_test PRIVATE ${FLAGS})
-target_link_libraries(gen_test yarpgen_lib)
+install(TARGETS yarpgen LIBRARY DESTINATION lib
+      PUBLIC_HEADER DESTINATION include
+      )
+## Test executables
+#add_executable(type_test type_test.cpp)
+#target_compile_features(type_test PRIVATE ${STD})
+#target_compile_options(type_test PRIVATE ${FLAGS})
+#target_link_libraries(type_test yarpgen_lib)
+#
+#add_executable(data_test data_test.cpp)
+#target_compile_features(data_test PRIVATE ${STD})
+#target_compile_options(data_test PRIVATE ${FLAGS})
+#target_link_libraries(data_test yarpgen_lib)
+#
+#add_executable(expr_test expr_test.cpp)
+#target_compile_features(expr_test PRIVATE ${STD})
+#target_compile_options(expr_test PRIVATE ${FLAGS})
+#target_link_libraries(expr_test yarpgen_lib)
+#
+#add_executable(gen_test gen_test.cpp)
+#target_compile_features(gen_test PRIVATE ${STD})
+#target_compile_options(gen_test PRIVATE ${FLAGS})
+#target_link_libraries(gen_test yarpgen_lib)
