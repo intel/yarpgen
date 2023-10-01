@@ -21,8 +21,8 @@ limitations under the License.
 
 using namespace yarpgen;
 
-int gen_yargen(int argc, char *argv[]) {
-    
+int gen_yarpgen(int argc, char *argv[]) {
+
     OptionParser::initOptions();
     OptionParser::parse(argc, argv);
 

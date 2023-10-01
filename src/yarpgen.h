@@ -8,5 +8,5 @@
 #include <vector>
 
 extern "C" {
-    int gen_yargen(int, char**);
+    int gen_yarpgen(int, char**);
 }
