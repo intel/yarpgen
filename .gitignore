@@ -20,3 +20,4 @@ csmith_statistics_*.log
 build/
 out/
 .DS_Store
+.vscode
