@@ -224,7 +224,7 @@ enum class ArrayDimsReuseKind { SAME, OFFSET, SCALE, COMBINE };
 // REPEAT means that we repeat the iterator that we've used before. It also
 // conflicts with the dimensions in-order setting
 // SWAP means that we swap new iterator with one that we've used before.
-// The goal here is to alternate the order so we can generate somthing like
+// The goal here is to alternate the order so we can generate something like
 // matrix multiplication
 enum class SubscriptKind { CONST, ITER, OFFSET, REPEAT };
 // We need to make sure that we create special cases of array access patterns

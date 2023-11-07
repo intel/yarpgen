@@ -202,7 +202,7 @@ class Test(object):
     # Generate new test
     # stat is statistics object
     # seed is optional, if we want to generate some particular seed.
-    # proc_num is optinal debug info to track in what process we are running this activity.
+    # proc_num is optional debug info to track in what process we are running this activity.
     def __init__(self, stat, seed="", proc_num=-1, blame=False, creduce_makefile=None):
         # Run generator
         yarpgen_run_list = [".." + os.sep + "yarpgen",
@@ -292,7 +292,7 @@ class Test(object):
     def add_fail_run(self, test_run):
         self.fail_test_runs.append(test_run)
 
-    # Save failed runs and verify successul runs
+    # Save failed runs and verify successful runs
     def handle_results(self, lock):
         # Handle compfails and runfails.
         self.save_failed(lock)
@@ -387,7 +387,7 @@ class Test(object):
             for run in results.values():
                 bad_runs += run
 
-        # Run blame triagging for one of failing optsets
+        # Run blame triaging for one of failing optsets
         if self.blame and good_runs:
             do_blame(self, self.files, good_runs[0].checksum, bad_runs[0].target)
 
@@ -756,7 +756,7 @@ class Test(object):
         test_sh +="[ $RETCODE -eq " + str(runfail_run.run_ret_code) + " ] && \\\n"
         # it's "temporary" (until LLVM bug 33133 is fixed).
         # This is needed when reduceing gcc_ubsan problem. Without this check we have good chances to reduce to the code
-        # snipent, which contains left shift of negative value (caught by gcc ubsan, but not clang ubsan).
+        # snippet, which contains left shift of negative value (caught by gcc ubsan, but not clang ubsan).
         test_sh +="! grep \"left shift of negative value\" err.log && \\\n"
 
         test_sh +="make -f $TEST_PWD" + os.sep + creduce_makefile_name + " " + ubsan_run.optset + " && \\\n"
@@ -1041,7 +1041,7 @@ def do_blame(test_obj, test_files, good_result, target_to_blame):
             lock = None,
             num = test_obj.proc_num,
             inplace = True)
-        # Copy resuls back
+        # Copy results back
         os.chdir(current_dir)
         if os.path.exists("blame/Blame_Makefile"):
             common.check_and_copy("blame/Blame_Makefile", ".")
@@ -1052,7 +1052,7 @@ def do_blame(test_obj, test_files, good_result, target_to_blame):
         # interpret results
         if type(blame_phase) is str:
             test_obj.blame_phase = blame_phase
-            test_obj.blame_result = "was successul"
+            test_obj.blame_result = "was successful"
         else:
             test_obj.blame_result = "has failed"
     except Exception as e:
@@ -1721,7 +1721,7 @@ Use specified folder for testing
                              "clang, ubsan_clang, polly and gcc (ubsan_clang is a clang with sanitizer options)."
                              "They can be separated by a space or comma.")
     parser.add_argument("-j", dest="num_jobs", default=multiprocessing.cpu_count(), type=int,
-                        help='Maximum number of instances to run in parallel. By defaulti, it is set to'
+                        help='Maximum number of instances to run in parallel. By default, it is set to'
                              ' number of processor in your system')
     parser.add_argument("--config-file", dest="config_file",
                         default=os.path.join(common.yarpgen_scripts, gen_test_makefile.default_test_sets_file_name),
@@ -1735,10 +1735,10 @@ Use specified folder for testing
     parser.add_argument("--seeds", dest="seeds_option_value", default="", type=str,
                         help="List of generator seeds to run or a file name with the list of seeds. "\
                              "Seeds may be separated by whitespaces and commas."\
-                             "The seed may start with S_ or end with /, i.e. S_12345/ is interpretted as 12345."
+                             "The seed may start with S_ or end with /, i.e. S_12345/ is interpreted as 12345."
                              "File comments may start with #")
     parser.add_argument("--blame", dest="blame", default=False, action="store_true",
-                        help="Enable optimization triagging for failing tests for supported compilers")
+                        help="Enable optimization triaging for failing tests for supported compilers")
     parser.add_argument("--creduce", dest="creduce", nargs='?', const=4, type=int, default=False,
                         help="Enable test reduction using CReduce tool. When given a number, "
                              "it's used as a number of creduce processes run for a single reduction (default is 4)")

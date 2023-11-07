@@ -263,7 +263,7 @@ def run_cmd(cmd, time_out=None, num=-1, memory_limit=None):
             except ValueError:
                 output = b''
                 err_output = b''
-            log_msg(logging.DEBUG, "Procces " + str(process.pid) + " has finally died")
+            log_msg(logging.DEBUG, "Process " + str(process.pid) + " has finally died")
             is_time_expired = True
             ret_code = None
         except:
@@ -271,7 +271,7 @@ def run_cmd(cmd, time_out=None, num=-1, memory_limit=None):
             # Something really bad is going on, so better to send sigkill
             os.killpg(os.getpgid(process.pid), signal.SIGKILL)
             process.wait()
-            log_msg(logging.DEBUG, "Procces " + str(process.pid) + " has finally died")
+            log_msg(logging.DEBUG, "Process " + str(process.pid) + " has finally died")
             raise
     end_time = os.times()
     elapsed_time = end_time.children_user - start_time.children_user + \
