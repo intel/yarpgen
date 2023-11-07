@@ -97,7 +97,7 @@ def prepare_and_start(work_dir, config_file, timeout, num_jobs, csmith_bin_path,
     # Check for binary of generator
     csmith_home = os.environ.get("CSMITH_HOME")
     if csmith_home is None:
-        common.print_and_exit("Please set CSMITH_HOME envirnoment variable")
+        common.print_and_exit("Please set CSMITH_HOME environment variable")
     csmith_bin = os.path.abspath(csmith_home + os.sep + csmith_bin_path + os.sep + "csmith")
     common.check_and_copy(csmith_bin, work_dir)
     os.chdir(work_dir)

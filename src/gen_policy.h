@@ -53,7 +53,7 @@ class GenPolicy {
     // Hard threshold for loop depth
     size_t loop_depth_limit;
 
-    // Hard threshold for if-else dpeth
+    // Hard threshold for if-else depth
     size_t if_else_depth_limit;
 
     // Number of statements in a scope

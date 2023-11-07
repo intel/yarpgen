@@ -190,7 +190,7 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
                 blame_str += i
                 blame_phase_num = execute_blame_phase(valid_res, fail_target, blame_str, num, phase_num)
                 if fail_target.specs.name == "dpcpp":
-                    # Special case becasue triagging mechanism is different and there's only one level of triagging.
+                    # Special case because triaging mechanism is different and there's only one level of triaging.
                     blame_str += str(blame_phase_num-1)
                 else:
                     blame_str += str(blame_phase_num)
@@ -224,7 +224,7 @@ def blame(fail_dir, valid_res, fail_target, out_dir, lock, num, inplace):
             opt_name = opt_name.replace(" ", "_")
         else:
             if blame_phase_num == 1:
-                # It's special case for DPC++. 1 means that triagging failed, no specific phase can be blamed.
+                # It's special case for DPC++. 1 means that triaging failed, no specific phase can be blamed.
                 real_opt_name = opt_name = "FailedToBlame"
             else:
                 opt_name_pattern = re.compile(compilers_opt_name_cutter[fail_target.specs.name][0] + ".*" +

@@ -51,7 +51,7 @@ class MakefileVariable:
         self.name = name
         self.value = value
 
-# I can't use build-in dictionary, because variables should be ordered
+# I can't use built-in dictionary, because variables should be ordered
 Makefile_variable_list = []
 
 cxx_flags = MakefileVariable("CXXFLAGS", "")

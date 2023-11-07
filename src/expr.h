@@ -402,7 +402,7 @@ class ReductionExpr : public AssignmentExpr {
     BinaryOp bin_op;
     LibCallKind lib_call_kind;
     std::shared_ptr<Expr> result_expr;
-    // This member indicates if we want to use a simpel AssignmentExpr as a
+    // This member indicates if we want to use a simple AssignmentExpr as a
     // fallback option for reduction
     bool is_degenerate;
 };

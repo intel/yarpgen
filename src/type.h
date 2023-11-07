@@ -173,7 +173,7 @@ class TypeBool : public IntegralTypeHelper<bool> {
         : IntegralTypeHelper(getIntTypeId(), _is_static, _cv_qual) {}
 
     //  TODO: decouple language representation of the type from back-end type.
-    // I.e. for different languages the name ofter type and the suffix might be
+    // I.e. for different languages the name of the type and the suffix might be
     // different.
     IntTypeID getIntTypeId() final { return IntTypeID::BOOL; }
     std::string getName(std::shared_ptr<EmitCtx> ctx) final {
