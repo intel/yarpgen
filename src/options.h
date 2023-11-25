@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include "enums.h"
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <map>
