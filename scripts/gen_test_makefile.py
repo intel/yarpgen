@@ -185,7 +185,7 @@ class StatisticsOptions (object):
         try:
             return StatisticsOptions.all_stats_options[spec.name].options
         except KeyError:
-            common.print_and_exit("Can't find key!")
+            common.print_and_exit("Can't find key!" + spec)
 
 ###############################################################################
 # Section for config parser
@@ -209,7 +209,7 @@ def add_specs(spec_list):
         CompilerSpecs(spec_list[0], spec_list[1], spec_list[2], spec_list[3], spec_list[4])
         common.log_msg(logging.DEBUG, "Finished adding compiler spec")
     except KeyError:
-        common.print_and_exit("Can't find key!")
+        common.print_and_exit("Can't find key! " + spec_list[0] + " " + spec_list[1] + " " + spec_list[2] + " " + spec_list[3] + " " + spec_list[4])
 
 
 def add_sets(set_list):
@@ -219,7 +219,7 @@ def add_sets(set_list):
                        Arch(set_list[3], SdeArch[set_list[4]]))
         common.log_msg(logging.DEBUG, "Finished adding testing set")
     except KeyError:
-        common.print_and_exit("Can't find key!")
+        common.print_and_exit("Can't find key! " + set_list[0] + " " + set_list[1] + " " + set_list[2] + " " + set_list[3] + " " + set_list[4])
 
 
 def add_stats_options(stats_opt_list):
@@ -229,7 +229,7 @@ def add_stats_options(stats_opt_list):
         StatisticsOptions(CompilerSpecs.all_comp_specs[stats_opt_list[0]], stats_opt_list[1])
         common.log_msg(logging.DEBUG, "Finished adding stats option string")
     except KeyError:
-        common.print_and_exit("Can't find key!")
+        common.print_and_exit("Can't find key! " + stats_opt_list[0] + " " + stats_opt_list[1])
 
 
 def read_compiler_specs(config_iter, function, next_section_name=""):
