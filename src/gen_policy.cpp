@@ -537,7 +537,8 @@ void GenPolicy::uniformProbFromMax(std::vector<Probability<T>> &distr,
 
 template <class T, class U>
 void GenPolicy::removeProbability(std::vector<Probability<T>> &orig, U id) {
-    std::remove_if(
+    auto new_end = std::remove_if(
         orig.begin(), orig.end(),
         [&id](Probability<T> &elem) -> bool { return elem.getId() == id; });
+    orig.erase(new_end, orig.end());
 }
