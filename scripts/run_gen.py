@@ -30,6 +30,7 @@ import multiprocessing
 import multiprocessing.managers
 import os
 import platform
+import platform
 import re
 import shutil
 import stat
@@ -1511,8 +1512,9 @@ def prepare_env_and_start_testing(out_dir, timeout, targets, num_jobs, config_fi
 
     # Check for binary of generator
     yarpgen_bin = os.path.abspath(common.yarpgen_scripts + os.sep + "yarpgen")
-    if(platform.system() == "Windows"):
+    if (platform.system() == 'Windows') :
         yarpgen_bin += ".exe"
+
     common.check_and_copy(yarpgen_bin, out_dir)
     ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([yarpgen_bin, "-v"], yarpgen_timeout, 0)
     common.yarpgen_version_str = str(output, "utf-8")
