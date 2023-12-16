@@ -592,7 +592,7 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     auto new_ctx = std::make_shared<PopulateCtx>(ctx);
     bool old_ctx_state = new_ctx->isTaken();
-    std::vector<std::shared_ptr<LoopHead>>::iterator taken_switch_id;
+    auto taken_switch_id = loops.end();
     auto simd_switch_id = loops.end();
     auto mul_val_loop_idx = loops.end();
     for (auto i = loops.begin(); i != loops.end(); ++i) {
