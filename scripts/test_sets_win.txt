@@ -1,0 +1,66 @@
+###############################################################################
+#
+# Copyright (c) 2016-2023, Intel Corporation
+# Copyright (c) 2019-2020, University of Utah
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+###############################################################################
+# README:
+# Testing configuration file
+# You can start single-line comment with #. Don't use indentation at the beginning of line!
+# Config can contain only one "Compiler specs" and "Testing sets" blocks!
+# You should always specify "Compiler specs" before "Testing sets"!
+###############################################################################
+
+Compiler specs:
+# Spec name - codename for compiler and its options
+# Executable name - name of compiler binary file. It should be in your PATH
+# Common arguments - arguments which will be passed to every compiler run
+# Arch prefix - prefix for specifying different architectures (it will be concatenated with Compiler arch value)
+
+
+# Spec name | C++ executable name | C executable name | Common arguments                                            | Arch prefix
+msvc        | C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.38.33130/bin/Hostx64/x64/cl.exe | C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.38.33130/bin/Hostx64/x64/cl.exe |    |
+clangcl     | C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64/bin/clang-cl.exe | C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64/bin/clang-cl.exe | |
+#gcc         | g++                 | gcc               | -fPIC -mcmodel=large -w -fpermissive                                            | -march=
+#clang       | clang++             | clang             | -fPIC -mcmodel=large -w -fopenmp-simd                                            | -march=
+#polly       | clang++             | clang             | -fPIC -mcmodel=large -w -fopenmp-simd -mllvm -polly -mllvm -polly-vectorizer=stripmine | -march=
+# Ubsan is clang or gcc with sanitizer options. It is used for generator check.
+# If you want to use sanitizer with -m32, please make sure that you pass "-rtlib=compiler-rt -lgcc_s" options if you are using clang.
+# Otherwise it may fail with "undefined reference to `__mulodi4'" error message.
+# See https://bugs.llvm.org//show_bug.cgi?id=16404 for more information
+# Note that -fpermissive option for gcc is required to allow reduction of ubsan_gcc fails.
+# Otherwise result of reduction is empty program.
+
+Testing sets:
+# Set name - codename for testing set
+# Spec name - codename of spec, it should be described in Compiler specs
+# Arguments - compiler options for this testing set
+# Compiler arch - architecture which will be passed to compiler
+# Sde arch - architecture which will be passed to SDE
+
+# Set name       | Spec name   | Arguments | Compiler arch  | Sde arch
+
+msvc_no_opt       | msvc       |           |                |
+msvc_opt          | msvc       | /O2       |                |
+clangcl_no_opt    | clangcl    |           |                |
+clangcl_opt       | clangcl    | /O2       |                |
+#gcc_no_opt       | gcc       | -O0       |                |
+#gcc_opt          | gcc       | -O3       |                |
+
+#clang_no_opt     | clang     | -O0       |                |
+#clang_opt        | clang     | -O3       |                |
+
+Options for statistics' capture:
+#Spec name  | Arguments

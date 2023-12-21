@@ -32,9 +32,10 @@ import common
 Test_Makefile_name = "Test_Makefile"
 license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
-default_test_sets_file_name = "test_sets.txt"
 
-default_config_file = "test_sets.txt"
+default_test_sets_file_name = "test_sets_win.txt" if (platform.system() == "Windows") else "test_sets.txt"
+
+default_config_file = default_test_sets_file_name
 comp_specs_line = "Compiler specs:"
 spec_list_len = 5
 test_sets_line = "Testing sets:"
