@@ -23,6 +23,7 @@
 import argparse
 import logging
 import os
+import platform
 import sys
 import re
 
@@ -268,6 +269,8 @@ def parse_config(file_name):
 def detect_native_arch():
     check_isa_file = os.path.abspath(common.yarpgen_scripts + os.sep + check_isa_file_name)
     check_isa_binary = os.path.abspath(common.yarpgen_scripts + os.sep + check_isa_file_name.replace(".cpp", ""))
+    if (platform.system() == 'Windows'):
+        check_isa_binary += ".exe"
 
     sys_compiler = ""
     for key in CompilerSpecs.all_comp_specs:
@@ -281,12 +284,16 @@ def detect_native_arch():
     if not common.if_exec_exist(check_isa_binary):
         if not os.path.exists(check_isa_file):
             common.print_and_exit("Can't find " + check_isa_file)
-        ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None)
+        if (platform.system() == 'Windows'):
+            ret_code, output, err_output, time_expired, elapsed_time = \
+                common.run_cmd([sys_compiler, check_isa_file, "/Fe:\""+check_isa_binary+"\""], None)
+        else:
+            ret_code, output, err_output, time_expired, elapsed_time = \
+                common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None)
         if ret_code != 0:
             common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
 
-    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([check_isa_binary], None)
+    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd(cmd=[check_isa_binary], time_out=None, compilation_cmd=False)
     if ret_code != 0:
         common.print_and_exit("Error while executing " + check_isa_binary)
     native_arch_str = str(output, "utf-8").split()[0]
