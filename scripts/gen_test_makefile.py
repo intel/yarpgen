@@ -23,6 +23,7 @@
 import argparse
 import logging
 import os
+import platform
 import sys
 import re
 
@@ -31,9 +32,10 @@ import common
 Test_Makefile_name = "Test_Makefile"
 license_file_name = "LICENSE.txt"
 check_isa_file_name = "check_isa.cpp"
-default_test_sets_file_name = "test_sets.txt"
 
-default_config_file = "test_sets.txt"
+default_test_sets_file_name = "test_sets_win.txt" if (platform.system() == "Windows") else "test_sets.txt"
+
+default_config_file = default_test_sets_file_name
 comp_specs_line = "Compiler specs:"
 spec_list_len = 5
 test_sets_line = "Testing sets:"
@@ -268,6 +270,8 @@ def parse_config(file_name):
 def detect_native_arch():
     check_isa_file = os.path.abspath(common.yarpgen_scripts + os.sep + check_isa_file_name)
     check_isa_binary = os.path.abspath(common.yarpgen_scripts + os.sep + check_isa_file_name.replace(".cpp", ""))
+    if (platform.system() == 'Windows'):
+        check_isa_binary += ".exe"
 
     sys_compiler = ""
     for key in CompilerSpecs.all_comp_specs:
@@ -281,12 +285,16 @@ def detect_native_arch():
     if not common.if_exec_exist(check_isa_binary):
         if not os.path.exists(check_isa_file):
             common.print_and_exit("Can't find " + check_isa_file)
-        ret_code, output, err_output, time_expired, elapsed_time = \
-            common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None)
+        if (platform.system() == 'Windows'):
+            ret_code, output, err_output, time_expired, elapsed_time = \
+                common.run_cmd([sys_compiler, check_isa_file, "/Fe:\""+check_isa_binary+"\""], None)
+        else:
+            ret_code, output, err_output, time_expired, elapsed_time = \
+                common.run_cmd([sys_compiler, check_isa_file, "-o", check_isa_binary], None)
         if ret_code != 0:
             common.print_and_exit("Can't compile " + check_isa_file + ": " + str(err_output, "utf-8"))
 
-    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd([check_isa_binary], None)
+    ret_code, output, err_output, time_expired, elapsed_time = common.run_cmd(cmd=[check_isa_binary], time_out=None, compilation_cmd=False)
     if ret_code != 0:
         common.print_and_exit("Error while executing " + check_isa_binary)
     native_arch_str = str(output, "utf-8").split()[0]
@@ -333,7 +341,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             compiler_name = target.specs.comp_c_name
         if common.selected_standard.is_cxx():
             compiler_name = target.specs.comp_cxx_name
-        output += target.name + ": " + "COMPILER=" + compiler_name + "\n"
+        output += target.name + ": " + "COMPILER=\"" + compiler_name + "\"\n"
 
         optflags_str = target.name + ": " + "OPTFLAGS=" + target.args
         if target.arch.comp_name != "":
@@ -341,7 +349,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         optflags_str += "\n"
         output += optflags_str
         # For performance reasons driver should always be compiled with -O0
-        output += re.sub("-O\d", "-O0", (optflags_str.replace("OPTFLAGS", "DRIVER_OPTFLAGS")))
+        output += re.sub("/O\d", "/O0", (optflags_str.replace("OPTFLAGS", "DRIVER_OPTFLAGS")))
 
         if inject_blame_opt is not None:
             output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
@@ -358,7 +366,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             output += "$(SOURCES:" + common.get_file_ext() + "=.o))\n"
         else:
             output += "$(patsubst %.ispc,%.o," + "$(SOURCES:" + common.get_file_ext() + "=.o))" + ")\n"
-        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
+        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) /Fe:$(EXECUTABLE).exe $^\n\n"
 
     if stat_targets is not None and len(stat_targets) != 0:
         common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets), forced_duplication=True)
@@ -377,7 +385,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += "%" + source_name + ".o: " + source_prefix + source + force_str
         # For performance reasons driver should always be compiled with -O0
         optflags_name = "$(OPTFLAGS)" if source_name != "driver" else "$(DRIVER_OPTFLAGS)"
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " -o $@ -c $<"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " /Fe:$@.exe -c $<"
         if source_name == "func":
             output += " $(STATFLAGS) "
             if inject_blame_opt is not None:

@@ -27,6 +27,7 @@ import enum
 import errno
 import logging
 import os
+import platform
 import shutil
 import signal
 import subprocess
@@ -231,7 +232,7 @@ def check_dir_and_create(directory):
         print_and_exit("Can't use '" + norm_dir + "' directory")
 
 
-def run_cmd(cmd, time_out=None, num=-1, memory_limit=None):
+def run_cmd(cmd, time_out=None, num=-1, memory_limit=None, compilation_cmd=True):
     is_time_expired = False
     shell = False
     if memory_limit is not None:
@@ -239,6 +240,12 @@ def run_cmd(cmd, time_out=None, num=-1, memory_limit=None):
         new_cmd = "ulimit -v " + str(memory_limit) + " ; "
         new_cmd += " ".join(i for i in cmd)
         cmd = new_cmd
+    if platform.system() == "Windows" and compilation_cmd:
+        shell = True
+        new_cmd = "\"/mnt/c/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat\" ; "
+        new_cmd += " ".join(i for i in cmd)
+        cmd = new_cmd
+
     start_time = os.times()
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, shell=shell) as process:
         try:
