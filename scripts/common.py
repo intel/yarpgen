@@ -242,7 +242,7 @@ def run_cmd(cmd, time_out=None, num=-1, memory_limit=None, compilation_cmd=True)
         cmd = new_cmd
     if platform.system() == "Windows" and compilation_cmd:
         shell = True
-        new_cmd = "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat ; "
+        new_cmd = "\"/mnt/c/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat\" ; "
         new_cmd += " ".join(i for i in cmd)
         cmd = new_cmd
 

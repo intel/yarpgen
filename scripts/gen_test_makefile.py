@@ -341,7 +341,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             compiler_name = target.specs.comp_c_name
         if common.selected_standard.is_cxx():
             compiler_name = target.specs.comp_cxx_name
-        output += target.name + ": " + "COMPILER=" + compiler_name + "\n"
+        output += target.name + ": " + "COMPILER=\"" + compiler_name + "\"\n"
 
         optflags_str = target.name + ": " + "OPTFLAGS=" + target.args
         if target.arch.comp_name != "":
@@ -349,7 +349,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         optflags_str += "\n"
         output += optflags_str
         # For performance reasons driver should always be compiled with -O0
-        output += re.sub("-O\d", "-O0", (optflags_str.replace("OPTFLAGS", "DRIVER_OPTFLAGS")))
+        output += re.sub("/O\d", "/O0", (optflags_str.replace("OPTFLAGS", "DRIVER_OPTFLAGS")))
 
         if inject_blame_opt is not None:
             output += target.name + ": " + "BLAMEOPTS=" + inject_blame_opt + "\n"
@@ -366,7 +366,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
             output += "$(SOURCES:" + common.get_file_ext() + "=.o))\n"
         else:
             output += "$(patsubst %.ispc,%.o," + "$(SOURCES:" + common.get_file_ext() + "=.o))" + ")\n"
-        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) -o $(EXECUTABLE) $^\n\n"
+        output += "\t" + "$(COMPILER) $(LDFLAGS) $(STDFLAGS) $(OPTFLAGS) /Fe:$(EXECUTABLE).exe $^\n\n"
 
     if stat_targets is not None and len(stat_targets) != 0:
         common.log_msg(logging.WARNING, "Can't find relevant stat_targets: " + str(stat_targets), forced_duplication=True)
@@ -385,7 +385,7 @@ def gen_makefile(out_file_name, force, config_file, only_target=None, inject_bla
         output += "%" + source_name + ".o: " + source_prefix + source + force_str
         # For performance reasons driver should always be compiled with -O0
         optflags_name = "$(OPTFLAGS)" if source_name != "driver" else "$(DRIVER_OPTFLAGS)"
-        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " -o $@ -c $<"
+        output += "\t" + "$(COMPILER) $(CXXFLAGS) $(STDFLAGS) " + optflags_name + " /Fe:$@.exe -c $<"
         if source_name == "func":
             output += " $(STATFLAGS) "
             if inject_blame_opt is not None:
