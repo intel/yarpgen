@@ -2,6 +2,8 @@ name: Build YARPGen and generate sample tests
 
 on: [push, pull_request, workflow_dispatch]
 
+permissions: read-all
+
 jobs:
   build-and-run-lin:
     runs-on: ubuntu-latest
