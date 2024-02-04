@@ -201,6 +201,10 @@ void SymbolTable::emit_variable_def (std::ostream& stream, std::string offset) {
 void SymbolTable::emit_variable_check (std::ostream& stream, std::string offset) {
     for (const auto &i : variable) {
         stream << offset + "hash(&seed, " + i->get_name() + ");\n";
+        if (options->reduce) {
+            stream << offset + "printf(\"" + i->get_name() + ":%llu\\n\", seed);\n";
+            stream << offset + "seed=0;\n";
+        }
     }
 }
 
@@ -300,6 +304,12 @@ void SymbolTable::emit_single_struct_check (std::shared_ptr<MemberExpr> parent_m
             stream << offset + "hash(&seed, ";
             member_expr->emit(stream);
             stream << ");\n";
+            if (options->reduce) {
+                stream << offset + "printf(\"";
+                member_expr->emit(stream);
+                stream << ":%llu\\n\", seed);\n";
+                stream << offset + "seed=0;\n";
+            }
         }
     }
 }
@@ -357,6 +367,10 @@ void SymbolTable::emit_array_check (std::ostream& stream, std::string offset) {
             switch (array_elem->get_class_id()) {
                 case Data::VAR:
                     stream << offset + "hash(&seed, " + array_elem->get_name() + ");\n";
+                    if (options->reduce) {
+                        stream << offset + "printf(\"" + array_elem->get_name() + ":%llu\\n\", seed);\n";
+                        stream << offset + "seed=0;\n";
+                    }
                     break;
                 case Data::STRUCT:
                     emit_single_struct_check(nullptr, std::static_pointer_cast<Struct>(array_elem), stream, offset);
@@ -392,6 +406,12 @@ void SymbolTable::emit_ptr_check (std::ostream& stream, std::string offset) {
         stream << offset + "hash(&seed, ";
         pointers.deref_expr.at(i)->emit(stream);
         stream << ");\n";
+        if (options->reduce) {
+            stream << offset + "printf(\"";
+            pointers.deref_expr.at(i)->emit(stream);
+            stream << ":%llu\\n\", seed);\n";
+            stream << offset + "seed=0;\n";
+        }
     }
 }
 

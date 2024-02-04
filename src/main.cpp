@@ -74,6 +74,7 @@ void print_usage_and_exit (std::string error_msg = "") {
     std::cout << "\t-d, --out-dir=<out-dir>   Output directory\n";
     std::cout << "\t-s, --seed=<seed>         Predefined seed (it is accepted in form of SSS or VV_SSS)\n";
     std::cout << "\t-m, --bit-mode=<32/64>    Generated test's bit mode\n";
+    std::cout << "\t-r, --reduce              Generate test with verbose output to help reduce a failed testcase\n";
     std::cout << "\t--std=<standard>          Generated test's language standard\n";
     auto search_for_default_std = [] (const std::pair<std::string, Options::StandardID> &pair) {
         return pair.second == options->standard_id;
@@ -196,6 +197,9 @@ int main (int argc, char* argv[128]) {
         }
         else if (!strcmp(argv[i], "-q")) {
             quiet = true;
+        }
+        else if (!strcmp(argv[i], "-r") || !strcmp(argv[i], "--reduce")) {
+            options->reduce = true;
         }
         else if (parse_long_args(i, argv, "--std", standard_action,
                                  "Can't recognize language standard:")) {}
