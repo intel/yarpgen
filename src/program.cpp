@@ -395,9 +395,17 @@ void Program::emit_main () {
         tf_prefix = NameHandler::common_test_func_prefix + std::to_string(i) + "_";
         out_file << "    " << tf_prefix << "init ();\n";
         out_file << "    " << tf_prefix << "foo ();\n";
-        out_file << "    " << tf_prefix << "checksum ();\n\n";
+        out_file << "    " << tf_prefix << "checksum ();\n";
+        if (options->reduce) {
+            out_file << "    printf(\"%d:%llu\\n\", __LINE__, seed);\n";
+            if (i < gen_policy.get_test_func_count()) {
+                out_file << "    seed=0;\n\n";
+            }
+        }
     }
-    out_file << "    printf(\"%llu\\n\", seed);\n";
+    if (!options->reduce) {
+        out_file << "\n    printf(\"%llu\\n\", seed);\n";
+    }
     out_file << "    return 0;\n";
     out_file << "}\n";
 
