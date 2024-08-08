@@ -16,7 +16,7 @@ import sys
 
 
 ispc_replacements = [('-c', ''), ('-std=c++11', '')]
-clang_replacements = [('-woff', '-w')]
+clang_replacements = [('-woff', '-w'), ('--pic', '-fPIC'), ('--mcmodel=large', '-mcmodel=large')]
 targ_replacements = [('sse\d', 'westmere'),
                      ('avx1', 'sandybridge'),
                      ('avx2', 'haswell'),
