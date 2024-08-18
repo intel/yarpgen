@@ -1750,7 +1750,7 @@ Use specified folder for testing
                         help="Do not run tmp_cleaner.sh script during the run")
     parser.add_argument("--collect-stat", dest="collect_stat", default="", type=str,
                         help="List of testing sets for statistics collection")
-    parser.add_argument("--ignore-comp-time-exp", dest="ignore_comp_time_exp", default=True, action="store_true",
+    parser.add_argument("--ignore-comp-time-exp", dest="ignore_comp_time_exp", default=True, action="store_false",
                         help="Don't save files (except log-file) when compile time expires")
     args = parser.parse_args()
 
