@@ -10,8 +10,8 @@ ENV LLVM_HOME=$TESTING_HOME/llvm
 ARG LLVM_REPO=https://github.com/llvm/llvm-project.git
 ARG LLVM_VERSION=main
 
-ARG SDE_REPO=https://downloadmirror.intel.com/751535
-ARG SDE_VERSION=sde-external-9.14.0-2022-10-25-lin
+ARG SDE_REPO=https://downloadmirror.intel.com/843185
+ARG SDE_VERSION=sde-external-9.48.0-2024-11-25
 
 ENV YARPGEN_HOME=$TESTING_HOME/yarpgen
 ARG YARPGEN_REPO=https://github.com/intel/yarpgen
