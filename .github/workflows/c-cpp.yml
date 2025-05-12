@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Check environment
       run: |
         cat /proc/cpuinfo
@@ -52,17 +52,17 @@ jobs:
           cd ..
         done
     - name: Upload cpp tests
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: tests-cpp-lin
         path: tests-cpp
     - name: Upload sycl tests
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: tests-sycl-lin
         path: tests-sycl
     - name: Upload ispc tests
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: tests-ispc-lin
         path: tests-ispc
@@ -71,7 +71,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Check environment
       run: |
         sysctl -n machdep.cpu.brand_string
@@ -114,17 +114,17 @@ jobs:
           cd ..
         done
     - name: Upload cpp tests
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: tests-cpp-mac
         path: tests-cpp
     - name: Upload sycl tests
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: tests-sycl-mac
         path: tests-sycl
     - name: Upload ispc tests
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: tests-ispc-mac
         path: tests-ispc
@@ -133,7 +133,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Check environment
       shell: cmd
       run: |
