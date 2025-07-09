@@ -3033,6 +3033,21 @@ void LibCallExpr::cxxArgPromotion(std::shared_ptr<Expr> &arg,
         true);
 }
 
+// SYCL 2020 specification defines min and max as accepting two GenInt values.
+// GenInt does *not* include bool, so we need to turn it into a char.
+void static syclBoolPromotion(std::shared_ptr<Expr> &expr) {
+    auto expr_type = expr->getValue()->getType();
+    if (!expr_type->isIntType())
+        return;
+
+    auto expr_int_type = std::static_pointer_cast<IntegralType>(expr_type);
+    if (expr_int_type->getIntTypeId() != IntTypeID::BOOL)
+        return;
+
+    auto int_type = IntegralType::init(IntTypeID::SCHAR);
+    expr = std::make_shared<TypeCastExpr>(expr, int_type, false);
+}
+
 MinMaxCallBase::MinMaxCallBase(std::shared_ptr<Expr> _a,
                                std::shared_ptr<Expr> _b, LibCallKind _kind)
     : a(std::move(_a)), b(std::move(_b)), kind(_kind) {}
@@ -3050,6 +3065,11 @@ bool MinMaxCallBase::propagateType() {
         }
         ispcBoolPromotion(a);
         ispcBoolPromotion(b);
+    }
+
+    if (options.isSYCL()) {
+        syclBoolPromotion(a);
+        syclBoolPromotion(b);
     }
 
     IntTypeID top_type_id = getTopIntID({a, b});
