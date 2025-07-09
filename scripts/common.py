@@ -72,6 +72,8 @@ class StdID(enum.IntEnum):
 
     ''' Enum doesn't allow to use '++' in names, so we need this function. '''
     def get_full_pretty_std_name (self):
+        if self.value == StdID.SYCL:
+            return "c++17"
         if self.is_cxx():
             return "c++11"
         return "c99"
