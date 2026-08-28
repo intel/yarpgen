@@ -164,10 +164,16 @@ enum class OptionKind {
     MUTATION_SEED,
     UB_IN_DC,
     MAX_ARRAY_DIMS,
+    SIMPLE_LOOPS,
+    VECTORIZER_TARGET,
     MAX_OPTION_ID
 };
 
 enum class OptionLevel { NONE, SOME, ALL, MAX_OPTION_LEVEL };
+
+// Which vectorizer's recognizable loop shapes --simple-loops should
+// constrain generated loops to.
+enum class VectorizerTarget { MSVC, GCC_CLANG, MAX_VECTORIZER_TARGET };
 
 enum class LangStd { C, CXX, ISPC, SYCL, MAX_LANG_STD };
 

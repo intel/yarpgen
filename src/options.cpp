@@ -214,6 +214,29 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseMaxArrayDims,
      "0",
      {}},
+    {OptionKind::SIMPLE_LOOPS,
+     "",
+     "--simple-loops",
+     true,
+     "Constrain loops to shapes that narrow vectorizers (e.g. MSVC's) can "
+     "recognize: 'some' applies it to the loops already picked as "
+     "vectorizable, 'all' forces every loop",
+     "Can't parse simple loops option",
+     OptionParser::parseSimpleLoops,
+     "none",
+     {"none", "some", "all"}},
+    {OptionKind::VECTORIZER_TARGET,
+     "",
+     "--vectorizer-target",
+     true,
+     "Which vectorizer's recognizable loop shapes --simple-loops should "
+     "constrain to: 'msvc' is a narrow, single-statement pattern match; "
+     "'gcc-clang' is looser (multi-statement bodies, reductions, simple "
+     "if-conversion). Only meaningful when --simple-loops != none",
+     "Can't parse vectorizer target option",
+     OptionParser::parseVectorizerTarget,
+     "msvc",
+     {"msvc", "gcc-clang"}},
 };
 
 static void dumpVersion(std::ostream &stream) {
@@ -530,6 +553,28 @@ void OptionParser::parseMaxArrayDims(std::string max_array_dims_str) {
     } catch (std::exception &) {
         printHelpAndExit("Can't parse max array dims");
     }
+}
+
+void OptionParser::parseSimpleLoops(std::string simple_loops_str) {
+    Options &options = Options::getInstance();
+    if (simple_loops_str == "none")
+        options.setSimpleLoops(OptionLevel::NONE);
+    else if (simple_loops_str == "some")
+        options.setSimpleLoops(OptionLevel::SOME);
+    else if (simple_loops_str == "all")
+        options.setSimpleLoops(OptionLevel::ALL);
+    else
+        printHelpAndExit("Can't recognize simple loops option");
+}
+
+void OptionParser::parseVectorizerTarget(std::string vectorizer_target_str) {
+    Options &options = Options::getInstance();
+    if (vectorizer_target_str == "msvc")
+        options.setVectorizerTarget(VectorizerTarget::MSVC);
+    else if (vectorizer_target_str == "gcc-clang")
+        options.setVectorizerTarget(VectorizerTarget::GCC_CLANG);
+    else
+        printHelpAndExit("Can't recognize vectorizer target option");
 }
 
 void Options::dump(std::ostream &stream) {

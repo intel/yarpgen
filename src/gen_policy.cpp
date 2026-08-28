@@ -426,7 +426,7 @@ GenPolicy::GenPolicy() {
     shuffleProbProxy(vectorizable_loop_distr);
 }
 
-void GenPolicy::makeVectorizable() {
+void GenPolicy::makeVectorizable(bool simple) {
     Options &options = Options::getInstance();
 
     removeProbability(stmt_kind_struct_distr, IRNodeKind::LOOP_NEST);
@@ -451,6 +451,251 @@ void GenPolicy::makeVectorizable() {
 
     vectorizable_loop_distr.clear();
     vectorizable_loop_distr.emplace_back(false, 90);
+
+    if (!simple)
+        return;
+
+    switch (options.getVectorizerTarget()) {
+    case VectorizerTarget::MSVC:
+        applyMsvcConstraints();
+        break;
+    case VectorizerTarget::GCC_CLANG:
+        applyGccClangConstraints();
+        break;
+    default:
+        break;
+    }
+}
+
+void GenPolicy::applyMsvcConstraints() {
+    // Narrow, pattern-matching vectorizers (e.g. MSVC's) only recognize a
+    // single flat statement over 1-D, stride-1 array/scalar accesses, with a
+    // known trip count and no nested control flow or calls. None of the
+    // pragmas above mean anything to them either, so drop those too.
+    stmt_kind_struct_distr.clear();
+    stmt_kind_struct_distr.emplace_back(IRNodeKind::STUB, 100);
+
+    if_else_depth_limit = 0;
+
+    scope_stmt_min_num = 1;
+    scope_stmt_max_num = 1;
+    scope_stmt_num_distr.clear();
+    scope_stmt_num_distr.emplace_back(1, 100);
+
+    // Reductions always target a scalar accumulator, which both carries a
+    // cross-iteration dependency and (reason 1104) has a use beyond the
+    // loop -- and 35% of them lower to a std::min/std::max call, a plausible
+    // source of "contains control flow" (1100). A plain elementwise ASSIGN
+    // sidesteps both.
+    expr_stmt_kind_pop_distr.clear();
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 100);
+
+    // Force the assignment target to be an array element rather than a
+    // scalar, for the same reason 1104 (scalar has a use beyond the loop).
+    out_kind_distr.clear();
+    out_kind_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 100));
+
+    // MSVC's vectorizer explicitly declines to vectorize a loop with "little
+    // or no computation" (reason 1300) -- e.g. a bare copy `a[i] = b[i]` --
+    // regardless of how flat the loop is, so make sure the body actually
+    // does arithmetic instead of just moving a value. Depth 1 has no room
+    // for a binary node's two children, so it always fell back to a leaf
+    // regardless of arith_node_distr's weights; depth 2 is the minimum that
+    // actually allows `a[i] = b[i] op c[i]`.
+    max_arith_depth = 2;
+    arith_node_distr.clear();
+    arith_node_distr.emplace_back(IRNodeKind::CONST, 2);
+    arith_node_distr.emplace_back(IRNodeKind::SCALAR_VAR_USE, 2);
+    arith_node_distr.emplace_back(IRNodeKind::SUBSCRIPT, 6);
+    arith_node_distr.emplace_back(IRNodeKind::BINARY, 90);
+    shuffleProbProxy(arith_node_distr);
+
+    // Comparisons/logical ops yield a bool (another "little computation"
+    // pattern per 1300), variable-amount shifts are their own reason (1103),
+    // and div/mod are simply not worth vectorizing. Keep plain arithmetic
+    // and bitwise ops, which is what the doc's own vectorizable examples use.
+    binary_op_distr.clear();
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::ADD, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SUB, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::MUL, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_AND, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_OR, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_XOR, 10));
+    shuffleProbProxy(binary_op_distr);
+
+    // Reason 1303 fires when the trip count is too small to be worth
+    // vectorizing (the doc's own example: 5 iterations isn't, 4 is). Widen
+    // the range well clear of that edge.
+    iters_end_limit_min = 32;
+    iter_end_limit_max = 64;
+
+    subs_kind_prob.clear();
+    subs_kind_prob.emplace_back(SubscriptKind::ITER, 100);
+
+    subs_order_kind_distr.clear();
+    subs_order_kind_distr.emplace_back(SubscriptOrderKind::IN_ORDER, 100);
+
+    subs_diagonal_prob.clear();
+    subs_diagonal_prob.emplace_back(false, 100);
+
+    array_dims_num_limit = 1;
+    array_dims_use_kind.clear();
+    array_dims_use_kind.emplace_back(ArrayDimsUseKind::SAME, 100);
+
+    // MSVC's induction-variable analysis wants a plain, unit stride: a
+    // non-+1 step is reason code 502/1301 ("induction variable is stepped
+    // other than +1" / "loop stride isn't +1").
+    iters_step_distr.clear();
+    iters_step_distr.emplace_back(Probability<size_t>{1, 100});
+
+    // Every documented canonical-form example uses a plain `int`/`unsigned
+    // int` induction variable; odd-width types (bool, [un]signed char,
+    // [unsigned] short) are never shown as iterators and are a plausible
+    // contributor to reason 506/507 (canonical form / bounds-consistency
+    // failures). Iterator::create() and new scalar/array types both draw
+    // from this same distribution.
+    int_type_distr.clear();
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::INT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
+
+    allow_stencil_prob.clear();
+    allow_stencil_prob.emplace_back(false, 100);
+
+    loop_end_kind_distr.clear();
+    loop_end_kind_distr.emplace_back(LoopEndKind::CONST, 100);
+
+    pragma_num_distr.clear();
+    pragma_num_distr.emplace_back(0, 100);
+    pragma_kind_distr.clear();
+}
+
+void GenPolicy::applyGccClangConstraints() {
+    // GCC/Clang's loop vectorizer works over a whole basic block, not just a
+    // single statement, and can if-convert a shallow branch into a select.
+    // Nested control flow and calls are still off the table (set by the
+    // caller before dispatching here).
+    if_else_depth_limit = 1;
+
+    // start/end/step share LoopEndKind: VAR/EXPR don't just make the bound
+    // "a variable" (which SCEV handles fine) -- they hide the constant
+    // behind opaque variable-derived arithmetic (e.g. `((int)var_7) -
+    // 23131`) for ALL THREE of start/end/step. For a narrow-typed induction
+    // variable that defeats overflow analysis and comes back as "Cannot
+    // vectorize uncountable loop" even though the runtime trip count is
+    // perfectly well-defined. Force literal bounds, like MSVC does.
+    loop_end_kind_distr.clear();
+    loop_end_kind_distr.emplace_back(LoopEndKind::CONST, 100);
+
+    scope_stmt_min_num = 1;
+    scope_stmt_max_num = 4;
+    scope_stmt_num_distr.clear();
+    uniformProbFromMax(scope_stmt_num_distr, scope_stmt_max_num,
+                        scope_stmt_min_num);
+
+    // Unlike MSVC's pattern matcher, GCC/Clang vectorize reductions (sum,
+    // min/max) just fine, so let them back in alongside plain assignments.
+    expr_stmt_kind_pop_distr.clear();
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::ASSIGN, 60);
+    expr_stmt_kind_pop_distr.emplace_back(IRNodeKind::REDUCTION, 40);
+    shuffleProbProxy(expr_stmt_kind_pop_distr);
+
+    // A reduction's target is a scalar that lives beyond the loop; GCC/Clang
+    // handle that live-out via a horizontal reduction at the end, so allow
+    // scalar targets alongside array ones.
+    out_kind_distr.clear();
+    out_kind_distr.emplace_back(Probability<DataKind>(DataKind::ARR, 60));
+    out_kind_distr.emplace_back(Probability<DataKind>(DataKind::VAR, 40));
+    shuffleProbProxy(out_kind_distr);
+
+    // Deeper expression trees are fine -- matches the general "vectorizable"
+    // depth rather than MSVC's pattern-matched depth-2 ceiling.
+    max_arith_depth = 3;
+    arith_node_distr.clear();
+    arith_node_distr.emplace_back(IRNodeKind::CONST, 2);
+    arith_node_distr.emplace_back(IRNodeKind::SCALAR_VAR_USE, 2);
+    arith_node_distr.emplace_back(IRNodeKind::SUBSCRIPT, 6);
+    arith_node_distr.emplace_back(IRNodeKind::BINARY, 90);
+    shuffleProbProxy(arith_node_distr);
+
+    // Comparisons produce a vector mask and shifts by a uniform amount are
+    // both routine for GCC/Clang; only div/mod and short-circuiting logical
+    // ops stay out (division is rarely worth vectorizing, and LOG_AND/OR's
+    // short-circuit semantics fight vectorization).
+    binary_op_distr.clear();
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::ADD, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SUB, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::MUL, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::LT, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::GT, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::LE, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::GE, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_AND, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_OR, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::BIT_XOR, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHL, 10));
+    binary_op_distr.emplace_back(Probability<BinaryOp>(BinaryOp::SHR, 10));
+    shuffleProbProxy(binary_op_distr);
+
+    iters_end_limit_min = 32;
+    iter_end_limit_max = 64;
+
+    subs_kind_prob.clear();
+    subs_kind_prob.emplace_back(SubscriptKind::ITER, 100);
+
+    // GCC/Clang can vectorize a decreasing (reverse-stride) loop as readily
+    // as an increasing one; only DIAGONAL/RANDOM stay out, since those break
+    // the no-cross-iteration-dependency proof both vectorizers need.
+    subs_order_kind_distr.clear();
+    subs_order_kind_distr.emplace_back(SubscriptOrderKind::IN_ORDER, 50);
+    subs_order_kind_distr.emplace_back(SubscriptOrderKind::REVERSE, 50);
+    shuffleProbProxy(subs_order_kind_distr);
+
+    subs_diagonal_prob.clear();
+    subs_diagonal_prob.emplace_back(false, 100);
+
+    // Multi-dimensional array access is fine as long as the innermost
+    // dimension is still contiguous, which SubscriptOrderKind already
+    // ensures above.
+    array_dims_num_limit = 2;
+    array_dims_use_kind.clear();
+    array_dims_use_kind.emplace_back(ArrayDimsUseKind::SAME, 60);
+    array_dims_use_kind.emplace_back(ArrayDimsUseKind::MORE, 40);
+    shuffleProbProxy(array_dims_use_kind);
+
+    // A constant, non-unit stride is still a single vector gather/scatter or
+    // strided load/store away from being vectorized -- unlike MSVC, GCC/
+    // Clang don't require +1.
+    iters_step_distr.clear();
+    iters_step_distr.emplace_back(Probability<size_t>{1, 60});
+    iters_step_distr.emplace_back(Probability<size_t>{2, 25});
+    iters_step_distr.emplace_back(Probability<size_t>{4, 15});
+    shuffleProbProxy(iters_step_distr);
+
+    // GCC/Clang vectorize any fixed-width integer type, not just int/uint.
+    int_type_distr.clear();
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SCHAR, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UCHAR, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SHORT, 10));
+    int_type_distr.emplace_back(
+        Probability<IntTypeID>(IntTypeID::USHORT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::INT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::LLONG, 10));
+    int_type_distr.emplace_back(
+        Probability<IntTypeID>(IntTypeID::ULLONG, 10));
+    shuffleProbProxy(int_type_distr);
+
+    // Simple stencils (a[i] + a[i-1]) are vectorizable via a versioned
+    // aliasing check, which GCC/Clang do routinely; keep it a minority shape
+    // rather than the default.
+    allow_stencil_prob.clear();
+    allow_stencil_prob.emplace_back(true, 20);
+    allow_stencil_prob.emplace_back(false, 80);
+    shuffleProbProxy(allow_stencil_prob);
+
+    // Leave loop_end_kind_distr and the pragma_*_distr alone: the countable-
+    // trip-count and #pragma clang loop vectorize settings picked earlier in
+    // makeVectorizable() already suit GCC/Clang.
 }
 
 size_t yarpgen::GenPolicy::const_buf_size = 10;

@@ -199,6 +199,15 @@ class Test(object):
     # Static variables
     # Don't save anything other than log-file if compile time expires
     ignore_comp_time_exp = True
+    # Forwarded to the generator's --simple-loops flag ("none", "some", "all").
+    # "none" means the flag is omitted entirely, matching the generator's own default.
+    simple_loops_mode = "none"
+    # Forwarded to the generator's --vectorizer-target flag ("msvc", "gcc-clang").
+    # Only meaningful when simple_loops_mode != "none".
+    vectorizer_target = "gcc-clang"
+    # Forwarded to the generator's --max-array-dims flag. 0 means the flag is
+    # omitted entirely, matching the generator's own default (unlimited).
+    max_array_dims = 0
 
     # Generate new test
     # stat is statistics object
@@ -212,12 +221,18 @@ class Test(object):
             yarpgen_run_list += ["-s", seed]
         # MSVC (driven via cl-proxy) has no large-memory model and a 2GB image
         # limit, so the default multi-GB arrays won't link. When an MSVC target
-        # is selected, cap the array dimensions so the shared test fits.
+        # is selected and the user hasn't set --max-array-dims explicitly, cap
+        # the array dimensions so the shared test fits.
         msvc_selected = any(
             getattr(t.specs, "comp_cxx_name", "") == "cl-proxy"
             for t in gen_test_makefile.CompilerTarget.all_targets)
-        if msvc_selected:
+        if Test.max_array_dims != 0:
+            yarpgen_run_list.append("--max-array-dims=" + str(Test.max_array_dims))
+        elif msvc_selected:
             yarpgen_run_list.append("--max-array-dims=3")
+        if Test.simple_loops_mode != "none":
+            yarpgen_run_list.append("--simple-loops=" + Test.simple_loops_mode)
+            yarpgen_run_list.append("--vectorizer-target=" + Test.vectorizer_target)
         self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
         self.ret_code, self.stdout, self.stderr, self.is_time_expired, self.elapsed_time = \
             common.run_cmd(yarpgen_run_list, yarpgen_timeout, proc_num, yarpgen_mem_limit)
@@ -1766,6 +1781,21 @@ Use specified folder for testing
                         help="List of testing sets for statistics collection")
     parser.add_argument("--ignore-comp-time-exp", dest="ignore_comp_time_exp", default=True, action="store_true",
                         help="Don't save files (except log-file) when compile time expires")
+    parser.add_argument("--simple-loops", dest="simple_loops", default="none", choices=["none", "some", "all"],
+                        type=str,
+                        help="Forwarded to the generator's --simple-loops: constrain loops to shapes that "
+                             "narrow vectorizers (e.g. MSVC's) can recognize. 'none' omits the flag "
+                             "(generator default).")
+    parser.add_argument("--vectorizer-target", dest="vectorizer_target", default="msvc",
+                        choices=["msvc", "gcc-clang"], type=str,
+                        help="Forwarded to the generator's --vectorizer-target: which vectorizer's "
+                             "recognizable loop shapes --simple-loops should constrain to. Only meaningful "
+                             "when --simple-loops != none.")
+    parser.add_argument("--max-array-dims", dest="max_array_dims", default=0, type=int,
+                        help="Forwarded to the generator's --max-array-dims: caps the number of array "
+                             "dimensions. 0 omits the flag (generator default, unlimited), except when an "
+                             "MSVC target is selected, in which case it's auto-capped at 3 to fit MSVC's "
+                             "2GB image limit.")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -1791,6 +1821,9 @@ Use specified folder for testing
     targets = re.split(' |,', args.target)
 
     Test.ignore_comp_time_exp = args.ignore_comp_time_exp
+    Test.simple_loops_mode = args.simple_loops
+    Test.vectorizer_target = args.vectorizer_target
+    Test.max_array_dims = args.max_array_dims
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, targets, args.num_jobs,
                                   args.config_file, args.seeds_option_value, args.blame, args.creduce,
                                   args.no_tmp_cleaner, args.collect_stat)
