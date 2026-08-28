@@ -356,6 +356,8 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     auto new_ctx = std::make_shared<GenCtx>(*ctx);
     // TODO: is it the right place to do it?
     new_ctx->incLoopDepth(1);
+
+    OptionLevel simple_loops = options.getSimpleLoops();
     for (size_t i = 0; i < loop_num; ++i) {
         bool gen_foreach = false;
         auto new_loop_head = std::make_shared<LoopHead>();
@@ -368,7 +370,24 @@ LoopSeqStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
             new_loop_head->setIsForeach(true);
         }
 
-        auto new_loop_body = ScopeStmt::generateStructure(new_ctx);
+        // The body's statement structure is fixed right here, so a loop that
+        // should stay flat (for narrow vectorizers like MSVC's) has to be
+        // constrained before ScopeStmt::generateStructure runs, not later in
+        // populate().
+        auto body_ctx = new_ctx;
+        bool make_simple =
+            simple_loops == OptionLevel::ALL ||
+            (simple_loops == OptionLevel::SOME &&
+             rand_val_gen->getRandId(gen_pol->vectorizable_loop_distr));
+        if (make_simple) {
+            auto simple_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+            simple_gen_pol->makeVectorizable(/*simple*/ true);
+            new_loop_head->setSimple();
+            body_ctx = std::make_shared<GenCtx>(*new_ctx);
+            body_ctx->setGenPolicy(simple_gen_pol);
+        }
+
+        auto new_loop_body = ScopeStmt::generateStructure(body_ctx);
         new_loop_seq->addLoop(std::make_pair(new_loop_head, new_loop_body));
 
         if (gen_foreach)
@@ -415,11 +434,16 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         auto new_ctx = std::make_shared<PopulateCtx>(ctx);
 
+        // If the body was already constrained to a simple shape at
+        // structure-generation time, honor that decision here instead of
+        // re-rolling it, so structure and content stay consistent.
+        bool simple_loop = loop_head->isSimple();
         bool vectorizable_loop =
+            simple_loop ||
             rand_val_gen->getRandId(gen_pol->vectorizable_loop_distr);
         if (vectorizable_loop) {
             active_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
-            active_gen_pol->makeVectorizable();
+            active_gen_pol->makeVectorizable(simple_loop);
             loop_head->setVectorizable();
             new_ctx->setGenPolicy(active_gen_pol);
         }

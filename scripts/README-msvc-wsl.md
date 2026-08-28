@@ -79,6 +79,32 @@ won't link. The generator therefore gained `--max-array-dims=<n>` (default `0` =
 no explicit cap), and `run_gen.py` sets it to `3` when MSVC is in the pool so the
 shared test fits every compiler. Tune the value if you want larger arrays.
 
+## Targeting MSVC's auto-vectorizer
+
+MSVC's auto-vectorizer is a narrow, pattern-matching one (unlike gcc/clang's):
+it wants a flat, single-statement loop body with unit stride and no nested
+control flow, and yarpgen's default output is far more complex than that, so
+it essentially never fires. Pass `--simple-loops={some,all}` to `run_gen.py`
+to forward the generator's `--simple-loops` flag, which constrains loops to
+that narrow shape:
+
+```sh
+run_gen.py --std c++ --config-file "$YARPGEN_HOME/scripts/test_sets_msvc.txt" \
+           --simple-loops all -o testing --target "gcc msvc" -t 60
+```
+
+- `some` (default policy's own "vectorizable" loops also get the stricter
+  simple-loop treatment) or `all` (every loop does). `none` (the default)
+  omits the flag entirely, i.e. today's behavior.
+- This is a distinct, opt-in mode, not something to leave on for general bug
+  hunting: it trades away the operator/control-flow diversity that finds
+  non-vectorization bugs (this is how the existing 6 MSVC bugs were found,
+  all unrelated to vectorization) in exchange for shapes MSVC's vectorizer
+  will actually attempt. Run it as its own separate session.
+- Even with `all`, only a majority of the resulting loops actually get
+  vectorized (checked via `/Qvec-report:2`) — MSVC still declines some for
+  reasons like too little in-loop computation or too few iterations.
+
 ## Why `/permissive-`
 
 `cl.exe` keeps alive some language extensions and known bugs to allow for backwards

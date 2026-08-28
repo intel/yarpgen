@@ -128,7 +128,7 @@ class LoopHead {
   public:
     LoopHead()
         : prefix(nullptr), suffix(nullptr), is_foreach(false),
-          same_iter_space(false), vectorizable(false) {}
+          same_iter_space(false), vectorizable(false), simple(false) {}
 
     std::shared_ptr<StmtBlock> getPrefix() { return prefix; }
     void addPrefix(std::shared_ptr<StmtBlock> _prefix) {
@@ -163,6 +163,13 @@ class LoopHead {
 
     void setVectorizable() { vectorizable = true; }
 
+    // Decided at structure-generation time (before the body's statements
+    // exist), so that the body can be generated flat from the start. Recorded
+    // here so that the later populate() pass can apply matching content-level
+    // constraints instead of re-rolling the decision.
+    void setSimple() { simple = true; }
+    bool isSimple() { return simple; }
+
   private:
     std::shared_ptr<StmtBlock> prefix;
     // Loop iterations space is defined by the iterators that we can use
@@ -179,6 +186,9 @@ class LoopHead {
     bool same_iter_space;
 
     bool vectorizable;
+    // Whether this loop's body was constrained, at structure-generation time,
+    // to a shape that narrow vectorizers (e.g. MSVC's) can recognize.
+    bool simple;
 };
 
 // According to the agreement, a single standalone loop should be represented as

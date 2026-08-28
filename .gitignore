@@ -7,6 +7,7 @@ res
 *.swp
 found/old-*
 check_isa
+check_isa.exe
 Test_Makefile
 testing_log_*
 gen_test_makefile_log_*

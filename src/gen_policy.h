@@ -200,9 +200,21 @@ class GenPolicy {
     std::vector<Probability<size_t>> same_iter_space_span_distr;
 
     std::vector<Probability<bool>> vectorizable_loop_distr;
-    void makeVectorizable();
+    // "simple" additionally constrains the loop to a shape that the
+    // Options::getVectorizerTarget() vectorizer can recognize: no nested
+    // control flow and a small, mostly flat body.
+    void makeVectorizable(bool simple = false);
 
   private:
+    // Narrowest profile: a single flat statement over 1-D, stride-1
+    // array/scalar accesses, with a known trip count and no nested control
+    // flow or calls. Matches MSVC's pattern-matching vectorizer.
+    void applyMsvcConstraints();
+    // Looser profile for GCC/Clang's more general vectorizer: allows a
+    // multi-statement body, simple if-conversion, reductions, deeper
+    // expressions, and a wider range of strides/types/binary ops.
+    void applyGccClangConstraints();
+
     template <typename T>
     void uniformProbFromMax(std::vector<Probability<T>> &distr, size_t max_num,
                             size_t min_num = 0);

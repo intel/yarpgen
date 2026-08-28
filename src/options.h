@@ -100,6 +100,8 @@ class OptionParser {
     static void parseMutationSeed(std::string mutation_seed_str);
     static void parseAllowUBInDC(std::string allow_ub_in_dc_str);
     static void parseMaxArrayDims(std::string max_array_dims_str);
+    static void parseSimpleLoops(std::string simple_loops_str);
+    static void parseVectorizerTarget(std::string vectorizer_target_str);
 };
 
 class Options {
@@ -177,6 +179,24 @@ class Options {
     void setMaxArrayDims(size_t _val) { max_array_dims = _val; }
     size_t getMaxArrayDims() { return max_array_dims; }
 
+    // Some vectorizers (e.g. MSVC's) only recognize a narrow set of very
+    // simple loop shapes: single-statement bodies, no nested control flow,
+    // 1-D stride-1 array access. NONE keeps the existing behavior (loops are
+    // occasionally made "vectorizable" for LLVM/GCC-style vectorizers). SOME
+    // applies the stricter simple-loop constraints on the same random roll
+    // that already picks vectorizable loops. ALL forces every loop through
+    // the simple-loop constraints.
+    void setSimpleLoops(OptionLevel _val) { simple_loops = _val; }
+    OptionLevel getSimpleLoops() { return simple_loops; }
+
+    // Which vectorizer's recognizable loop shapes --simple-loops should
+    // constrain generated loops to. Only meaningful when getSimpleLoops() !=
+    // NONE.
+    void setVectorizerTarget(VectorizerTarget _val) {
+        vectorizer_target = _val;
+    }
+    VectorizerTarget getVectorizerTarget() { return vectorizer_target; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -188,7 +208,9 @@ class Options {
           emit_pragmas(OptionLevel::SOME), out_dir("."),
           use_param_shuffle(false), expl_loop_params(false),
           mutation_kind(MutationKind::NONE), mutation_seed(0),
-          allow_ub_in_dc(OptionLevel::NONE), max_array_dims(0) {}
+          allow_ub_in_dc(OptionLevel::NONE), max_array_dims(0),
+          simple_loops(OptionLevel::NONE),
+          vectorizer_target(VectorizerTarget::MSVC) {}
 
     std::vector<std::string> raw_options;
 
@@ -222,5 +244,12 @@ class Options {
 
     // Upper bound on array dimensions (0 = no explicit limit).
     size_t max_array_dims;
+
+    // Whether loops should be constrained to shapes that narrow vectorizers
+    // (e.g. MSVC's) can recognize.
+    OptionLevel simple_loops;
+
+    // Which vectorizer's recognizable loop shapes to constrain to.
+    VectorizerTarget vectorizer_target;
 };
 } // namespace yarpgen
