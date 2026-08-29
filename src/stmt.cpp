@@ -312,6 +312,15 @@ bool LoopHead::hasSIMDPragma() {
            pragmas.end();
 }
 
+void LoopHead::setOmpReductionVars(std::vector<OmpReductionVar> vars) {
+    auto search_func = [](std::shared_ptr<Pragma> pragma) -> bool {
+        return pragma->getKind() == PragmaKind::OMP_SIMD;
+    };
+    auto found = std::find_if(pragmas.begin(), pragmas.end(), search_func);
+    if (found != pragmas.end())
+        (*found)->setReductionVars(std::move(vars));
+}
+
 void LoopHead::populateArrays(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
     size_t new_arrays_num = rand_val_gen->getRandId(gen_pol->new_arr_num_distr);
@@ -450,7 +459,11 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
 
         loop_head->createPragmas(new_ctx);
         bool old_simd_state = new_ctx->isInsideOMPSimd();
+        bool starts_omp_simd = !old_simd_state && loop_head->hasSIMDPragma();
         new_ctx->setInsideOMPSimd(loop_head->hasSIMDPragma() || old_simd_state);
+        if (starts_omp_simd)
+            new_ctx->setOmpReductionVars(
+                std::make_shared<std::vector<OmpReductionVar>>());
 
         size_t new_dim = 0;
 
@@ -536,6 +549,11 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
                                   ctx->isInsideForeach());
 
         loop.second->populate(new_ctx);
+
+        if (starts_omp_simd) {
+            loop_head->setOmpReductionVars(*new_ctx->getOmpReductionVars());
+            new_ctx->setOmpReductionVars(nullptr);
+        }
 
         // TODO: we create new context for each loop, so some of the cleanup is
         // not needed
@@ -628,6 +646,8 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         (*i)->createPragmas(new_ctx);
         if (simd_switch_id == loops.end() && (*i)->hasSIMDPragma()) {
             new_ctx->setInsideOMPSimd(true);
+            new_ctx->setOmpReductionVars(
+                std::make_shared<std::vector<OmpReductionVar>>());
             simd_switch_id = i;
         }
 
@@ -672,6 +692,11 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
     }
 
     body->populate(new_ctx);
+
+    if (simd_switch_id != loops.end()) {
+        (*simd_switch_id)->setOmpReductionVars(*new_ctx->getOmpReductionVars());
+        new_ctx->setOmpReductionVars(nullptr);
+    }
 
     for (auto i = loops.begin(); i != loops.end(); ++i) {
         new_ctx->decLoopDepth(1);
@@ -793,9 +818,33 @@ void Pragma::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
         case PragmaKind::CLANG_UNROLL:
             clang_emit_helper("unroll");
             break;
-        case PragmaKind::OMP_SIMD:
+        case PragmaKind::OMP_SIMD: {
             stream << "omp simd";
+            // Group reduction variables by their OpenMP reduction
+            // identifier, since each identifier needs its own clause:
+            // "reduction(+:a,b) reduction(*:c)".
+            std::vector<std::pair<std::string, std::vector<std::shared_ptr<Expr>>>>
+                grouped;
+            for (auto &red_var : reduction_vars) {
+                auto group = std::find_if(
+                    grouped.begin(), grouped.end(),
+                    [&red_var](auto &g) { return g.first == red_var.op; });
+                if (group == grouped.end())
+                    grouped.push_back({red_var.op, {red_var.var}});
+                else
+                    group->second.push_back(red_var.var);
+            }
+            for (auto &group : grouped) {
+                stream << " reduction(" << group.first << ":";
+                for (size_t i = 0; i < group.second.size(); ++i) {
+                    if (i != 0)
+                        stream << ", ";
+                    group.second.at(i)->emit(ctx, stream);
+                }
+                stream << ")";
+            }
             break;
+        }
         case PragmaKind::MAX_PRAGMA_KIND:
             ERROR("Bad PragmaKind");
     }
