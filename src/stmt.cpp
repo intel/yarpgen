@@ -480,6 +480,18 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         size_t new_dim = 0;
 
         std::shared_ptr<Iterator> new_iters = nullptr;
+        // Reusing the previous loop's iteration space copies its type, bounds
+        // and step verbatim. If that iterator was built outside a
+        // "#pragma omp simd" it may be a bool or carry a non-constant step,
+        // which would break OpenMP's canonical loop form here, so fall back to
+        // creating a fresh iterator instead.
+        if (same_iter_space_counter != 0 && new_ctx->isInsideOMPSimd() &&
+            !loops.at(cur_idx - 1)
+                 .first->getIterators()
+                 .front()
+                 ->isOmpCanonical())
+            same_iter_space_counter = 0;
+
         if (same_iter_space_counter == 0) {
             if (new_ctx->getDimensions().empty()) {
                 new_dim = makeMutableRoll(active_gen_pol, [&active_gen_pol]() {
@@ -510,6 +522,7 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
                 prev_iter->getMaxRightOffset(), prev_iter->getStep(),
                 prev_iter->isDegenerate(), prev_iter->getTotalItersNum());
             new_iters->setIsDead(false);
+            new_iters->setOmpCanonical(prev_iter->isOmpCanonical());
             new_iters->setSupportsMulValues(prev_iter->getSupportsMulValues());
             new_iters->setMainValsOnLastIter(
                 prev_iter->getMainValsOnLastIter());
