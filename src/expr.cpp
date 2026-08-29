@@ -2934,8 +2934,10 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     // ISPC has some problems with bool type in compound assignments, so we
     // will disable them for now
     // TODO: fix me later!
+    // The same restriction applies under "#pragma omp simd" - bool reduction 
+    // is illegal
     Options &options = Options::getInstance();
-    if (options.isISPC()) {
+    if (options.isISPC() || ctx->isInsideOMPSimd()) {
         base_assign_expr->propagateType();
         assert(base_assign_expr->getValue()->getType()->isIntType() &&
                "We support only int type for now");

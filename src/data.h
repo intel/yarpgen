@@ -206,7 +206,8 @@ class Iterator : public Data {
           max_left_offset(_max_left_offset), end(std::move(_end)),
           max_right_offset(_max_right_offset), step(std::move(_step)),
           degenerate(_degenerate), total_iters_num(_total_iters_num),
-          supports_mul_values(false), main_vals_on_last_iter(true) {}
+          supports_mul_values(false), main_vals_on_last_iter(true),
+          omp_canonical(false) {}
 
     bool isIterator() final { return true; }
     DataKind getKind() final { return DataKind::ITER; }
@@ -229,6 +230,14 @@ class Iterator : public Data {
         main_vals_on_last_iter = _main_vals_on_last_iter;
     }
     bool getMainValsOnLastIter() { return main_vals_on_last_iter; }
+    // True if this iterator keeps the loop in OpenMP's canonical form (an
+    // integer type that is not bool, plus a constant step). Only such loops
+    // may carry a "#pragma omp simd"; gcc rejects the rest with "invalid
+    // controlling predicate" / "invalid increment expression".
+    void setOmpCanonical(bool _omp_canonical) {
+        omp_canonical = _omp_canonical;
+    }
+    bool isOmpCanonical() { return omp_canonical; }
 
     void dbgDump() final;
 
@@ -258,6 +267,7 @@ class Iterator : public Data {
     // A flag that indicates whether the iterator has main values on the last
     // iteration
     bool main_vals_on_last_iter;
+    bool omp_canonical;
 };
 
 } // namespace yarpgen

@@ -167,8 +167,10 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
 
     // TODO: It looks like integral promotion rules for bool in ISPC are
     // broken, so we have to do them manually
+    // A bool induction variable is also illegal under "#pragma omp simd"
     Options &options = Options::getInstance();
-    if (options.isISPC() && type_id == IntTypeID::BOOL)
+    if ((options.isISPC() || ctx->isInsideOMPSimd()) &&
+        type_id == IntTypeID::BOOL)
         type_id = IntTypeID::INT;
 
     std::shared_ptr<Type> type = IntegralType::init(type_id);
@@ -238,6 +240,11 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
     auto iter = std::make_shared<Iterator>(
         nh.getIterName(), type, start, left_span, end, right_span, step,
         end_val == left_span, total_iters_num);
+
+    // Under "#pragma omp simd" Iterator::create() is constrained to an
+    // integer type that is not bool, and populate() keeps the step constant,
+    // so the loop stays in OpenMP's canonical form.
+    iter->setOmpCanonical(ctx->isInsideOMPSimd());
 
     bool supports_mul_vals = step_val % 2 != Options::main_val_idx ||
                              left_span % 2 != Options::main_val_idx;
@@ -409,7 +416,12 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
 
     start = populate_impl(type, start);
     end = populate_impl(type, end);
-    step = populate_impl(type, step);
+    // OpenMP's canonical loop form requires a loop-invariant increment. The
+    // arbitrary expression populate_impl() would otherwise build is rejected
+    // by gcc ("invalid increment expression") once it contains a call, so
+    // under "#pragma omp simd" the step stays the constant create() picked.
+    if (!ctx->isInsideOMPSimd())
+        step = populate_impl(type, step);
 }
 
 DataType TypedData::replaceWith(DataType _new_data) {
