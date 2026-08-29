@@ -2855,7 +2855,7 @@ void ReductionExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
 // can pick from reduction_bin_op_distr/reduction_as_lib_call_distr map
 // directly onto a standard OpenMP reduction identifier (DIV/MOD, which
 // don't, are kept disabled in that distribution).
-static std::string getOmpReductionOp(BinaryOp bin_op, LibCallKind lib_call) {
+static std::string ompReductionOpToken(BinaryOp bin_op, LibCallKind lib_call) {
     if (bin_op != BinaryOp::MAX_BIN_OP) {
         switch (bin_op) {
             case BinaryOp::ADD:
@@ -2883,6 +2883,10 @@ static std::string getOmpReductionOp(BinaryOp bin_op, LibCallKind lib_call) {
         default:
             ERROR("Reduction lib call has no OpenMP reduction identifier");
     }
+}
+
+std::string ReductionExpr::getOmpReductionOp() {
+    return ompReductionOpToken(bin_op, lib_call_kind);
 }
 
 std::shared_ptr<ReductionExpr>
@@ -2959,14 +2963,10 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
         }
     }
 
-    if (ctx->isInsideOMPSimd() && ctx->getOmpReductionVars() != nullptr) {
-        assert(base_assign_expr->getTo()->getKind() ==
-                   IRNodeKind::SCALAR_VAR_USE &&
-               "Reduction target must be a scalar under #pragma omp simd");
-        ctx->getOmpReductionVars()->push_back(
-            {base_assign_expr->getTo(), getOmpReductionOp(bin_op, lib_call)});
-    }
-
+    // Note: whether this ends up a genuine reduction (vs. degenerating into
+    // a plain assignment to dodge UB) is only settled later by rebuild(), so
+    // registering it for the enclosing "#pragma omp simd"'s reduction clause
+    // has to happen after that — see ExprStmt::create.
     return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
                                            false, ctx->isTaken());
 }

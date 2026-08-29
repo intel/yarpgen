@@ -398,6 +398,15 @@ class ReductionExpr : public AssignmentExpr {
 
     std::shared_ptr<Expr> copy() final;
 
+    // rebuild() can turn a real reduction into a degenerate (plain
+    // assignment, no self-reference) one to dodge UB, so callers that care
+    // whether this still behaves as an OpenMP-reduction-shaped update must
+    // check this only after rebuild() has run, not right after create().
+    bool isDegenerate() { return is_degenerate; }
+    // Valid only when !isDegenerate(): the OpenMP "reduction(<op>:...)"
+    // identifier matching this node's operation.
+    std::string getOmpReductionOp();
+
   private:
     BinaryOp bin_op;
     LibCallKind lib_call_kind;

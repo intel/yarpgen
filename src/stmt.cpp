@@ -83,6 +83,18 @@ std::shared_ptr<ExprStmt> ExprStmt::create(std::shared_ptr<PopulateCtx> ctx) {
     if (new_active_ctx->getAllowMulVals())
         expr->propagateValue(eval_ctx);
 
+    // Only register with the enclosing "#pragma omp simd"'s reduction
+    // clause now, since rebuild() (above) may have turned this into a
+    // degenerate plain assignment (no self-reference on "to") to dodge UB,
+    // in which case it must NOT be advertised as a reduction.
+    if (expr_kind == IRNodeKind::REDUCTION && new_active_ctx->isInsideOMPSimd() &&
+        new_active_ctx->getOmpReductionVars() != nullptr) {
+        auto reduction_expr = std::static_pointer_cast<ReductionExpr>(expr);
+        if (!reduction_expr->isDegenerate())
+            new_active_ctx->getOmpReductionVars()->push_back(
+                {reduction_expr->getTo(), reduction_expr->getOmpReductionOp()});
+    }
+
     return std::make_shared<ExprStmt>(expr);
 }
 
