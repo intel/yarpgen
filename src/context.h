@@ -30,6 +30,17 @@ limitations under the License.
 
 namespace yarpgen {
 
+// A scalar variable that a "#pragma omp simd" loop's body updates via a
+// reduction operation (e.g. "x *= ..."), together with the OpenMP reduction
+// identifier ("+", "*", "min", ...) it needs to be listed under. The pragma
+// text is generated before the loop's body exists, so these are collected
+// while populating the body and consumed afterwards, when we know what (if
+// anything) the loop actually reduces.
+struct OmpReductionVar {
+    std::shared_ptr<Expr> var;
+    std::string op;
+};
+
 // Class that is used to determine the evaluation context.
 // It allows us to evaluate the same arithmetic tree with different input
 // values.
@@ -195,6 +206,16 @@ class PopulateCtx : public GenCtx {
     void setInsideOMPSimd(bool val) { inside_omp_simd = val; }
     bool isInsideOMPSimd() { return inside_omp_simd; }
 
+    // Shared (not deep-copied) across a "#pragma omp simd" loop's whole
+    // body, so that nested scopes/loops all register into the same list,
+    // which the loop that actually owns the pragma later reads back.
+    void setOmpReductionVars(std::shared_ptr<std::vector<OmpReductionVar>> v) {
+        omp_reduction_vars = std::move(v);
+    }
+    std::shared_ptr<std::vector<OmpReductionVar>> getOmpReductionVars() {
+        return omp_reduction_vars;
+    }
+
     size_t generateNumberOfDims(ArrayDimsUseKind dims_use_kind) const;
     void addDimension(size_t dim) { dims.push_back(dim); }
     std::vector<size_t> getDimensions() { return dims; }
@@ -226,6 +247,7 @@ class PopulateCtx : public GenCtx {
     // As of now, the pragma omp simd is attached to a loop and can't be nested.
     // TODO: we need to think about pragma omp ordered simd
     bool inside_omp_simd;
+    std::shared_ptr<std::vector<OmpReductionVar>> omp_reduction_vars;
 
     // Each loop header has a limit that any iterator should respect
     // For the simplicity, we assume that the limit is the same for all

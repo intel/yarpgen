@@ -2851,6 +2851,40 @@ void ReductionExpr::emit(std::shared_ptr<EmitCtx> ctx, std::ostream &stream,
     }
 }
 
+// OpenMP identifier for the "reduction(<id>:...)" clause. All operators we
+// can pick from reduction_bin_op_distr/reduction_as_lib_call_distr map
+// directly onto a standard OpenMP reduction identifier (DIV/MOD, which
+// don't, are kept disabled in that distribution).
+static std::string getOmpReductionOp(BinaryOp bin_op, LibCallKind lib_call) {
+    if (bin_op != BinaryOp::MAX_BIN_OP) {
+        switch (bin_op) {
+            case BinaryOp::ADD:
+                return "+";
+            case BinaryOp::SUB:
+                return "-";
+            case BinaryOp::MUL:
+                return "*";
+            case BinaryOp::BIT_AND:
+                return "&";
+            case BinaryOp::BIT_OR:
+                return "|";
+            case BinaryOp::BIT_XOR:
+                return "^";
+            default:
+                ERROR("Reduction operation has no OpenMP reduction "
+                      "identifier");
+        }
+    }
+    switch (lib_call) {
+        case LibCallKind::MAX:
+            return "max";
+        case LibCallKind::MIN:
+            return "min";
+        default:
+            ERROR("Reduction lib call has no OpenMP reduction identifier");
+    }
+}
+
 std::shared_ptr<ReductionExpr>
 ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     auto gen_pol = ctx->getGenPolicy();
@@ -2866,8 +2900,13 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             rand_val_gen->getRandId(gen_pol->reduction_as_lib_call_distr);
 
     auto new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
-    // For "|" and "&" we allow to use arrays as a reduction variable
-    if (bin_op != BinaryOp::BIT_AND && bin_op != BinaryOp::BIT_OR) {
+    // For "|" and "&" we normally allow arrays as a reduction variable, but
+    // under "#pragma omp simd" the reduction clause's list items must be
+    // plain scalars, so we force a scalar target there too.
+    bool allow_arr_target = !ctx->isInsideOMPSimd() &&
+                            (bin_op == BinaryOp::BIT_AND ||
+                             bin_op == BinaryOp::BIT_OR);
+    if (!allow_arr_target) {
         bool other_option_exists = false;
         for (auto &kind_prob : new_gen_pol->out_kind_distr) {
             if (kind_prob.getId() == DataKind::ARR)
@@ -2918,6 +2957,14 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             bin_op =
                 rand_val_gen->getRandId(new_gen_pol->reduction_bin_op_distr);
         }
+    }
+
+    if (ctx->isInsideOMPSimd() && ctx->getOmpReductionVars() != nullptr) {
+        assert(base_assign_expr->getTo()->getKind() ==
+                   IRNodeKind::SCALAR_VAR_USE &&
+               "Reduction target must be a scalar under #pragma omp simd");
+        ctx->getOmpReductionVars()->push_back(
+            {base_assign_expr->getTo(), getOmpReductionOp(bin_op, lib_call)});
     }
 
     return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
