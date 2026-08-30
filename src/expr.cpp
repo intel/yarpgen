@@ -2662,6 +2662,77 @@ static IRValue reductionHelper(IRValue base, IRValue inc,
     return ret;
 }
 
+// A value computed at the promoted width does not necessarily fit back into
+// the accumulator's own type. Narrowing a signed integer is not UB in C++, so
+// IRValue does not flag it - but an OpenMP reduction is combined at the
+// accumulator's width, where the very same value is an overflow.
+static bool outOfRange(IRValue val,
+                       const std::shared_ptr<IntegralType> &acc_type) {
+    IntTypeID prom_type_id = val.getIntTypeID();
+    IRValue min = acc_type->getMin().castToType(prom_type_id);
+    IRValue max = acc_type->getMax().castToType(prom_type_id);
+    return (val < min).getValueRef<bool>() || (val > max).getValueRef<bool>();
+}
+
+// reductionHelper walks the serial order, starting from the accumulator's
+// current value. That is not the only order an implementation may use: OpenMP
+// lets a reduction be re-associated, and vectorizers do exactly that. They
+// accumulate into per-lane copies seeded with the reduction identity and
+// combine them at the end, which produces partial results that never occur
+// serially. Those partials can overflow while every serial one stays in range,
+// e.g. "int x = 1886950276" with "x += -1640729410" over two iterations:
+// 246220866 and -1394508544 both fit, but the identity-seeded partial
+// 0 + 2 * -1640729410 is below INT_MIN.
+//
+// "inc" is loop-invariant for reductions (ExprStmt::create clears
+// allowMulVals), so every step moves the same way and the last partial is the
+// one furthest from the identity. Checking that single value therefore covers
+// every possible lane partition.
+static bool reductionPartialsOverflow(
+    BinaryOp bin_op, IRValue inc, size_t total_iters_num,
+    const std::shared_ptr<IntegralType> &acc_type) {
+    // Each lane keeps a private copy of the accumulator's own type, so the
+    // increment it adds is the narrowed one. That loses nothing: the serial
+    // "acc = (short)(acc + inc)" and the lane's "acc += (short)inc" agree
+    // modulo the accumulator's width.
+    inc = inc.castToType(acc_type->getIntTypeId());
+
+    // Find the width the accumulation is promoted to. The partials have to be
+    // simulated there, or reductionHelper would narrow them back at every step
+    // and hide the overflow we are looking for.
+    auto probe = std::make_shared<BinaryExpr>(
+        BinaryOp::ADD,
+        std::make_shared<ConstantExpr>(
+            IRValue(acc_type->getIntTypeId(), {false, 0})),
+        std::make_shared<ConstantExpr>(inc));
+    probe->propagateType();
+    IntTypeID prom_type_id =
+        std::static_pointer_cast<IntegralType>(probe->getValue()->getType())
+            ->getIntTypeId();
+
+    IRValue res;
+    switch (bin_op) {
+        case BinaryOp::ADD:
+            res = reductionHelper(IRValue(prom_type_id, {false, 0}), inc,
+                                  total_iters_num, std::plus());
+            break;
+        case BinaryOp::SUB:
+            res = reductionHelper(IRValue(prom_type_id, {false, 0}), inc,
+                                  total_iters_num, std::minus());
+            break;
+        case BinaryOp::MUL:
+            res = reductionHelper(IRValue(prom_type_id, {false, 1}), inc,
+                                  total_iters_num, std::multiplies());
+            break;
+        default:
+            // The rest either can't overflow (the bitwise operations, min and
+            // max) or have no OpenMP reduction identifier at all (div and mod),
+            // so they can't reach a "reduction(...)" clause.
+            return false;
+    }
+    return res.hasUB() || outOfRange(res, acc_type);
+}
+
 Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     if (is_degenerate)
         return AssignmentExpr::evaluate(ctx);
@@ -2756,6 +2827,24 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
     auto result_expr_eval_res = result_expr->evaluate(ctx);
     if (result_expr_eval_res->hasUB())
         return result_expr_eval_res;
+
+    // The serial order is UB-free, but under "#pragma omp simd" an
+    // implementation may pick another association order. Check the one it
+    // actually uses - see reductionPartialsHelper. Outside of a
+    // "reduction(...)" clause there is no such license, so the serial order
+    // checked above is the only one. Unsigned accumulators wrap, so only
+    // signed ones can go wrong.
+    if (is_omp_reduction && bin_op != BinaryOp::MAX_BIN_OP &&
+        to_int_type->getIsSigned() &&
+        reductionPartialsOverflow(bin_op, from_eval_val, ctx.total_iter_num,
+                                  to_int_type)) {
+        // Reporting UB here makes rebuild() degenerate this into a plain
+        // assignment, which in turn keeps the variable out of the
+        // "reduction(...)" clause. See ExprStmt::create.
+        IRValue ub_val(to_int_type->getIntTypeId(), {false, 0});
+        ub_val.setUBCode(UBKind::SignOvf);
+        return std::make_shared<ConstantExpr>(ub_val)->evaluate(ctx);
+    }
 
     return from_eval_res;
 }
@@ -2922,7 +3011,8 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             auto base_assign_expr = AssignmentExpr::create(ctx);
             return std::make_shared<ReductionExpr>(
                 base_assign_expr, BinaryOp::MAX_BIN_OP,
-                LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
+                LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isInsideOMPSimd(),
+                ctx->isTaken());
         }
     }
 
@@ -2958,7 +3048,8 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
             if (!bin_op_red_is_supported)
                 return std::make_shared<ReductionExpr>(
                     base_assign_expr, BinaryOp::MAX_BIN_OP,
-                    LibCallKind::MAX_LIB_CALL_KIND, true, ctx->isTaken());
+                    LibCallKind::MAX_LIB_CALL_KIND, true,
+                    ctx->isInsideOMPSimd(), ctx->isTaken());
 
             bin_op =
                 rand_val_gen->getRandId(new_gen_pol->reduction_bin_op_distr);
@@ -2970,7 +3061,8 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     // registering it for the enclosing "#pragma omp simd"'s reduction clause
     // has to happen after that — see ExprStmt::create.
     return std::make_shared<ReductionExpr>(base_assign_expr, bin_op, lib_call,
-                                           false, ctx->isTaken());
+                                           false, ctx->isInsideOMPSimd(),
+                                           ctx->isTaken());
 }
 
 std::shared_ptr<Expr> ReductionExpr::copy() {
@@ -2978,7 +3070,7 @@ std::shared_ptr<Expr> ReductionExpr::copy() {
     auto new_assign = AssignmentExpr::copy();
     auto new_reduction = std::make_shared<ReductionExpr>(
         std::static_pointer_cast<AssignmentExpr>(new_assign), bin_op,
-        lib_call_kind, is_degenerate, taken);
+        lib_call_kind, is_degenerate, is_omp_reduction, taken);
     new_reduction->result_expr = new_result_expr;
     return new_reduction;
 }
