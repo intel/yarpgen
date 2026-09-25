@@ -205,6 +205,9 @@ class Test(object):
     # Forwarded to the generator's --vectorizer-target flag ("msvc", "gcc-clang").
     # Only meaningful when simple_loops_mode != "none".
     vectorizer_target = "gcc-clang"
+    # Forwarded to the generator's --omp-simd flag ("on", "off"). "on" means the
+    # flag is omitted entirely, matching the generator's own default.
+    omp_simd_pragma = "on"
     # Forwarded to the generator's --max-array-dims flag. 0 means the flag is
     # omitted entirely, matching the generator's own default (unlimited).
     max_array_dims = 0
@@ -233,6 +236,8 @@ class Test(object):
         if Test.simple_loops_mode != "none":
             yarpgen_run_list.append("--simple-loops=" + Test.simple_loops_mode)
             yarpgen_run_list.append("--vectorizer-target=" + Test.vectorizer_target)
+        if Test.omp_simd_pragma != "on":
+            yarpgen_run_list.append("--omp-simd=" + Test.omp_simd_pragma)
         self.yarpgen_cmd = " ".join(str(p) for p in yarpgen_run_list)
         self.ret_code, self.stdout, self.stderr, self.is_time_expired, self.elapsed_time = \
             common.run_cmd(yarpgen_run_list, yarpgen_timeout, proc_num, yarpgen_mem_limit)
@@ -1791,6 +1796,11 @@ Use specified folder for testing
                         help="Forwarded to the generator's --vectorizer-target: which vectorizer's "
                              "recognizable loop shapes --simple-loops should constrain to. Only meaningful "
                              "when --simple-loops != none.")
+    parser.add_argument("--omp-simd", dest="omp_simd_pragma", default="on",
+                        choices=["on", "off"], type=str,
+                        help="Forwarded to the generator's --omp-simd: whether \"#pragma omp simd\" "
+                             "(and its reduction clauses) may be generated. Use 'off' to keep OpenMP "
+                             "semantics out of the generated tests entirely.")
     parser.add_argument("--max-array-dims", dest="max_array_dims", default=0, type=int,
                         help="Forwarded to the generator's --max-array-dims: caps the number of array "
                              "dimensions. 0 omits the flag (generator default, unlimited), except when an "
@@ -1823,6 +1833,7 @@ Use specified folder for testing
     Test.ignore_comp_time_exp = args.ignore_comp_time_exp
     Test.simple_loops_mode = args.simple_loops
     Test.vectorizer_target = args.vectorizer_target
+    Test.omp_simd_pragma = args.omp_simd_pragma
     Test.max_array_dims = args.max_array_dims
     prepare_env_and_start_testing(os.path.abspath(args.out_dir), args.timeout, targets, args.num_jobs,
                                   args.config_file, args.seeds_option_value, args.blame, args.creduce,

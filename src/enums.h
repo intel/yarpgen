@@ -166,6 +166,7 @@ enum class OptionKind {
     MAX_ARRAY_DIMS,
     SIMPLE_LOOPS,
     VECTORIZER_TARGET,
+    OMP_SIMD_PRAGMA,
     MAX_OPTION_ID
 };
 

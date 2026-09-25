@@ -237,6 +237,16 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      OptionParser::parseVectorizerTarget,
      "msvc",
      {"msvc", "gcc-clang"}},
+    {OptionKind::OMP_SIMD_PRAGMA,
+     "",
+     "--omp-simd",
+     true,
+     "Whether \"#pragma omp simd\" (and its reduction clauses) may be "
+     "generated: 'on' is the default",
+     "Can't parse omp simd pragma option",
+     OptionParser::parseOmpSimdPragma,
+     "on",
+     {"on", "off"}},
 };
 
 static void dumpVersion(std::ostream &stream) {
@@ -565,6 +575,16 @@ void OptionParser::parseSimpleLoops(std::string simple_loops_str) {
         options.setSimpleLoops(OptionLevel::ALL);
     else
         printHelpAndExit("Can't recognize simple loops option");
+}
+
+void OptionParser::parseOmpSimdPragma(std::string omp_simd_pragma_str) {
+    Options &options = Options::getInstance();
+    if (omp_simd_pragma_str == "on")
+        options.setOmpSimdPragma(true);
+    else if (omp_simd_pragma_str == "off")
+        options.setOmpSimdPragma(false);
+    else
+        printHelpAndExit("Can't recognize omp simd pragma option");
 }
 
 void OptionParser::parseVectorizerTarget(std::string vectorizer_target_str) {
