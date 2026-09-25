@@ -3,6 +3,7 @@ LLVM:
 ====================================
 Version #2
 ---------------
+| `221240 <https://github.com/llvm/llvm-project/issues/221240>`_ - unsigned short >= short compare miscompiled at -O2 - narrowed to signed i16 compare
 | `58616 <https://github.com/llvm/llvm-project/issues/58616>`_ - SLPVectorizer: Assertion \`isVectorLikeInstWithConstOps(FirstInst) && isVectorLikeInstWithConstOps(I) && "Expected vector-like insts only."' failed with -O3 -march=skx
 | `53807 <https://github.com/llvm/llvm-project/issues/53807>`_ - [NewGVN] Assertion \`BeforeCC->isEquivalentTo(AfterCC) && "Value number changed after main loop completed!"' failed
 | `52561 <https://bugs.llvm.org/show_bug.cgi?id=52561>`_ - Assertion failed for sapphirerapids: \`VT.getSizeInBits() == Operand.getValueSizeInBits() && "Cannot BITCAST between types of different sizes!"'
@@ -310,3 +311,15 @@ Version #1
 TCC - Tiny C Compiler:
 ====================================
 | `63816 <https://savannah.nongnu.org/bugs/?63816>`_ - tcc miscompiled test code goes from the middle of an if section into the else section (yarpgen v1)
+
+====================================
+MSVC:
+====================================
+| `11131532 <https://developercommunity.visualstudio.com/t/MSVC-miscompiles-signed-x-lt;lt;-k/11131532>`_ - MSVC miscompiles signed `(x << k) > 0` as `x > 0`
+| `11126250 <https://developercommunity.visualstudio.com/t/MSVC-O1-miscompiles-nested-array-loop/11126250>`_ - MSVC /O1 miscompiles nested array loop, regression from 19.50
+| `11125055 <https://developercommunity.visualstudio.com/t/MSVC-O1-and-O2-miscompiles-signed-modu/11125055>`_ - MSVC /O1 and /O2 miscompiles signed modulo comparison expression
+| `11140883 <https://developercommunity.visualstudio.com/t/MSVC-O2-miscompiles-global-assignment-f/11140883>`_ - MSVC /O2 miscompiles global assignment followed by XOR operation
+| `11141098 <https://developercommunity.visualstudio.com/t/C-optimizer-miscompiles-x-gt;gt;-k/11141098>`_ - C++ optimizer miscompiles (x >> k) >= C when C << k overflows
+| `11126097 <https://developercommunity.visualstudio.com/t/MSVC-miscompiles-unsigned-long-long-expr/11126097>`_ - MSVC miscompiles unsigned long long expression and skips loop in /O1
+| `11127140 <https://developercommunity.visualstudio.com/t/MSVC-O2-miscompiles-short-to-unsigned-w/11127140>`_ - MSVC /O2 miscompiles short-to-unsigned widening and reuses wrong sign extension
+| `11148645 <https://developercommunity.visualstudio.com/t/MSVC-Ot-optimization-causes-super-quadr/11148645>`_ - MSVC /Ot optimization causes super-quadratic compile time for nested loops
