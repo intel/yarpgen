@@ -229,8 +229,9 @@ GenPolicy::GenPolicy() {
         Probability<PragmaKind>(PragmaKind::CLANG_VEC_PREDICATE, 20));
     pragma_kind_distr.emplace_back(
         Probability<PragmaKind>(PragmaKind::CLANG_UNROLL, 20));
-    pragma_kind_distr.emplace_back(
-        Probability<PragmaKind>(PragmaKind::OMP_SIMD, 20));
+    if (options.getOmpSimdPragma())
+        pragma_kind_distr.emplace_back(
+            Probability<PragmaKind>(PragmaKind::OMP_SIMD, 20));
     shuffleProbProxy(pragma_kind_distr);
 
     active_similar_op = SimilarOperators::MAX_SIMILAR_OP;
@@ -590,7 +591,7 @@ void GenPolicy::applyGccClangConstraints() {
     scope_stmt_max_num = 4;
     scope_stmt_num_distr.clear();
     uniformProbFromMax(scope_stmt_num_distr, scope_stmt_max_num,
-                        scope_stmt_min_num);
+                       scope_stmt_min_num);
 
     // Unlike MSVC's pattern matcher, GCC/Clang vectorize reductions (sum,
     // min/max) just fine, so let them back in alongside plain assignments.
@@ -676,13 +677,11 @@ void GenPolicy::applyGccClangConstraints() {
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SCHAR, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UCHAR, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::SHORT, 10));
-    int_type_distr.emplace_back(
-        Probability<IntTypeID>(IntTypeID::USHORT, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::USHORT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::INT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::UINT, 10));
     int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::LLONG, 10));
-    int_type_distr.emplace_back(
-        Probability<IntTypeID>(IntTypeID::ULLONG, 10));
+    int_type_distr.emplace_back(Probability<IntTypeID>(IntTypeID::ULLONG, 10));
     shuffleProbProxy(int_type_distr);
 
     // Simple stencils (a[i] + a[i-1]) are vectorizable via a versioned

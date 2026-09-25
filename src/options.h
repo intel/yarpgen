@@ -102,6 +102,7 @@ class OptionParser {
     static void parseMaxArrayDims(std::string max_array_dims_str);
     static void parseSimpleLoops(std::string simple_loops_str);
     static void parseVectorizerTarget(std::string vectorizer_target_str);
+    static void parseOmpSimdPragma(std::string omp_simd_pragma_str);
 };
 
 class Options {
@@ -197,6 +198,10 @@ class Options {
     }
     VectorizerTarget getVectorizerTarget() { return vectorizer_target; }
 
+    // Whether "#pragma omp simd" may be generated at all
+    void setOmpSimdPragma(bool _val) { omp_simd_pragma = _val; }
+    bool getOmpSimdPragma() { return omp_simd_pragma; }
+
     void dump(std::ostream &stream);
 
   private:
@@ -210,7 +215,8 @@ class Options {
           mutation_kind(MutationKind::NONE), mutation_seed(0),
           allow_ub_in_dc(OptionLevel::NONE), max_array_dims(0),
           simple_loops(OptionLevel::NONE),
-          vectorizer_target(VectorizerTarget::MSVC) {}
+          vectorizer_target(VectorizerTarget::MSVC),
+          omp_simd_pragma(true) {}
 
     std::vector<std::string> raw_options;
 
@@ -251,5 +257,6 @@ class Options {
 
     // Which vectorizer's recognizable loop shapes to constrain to.
     VectorizerTarget vectorizer_target;
+    bool omp_simd_pragma;
 };
 } // namespace yarpgen

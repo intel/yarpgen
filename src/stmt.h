@@ -161,7 +161,8 @@ class LoopHead {
     bool isForeach() { return is_foreach; }
 
     std::shared_ptr<Iterator>
-    populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val);
+    populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val,
+                      bool force_omp_canonical = false);
     void createPragmas(std::shared_ptr<PopulateCtx> ctx);
     bool hasSIMDPragma();
     // Attaches the reductions found while populating this loop's body to its

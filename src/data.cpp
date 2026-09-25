@@ -21,6 +21,7 @@ limitations under the License.
 #include "context.h"
 #include "expr.h"
 
+#include <algorithm>
 #include <utility>
 
 using namespace yarpgen;
@@ -158,19 +159,21 @@ void Iterator::setParameters(std::shared_ptr<Expr> _start,
 }
 
 std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
-                                           size_t _end_val, bool is_uniform) {
+                                           size_t _end_val, bool is_uniform,
+                                           bool force_omp_canonical) {
     // TODO: this function is full of magic constants and weird hacks to cut
     //  some corners for ISPC and overflows
     auto gen_pol = ctx->getGenPolicy();
 
     IntTypeID type_id = rand_val_gen->getRandId(gen_pol->int_type_distr);
 
-    // TODO: It looks like integral promotion rules for bool in ISPC are
-    // broken, so we have to do them manually
-    // A bool induction variable is also illegal under "#pragma omp simd"
     Options &options = Options::getInstance();
-    if ((options.isISPC() || ctx->isInsideOMPSimd()) &&
-        type_id == IntTypeID::BOOL)
+    // A bool induction variable is fine in a plain loop, but:
+    //   - ISPC's integral promotion rules for bool are broken so we have to do them manually
+    //   - under "#pragma omp simd" the loop must be in OpenMP canonical form, which includes
+    //     int induction var
+    if (type_id == IntTypeID::BOOL &&
+        (options.isISPC() || force_omp_canonical || ctx->isInsideOMPSimd()))
         type_id = IntTypeID::INT;
 
     std::shared_ptr<Type> type = IntegralType::init(type_id);
@@ -241,10 +244,14 @@ std::shared_ptr<Iterator> Iterator::create(std::shared_ptr<PopulateCtx> ctx,
         nh.getIterName(), type, start, left_span, end, right_span, step,
         end_val == left_span, total_iters_num);
 
-    // Under "#pragma omp simd" Iterator::create() is constrained to an
-    // integer type that is not bool, and populate() keeps the step constant,
-    // so the loop stays in OpenMP's canonical form.
-    iter->setOmpCanonical(ctx->isInsideOMPSimd());
+    // Under "#pragma omp simd", and whenever "force_omp_canonical" asks for it,
+    // Iterator::create() is constrained to an integer type that is not bool and
+    // populate() keeps the step call-free, so the loop stays in OpenMP's
+    // canonical form. "force_omp_canonical" has to count here too: such an
+    // iterator heads a same-iter-space span and is canonical in fact even
+    // though it was built outside a simd region, and LoopSeqStmt::populate()
+    // consults this flag before cloning it into the loops that follow.
+    iter->setOmpCanonical(ctx->isInsideOMPSimd() || force_omp_canonical);
 
     bool supports_mul_vals = step_val % 2 != Options::main_val_idx ||
                              left_span % 2 != Options::main_val_idx;
@@ -334,7 +341,8 @@ static std::shared_ptr<Expr> adjustIterExprValue(std::shared_ptr<Expr> expr,
     return ret;
 }
 
-void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
+void Iterator::populate(std::shared_ptr<PopulateCtx> ctx,
+                        bool force_omp_canonical) {
     auto gen_pol = ctx->getGenPolicy();
 
     Options &options = Options::getInstance();
@@ -416,12 +424,23 @@ void Iterator::populate(std::shared_ptr<PopulateCtx> ctx) {
 
     start = populate_impl(type, start);
     end = populate_impl(type, end);
-    // OpenMP's canonical loop form requires a loop-invariant increment. The
-    // arbitrary expression populate_impl() would otherwise build is rejected
-    // by gcc ("invalid increment expression") once it contains a call, so
-    // under "#pragma omp simd" the step stays the constant create() picked.
-    if (!ctx->isInsideOMPSimd())
-        step = populate_impl(type, step);
+
+    // OpenMP canonical loop form restricts the increment to a simple loop-invariant
+    // integer expression. A function call (say std::min/std::max) isn't one.
+    if (force_omp_canonical || ctx->isInsideOMPSimd()) {
+        auto step_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+        auto &step_node_distr = step_gen_pol->arith_node_distr;
+        step_node_distr.erase(
+            std::remove_if(step_node_distr.begin(), step_node_distr.end(),
+                           [](Probability<IRNodeKind> &p) {
+                               return p.getId() == IRNodeKind::CALL;
+                           }),
+            step_node_distr.end());
+        new_ctx->setGenPolicy(step_gen_pol);
+        gen_pol = step_gen_pol;
+    }
+
+    step = populate_impl(type, step);
 }
 
 DataType TypedData::replaceWith(DataType _new_data) {

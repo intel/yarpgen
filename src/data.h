@@ -241,10 +241,16 @@ class Iterator : public Data {
 
     void dbgDump() final;
 
+    // "force_omp_canonical" constrains the iterator to OpenMP canonical loop
+    // form even when the context is not (yet) inside a "#pragma omp simd" --
+    // needed for an iterator that will be cloned into later loops, which may
+    // carry the pragma themselves.
     static std::shared_ptr<Iterator> create(std::shared_ptr<PopulateCtx> ctx,
                                             size_t _end_val,
-                                            bool is_uniform = true);
-    void populate(std::shared_ptr<PopulateCtx> ctx);
+                                            bool is_uniform = true,
+                                            bool force_omp_canonical = false);
+    void populate(std::shared_ptr<PopulateCtx> ctx,
+                  bool force_omp_canonical = false);
 
     std::shared_ptr<Data> makeVarying() override {
         return makeVaryingImpl(*this);

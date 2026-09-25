@@ -2581,15 +2581,37 @@ AssignmentExpr::create(std::shared_ptr<PopulateCtx> ctx) {
     DataKind out_kind = rand_val_gen->getRandId(gen_pol->out_kind_distr);
     std::shared_ptr<Expr> to;
 
+    auto arr_target_allowed = [&gen_pol]() {
+        return std::find_if(gen_pol->out_kind_distr.begin(),
+                            gen_pol->out_kind_distr.end(),
+                            [](Probability<DataKind> &p) {
+                                return p.getId() == DataKind::ARR &&
+                                       p.getProb() > 0.0;
+                            }) != gen_pol->out_kind_distr.end();
+    };
+
     if (!from_val->getType()->isUniform()) {
-        auto find_res = std::find_if(
-            gen_pol->out_kind_distr.begin(), gen_pol->out_kind_distr.end(),
-            [](Probability<DataKind> &p) {
-                return p.getId() == DataKind::ARR && p.getProb() > 0.0;
-            });
-        if (find_res != gen_pol->out_kind_distr.end())
+        if (arr_target_allowed())
             out_kind = DataKind::ARR;
     }
+
+    // Inside a "#pragma omp simd" a scalar target is a shared variable written
+    // by every iteration, i.e. a loop-carried output dependence: the pragma
+    // asserts the iterations may run concurrently, so which iteration's value
+    // survives is not something OpenMP guarantees. An array element subscripted
+    // by the loop iterator is written once per iteration, so it is safe.
+    //
+    // Reductions are the exception and need no handling here: their target is
+    // deliberately a scalar, and ReductionExpr::create has already zeroed the
+    // ARR probability for them, so arr_target_allowed() is false and the
+    // scalar target survives to be named in the reduction clause.
+    //
+    // "lastprivate" would not be an adequate alternative: assignments are often
+    // generated inside an "if", and lastprivate leaves the value unspecified
+    // when the sequentially last iteration does not execute the assignment.
+    if (ctx->isInsideOMPSimd() && ctx->getLoopDepth() > 0 &&
+        arr_target_allowed())
+        out_kind = DataKind::ARR;
 
     if ((out_kind == DataKind::VAR || ctx->getLoopDepth() == 0)) {
         auto new_var = ScalarVar::create(ctx);
@@ -3021,19 +3043,52 @@ ReductionExpr::create(std::shared_ptr<PopulateCtx> ctx) {
 
     auto base_assign_expr = AssignmentExpr::create(active_ctx);
 
-    // ISPC has some problems with bool type in compound assignments, so we
-    // will disable them for now
-    // TODO: fix me later!
-    // The same restriction applies under "#pragma omp simd" - bool reduction 
-    // is illegal
-    Options &options = Options::getInstance();
-    if (options.isISPC() || ctx->isInsideOMPSimd()) {
+    // Here "target" is the reduction accumulator -- the left-hand side of
+    // "x op= ..." that ends up in the reduction clause -- not the induction
+    // variable, which is handled in Iterator::create.
+    //
+    // A reduction clause licenses regrouping *and* reordering: OpenMP leaves
+    // both the location and the order in which the partial values are
+    // combined unspecified. A simd reduction uses both: lane j accumulates
+    // iterations j, j+VF, j+2VF, ... on its own, so serial
+    // "x op v0 op v1 op v2 op v3" becomes "(x op v0 op v2) op (v1 op v3)".
+    // The result is therefore well defined only if the operator is both
+    // associative and commutative for the type. For a bool accumulator it is
+    // neither: "x += v" means "x = (bool)((int)x + v)", truncating to {0,1}
+    // at every step. Regrouping changes the answer -- v = 1, 1, -1 stepwise
+    // gives 0, accumulating wide and truncating once gives 1 -- and so does
+    // reordering, since v = 1, -1, 1 stepwise gives 1. GCC and Clang thus
+    // legitimately disagree; GCC's answer even depends on the iteration count
+    // alone (n <= 3 matches serial, n >= 4 does not, identically under SSE,
+    // AVX2 and AVX-512).
+    //
+    // Neither compiler is wrong, so this is not a bug to report; it is simply
+    // useless as a differential oracle, exactly like reduction(+:float).
+    // Every other integer type is fine: wrap-around mod 2^N stays associative,
+    // and only bool truncates. The bitwise operators are fine at every type.
+    //
+    // Only the OpenMP reduction clause grants the license above; C++ grants
+    // none. The as-if rule makes integer arithmetic exact, so an
+    // auto-vectorizer may not reassociate a bool accumulator, and both GCC
+    // and Clang duly agree on the same loop without a pragma. There a
+    // disagreement would be a real miscompile -- exactly what we are looking
+    // for -- so the restriction below applies only under "#pragma omp simd",
+    // plus ISPC for the compound-assignment reason noted next.
+    //
+    // ("-" is unusable at every type, not just bool: it is neither
+    // associative nor commutative, which is why the identifier was deprecated
+    // in OpenMP 5.0 and removed in 5.2. Both compilers still accept it, with
+    // no obligation to agree. ISPC has separate trouble with bool in compound
+    // assignments, which is what the isISPC() arm below is for.)
+    {
         base_assign_expr->propagateType();
         assert(base_assign_expr->getValue()->getType()->isIntType() &&
                "We support only int type for now");
         auto base_int_type = std::static_pointer_cast<IntegralType>(
             base_assign_expr->getTo()->getValue()->getType());
-        if (base_int_type->getIntTypeId() == IntTypeID::BOOL) {
+        Options &options = Options::getInstance();
+        if (base_int_type->getIntTypeId() == IntTypeID::BOOL &&
+            (options.isISPC() || ctx->isInsideOMPSimd())) {
             new_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
             bool bin_op_red_is_supported = false;
             for (auto &kind_prob : new_gen_pol->reduction_bin_op_distr) {

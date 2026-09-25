@@ -342,12 +342,13 @@ void LoopHead::populateArrays(std::shared_ptr<PopulateCtx> ctx) {
 }
 
 std::shared_ptr<Iterator>
-LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val) {
+LoopHead::populateIterators(std::shared_ptr<PopulateCtx> ctx, size_t _end_val,
+                            bool force_omp_canonical) {
     auto gen_pol = ctx->getGenPolicy();
-    auto new_iter =
-        Iterator::create(ctx, _end_val, /*is_uniform*/ !isForeach());
+    auto new_iter = Iterator::create(ctx, _end_val, /*is_uniform*/ !isForeach(),
+                                     force_omp_canonical);
     new_iter->setIsDead(false);
-    new_iter->populate(ctx);
+    new_iter->populate(ctx, force_omp_canonical);
     addIterator(new_iter);
     return new_iter;
 }
@@ -509,7 +510,30 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
             else
                 new_dim = new_ctx->getDimensions().front();
 
-            new_iters = loop_head->populateIterators(new_ctx, new_dim);
+            // Decide the same-iter-space span before the iterator is
+            // populated, not after. A span clones this iterator into the
+            // loops that follow, and one of them may carry "#pragma omp simd"
+            // even though this loop does not -- so a cloned iterator has to
+            // be in OpenMP canonical form from the start.
+            bool starts_span =
+                rand_val_gen->getRandId(active_gen_pol->same_iter_space);
+            size_t span_counter =
+                starts_span
+                    ? std::min(loops.size() - cur_idx,
+                               rand_val_gen->getRandId(
+                                   active_gen_pol->same_iter_space_span)) -
+                          1
+                    : 0;
+
+            new_iters = loop_head->populateIterators(
+                new_ctx, new_dim, /*force_omp_canonical*/ span_counter > 0);
+
+            if (starts_span) {
+                same_iter_space_counter = span_counter;
+                same_iter_space_dim = new_dim;
+                if (span_counter > 0)
+                    loop_head->setSameIterSpace();
+            }
         }
         else {
             new_dim = same_iter_space_dim;
@@ -552,18 +576,6 @@ void LoopSeqStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         LoopHead::populateArrays(new_ctx);
 
         new_ctx->getLocalSymTable()->addIters(new_iters);
-
-        if (same_iter_space_counter == 0 &&
-            rand_val_gen->getRandId(active_gen_pol->same_iter_space)) {
-            same_iter_space_counter =
-                std::min(loops.size() - cur_idx,
-                         rand_val_gen->getRandId(
-                             active_gen_pol->same_iter_space_span)) -
-                1;
-            same_iter_space_dim = new_dim;
-            if (same_iter_space_counter > 0)
-                loop_head->setSameIterSpace();
-        }
 
         new_ctx->incLoopDepth(1);
         bool old_ctx_state = new_ctx->isTaken();
