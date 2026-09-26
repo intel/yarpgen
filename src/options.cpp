@@ -235,7 +235,7 @@ std::vector<OptionDescr> yarpgen::OptionParser::options_set{
      "if-conversion). Only meaningful when --simple-loops != none",
      "Can't parse vectorizer target option",
      OptionParser::parseVectorizerTarget,
-     "msvc",
+     "gcc-clang",
      {"msvc", "gcc-clang"}},
     {OptionKind::OMP_SIMD_PRAGMA,
      "",
