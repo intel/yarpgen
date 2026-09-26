@@ -215,7 +215,7 @@ class Options {
           mutation_kind(MutationKind::NONE), mutation_seed(0),
           allow_ub_in_dc(OptionLevel::NONE), max_array_dims(0),
           simple_loops(OptionLevel::NONE),
-          vectorizer_target(VectorizerTarget::MSVC),
+          vectorizer_target(VectorizerTarget::GCC_CLANG),
           omp_simd_pragma(true) {}
 
     std::vector<std::string> raw_options;
