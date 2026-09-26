@@ -662,7 +662,28 @@ LoopNestStmt::generateStructure(std::shared_ptr<GenCtx> ctx) {
     stats.addStmt(nest_depth);
 
     new_ctx->incLoopDepth(nest_depth);
-    new_loop_nest->addBody(ScopeStmt::generateStructure(new_ctx));
+
+    // Only a nest's innermost loop is a vectorization candidate, so it is the
+    // one that may be constrained to a simple shape. The nest's single shared
+    // body is that loop's body, so the decision has to be made before the body
+    // is generated, exactly as in LoopSeqStmt::generateStructure.
+    auto body_ctx = new_ctx;
+    if (nest_depth > 0) {
+        OptionLevel simple_loops = options.getSimpleLoops();
+        bool make_simple =
+            simple_loops == OptionLevel::ALL ||
+            (simple_loops == OptionLevel::SOME &&
+             rand_val_gen->getRandId(gen_pol->vectorizable_loop_distr));
+        if (make_simple) {
+            auto simple_gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+            simple_gen_pol->makeVectorizable(/*simple*/ true);
+            new_loop_nest->loops.back()->setSimple();
+            body_ctx = std::make_shared<GenCtx>(*new_ctx);
+            body_ctx->setGenPolicy(simple_gen_pol);
+        }
+    }
+
+    new_loop_nest->addBody(ScopeStmt::generateStructure(body_ctx));
 
     return new_loop_nest;
 }
@@ -678,6 +699,18 @@ void LoopNestStmt::populate(std::shared_ptr<PopulateCtx> ctx) {
         if ((*i)->getPrefix().use_count() != 0) {
             (*i)->getPrefix()->populate(new_ctx);
             taken_switch_id = i;
+        }
+
+        // Honor the structure pass's decision: the innermost loop carries
+        // the simple profile. It has to be in effect before the pragmas, the
+        // iteration space and the bound are picked, and it deliberately stays
+        // on new_ctx for body->populate() below -- that body belongs to this
+        // same innermost loop.
+        if ((*i)->isSimple()) {
+            gen_pol = std::make_shared<GenPolicy>(*gen_pol);
+            gen_pol->makeVectorizable(/*simple*/ true);
+            (*i)->setVectorizable();
+            new_ctx->setGenPolicy(gen_pol);
         }
 
         (*i)->createPragmas(new_ctx);
