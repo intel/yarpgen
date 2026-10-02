@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Check environment
       run: |
         cat /proc/cpuinfo
@@ -29,7 +29,7 @@ jobs:
         mkdir tests-cpp && cd tests-cpp
         for i in {0..9}
         do
-          mkdir $i && cd $i
+          mkdir "$i" && cd "$i"
           ../../build/yarpgen --std=c++
           cd ..
         done
@@ -38,7 +38,7 @@ jobs:
         mkdir tests-sycl && cd tests-sycl
         for i in {0..9}
         do
-          mkdir $i && cd $i
+          mkdir "$i" && cd "$i"
           ../../build/yarpgen --std=sycl
           cd ..
         done
@@ -47,22 +47,22 @@ jobs:
         mkdir tests-ispc && cd tests-ispc
         for i in {0..10}
         do
-          mkdir $i && cd $i
+          mkdir "$i" && cd "$i"
           ../../build/yarpgen --std=ispc
           cd ..
         done
     - name: Upload cpp tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests-cpp-lin
         path: tests-cpp
     - name: Upload sycl tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests-sycl-lin
         path: tests-sycl
     - name: Upload ispc tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests-ispc-lin
         path: tests-ispc
@@ -71,7 +71,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Check environment
       run: |
         sysctl -n machdep.cpu.brand_string
@@ -91,7 +91,7 @@ jobs:
         mkdir tests-cpp && cd tests-cpp
         for i in {0..9}
         do
-          mkdir $i && cd $i
+          mkdir "$i" && cd "$i"
           ../../build/yarpgen --std=c++
           cd ..
         done
@@ -100,7 +100,7 @@ jobs:
         mkdir tests-sycl && cd tests-sycl
         for i in {0..9}
         do
-          mkdir $i && cd $i
+          mkdir "$i" && cd "$i"
           ../../build/yarpgen --std=sycl
           cd ..
         done
@@ -109,22 +109,22 @@ jobs:
         mkdir tests-ispc && cd tests-ispc
         for i in {0..10}
         do
-          mkdir $i && cd $i
+          mkdir "$i" && cd "$i"
           ../../build/yarpgen --std=ispc
           cd ..
         done
     - name: Upload cpp tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests-cpp-mac
         path: tests-cpp
     - name: Upload sycl tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests-sycl-mac
         path: tests-sycl
     - name: Upload ispc tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests-ispc-mac
         path: tests-ispc
@@ -133,25 +133,26 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Check environment
-      shell: cmd
+      shell: pwsh
       run: |
-        wmic cpu get caption, deviceid, name, numberofcores, maxclockspeed, status
+        Get-CimInstance Win32_Processor |
+          Select-Object Caption, DeviceID, Name, NumberOfCores, MaxClockSpeed, Status |
+          Format-List
     - name: configure and build
       shell: cmd
       run: |
-        mkdir build
-        cmake -B build -DCMAKE_BUILD_TYPE=Release .
-        cmake --build build -j4 --config Release
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release || exit /b 1
+        cmake --build build -j4 --config Release || exit /b 1
     - name: run tests
       shell: cmd
       run: |
-        cd build\Release
-        type_test.exe
-        data_test.exe
-        expr_test.exe
-        gen_test.exe
+        cd build\Release || exit /b 1
+        type_test.exe || exit /b 1
+        data_test.exe || exit /b 1
+        expr_test.exe || exit /b 1
+        gen_test.exe || exit /b 1
     - name: generate cpp tests
       shell: cmd
       run: |
