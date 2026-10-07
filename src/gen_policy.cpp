@@ -656,8 +656,9 @@ void GenPolicy::applyGccClangConstraints() {
 
     // Multi-dimensional array access is fine as long as the innermost
     // dimension is still contiguous, which SubscriptOrderKind already
-    // ensures above.
-    array_dims_num_limit = 2;
+    // ensures above. Never raise a lower limit (e.g. "--max-array-dims=1"):
+    // the constructor only set up stencil_in_dim_prob up to that one.
+    array_dims_num_limit = std::min<size_t>(array_dims_num_limit, 2);
     array_dims_use_kind.clear();
     array_dims_use_kind.emplace_back(ArrayDimsUseKind::SAME, 60);
     array_dims_use_kind.emplace_back(ArrayDimsUseKind::MORE, 40);

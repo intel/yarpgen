@@ -945,11 +945,12 @@ Pragma::create(size_t num, std::shared_ptr<PopulateCtx> ctx) {
                   vec.end());
     };
 
-    if (ctx->isInsideOMPSimd()) {
+    if (ctx->isInsideOMPSimd())
         modify_disrt(PragmaKind::OMP_SIMD);
-        if (tmp_gen_pol->pragma_kind_distr.empty())
-            return {};
-    }
+    // Some policies (e.g. the MSVC simple-loop profile) allow no pragmas at
+    // all, whatever count "--emit-pragmas=all" asks for.
+    if (tmp_gen_pol->pragma_kind_distr.empty())
+        return {};
     tmp_ctx->setGenPolicy(tmp_gen_pol);
 
     for (size_t i = 0; i < num; ++i) {
