@@ -2696,6 +2696,45 @@ static bool outOfRange(IRValue val,
     return (val < min).getValueRef<bool>() || (val > max).getValueRef<bool>();
 }
 
+// An unsigned accumulator narrower than int (unsigned char/short) is promoted
+// to a *signed* int. Storing the result back wraps harmlessly, but the
+// arithmetic itself can still overflow. Sums and differences of two such
+// values always fit; products need not (65535 * 65535). Every product an
+// implementation forms - a lane step, merging two lanes, or folding a lane
+// into the original variable - multiplies a lane partial "inc^k" by either
+// another lane partial or a serial value "acc * inc^k", all narrowed to the
+// accumulator's type and with k <= total_iters_num. Multiplying the largest
+// of each therefore covers every lane partition and combination order.
+static bool narrowUnsignedProductOverflow(IRValue acc, IRValue inc,
+                                          size_t total_iters_num,
+                                          IntTypeID prom_type_id) {
+    IntTypeID acc_type_id = acc.getIntTypeID();
+    // The values are at most 16 bits wide, so ULLONG holds their products
+    // exactly; narrowing then does the accumulator's wrap-around.
+    auto narrow = [acc_type_id](IRValue val) {
+        return val.castToType(acc_type_id).castToType(IntTypeID::ULLONG);
+    };
+    auto max = [](IRValue lhs, IRValue rhs) {
+        return (lhs < rhs).getValueRef<bool>() ? rhs : lhs;
+    };
+
+    inc = inc.castToType(IntTypeID::ULLONG);
+    IRValue partial(IntTypeID::ULLONG, {false, 1});
+    IRValue serial = acc.castToType(IntTypeID::ULLONG);
+    IRValue max_partial = partial;
+    IRValue max_serial = serial;
+    for (size_t i = 0; i < total_iters_num; i++) {
+        partial = narrow(partial * inc);
+        serial = narrow(serial * inc);
+        max_partial = max(max_partial, partial);
+        max_serial = max(max_serial, serial);
+    }
+    IRValue max_other = max(max_partial, max_serial);
+    return (max_partial.castToType(prom_type_id) *
+            max_other.castToType(prom_type_id))
+        .hasUB();
+}
+
 // reductionHelper walks the serial order, starting from the accumulator's
 // current value. That is not the only order an implementation may use: OpenMP
 // lets a reduction be re-associated, and vectorizers do exactly that. They
@@ -2710,9 +2749,10 @@ static bool outOfRange(IRValue val,
 // allowMulVals), so every step moves the same way and the last partial is the
 // one furthest from the identity. Checking that single value therefore covers
 // every possible lane partition.
-static bool reductionPartialsOverflow(
-    BinaryOp bin_op, IRValue inc, size_t total_iters_num,
-    const std::shared_ptr<IntegralType> &acc_type) {
+static bool
+reductionPartialsOverflow(BinaryOp bin_op, IRValue acc, IRValue inc,
+                          size_t total_iters_num,
+                          const std::shared_ptr<IntegralType> &acc_type) {
     // Each lane keeps a private copy of the accumulator's own type, so the
     // increment it adds is the narrowed one. That loses nothing: the serial
     // "acc = (short)(acc + inc)" and the lane's "acc += (short)inc" agree
@@ -2728,9 +2768,18 @@ static bool reductionPartialsOverflow(
             IRValue(acc_type->getIntTypeId(), {false, 0})),
         std::make_shared<ConstantExpr>(inc));
     probe->propagateType();
-    IntTypeID prom_type_id =
-        std::static_pointer_cast<IntegralType>(probe->getValue()->getType())
-            ->getIntTypeId();
+    auto prom_type =
+        std::static_pointer_cast<IntegralType>(probe->getValue()->getType());
+    IntTypeID prom_type_id = prom_type->getIntTypeId();
+
+    if (!acc_type->getIsSigned()) {
+        // Unsigned arithmetic wraps, so only promotion to a signed type can
+        // overflow.
+        if (!prom_type->getIsSigned() || bin_op != BinaryOp::MUL)
+            return false;
+        return narrowUnsignedProductOverflow(acc, inc, total_iters_num,
+                                             prom_type_id);
+    }
 
     IRValue res;
     switch (bin_op) {
@@ -2852,14 +2901,12 @@ Expr::EvalResType ReductionExpr::evaluate(EvalCtx &ctx) {
 
     // The serial order is UB-free, but under "#pragma omp simd" an
     // implementation may pick another association order. Check the one it
-    // actually uses - see reductionPartialsHelper. Outside of a
+    // actually uses - see reductionPartialsOverflow. Outside of a
     // "reduction(...)" clause there is no such license, so the serial order
-    // checked above is the only one. Unsigned accumulators wrap, so only
-    // signed ones can go wrong.
+    // checked above is the only one.
     if (is_omp_reduction && bin_op != BinaryOp::MAX_BIN_OP &&
-        to_int_type->getIsSigned() &&
-        reductionPartialsOverflow(bin_op, from_eval_val, ctx.total_iter_num,
-                                  to_int_type)) {
+        reductionPartialsOverflow(bin_op, to_eval_val, from_eval_val,
+                                  ctx.total_iter_num, to_int_type)) {
         // Reporting UB here makes rebuild() degenerate this into a plain
         // assignment, which in turn keeps the variable out of the
         // "reduction(...)" clause. See ExprStmt::create.

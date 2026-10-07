@@ -419,7 +419,7 @@ class ReductionExpr : public AssignmentExpr {
     // up as a list item of that pragma's "reduction(...)" clause. Only then is
     // an implementation allowed to re-associate the accumulation, so only then
     // does evaluate() have to check the extra orders - see
-    // reductionPartialsHelper.
+    // reductionPartialsOverflow.
     bool is_omp_reduction;
 };
 
