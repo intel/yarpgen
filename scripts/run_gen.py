@@ -1727,8 +1727,10 @@ if __name__ == '__main__':
     # Worker processes rely on inheriting global state (logger,
     # CompilerSpecs.all_comp_specs, ...) set up here in the parent, which
     # only works with 'fork' semantics. Python 3.14 changed the default
-    # start method on Linux to 'forkserver', which breaks that.
-    multiprocessing.set_start_method("fork")
+    # start method on Linux to 'forkserver', which breaks that. Windows has
+    # no 'fork' at all, so it keeps its default 'spawn'.
+    if "fork" in multiprocessing.get_all_start_methods():
+        multiprocessing.set_start_method("fork")
 
     if os.environ.get("YARPGEN_HOME") is None:
         sys.stderr.write("\nWarning: please set YARPGEN_HOME environment variable to point to yarpgen's directory,"
@@ -1791,7 +1793,7 @@ Use specified folder for testing
                         help="Forwarded to the generator's --simple-loops: constrain loops to shapes that "
                              "narrow vectorizers (e.g. MSVC's) can recognize. 'none' omits the flag "
                              "(generator default).")
-    parser.add_argument("--vectorizer-target", dest="vectorizer_target", default="msvc",
+    parser.add_argument("--vectorizer-target", dest="vectorizer_target", default="gcc-clang",
                         choices=["msvc", "gcc-clang"], type=str,
                         help="Forwarded to the generator's --vectorizer-target: which vectorizer's "
                              "recognizable loop shapes --simple-loops should constrain to. Only meaningful "
