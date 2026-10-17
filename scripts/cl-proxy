@@ -41,14 +41,18 @@ import re
 import subprocess
 import sys
 
-# Candidate locations for vcvars64.bat (Build Tools and full VS, 2026/2022/2019,
-# both Program Files roots). YARPGEN_VCVARS overrides all of them.
+# Candidate locations for vcvars64.bat (Build Tools, full VS and the prerelease
+# channels, 2026/2022/2019, both Program Files roots). YARPGEN_VCVARS overrides
+# all of them.
 # Built from version-dirs x editions x install roots. Newest-first so
-# find_vcvars() defaults to the newest installed toolchain. Note the install
-# directory is a version number, not the marketing year: VS 2026 is "18", VS
-# 2022 is "2022"/"17". We list both the version and the year spelling to be safe.
+# find_vcvars() defaults to the newest installed toolchain; that's also why the
+# prerelease editions (VS 2026 "Insiders", VS 2022 "Preview") come first. Note
+# the install directory is a version number, not the marketing year: VS 2026 is
+# "18", VS 2022 is "2022"/"17". We list both the version and the year spelling
+# to be safe.
 _VS_YEARS = ["18", "2026", "17", "2022", "2019"]
-_VS_EDITIONS = ["BuildTools", "Community", "Professional", "Enterprise"]
+_VS_EDITIONS = ["Insiders", "Preview",
+                "BuildTools", "Community", "Professional", "Enterprise"]
 _VS_ROOTS = ["C:\\Program Files", "C:\\Program Files (x86)"]
 _VCVARS_CANDIDATES = [
     "%s\\Microsoft Visual Studio\\%s\\%s\\VC\\Auxiliary\\Build\\vcvars64.bat"
@@ -182,7 +186,11 @@ def make_launcher(name, exe):
 
 
 # Cache of the MSVC environment so we do not pay the ~25s vcvars cost per call.
-CACHE = os.environ.get("YARPGEN_MSVC_ENV_CACHE",
+# It records the vcvars it was captured from and is recaptured when that changes
+# (e.g. a different YARPGEN_VCVARS), so switching toolchains needs no manual
+# cleanup. Point YARPGEN_MSVC_ENV_CACHE at a per-toolchain file to switch back
+# and forth without paying the recapture each time.
+CACHE =os.environ.get("YARPGEN_MSVC_ENV_CACHE",
                        os.path.expanduser("~/.cache/yarpgen_msvc_env.json"))
 
 
@@ -218,7 +226,8 @@ def capture_msvc_env():
             break
     if not cl:
         return {}
-    data = {"cl": cl,
+    data = {"vcvars": VCVARS,
+            "cl": cl,
             "vars": {k: env[k] for k in ("INCLUDE", "LIB", "LIBPATH")
                      if k in env}}
     try:
@@ -234,7 +243,8 @@ def load_msvc_env():
     try:
         with open(CACHE) as f:
             data = json.load(f)
-        if data.get("cl") and os.path.isfile(data["cl"]):
+        if (data.get("vcvars") == VCVARS and data.get("cl")
+                and os.path.isfile(data["cl"])):
             return data
     except (OSError, ValueError):
         pass
