@@ -323,3 +323,4 @@ MSVC:
 | `11126097 <https://developercommunity.visualstudio.com/t/MSVC-miscompiles-unsigned-long-long-expr/11126097>`_ - MSVC miscompiles unsigned long long expression and skips loop in /O1
 | `11127140 <https://developercommunity.visualstudio.com/t/MSVC-O2-miscompiles-short-to-unsigned-w/11127140>`_ - MSVC /O2 miscompiles short-to-unsigned widening and reuses wrong sign extension
 | `11148645 <https://developercommunity.visualstudio.com/t/MSVC-Ot-optimization-causes-super-quadr/11148645>`_ - MSVC /Ot optimization causes super-quadratic compile time for nested loops
+| `11167808 <https://developercommunity.visualstudio.com/t/MSVC-O2-compile-time-grows-exponentiall/11167808>`_ - MSVC /O2 compile time grows exponentially for XOR comparison loops
