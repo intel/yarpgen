@@ -196,8 +196,11 @@ template <typename T> static bool checkMulIsOk(T a, T b, IRValue &res) {
     unsigned_T ret = 0;
 
     int32_t sign = (((a > 0) && (b > 0)) || ((a < 0) && (b < 0))) ? 1 : -1;
-    unsigned_T a_abs = std::abs(a);
-    unsigned_T b_abs = std::abs(b);
+    // std::abs() of the minimal value is UB, so negate in the unsigned type
+    unsigned_T a_abs = a < 0 ? unsigned_T(0) - static_cast<unsigned_T>(a)
+                             : static_cast<unsigned_T>(a);
+    unsigned_T b_abs = b < 0 ? unsigned_T(0) - static_cast<unsigned_T>(b)
+                             : static_cast<unsigned_T>(b);
 
     using unsigned_half_T =
         std::conditional_t<std::is_same<T, int32_t>::value, uint16_t, uint32_t>;
@@ -221,8 +224,10 @@ template <typename T> static bool checkMulIsOk(T a, T b, IRValue &res) {
     if (ret < (tmp << half_bit_size))
         return false;
 
-    if (((sign < 0) && (ret > static_cast<unsigned_T>(
-                                  std::abs(std::numeric_limits<T>::min())))) ||
+    // The magnitude of the minimal value is max + 1
+    unsigned_T min_abs =
+        static_cast<unsigned_T>(std::numeric_limits<T>::max()) + 1;
+    if (((sign < 0) && (ret > min_abs)) ||
         ((sign > 0) &&
          (ret > static_cast<unsigned_T>(std::numeric_limits<T>::max()))))
         return false;

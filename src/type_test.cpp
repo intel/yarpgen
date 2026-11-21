@@ -374,6 +374,48 @@ singleMulTest(IntTypeID type_id) {
 
 //////////////////////////////////////////////////////////////////////////////
 
+// Products with a negative sign and a magnitude close to the minimal value.
+// The random test above rarely hits this range.
+template <typename T> void edgeMulTest(IntTypeID type_id) {
+    auto check = [type_id](T a_val, T b_val, bool expect_ub) {
+        IRValue a(type_id);
+        IRValue b(type_id);
+        a.getValueRef<T>() = a_val;
+        a.setUBCode(UBKind::NoUB);
+        b.getValueRef<T>() = b_val;
+        b.setUBCode(UBKind::NoUB);
+        IRValue ret = a * b;
+        if (expect_ub)
+            checkBinaryForUB<T>(ret, a, b, "edgeMulTest");
+        else
+            checkBinaryNoUB<T>(ret, a, b, std::multiplies<T>(), "edgeMulTest");
+    };
+
+    constexpr T min = std::numeric_limits<T>::min();
+    constexpr T max = std::numeric_limits<T>::max();
+    constexpr int half = sizeof(T) * CHAR_BIT / 2;
+    constexpr T half_one = static_cast<T>(1) << half;
+    constexpr T half_mid = static_cast<T>(1) << (half - 1);
+
+    // -2^half * 2^(half-1) is exactly the minimal value
+    check(-half_one, half_mid, false);
+    check(half_mid, -half_one, false);
+    check(-half_one, half_mid + 1, true);
+    check(min, 1, false);
+    check(1, min, false);
+    check(min, 2, true);
+    check(-2, min, true);
+    check(-1, max, false);
+    check(max, -2, true);
+    // Magnitude is above max + 1 but still fits into the unsigned type
+    if (std::is_same<T, int32_t>::value)
+        check(static_cast<T>(39963), static_cast<T>(-53782), true);
+    else
+        check(static_cast<T>(51), static_cast<T>(-340777997105434190LL), true);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 template <typename T> void singleDivModTest(IntTypeID type_id) {
     IRValue a(type_id);
     IRValue b(type_id);
@@ -746,6 +788,9 @@ void ir_value_test() {
         singleMulTest<TypeSLLong::value_type>(IntTypeID::LLONG);
         singleMulTest<TypeULLong::value_type>(IntTypeID::ULLONG);
     }
+
+    edgeMulTest<TypeSInt::value_type>(IntTypeID::INT);
+    edgeMulTest<TypeSLLong::value_type>(IntTypeID::LLONG);
 
     for (int i = 0; i < test_num; ++i) {
         singleDivModTest<TypeSInt::value_type>(IntTypeID::INT);
