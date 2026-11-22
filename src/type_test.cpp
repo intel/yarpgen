@@ -92,12 +92,13 @@ void type_test() {
 // Will be used to obtain a seed for the random number engine
 static std::random_device rd;
 static std::mt19937 generator;
+static bool edge_test_failed = false;
 
 //////////////////////////////////////////////////////////////////////////////
 // Utility functions to perform check of the result
 
 template <typename T>
-void checkBinaryNoUB(IRValue &ret, IRValue &a, IRValue &b,
+bool checkBinaryNoUB(IRValue &ret, IRValue &a, IRValue &b,
                      std::function<T(T &, T &)> foo,
                      const std::string &test_name) {
     if (ret.getUBCode() != UBKind::NoUB ||
@@ -105,37 +106,45 @@ void checkBinaryNoUB(IRValue &ret, IRValue &a, IRValue &b,
         std::cout << "ERROR: " << test_name << " " << typeid(T).name();
         std::cout << " ERROR NoUB: " << a.getValueRef<T>() << " | "
                   << b.getValueRef<T>() << std::endl;
+        return false;
     }
+    return true;
 }
 
 template <typename T>
-void checkBinaryForUB(IRValue &ret, IRValue &a, IRValue &b,
+bool checkBinaryForUB(IRValue &ret, IRValue &a, IRValue &b,
                       const std::string &test_name) {
     if (ret.getUBCode() == UBKind::NoUB ||
         ret.getValueRef<T>() != static_cast<T>(0)) {
         std::cout << "ERROR: " << test_name << " " << typeid(T).name();
         std::cout << " ERROR UB: " << a.getValueRef<T>() << " | "
                   << b.getValueRef<T>() << std::endl;
+        return false;
     }
+    return true;
 }
 
 template <typename T>
-void checkUnaryNoUB(IRValue &ret, IRValue &a, std::function<T(T &)> foo,
+bool checkUnaryNoUB(IRValue &ret, IRValue &a, std::function<T(T &)> foo,
                     const std::string &test_name) {
     if (ret.getUBCode() != UBKind::NoUB ||
         ret.getValueRef<T>() != foo(a.getValueRef<T>())) {
         std::cout << "ERROR: " << test_name << " " << typeid(T).name();
         std::cout << " ERROR NoUB: " << a.getValueRef<T>() << std::endl;
+        return false;
     }
+    return true;
 }
 
 template <typename T>
-void checkUnaryForUB(IRValue &ret, IRValue &a, const std::string &test_name) {
+bool checkUnaryForUB(IRValue &ret, IRValue &a, const std::string &test_name) {
     if (ret.getUBCode() == UBKind::NoUB ||
         ret.getValueRef<T>() != static_cast<T>(0)) {
         std::cout << "ERROR: " << test_name << " " << typeid(T).name();
         std::cout << " ERROR UB: " << a.getValueRef<T>() << std::endl;
+        return false;
     }
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -385,10 +394,12 @@ template <typename T> void edgeMulTest(IntTypeID type_id) {
         b.getValueRef<T>() = b_val;
         b.setUBCode(UBKind::NoUB);
         IRValue ret = a * b;
-        if (expect_ub)
-            checkBinaryForUB<T>(ret, a, b, "edgeMulTest");
-        else
-            checkBinaryNoUB<T>(ret, a, b, std::multiplies<T>(), "edgeMulTest");
+        bool ok = expect_ub
+                      ? checkBinaryForUB<T>(ret, a, b, "edgeMulTest")
+                      : checkBinaryNoUB<T>(ret, a, b, std::multiplies<T>(),
+                                           "edgeMulTest");
+        if (!ok)
+            edge_test_failed = true;
     };
 
     constexpr T min = std::numeric_limits<T>::min();
@@ -1091,4 +1102,10 @@ int main() {
     }
     std::cout << "Total array records: " << total_records << std::endl;
     */
+
+    if (edge_test_failed) {
+        std::cout << "edgeMulTest failed" << std::endl;
+        return 1;
+    }
+    return 0;
 }
